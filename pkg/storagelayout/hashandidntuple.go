@@ -1,22 +1,24 @@
 package storagelayout
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/goph/emperror"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
 	"hash"
+	"io"
 	"strings"
 )
 
+const HashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
+
 type HashAndIdNTuple struct {
-	digestAlgorithm checksum.DigestAlgorithm
-	tupleSize       int
-	numberOfTuples  int
-	hash            hash.Hash
+	*HashAndIdNTupleConfig
+	hash hash.Hash
 }
 type HashAndIdNTupleConfig struct {
-	Config
+	*Config
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
@@ -34,11 +36,7 @@ func NewHashAndIdNTuple(config *HashAndIdNTupleConfig) (*HashAndIdNTuple, error)
 		config.NumberOfTuples = 0
 		config.TupleSize = 0
 	}
-	sl := &HashAndIdNTuple{
-		digestAlgorithm: checksum.DigestAlgorithm(config.DigestAlgorithm),
-		tupleSize:       config.TupleSize,
-		numberOfTuples:  config.NumberOfTuples,
-	}
+	sl := &HashAndIdNTuple{HashAndIdNTupleConfig: config}
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, emperror.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
 	}
@@ -50,7 +48,7 @@ func NewHashAndIdNTuple(config *HashAndIdNTupleConfig) (*HashAndIdNTuple, error)
 }
 
 func (sl *HashAndIdNTuple) Name() string {
-	return "0003-hash-and-id-n-tuple-storage-layout"
+	return HashAndIdNTupleName
 }
 
 func shouldEscape(c rune) bool {
@@ -82,12 +80,12 @@ func (sl *HashAndIdNTuple) ID2Path(id string) (string, error) {
 	}
 	digestBytes := sl.hash.Sum(nil)
 	digest := fmt.Sprintf("%x", digestBytes)
-	if len(digest) < sl.tupleSize*sl.numberOfTuples {
-		return "", errors.New(fmt.Sprintf("digest %s to short for %v tuples of %v chars", sl.digestAlgorithm, sl.numberOfTuples, sl.tupleSize))
+	if len(digest) < sl.TupleSize*sl.NumberOfTuples {
+		return "", errors.New(fmt.Sprintf("digest %s to short for %v tuples of %v chars", sl.DigestAlgorithm, sl.NumberOfTuples, sl.TupleSize))
 	}
 	dirparts := []string{}
-	for i := 0; i < sl.numberOfTuples; i++ {
-		dirparts = append(dirparts, string(digest[i*sl.tupleSize:(i+1)*sl.tupleSize]))
+	for i := 0; i < sl.NumberOfTuples; i++ {
+		dirparts = append(dirparts, string(digest[i*sl.TupleSize:(i+1)*sl.TupleSize]))
 	}
 	if len(path) > 100 {
 		path = string([]rune(path)[0:100])
@@ -95,4 +93,13 @@ func (sl *HashAndIdNTuple) ID2Path(id string) (string, error) {
 	}
 	dirparts = append(dirparts, path)
 	return strings.Join(dirparts, "/"), nil
+}
+
+func (sl *HashAndIdNTuple) WriteConfig(configWriter io.Writer) error {
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(sl.Config); err != nil {
+		return emperror.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
 }

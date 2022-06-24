@@ -1,30 +1,31 @@
 package storagelayout
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/goph/emperror"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
 	"hash"
+	"io"
 	"strings"
 )
 
+const HashedNTupleName = "0004-hashed-n-tuple-storage-layout"
+
 type HashedNTuple struct {
-	digestAlgorithm checksum.DigestAlgorithm
-	tupleSize       int
-	numberOfTuples  int
-	hash            hash.Hash
-	shortObjectRoot bool
+	*HashedNTupleConfig
+	hash hash.Hash
 }
-type HashedNTupleStorage struct {
-	Config
+type HashedNTupleConfig struct {
+	*Config
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
 	ShortObjectRoot bool   `json:"shortObjectRoot"`
 }
 
-func NewHashedNTuple(config *HashedNTupleStorage) (*HashedNTuple, error) {
+func NewHashedNTuple(config *HashedNTupleConfig) (*HashedNTuple, error) {
 	var err error
 	if config.NumberOfTuples > 32 {
 		config.NumberOfTuples = 32
@@ -36,12 +37,7 @@ func NewHashedNTuple(config *HashedNTupleStorage) (*HashedNTuple, error) {
 		config.NumberOfTuples = 0
 		config.TupleSize = 0
 	}
-	sl := &HashedNTuple{
-		digestAlgorithm: checksum.DigestAlgorithm(config.DigestAlgorithm),
-		tupleSize:       config.TupleSize,
-		numberOfTuples:  config.NumberOfTuples,
-		shortObjectRoot: config.ShortObjectRoot,
-	}
+	sl := &HashedNTuple{HashedNTupleConfig: config}
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, emperror.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
 	}
@@ -53,7 +49,7 @@ func NewHashedNTuple(config *HashedNTupleStorage) (*HashedNTuple, error) {
 }
 
 func (sl *HashedNTuple) Name() string {
-	return "0004-hashed-n-tuple-storage-layout"
+	return HashedNTupleName
 }
 
 func (sl *HashedNTuple) ID2Path(id string) (string, error) {
@@ -63,17 +59,26 @@ func (sl *HashedNTuple) ID2Path(id string) (string, error) {
 	}
 	digestBytes := sl.hash.Sum(nil)
 	digest := fmt.Sprintf("%x", digestBytes)
-	if len(digest) < sl.tupleSize*sl.numberOfTuples {
-		return "", errors.New(fmt.Sprintf("digest %s to short for %v tuples of %v chars", sl.digestAlgorithm, sl.numberOfTuples, sl.tupleSize))
+	if len(digest) < sl.TupleSize*sl.NumberOfTuples {
+		return "", errors.New(fmt.Sprintf("digest %s to short for %v tuples of %v chars", sl.DigestAlgorithm, sl.NumberOfTuples, sl.TupleSize))
 	}
 	dirparts := []string{}
-	for i := 0; i < sl.numberOfTuples; i++ {
-		dirparts = append(dirparts, digest[i*sl.tupleSize:(i+1)*sl.tupleSize])
+	for i := 0; i < sl.NumberOfTuples; i++ {
+		dirparts = append(dirparts, digest[i*sl.TupleSize:(i+1)*sl.TupleSize])
 	}
-	if sl.shortObjectRoot {
-		dirparts = append(dirparts, digest[sl.numberOfTuples*sl.tupleSize:])
+	if sl.ShortObjectRoot {
+		dirparts = append(dirparts, digest[sl.NumberOfTuples*sl.TupleSize:])
 	} else {
 		dirparts = append(dirparts, digest)
 	}
 	return strings.Join(dirparts, "/"), nil
+}
+
+func (sl *HashedNTuple) WriteConfig(configWriter io.Writer) error {
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(sl.Config); err != nil {
+		return emperror.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
 }

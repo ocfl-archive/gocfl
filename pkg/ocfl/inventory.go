@@ -145,8 +145,15 @@ func (i *Inventory) getLastVersion() (string, error) {
 	lastVersion := versions[len(versions)-1]
 	return fmt.Sprintf("v%d", lastVersion), nil
 }
-
-func (i *Inventory) IsDuplicate(virtualFilename, checksum string) (bool, error) {
+func (i *Inventory) IsDuplicate(checksum string) bool {
+	for cs, _ := range i.Manifest {
+		if cs == checksum {
+			return true
+		}
+	}
+	return false
+}
+func (i *Inventory) AlreadyExists(virtualFilename, checksum string) (bool, error) {
 	i.logger.Debugf("%s [%s]", virtualFilename, checksum)
 	if checksum == "" {
 		i.logger.Debugf("%s - duplicate %v", virtualFilename, false)
@@ -290,7 +297,7 @@ func (i *Inventory) AddFile(virtualFilename string, realFilename string, checksu
 	if _, ok := i.Manifest[checksum]; !ok {
 		i.Manifest[checksum] = []string{}
 	}
-	dup, err := i.IsDuplicate(virtualFilename, checksum)
+	dup, err := i.AlreadyExists(virtualFilename, checksum)
 	if err != nil {
 		return emperror.Wrapf(err, "cannot check for duplicate of %s [%s]", virtualFilename, checksum)
 	}
@@ -298,8 +305,10 @@ func (i *Inventory) AddFile(virtualFilename string, realFilename string, checksu
 		i.logger.Debugf("%s is a duplicate - ignoring", virtualFilename)
 		return nil
 	}
-
-	i.Manifest[checksum] = append(i.Manifest[checksum], realFilename)
+	// todo: bad style better check params
+	if !i.IsDuplicate(checksum) {
+		i.Manifest[checksum] = append(i.Manifest[checksum], realFilename)
+	}
 
 	if _, ok := i.Versions[i.Head].State[checksum]; !ok {
 		i.Versions[i.Head].State[checksum] = []string{}

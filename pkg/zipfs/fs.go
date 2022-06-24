@@ -12,6 +12,12 @@ import (
 	"strings"
 )
 
+type nopCloserWriter struct {
+	io.Writer
+}
+
+func (*nopCloserWriter) Close() error { return nil }
+
 type FS struct {
 	srcReader io.ReaderAt
 	dstWriter io.Writer
@@ -110,18 +116,18 @@ func (zfs *FS) Open(name string) (fs.File, error) {
 			return f, nil
 		}
 	}
-	zfs.logger.Debugf("%s not found")
+	zfs.logger.Debugf("%s not found", name)
 	return nil, fs.ErrNotExist
 }
 
-func (zfs *FS) Create(name string) (io.Writer, error) {
+func (zfs *FS) Create(name string) (io.WriteCloser, error) {
 	zfs.logger.Debugf("%s", name)
 	wc, err := zfs.w.Create(name)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot create file %s", name)
 	}
 	zfs.newFiles = append(zfs.newFiles, name)
-	return wc, nil
+	return &nopCloserWriter{wc}, nil
 }
 
 func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
