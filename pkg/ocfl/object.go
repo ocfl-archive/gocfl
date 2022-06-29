@@ -57,34 +57,7 @@ func (ocfl *OCFLObject) LoadInventory(folder string) (*Inventory, error) {
 		folder = ""
 	}
 	ocfl.logger.Debugf("%s", folder)
-	entries, err := ocfl.fs.ReadDir(ocfl.pathPrefix + folder)
-	var inventoryDigest = map[checksum.DigestAlgorithm]string{}
-	for _, entry := range entries {
-		name := entry.Name()
-		if matches := inventoryDigestRegexp.FindStringSubmatch(name); matches != nil {
-			var digest checksum.DigestAlgorithm
-			// OCFL supports only SHA512 (SHA256) for inventory digest
-			switch matches[1] {
-			case string(checksum.DigestSHA512):
-				digest = checksum.DigestSHA512
-			case string(checksum.DigestSHA256):
-				digest = checksum.DigestSHA256
-			default:
-				return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", name))
-			}
-			digestBytes, err := fs.ReadFile(ocfl.fs, ocfl.pathPrefix+name)
-			if err != nil {
-				return nil, emperror.Wrapf(err, "cannot read digest file %s", name)
-			}
-			inventoryDigest[digest] = strings.ToLower(strings.TrimSpace(string(digestBytes)))
-			break
-		} else {
-			continue
-		}
-	}
-	if len(inventoryDigest) == 0 {
-		return nil, errors.New(fmt.Sprintf("cannot find digest file for %s", "inventory.json"))
-	}
+
 	iFp, err := ocfl.fs.Open(ocfl.pathPrefix + "inventory.json")
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot open %s", "inventory.json")
@@ -95,21 +68,31 @@ func (ocfl *OCFLObject) LoadInventory(folder string) (*Inventory, error) {
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot read %s", "inventory.json")
 	}
-	// checksum test
-	for digest, hexString := range inventoryDigest {
-		h, err := checksum.GetHash(digest)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
-		}
-		sumBytes := h.Sum(inventoryBytes)
-		if hexString != fmt.Sprintf("%x", sumBytes) {
-			return nil, errors.New(fmt.Sprintf("%s checksum of inventory.json failed", string(digest)))
-		}
-	}
 	var inventory = &Inventory{logger: ocfl.logger}
 	if err := json.Unmarshal(inventoryBytes, inventory); err != nil {
 		return nil, emperror.Wrap(err, "cannot marshal inventory.json")
 	}
+	digest := inventory.GetDigestAlgorithm()
+	digestPath := fmt.Sprintf("%sinventory.json.%s", ocfl.pathPrefix, digest)
+	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
+	if err != nil {
+		return nil, MultiError(err, ErrorE058)
+	}
+	digestString := strings.TrimSpace(string(digestBytes))
+	if !strings.HasSuffix(digestString, " inventory.json") {
+		return nil, ErrorE061
+	}
+	digestString = strings.TrimSuffix(digestString, " inventory.json")
+	h, err := checksum.GetHash(digest)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
+	}
+	sumBytes := h.Sum(inventoryBytes)
+	inventoryDigestString := fmt.Sprintf("%x", sumBytes)
+	if digestString != inventoryDigestString {
+		return nil, MultiError(fmt.Errorf("%s != %s", digestString, inventoryDigestString), ErrorE060)
+	}
+
 	return inventory, nil
 }
 
@@ -119,6 +102,7 @@ func (ocfl *OCFLObject) StoreInventory() error {
 	if !ocfl.i.IsWriteable() {
 		return errors.New("inventory not updated")
 	}
+	iFileName := "inventory.json"
 	jsonBytes, err := json.MarshalIndent(ocfl.i, "", "   ")
 	if err != nil {
 		return emperror.Wrap(err, "cannot marshal inventory")
@@ -128,8 +112,7 @@ func (ocfl *OCFLObject) StoreInventory() error {
 		return emperror.Wrapf(err, "invalid digest algorithm %s", string(ocfl.i.GetDigestAlgorithm()))
 	}
 	checksumBytes := h.Sum(jsonBytes)
-	checksumString := fmt.Sprintf("%x", checksumBytes)
-	iFileName := "inventory.json"
+	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 	iWriter, err := ocfl.fs.Create(ocfl.pathPrefix + iFileName)
 	if err != nil {
 		return emperror.Wrap(err, "cannot create inventory.json")
@@ -255,8 +238,9 @@ func (ocfl *OCFLObject) AddFile(virtualFilename string, reader io.Reader, digest
 		ocfl.logger.Debugf("%s [%s] is a duplicate", virtualFilename, digest)
 		return nil
 	}
-	realFilename := ocfl.i.BuildRealname(virtualFilename)
+	var realFilename string
 	if !ocfl.i.IsDuplicate(digest) {
+		realFilename = ocfl.i.BuildRealname(virtualFilename)
 		writer, err := ocfl.fs.Create(ocfl.pathPrefix + realFilename)
 		if err != nil {
 			return emperror.Wrapf(err, "cannot create %s", realFilename)
@@ -266,6 +250,7 @@ func (ocfl *OCFLObject) AddFile(virtualFilename string, reader io.Reader, digest
 		if digest != "" && digest != checksums[ocfl.i.GetDigestAlgorithm()] {
 			return fmt.Errorf("invalid checksum %s", digest)
 		}
+		digest = checksums[ocfl.i.GetDigestAlgorithm()]
 		if err != nil {
 			return emperror.Wrapf(err, "cannot copy to %s", realFilename)
 		}
@@ -278,4 +263,9 @@ func (ocfl *OCFLObject) AddFile(virtualFilename string, reader io.Reader, digest
 
 func (ocfl *OCFLObject) GetID() string {
 	return ocfl.i.Id
+}
+
+func (ocfl *OCFLObject) Check() error {
+	//
+	return nil
 }

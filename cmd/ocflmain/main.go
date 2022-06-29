@@ -91,22 +91,17 @@ func main() {
 
 	storageRoot, err := ocfl.NewOCFLStorageRoot(zfs, defaultStorageLayout, logger)
 	if err != nil {
-		panic(err)
+		err = emperror.ExposeStackTrace(err)
+		stack, ok := emperror.StackTrace(err)
+		if ok {
+			for _, frame := range stack {
+				logger.Debugf("%+s:%d\n", frame, frame)
+			}
+		}
+		emperror.Panic(err)
 	}
 
-	/*
-		o, err := ocfl.NewOCFLObject(zfs, "", filepath.Base(*zipfile), logger)
-		if err != nil {
-			err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot create zipfs"))
-			stack, ok := emperror.StackTrace(err)
-			if ok {
-				log.Print(stack)
-			}
-			panic(err)
-		}
-		defer o.Close()
-	*/
-
+	// TEST042
 	o, err := storageRoot.OpenObject("test042")
 	if err != nil {
 		err = emperror.ExposeStackTrace(emperror.Wrapf(err, "cannot open object %s", "test042"))
@@ -164,6 +159,7 @@ func main() {
 		panic(err)
 	}
 
+	// TEST041
 	o2, err := storageRoot.OpenObject("test041")
 	if err != nil {
 		err = emperror.ExposeStackTrace(emperror.Wrapf(err, "cannot open object %s", "test042"))
@@ -184,7 +180,7 @@ func main() {
 		panic(err)
 	}
 
-	testdir2 := "C:/temp/bangbang/bootstrap"
+	testdir2 := "C:/temp/bangbang/img"
 
 	if err := filepath.Walk(testdir2, func(path string, info fs.FileInfo, err error) error {
 		// directory not interesting

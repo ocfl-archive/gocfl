@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"github.com/goph/emperror"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -74,4 +75,12 @@ func copyMapStringSlice(dest, src map[string][]string) {
 		dest[key] = make([]string, len(val))
 		copy(dest[key], val)
 	}
+}
+
+func MultiError(errs ...error) error {
+	me := emperror.NewMultiErrorBuilder()
+	for _, err := range errs {
+		me.Add(err)
+	}
+	return me.ErrOrNil()
 }

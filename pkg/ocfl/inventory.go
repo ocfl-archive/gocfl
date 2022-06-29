@@ -146,6 +146,10 @@ func (i *Inventory) getLastVersion() (string, error) {
 	return fmt.Sprintf("v%d", lastVersion), nil
 }
 func (i *Inventory) IsDuplicate(checksum string) bool {
+	// not necessary but fast...
+	if checksum == "" {
+		return false
+	}
 	for cs, _ := range i.Manifest {
 		if cs == checksum {
 			return true
@@ -305,8 +309,8 @@ func (i *Inventory) AddFile(virtualFilename string, realFilename string, checksu
 		i.logger.Debugf("%s is a duplicate - ignoring", virtualFilename)
 		return nil
 	}
-	// todo: bad style better check params
-	if !i.IsDuplicate(checksum) {
+
+	if realFilename != "" {
 		i.Manifest[checksum] = append(i.Manifest[checksum], realFilename)
 	}
 
