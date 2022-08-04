@@ -9,8 +9,8 @@ import (
 func TestPairtreeIDEncode(t *testing.T) {
 	fmt.Printf("(NewPairTreeStorageLayout(%s, %s, %v, %s)\n", "", "", 2, checksum.DigestSHA256)
 
-	ptsl, err := NewPairTreeStorageLayout(&PairTreeConfig{
-		Config:          Config{ExtensionName: "gocfl-pairtree"},
+	ptsl, err := NewPairTree(&PairTreeConfig{
+		Config:          &Config{ExtensionName: "gocfl-pairtree"},
 		UriBase:         "",
 		StoreDir:        "",
 		ShortyLength:    2,

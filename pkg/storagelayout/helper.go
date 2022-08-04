@@ -13,7 +13,7 @@ import (
  *    exists only to make it hard to write correct software, to ease the job of attackers, and to create
  *    interoperability problems. Chuck it.
  * 2) Forbid/escape leading “-”. This way, you can always distinguish option flags from filenames, eliminating a host
- *    of stupid errors. Nobody in their right mind writes programs that depend on having dash-prefixed files on a Unix
+ *    of stupid emperror. Nobody in their right mind writes programs that depend on having dash-prefixed files on a Unix
  *    system. Even on Windows systems they’re a bad idea, because many programs use “-” instead of “/” to identify options.
  * 3) Forbid/escape filenames that aren’t a valid UTF-8 encoding. This way, filenames can always be correctly displayed.
  *    Trying to use environment values like LC_ALL (or other LC_* values) or LANG is just a hack that often fails. This
@@ -32,7 +32,7 @@ import (
  *    also helpful for web applications, again, because the characters that should be escapes are sometimes not escaped. A short
  *    list would be “*”, “?”, and “[”; by eliminating those three characters and control characters from filenames, and removing
  *    the space character from IFS, you can process filenames in shells without quoting variable references — eliminating a
- *    common source of errors. Forbidding/escaping “<” and “>” would eliminate a source of nasty errors for perl programs, web
+ *    common source of emperror. Forbidding/escaping “<” and “>” would eliminate a source of nasty errors for perl programs, web
  *    applications, and anyone using HTML or XML. A more stringent list would be “*?:[]"<>|(){}&'!\;” (this is Glindra’s “safe”
  *    list with ampersand, single-quote, bang, backslash, and semicolon added). This list is probably a little extreme, but let’s
  *    try and see. As noted earlier, I’d need to go through a complete analysis of all characters for a final list; for security,

@@ -49,15 +49,18 @@ func NewOCFLObject(fs OCFLFS, pathPrefix, id string, logger *logging.Logger) (*O
 }
 
 var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
-var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
+
+//var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
 // LoadInventory loads inventory from existing OCFLFS
 func (ocfl *OCFLObject) LoadInventory(folder string) (*Inventory, error) {
+	// current dir is the empty name
 	if folder == "." {
 		folder = ""
 	}
 	ocfl.logger.Debugf("%s", folder)
 
+	// load inventory file
 	iFp, err := ocfl.fs.Open(ocfl.pathPrefix + "inventory.json")
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot open %s", "inventory.json")
@@ -73,6 +76,8 @@ func (ocfl *OCFLObject) LoadInventory(folder string) (*Inventory, error) {
 		return nil, emperror.Wrap(err, "cannot marshal inventory.json")
 	}
 	digest := inventory.GetDigestAlgorithm()
+
+	// check digest for inventory
 	digestPath := fmt.Sprintf("%sinventory.json.%s", ocfl.pathPrefix, digest)
 	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
 	if err != nil {
@@ -99,9 +104,12 @@ func (ocfl *OCFLObject) LoadInventory(folder string) (*Inventory, error) {
 func (ocfl *OCFLObject) StoreInventory() error {
 	ocfl.logger.Debug()
 
+	// check whether ocfl filesystem is writeable
 	if !ocfl.i.IsWriteable() {
-		return errors.New("inventory not updated")
+		return errors.New("inventory not writeable - not updated")
 	}
+
+	// create inventory.json from inventory
 	iFileName := "inventory.json"
 	jsonBytes, err := json.MarshalIndent(ocfl.i, "", "   ")
 	if err != nil {

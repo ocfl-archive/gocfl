@@ -10,7 +10,7 @@ func TestHashedNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html
 	// Example 1
 	l, err := NewHashedNTuple(&HashedNTupleConfig{
-		Config:          Config{ExtensionName: "0004-hashed-n-tuple-storage-layout"},
+		Config:          &Config{ExtensionName: "0004-hashed-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestSHA256),
 		TupleSize:       3,
 		NumberOfTuples:  3,
@@ -47,7 +47,7 @@ func TestHashedNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html
 	// Example 2
 	l, err = NewHashedNTuple(&HashedNTupleConfig{
-		Config:          Config{ExtensionName: "0004-hashed-n-tuple-storage-layout"},
+		Config:          &Config{ExtensionName: "0004-hashed-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestMD5),
 		TupleSize:       2,
 		NumberOfTuples:  15,
@@ -83,7 +83,7 @@ func TestHashedNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html
 	// Example 3
 	l, err = NewHashedNTuple(&HashedNTupleConfig{
-		Config:          Config{ExtensionName: "0004-hashed-n-tuple-storage-layout"},
+		Config:          &Config{ExtensionName: "0004-hashed-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestSHA256),
 		TupleSize:       0,
 		NumberOfTuples:  0,
