@@ -1,10 +1,9 @@
 package storagelayout
 
 import (
+	"emperror.dev/errors"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/goph/emperror"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
 	"hash"
 	"io"
@@ -39,7 +38,7 @@ func NewHashedNTuple(config *HashedNTupleConfig) (*HashedNTuple, error) {
 	}
 	sl := &HashedNTuple{HashedNTupleConfig: config}
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil, emperror.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
+		return nil, errors.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
 	}
 	if config.ExtensionName != sl.Name() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.Name()))
@@ -55,7 +54,7 @@ func (sl *HashedNTuple) Name() string {
 func (sl *HashedNTuple) ID2Path(id string) (string, error) {
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
-		return "", emperror.Wrapf(err, "cannot hash %s", id)
+		return "", errors.Wrapf(err, "cannot hash %s", id)
 	}
 	digestBytes := sl.hash.Sum(nil)
 	digest := fmt.Sprintf("%x", digestBytes)
@@ -78,7 +77,7 @@ func (sl *HashedNTuple) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.Config); err != nil {
-		return emperror.Wrapf(err, "cannot encode config to file")
+		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 }

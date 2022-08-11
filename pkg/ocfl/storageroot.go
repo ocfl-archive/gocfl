@@ -2,8 +2,9 @@ package ocfl
 
 import (
 	"bytes"
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"fmt"
-	"github.com/goph/emperror"
 	"github.com/op/go-logging"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/storagelayout"
 	"io"
@@ -24,7 +25,7 @@ func NewOCFLStorageRoot(fs OCFLFS, layout storagelayout.StorageLayout, logger *l
 	ocfl := &OCFLStorageRoot{fs: fs, layout: layout, logger: logger}
 
 	if err := ocfl.Init(); err != nil {
-		return nil, emperror.Wrap(err, "cannot initialize ocfl")
+		return nil, errors.Wrap(err, "cannot initialize ocfl")
 	}
 	return ocfl, nil
 }
@@ -37,7 +38,7 @@ func (osr *OCFLStorageRoot) Init() error {
 	// init failed
 	files, err := osr.GetFiles()
 	if err != nil {
-		return emperror.Wrap(err, "cannot get root files")
+		return errors.Wrap(err, "cannot get root files")
 	}
 	for _, file := range files {
 		matches := NAMASTEVersionRegexp.FindStringSubmatch(file)
@@ -48,7 +49,7 @@ func (osr *OCFLStorageRoot) Init() error {
 	}
 	folders, err := osr.GetFolders()
 	if err != nil {
-		return emperror.Wrap(err, "cannot get root folders")
+		return errors.Wrap(err, "cannot get root folders")
 	}
 	if osr.version == "" && (len(files) > 0 || len(folders) > 0) {
 		return ErrorE003 // ‘[The version declaration] must be a file in the base directory of the OCFL Object Root giving the OCFL version in the filename.’
@@ -56,15 +57,15 @@ func (osr *OCFLStorageRoot) Init() error {
 	if osr.version == "" {
 		_, err := osr.fs.Create(rootConformanceDeclaration)
 		if err != nil {
-			return emperror.Wrapf(err, "cannot create %s", rootConformanceDeclaration)
+			return errors.Wrapf(err, "cannot create %s", rootConformanceDeclaration)
 		}
 		extConfig, err := osr.fs.Create(fmt.Sprintf("extensions/%s/config.json", osr.layout.Name()))
 		if err != nil {
-			return emperror.Wrapf(err, "cannot create %s", rootConformanceDeclaration)
+			return errors.Wrapf(err, "cannot create %s", rootConformanceDeclaration)
 		}
 		defer extConfig.Close()
 		if err := osr.layout.WriteConfig(extConfig); err != nil {
-			return emperror.Wrap(err, "cannot write config")
+			return errors.Wrap(err, "cannot write config")
 		}
 		osr.version = VERSION
 	} else {
@@ -73,7 +74,7 @@ func (osr *OCFLStorageRoot) Init() error {
 		if err != nil {
 			// if directory does not exists - no problem
 			if err != fs.ErrNotExist {
-				return emperror.Wrap(err, "cannot read extensions folder")
+				return errors.Wrap(err, "cannot read extensions folder")
 			}
 			exts = []fs.DirEntry{}
 		}
@@ -82,11 +83,11 @@ func (osr *OCFLStorageRoot) Init() error {
 			extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
 			configReader, err := osr.fs.Open(extConfig)
 			if err != nil {
-				return emperror.Wrapf(err, "cannot open %s for reading", extConfig)
+				return errors.Wrapf(err, "cannot open %s for reading", extConfig)
 			}
 			buf := bytes.NewBuffer(nil)
 			if _, err := io.Copy(buf, configReader); err != nil {
-				return emperror.Wrapf(err, "cannot read %s", extConfig)
+				return errors.Wrapf(err, "cannot read %s", extConfig)
 			}
 			if layout, err = storagelayout.NewStorageLayout(buf.Bytes()); err != nil {
 				osr.logger.Warningf("%s not a storage layout: %v", extConfig, err)
@@ -96,7 +97,7 @@ func (osr *OCFLStorageRoot) Init() error {
 		if layout == nil {
 			// ...or set to default
 			if layout, err = storagelayout.NewDefaultStorageLayout(); err != nil {
-				return emperror.Wrap(err, "cannot initiate default storage layout")
+				return errors.Wrap(err, "cannot initiate default storage layout")
 			}
 		}
 	}
@@ -106,7 +107,7 @@ func (osr *OCFLStorageRoot) Init() error {
 func (osr *OCFLStorageRoot) GetFiles() ([]string, error) {
 	dirs, err := osr.fs.ReadDir("")
 	if err != nil {
-		return nil, emperror.Wrap(err, "cannot read folders of storage root")
+		return nil, errors.Wrap(err, "cannot read folders of storage root")
 	}
 	var result = []string{}
 	for _, dir := range dirs {
@@ -121,7 +122,7 @@ func (osr *OCFLStorageRoot) GetFiles() ([]string, error) {
 func (osr *OCFLStorageRoot) GetFolders() ([]string, error) {
 	dirs, err := osr.fs.ReadDir("")
 	if err != nil {
-		return nil, emperror.Wrap(err, "cannot read folders of storage root")
+		return nil, errors.Wrap(err, "cannot read folders of storage root")
 	}
 	var result = []string{}
 	for _, dir := range dirs {
@@ -155,7 +156,7 @@ func (osr *OCFLStorageRoot) OpenObjectFolder(folder string) (*OCFLObject, error)
 func (osr *OCFLStorageRoot) OpenObject(id string) (*OCFLObject, error) {
 	folder, err := osr.layout.ID2Path(id)
 	if err != nil {
-		return nil, emperror.Wrapf(err, "cannot build path for %s", id)
+		return nil, errors.Wrapf(err, "cannot build path for %s", id)
 	}
 	return NewOCFLObject(osr.fs, folder, id, osr.logger)
 }
@@ -164,14 +165,14 @@ func (osr *OCFLStorageRoot) Check() error {
 	// https://ocfl.io/1.0/spec/validation-codes.html
 	objectFolders, err := osr.GetObjectFolders()
 	if err != nil {
-		return emperror.Wrapf(err, "cannot get object folders")
+		return errors.Wrapf(err, "cannot get object folders")
 	}
 	multiError := emperror.NewMultiErrorBuilder()
 	for _, objectFolder := range objectFolders {
 		osr.logger.Infof("checking folder %s", objectFolder)
 		obj, err := NewOCFLObject(osr.fs, objectFolder, "", osr.logger)
 		if err != nil {
-			return emperror.Wrapf(err, "cannot instantiate OCFL Object at %s", objectFolder)
+			return errors.Wrapf(err, "cannot instantiate OCFL Object at %s", objectFolder)
 		}
 		if err := obj.Check(); err != nil {
 			multiError.Add(err)

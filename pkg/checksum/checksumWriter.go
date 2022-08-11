@@ -5,9 +5,8 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"errors"
+	"emperror.dev/errors"
 	"fmt"
-	"github.com/goph/emperror"
 	"golang.org/x/crypto/sha3"
 	"hash"
 	"io"
@@ -85,7 +84,7 @@ func Checksum(src io.Reader, checksum DigestAlgorithm) (string, error) {
 		return "", errors.New(fmt.Sprintf("invalid checksum type %s", checksum))
 	}
 	if _, err := io.Copy(sink, src); err != nil {
-		return "", emperror.Wrapf(err, "cannot create checkum %s", checksum)
+		return "", errors.Wrapf(err, "cannot create checkum %s", checksum)
 	}
 	csString := fmt.Sprintf("%x", sink.Sum(nil))
 	return csString, nil
@@ -105,7 +104,7 @@ func (c *ChecksumWriter) doChecksum(reader io.Reader, csType DigestAlgorithm, do
 		return
 	}
 	if _, err := io.Copy(sink, reader); err != nil {
-		c.setError(emperror.Wrapf(err, "cannot create checkum %s", csType))
+		c.setError(errors.Wrapf(err, "cannot create checkum %s", csType))
 		return
 	}
 	csString := fmt.Sprintf("%x", sink.Sum(nil))
@@ -155,7 +154,7 @@ func (c *ChecksumWriter) Copy(dst io.Writer, src io.Reader) (map[DigestAlgorithm
 		defer func() { done <- true }()
 		_, err := io.Copy(dst, rw.reader)
 		if err != nil {
-			c.setError(emperror.Wrap(err, "cannot copy to target destination"))
+			c.setError(errors.Wrap(err, "cannot copy to target destination"))
 			return
 		}
 	}()
@@ -176,7 +175,7 @@ func (c *ChecksumWriter) Copy(dst io.Writer, src io.Reader) (map[DigestAlgorithm
 		mw := io.MultiWriter(writers...)
 
 		if _, err := io.Copy(mw, src); err != nil {
-			c.setError(emperror.Wrap(err, "cannot write to destination"))
+			c.setError(errors.Wrap(err, "cannot write to destination"))
 		}
 	}()
 
@@ -192,7 +191,7 @@ func (c *ChecksumWriter) Copy(dst io.Writer, src io.Reader) (map[DigestAlgorithm
 			if err == nil {
 				e = err
 			} else {
-				e = emperror.Wrapf(e, "error: %v", err)
+				e = errors.Wrapf(e, "error: %v", err)
 			}
 		}
 		return nil, e

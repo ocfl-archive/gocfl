@@ -1,7 +1,8 @@
 package ocfl
 
 import (
-	"github.com/goph/emperror"
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -83,4 +84,19 @@ func MultiError(errs ...error) error {
 		me.Add(err)
 	}
 	return me.ErrOrNil()
+}
+
+func GetErrorStacktrace(err error) errors.StackTrace {
+	type stackTracer interface {
+		StackTrace() errors.StackTrace
+	}
+
+	e := emperror.ExposeStackTrace(err)
+	st, ok := e.(stackTracer)
+	if !ok {
+		return nil
+	}
+
+	return st.StackTrace()
+	// fmt.Printf("%+v", st[0:2]) // top two frames
 }

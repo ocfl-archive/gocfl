@@ -125,7 +125,10 @@ func (verr *ValidationError) Error() string {
 
 var ErrorE001 = &ValidationError{Code: E001, Description: "The OCFL Object Root must not contain files or directories other than those specified in the following sections.", Ref: "https://ocfl.io/1.0/spec/#E001"}
 var ErrorE002 = &ValidationError{Code: E002, Description: "The version declaration must be formatted according to the NAMASTE specification.", Ref: "https://ocfl.io/1.0/spec/#E002"}
+
 var ErrorE003 = &ValidationError{Code: E003, Description: "[The version declaration] must be a file in the base directory of the OCFL Object Root giving the OCFL version in the filename.", Ref: "https://ocfl.io/1.0/spec/#E003"}
+
+// var ErrorE003 = &ValidationError{Code: E003, Description: "There must be exactly one version declaration file in the base directory of the OCFL Object Root giving the OCFL version in the filename.", Ref: "https://ocfl.io/draft/spec/#E003"}
 var ErrorE004 = &ValidationError{Code: E004, Description: "The [version declaration] filename MUST conform to the pattern T=dvalue, where T must be 0, and dvalue must be ocfl_object_, followed by the OCFL specification version number.", Ref: "https://ocfl.io/1.0/spec/#E004"}
 var ErrorE005 = &ValidationError{Code: E005, Description: "The [version declaration] filename must conform to the pattern T=dvalue, where T MUST be 0, and dvalue must be ocfl_object_, followed by the OCFL specification version number.", Ref: "https://ocfl.io/1.0/spec/#E005"}
 var ErrorE006 = &ValidationError{Code: E006, Description: "The [version declaration] filename must conform to the pattern T=dvalue, where T must be 0, and dvalue MUST be ocfl_object_, followed by the OCFL specification version number.", Ref: "https://ocfl.io/1.0/spec/#E006"}

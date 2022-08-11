@@ -2,7 +2,8 @@ package zipfs
 
 import (
 	"archive/zip"
-	"github.com/goph/emperror"
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"github.com/op/go-logging"
 	"io"
 	"io/fs"
@@ -38,7 +39,7 @@ func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logg
 	}
 	if src != nil && src != (*os.File)(nil) {
 		if zfs.r, err = zip.NewReader(src, srcSize); err != nil {
-			return nil, emperror.Wrap(err, "cannot create zip reader")
+			return nil, errors.Wrap(err, "cannot create zip reader")
 		}
 	}
 	if dst != nil {
@@ -67,15 +68,15 @@ func (zf *FS) Close() error {
 			zf.logger.Debugf("copying %s", zipItem.Name)
 			zipItemReader, err := zipItem.OpenRaw()
 			if err != nil {
-				return emperror.Wrapf(err, "cannot open raw source %s", zipItem.Name)
+				return errors.Wrapf(err, "cannot open raw source %s", zipItem.Name)
 			}
 			header := zipItem.FileHeader
 			targetItem, err := zf.w.CreateRaw(&header)
 			if err != nil {
-				return emperror.Wrapf(err, "cannot create raw target %s", zipItem.Name)
+				return errors.Wrapf(err, "cannot create raw target %s", zipItem.Name)
 			}
 			if _, err := io.Copy(targetItem, zipItemReader); err != nil {
-				return emperror.Wrapf(err, "cannot raw copy %s", zipItem.Name)
+				return errors.Wrapf(err, "cannot raw copy %s", zipItem.Name)
 			}
 		}
 	}
@@ -107,11 +108,11 @@ func (zfs *FS) Open(name string) (fs.File, error) {
 		if zipItem.Name == name {
 			finfo, err := NewFileInfoFile(zipItem)
 			if err != nil {
-				return nil, emperror.Wrapf(err, "cannot create zipfs.FileInfo for %s", zipItem.Name)
+				return nil, errors.Wrapf(err, "cannot create zipfs.FileInfo for %s", zipItem.Name)
 			}
 			f, err := NewFile(finfo)
 			if err != nil {
-				return nil, emperror.Wrapf(err, "cannot create zipfs.File from zipfs.FileInfo for %s", finfo.Name())
+				return nil, errors.Wrapf(err, "cannot create zipfs.File from zipfs.FileInfo for %s", finfo.Name())
 			}
 			return f, nil
 		}
@@ -124,7 +125,7 @@ func (zfs *FS) Create(name string) (io.WriteCloser, error) {
 	zfs.logger.Debugf("%s", name)
 	wc, err := zfs.w.Create(name)
 	if err != nil {
-		return nil, emperror.Wrapf(err, "cannot create file %s", name)
+		return nil, errors.Wrapf(err, "cannot create file %s", name)
 	}
 	zfs.newFiles = append(zfs.newFiles, name)
 	return &nopCloserWriter{wc}, nil
@@ -159,7 +160,7 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 		if len(parts) == 1 {
 			fi, err := NewFileInfoFile(zipItem)
 			if err != nil {
-				return nil, emperror.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
+				return nil, errors.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
 			}
 			entries = append(entries, NewDirEntry(fi))
 		}
@@ -176,7 +177,7 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	for _, d := range dirs {
 		fi, err := NewFileInfoDir(d)
 		if err != nil {
-			return nil, emperror.Wrapf(err, "cannot create Fileinfo for %s", d)
+			return nil, errors.Wrapf(err, "cannot create Fileinfo for %s", d)
 		}
 		entries = append(entries, NewDirEntry(fi))
 	}
@@ -206,7 +207,7 @@ func (zf *FS) Stat(name string) (fs.FileInfo, error) {
 		if zipItem.Name == name {
 			finfo, err := NewFileInfoFile(zipItem)
 			if err != nil {
-				return nil, emperror.Wrapf(err, "cannot create zipfs.FileInfo for %s", zipItem.Name)
+				return nil, errors.Wrapf(err, "cannot create zipfs.FileInfo for %s", zipItem.Name)
 			}
 			return finfo, nil
 		}

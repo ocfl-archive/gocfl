@@ -1,8 +1,9 @@
 package main
 
 import (
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"fmt"
-	"github.com/goph/emperror"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	flag "github.com/spf13/pflag"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
@@ -17,7 +18,7 @@ import (
 	"time"
 )
 
-//const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{module}::%{shortfunc} [%{shortfile}] > %{level:.5s} - %{message}`
+// const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{module}::%{shortfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
 func main() {
@@ -38,11 +39,7 @@ func main() {
 
 	tempFile := fmt.Sprintf("%s.tmp", *zipfile)
 	if zipWriter, err = os.Create(tempFile); err != nil {
-		err = emperror.ExposeStackTrace(emperror.Wrapf(err, "cannot create zip file %s", tempFile))
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			log.Print(stack)
-		}
+		err = emperror.ExposeStackTrace(errors.Wrapf(err, "cannot create zip file %s", tempFile))
 		panic(err)
 	}
 	defer func() {
@@ -54,15 +51,11 @@ func main() {
 
 	stat, err := os.Stat(*zipfile)
 	if err != nil {
-		log.Print(emperror.Wrapf(err, "%s does not exist. creating new file", *zipfile))
+		log.Print(errors.Wrapf(err, "%s does not exist. creating new file", *zipfile))
 	} else {
 		zipSize = stat.Size()
 		if zipReader, err = os.Open(*zipfile); err != nil {
-			err = emperror.ExposeStackTrace(emperror.Wrapf(err, "cannot open zip file %s", *zipfile))
-			stack, ok := emperror.StackTrace(err)
-			if ok {
-				log.Print(stack)
-			}
+			err = emperror.ExposeStackTrace(errors.Wrapf(err, "cannot open zip file %s", *zipfile))
 			panic(err)
 		}
 		defer func() {
@@ -76,11 +69,7 @@ func main() {
 
 	zfs, err := zipfs.NewFSIO(zipReader, zipSize, zipWriter, logger)
 	if err != nil {
-		err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot create zipfs"))
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			log.Print(stack)
-		}
+		err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot create zipfs"))
 		panic(err)
 	}
 	defer zfs.Close()
@@ -91,12 +80,9 @@ func main() {
 
 	storageRoot, err := ocfl.NewOCFLStorageRoot(zfs, defaultStorageLayout, logger)
 	if err != nil {
-		err = emperror.ExposeStackTrace(err)
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			for _, frame := range stack {
-				logger.Debugf("%+s:%d\n", frame, frame)
-			}
+		st := ocfl.GetErrorStacktrace(err)
+		if st != nil {
+			log.Printf("%+v", st[0:2]) // top two frames
 		}
 		emperror.Panic(err)
 	}
@@ -104,21 +90,16 @@ func main() {
 	// TEST042
 	o, err := storageRoot.OpenObject("test042")
 	if err != nil {
-		err = emperror.ExposeStackTrace(emperror.Wrapf(err, "cannot open object %s", "test042"))
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			log.Print(stack)
+		st := ocfl.GetErrorStacktrace(err)
+		if st != nil {
+			log.Printf("%+v", st[0:2]) // top two frames
 		}
 		panic(err)
 	}
 	defer o.Close()
 
 	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot add file"))
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			log.Print(stack)
-		}
+		err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
 		panic(err)
 	}
 
@@ -136,22 +117,14 @@ func main() {
 		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
-			err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot add file"))
-			stack, ok := emperror.StackTrace(err)
-			if ok {
-				log.Print(stack)
-			}
+			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
 			panic(err)
 		}
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
 		if err := o.AddFile(strings.Trim(strings.TrimPrefix(filepath.ToSlash(path), testdir), "/"), file, checksum); err != nil {
-			err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot add file"))
-			stack, ok := emperror.StackTrace(err)
-			if ok {
-				log.Print(stack)
-			}
+			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
 			panic(err)
 		}
 		return nil
@@ -162,21 +135,13 @@ func main() {
 	// TEST041
 	o2, err := storageRoot.OpenObject("test041")
 	if err != nil {
-		err = emperror.ExposeStackTrace(emperror.Wrapf(err, "cannot open object %s", "test042"))
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			log.Print(stack)
-		}
+		err = emperror.ExposeStackTrace(errors.Wrapf(err, "cannot open object %s", "test042"))
 		panic(err)
 	}
 	defer o2.Close()
 
 	if err := o2.StartUpdate("test 41", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot add file"))
-		stack, ok := emperror.StackTrace(err)
-		if ok {
-			log.Print(stack)
-		}
+		err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
 		panic(err)
 	}
 
@@ -194,22 +159,14 @@ func main() {
 		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
-			err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot add file"))
-			stack, ok := emperror.StackTrace(err)
-			if ok {
-				log.Print(stack)
-			}
+			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
 			panic(err)
 		}
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
 		if err := o2.AddFile(strings.Trim("x"+strings.TrimPrefix(filepath.ToSlash(path), testdir2), "/"), file, checksum); err != nil {
-			err = emperror.ExposeStackTrace(emperror.Wrap(err, "cannot add file"))
-			stack, ok := emperror.StackTrace(err)
-			if ok {
-				log.Print(stack)
-			}
+			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
 			panic(err)
 		}
 		return nil

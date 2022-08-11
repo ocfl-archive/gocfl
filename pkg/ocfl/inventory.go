@@ -1,10 +1,9 @@
 package ocfl
 
 import (
+	"emperror.dev/errors"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/goph/emperror"
 	"github.com/op/go-logging"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
 	"path/filepath"
@@ -31,11 +30,11 @@ func (t *OCFLTime) MarshalJSON() ([]byte, error) {
 func (t *OCFLTime) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
-		return emperror.Wrapf(err, "cannot unmarshal string of %s", string(data))
+		return errors.Wrapf(err, "cannot unmarshal string of %s", string(data))
 	}
 	tt, err := time.Parse(time.RFC3339, str)
 	if err != nil {
-		return emperror.Wrapf(err, "cannot parse %s", string(data))
+		return errors.Wrapf(err, "cannot parse %s", string(data))
 	}
 	t.Time = tt
 	return nil
@@ -103,7 +102,7 @@ func (i *Inventory) NewVersion(msg, UserName, UserAddress string) error {
 		vStr := strings.TrimPrefix(strings.ToLower(i.Head), "v")
 		v, err := strconv.Atoi(vStr)
 		if err != nil {
-			return emperror.Wrapf(err, "cannot determine head of Object - %s", vStr)
+			return errors.Wrapf(err, "cannot determine head of Object - %s", vStr)
 		}
 		i.Head = fmt.Sprintf("v%d", v+1)
 	}
@@ -135,7 +134,7 @@ func (i *Inventory) getLastVersion() (string, error) {
 		}
 		versionInt, err := strconv.Atoi(matches[1])
 		if err != nil {
-			return "", emperror.Wrapf(err, "cannot convert version number to int - %s", matches[1])
+			return "", errors.Wrapf(err, "cannot convert version number to int - %s", matches[1])
 		}
 		versions = append(versions, versionInt)
 	}
@@ -193,7 +192,7 @@ func (i *Inventory) AlreadyExists(virtualFilename, checksum string) (bool, error
 		}
 		versionInt, err := strconv.Atoi(matches[1])
 		if err != nil {
-			return false, emperror.Wrapf(err, "cannot convert version number to int - %s", matches[1])
+			return false, errors.Wrapf(err, "cannot convert version number to int - %s", matches[1])
 		}
 		versions = append(versions, versionInt)
 	}
@@ -244,7 +243,7 @@ func (i *Inventory) IsUpdate(virtualFilename, checksum string) (bool, error) {
 		}
 		versionInt, err := strconv.Atoi(matches[1])
 		if err != nil {
-			return false, emperror.Wrapf(err, "cannot convert version number to int - %s", matches[1])
+			return false, errors.Wrapf(err, "cannot convert version number to int - %s", matches[1])
 		}
 		versions = append(versions, versionInt)
 	}
@@ -303,7 +302,7 @@ func (i *Inventory) AddFile(virtualFilename string, realFilename string, checksu
 	}
 	dup, err := i.AlreadyExists(virtualFilename, checksum)
 	if err != nil {
-		return emperror.Wrapf(err, "cannot check for duplicate of %s [%s]", virtualFilename, checksum)
+		return errors.Wrapf(err, "cannot check for duplicate of %s [%s]", virtualFilename, checksum)
 	}
 	if dup {
 		i.logger.Debugf("%s is a duplicate - ignoring", virtualFilename)
@@ -320,7 +319,7 @@ func (i *Inventory) AddFile(virtualFilename string, realFilename string, checksu
 
 	upd, err := i.IsUpdate(virtualFilename, checksum)
 	if err != nil {
-		return emperror.Wrapf(err, "cannot check for update of %s [%s]", virtualFilename, checksum)
+		return errors.Wrapf(err, "cannot check for update of %s [%s]", virtualFilename, checksum)
 	}
 	if upd {
 		i.logger.Debugf("%s is an update - removing old version", virtualFilename)
@@ -349,7 +348,7 @@ func (i *Inventory) Clean() error {
 	delete(i.Versions, i.GetVersion())
 	lastVersion, err := i.getLastVersion()
 	if err != nil {
-		return emperror.Wrap(err, "cannot get last version")
+		return errors.Wrap(err, "cannot get last version")
 	}
 	i.Head = lastVersion
 	return nil

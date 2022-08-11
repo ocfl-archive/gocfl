@@ -1,10 +1,9 @@
 package storagelayout
 
 import (
+	"emperror.dev/errors"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/goph/emperror"
 	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
 	"hash"
 	"io"
@@ -43,7 +42,7 @@ func NewPairTree(config *PairTreeConfig) (*PairTree, error) {
 	sl := &PairTree{PairTreeConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil, emperror.Wrapf(err, "hash %s not found", config.DigestAlgorithm)
+		return nil, errors.Wrapf(err, "hash %s not found", config.DigestAlgorithm)
 	}
 	if config.ExtensionName != sl.Name() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.Name()))
@@ -112,7 +111,7 @@ func (sl *PairTree) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.Config); err != nil {
-		return emperror.Wrapf(err, "cannot encode config to file")
+		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 }

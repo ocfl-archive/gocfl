@@ -1,9 +1,8 @@
 package storagelayout
 
 import (
+	"emperror.dev/errors"
 	"encoding/json"
-	"errors"
-	"github.com/goph/emperror"
 )
 
 var ErrNotSupported = errors.New("storage layout not supported")
@@ -13,7 +12,7 @@ func NewDefaultStorageLayout() (StorageLayout, error) {
 	var err error
 	var cfg = &Config{ExtensionName: FlatDirectCleanName}
 	if layout, err = NewFlatDirectClean(cfg); err != nil {
-		return nil, emperror.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
+		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 	}
 	return layout, nil
 }
@@ -21,18 +20,18 @@ func NewDefaultStorageLayout() (StorageLayout, error) {
 func NewStorageLayout(config []byte) (StorageLayout, error) {
 	var cfg = &Config{}
 	if err := json.Unmarshal(config, cfg); err != nil {
-		return nil, emperror.Wrapf(err, "cannot unmarshal json - %s", string(config))
+		return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 	}
 	var layout StorageLayout
 	var err error
 	switch cfg.ExtensionName {
 	case FlatDirectCleanName:
 		if layout, err = NewFlatDirectClean(cfg); err != nil {
-			return nil, emperror.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
+			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	case FlatDirectName:
 		if layout, err = NewFlatDirect(cfg); err != nil {
-			return nil, emperror.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
+			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	case HashAndIdNTupleName:
 		var conf = &HashAndIdNTupleConfig{
@@ -42,10 +41,10 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 			NumberOfTuples:  0,
 		}
 		if err := json.Unmarshal(config, conf); err != nil {
-			return nil, emperror.Wrapf(err, "cannot unmarshal json - %s", string(config))
+			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
 		if layout, err = NewHashAndIdNTuple(conf); err != nil {
-			return nil, emperror.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
+			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	case HashedNTupleName:
 		var conf = &HashedNTupleConfig{
@@ -55,10 +54,10 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 			NumberOfTuples:  0,
 		}
 		if err := json.Unmarshal(config, conf); err != nil {
-			return nil, emperror.Wrapf(err, "cannot unmarshal json - %s", string(config))
+			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
 		if layout, err = NewHashedNTuple(conf); err != nil {
-			return nil, emperror.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
+			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	case PairTreeName:
 		var conf = &PairTreeConfig{
@@ -68,10 +67,10 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 			UriBase:         "",
 		}
 		if err := json.Unmarshal(config, conf); err != nil {
-			return nil, emperror.Wrapf(err, "cannot unmarshal json - %s", string(config))
+			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
 		if layout, err = NewPairTree(conf); err != nil {
-			return nil, emperror.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
+			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	default:
 		return nil, ErrNotSupported

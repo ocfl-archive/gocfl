@@ -1,10 +1,9 @@
 package storagelayout
 
 import (
+	"emperror.dev/errors"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/goph/emperror"
 	"io"
 )
 
@@ -34,7 +33,7 @@ func (sl *FlatDirectClean) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.Config); err != nil {
-		return emperror.Wrapf(err, "cannot encode config to file")
+		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 }
