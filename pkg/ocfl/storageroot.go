@@ -6,7 +6,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/storagelayout"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"io"
 	"io/fs"
 	"regexp"
@@ -16,12 +16,14 @@ type OCFLStorageRoot struct {
 	fs      OCFLFS
 	changed bool
 	logger  *logging.Logger
-	layout  storagelayout.StorageLayout
+	layout  extension.StorageLayout
 	version string
 }
 
+var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
+
 // NewOCFL creates an empty OCFL structure
-func NewOCFLStorageRoot(fs OCFLFS, layout storagelayout.StorageLayout, logger *logging.Logger) (*OCFLStorageRoot, error) {
+func NewOCFLStorageRoot(fs OCFLFS, layout extension.StorageLayout, logger *logging.Logger) (*OCFLStorageRoot, error) {
 	ocfl := &OCFLStorageRoot{fs: fs, layout: layout, logger: logger}
 
 	if err := ocfl.Init(); err != nil {
@@ -52,7 +54,7 @@ func (osr *OCFLStorageRoot) Init() error {
 		return errors.Wrap(err, "cannot get root folders")
 	}
 	if osr.version == "" && (len(files) > 0 || len(folders) > 0) {
-		return ErrorE003 // ‘[The version declaration] must be a file in the base directory of the OCFL Object Root giving the OCFL version in the filename.’
+		return errors.WithStack(ErrorE069) // ‘An OCFL Storage Root MUST contain a Root Conformance Declaration identifying it as such. (https://ocfl.io/1.0/spec/#E069)’
 	}
 	if osr.version == "" {
 		_, err := osr.fs.Create(rootConformanceDeclaration)
@@ -78,7 +80,7 @@ func (osr *OCFLStorageRoot) Init() error {
 			}
 			exts = []fs.DirEntry{}
 		}
-		var layout storagelayout.StorageLayout
+		var layout extension.StorageLayout
 		for _, extFolder := range exts {
 			extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
 			configReader, err := osr.fs.Open(extConfig)
@@ -89,14 +91,14 @@ func (osr *OCFLStorageRoot) Init() error {
 			if _, err := io.Copy(buf, configReader); err != nil {
 				return errors.Wrapf(err, "cannot read %s", extConfig)
 			}
-			if layout, err = storagelayout.NewStorageLayout(buf.Bytes()); err != nil {
+			if layout, err = extension.NewStorageLayout(buf.Bytes()); err != nil {
 				osr.logger.Warningf("%s not a storage layout: %v", extConfig, err)
 				continue
 			}
 		}
 		if layout == nil {
 			// ...or set to default
-			if layout, err = storagelayout.NewDefaultStorageLayout(); err != nil {
+			if layout, err = extension.NewDefaultStorageLayout(); err != nil {
 				return errors.Wrap(err, "cannot initiate default storage layout")
 			}
 		}

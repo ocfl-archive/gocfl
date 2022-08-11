@@ -1,7 +1,6 @@
-package storagelayout
+package extension
 
 import (
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -44,10 +43,10 @@ import (
  * https://www.dwheeler.com/essays/fixing-unix-linux-filenames.html
  */
 func FixFilename(fname string) string {
-	rule_1_5 := regexp.MustCompile("[\x00-\x1F\x7F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;]")
+	rule_1_5 := regexp.MustCompile("[\x00-\x1F\x7F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
 	rule_2_4_6 := regexp.MustCompile("^[\\s\\-~]*(.*?)\\s*$")
 
-	fname = strings.ToValidUTF8(fname, "")
+	fname = strings.ToValidUTF8(fname, "_")
 
 	names := strings.Split(fname, "/")
 	result := []string{}
@@ -58,7 +57,7 @@ func FixFilename(fname string) string {
 		result = append(result, n)
 	}
 
-	fname = filepath.ToSlash(filepath.Join(result...))
+	fname = strings.Join(result, "/")
 	if len(result) > 0 {
 		if result[0] == "" {
 			fname = "/" + fname

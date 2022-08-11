@@ -163,15 +163,16 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 				return nil, errors.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
 			}
 			entries = append(entries, NewDirEntry(fi))
-		}
-		found := false
-		for _, d := range dirs {
-			if d == parts[0] {
-				found = true
+		} else {
+			found := false
+			for _, d := range dirs {
+				if d == parts[0] {
+					found = true
+				}
 			}
-		}
-		if !found {
-			dirs = append(dirs, parts[0])
+			if !found {
+				dirs = append(dirs, parts[0])
+			}
 		}
 	}
 	for _, d := range dirs {

@@ -1,8 +1,8 @@
-package storagelayout
+package extension
 
 import (
 	"fmt"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"testing"
 )
 

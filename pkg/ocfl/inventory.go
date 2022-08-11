@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"path/filepath"
 	"regexp"
 	"sort"

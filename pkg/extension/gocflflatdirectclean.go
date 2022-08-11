@@ -1,4 +1,4 @@
-package storagelayout
+package extension
 
 import (
 	"emperror.dev/errors"
@@ -10,11 +10,19 @@ import (
 const FlatDirectCleanName = "gocfl-flat-direct-clean"
 
 type FlatDirectClean struct {
-	*Config
+	*FlatDirectCleanConfig
 }
 
-func NewFlatDirectClean(config *Config) (*FlatDirectClean, error) {
-	sl := &FlatDirectClean{Config: config}
+type FlatDirectCleanConfig struct {
+	*Config
+	MaxLen int `json:"maxLen,omitempty"`
+}
+
+func NewFlatDirectClean(config *FlatDirectCleanConfig) (*FlatDirectClean, error) {
+	if config.MaxLen == 0 {
+		config.MaxLen = 255
+	}
+	sl := &FlatDirectClean{FlatDirectCleanConfig: config}
 	if config.ExtensionName != sl.Name() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.Name()))
 	}
@@ -23,10 +31,11 @@ func NewFlatDirectClean(config *Config) (*FlatDirectClean, error) {
 
 func (sl *FlatDirectClean) Name() string { return FlatDirectCleanName }
 func (sl *FlatDirectClean) ID2Path(id string) (string, error) {
-	if len(id) > MAX_DIR_LEN {
-		return "", errors.New(fmt.Sprintf("%s to long (max. %v)", id, MAX_DIR_LEN))
+	id = FixFilename(id)
+	if len(id) > sl.MaxLen {
+		return "", errors.New(fmt.Sprintf("%s to long (max. %v)", id, sl.MaxLen))
 	}
-	return FixFilename(id), nil
+	return id, nil
 }
 
 func (sl *FlatDirectClean) WriteConfig(configWriter io.Writer) error {

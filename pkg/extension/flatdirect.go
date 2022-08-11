@@ -1,4 +1,4 @@
-package storagelayout
+package extension
 
 import (
 	"emperror.dev/errors"

@@ -97,6 +97,11 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 		return nil
 	}
 
-	return st.StackTrace()
+	stack := st.StackTrace()
+	if len(stack) > 2 {
+		stack = stack[:len(stack)-2]
+	}
+
+	return stack
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }

@@ -1,4 +1,4 @@
-package storagelayout
+package extension
 
 import (
 	"emperror.dev/errors"
@@ -10,7 +10,7 @@ var ErrNotSupported = errors.New("storage layout not supported")
 func NewDefaultStorageLayout() (StorageLayout, error) {
 	var layout StorageLayout
 	var err error
-	var cfg = &Config{ExtensionName: FlatDirectCleanName}
+	var cfg = &FlatDirectCleanConfig{Config: &Config{ExtensionName: FlatDirectCleanName}, MaxLen: 255}
 	if layout, err = NewFlatDirectClean(cfg); err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 	}
@@ -26,7 +26,14 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 	var err error
 	switch cfg.ExtensionName {
 	case FlatDirectCleanName:
-		if layout, err = NewFlatDirectClean(cfg); err != nil {
+		var conf = &FlatDirectCleanConfig{
+			Config: cfg,
+			MaxLen: 255,
+		}
+		if err := json.Unmarshal(config, conf); err != nil {
+			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
+		}
+		if layout, err = NewFlatDirectClean(conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	case FlatDirectName:

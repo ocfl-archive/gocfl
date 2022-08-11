@@ -1,10 +1,10 @@
-package storagelayout
+package extension
 
 import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"hash"
 	"io"
 	"strings"

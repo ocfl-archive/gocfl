@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.switch.ch/ub-unibas/gocfl.git
+git remote add origin https://go.ub.unibas.ch/gocfl.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.switch.ch/ub-unibas/gocfl/-/settings/integrations)
+- [ ] [Set up project integrations](https://go.ub.unibas.ch/gocfl/-/settings/integrations)
 
 ## Collaborate with your team
 

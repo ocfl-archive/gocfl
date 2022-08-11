@@ -1,15 +1,14 @@
 package main
 
 import (
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	flag "github.com/spf13/pflag"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/ocfl"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/storagelayout"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/zipfs"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
 	"io/fs"
 	"log"
 	"os"
@@ -22,6 +21,8 @@ import (
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
 func main() {
+	var panicking = true
+
 	var err error
 
 	var zipfile = flag.String("file", "", "ocfl zip filename")
@@ -39,13 +40,20 @@ func main() {
 
 	tempFile := fmt.Sprintf("%s.tmp", *zipfile)
 	if zipWriter, err = os.Create(tempFile); err != nil {
-		err = emperror.ExposeStackTrace(errors.Wrapf(err, "cannot create zip file %s", tempFile))
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 		panic(err)
 	}
 	defer func() {
 		zipWriter.Close()
-		if err := os.Rename(fmt.Sprintf("%s.tmp", *zipfile), *zipfile); err != nil {
-			log.Print(err)
+		// only if no panic has happened
+		if panicking {
+			if err := os.Remove(fmt.Sprintf("%s.tmp", *zipfile)); err != nil {
+				logger.Error(err)
+			}
+		} else {
+			if err := os.Rename(fmt.Sprintf("%s.tmp", *zipfile), *zipfile); err != nil {
+				logger.Error(err)
+			}
 		}
 	}()
 
@@ -55,13 +63,16 @@ func main() {
 	} else {
 		zipSize = stat.Size()
 		if zipReader, err = os.Open(*zipfile); err != nil {
-			err = emperror.ExposeStackTrace(errors.Wrapf(err, "cannot open zip file %s", *zipfile))
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 			panic(err)
 		}
 		defer func() {
 			zipReader.Close()
-			if err := os.Rename(*zipfile, fmt.Sprintf("%s.%s", *zipfile, time.Now().Format("20060201_150405"))); err != nil {
-				panic(err)
+			// only if no panic has happened
+			if !panicking {
+				if err := os.Rename(*zipfile, fmt.Sprintf("%s.%s", *zipfile, time.Now().Format("20060201_150405"))); err != nil {
+					logger.Error(err)
+				}
 			}
 		}()
 
@@ -69,37 +80,40 @@ func main() {
 
 	zfs, err := zipfs.NewFSIO(zipReader, zipSize, zipWriter, logger)
 	if err != nil {
-		err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot create zipfs"))
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 		panic(err)
 	}
-	defer zfs.Close()
-	defaultStorageLayout, err := storagelayout.NewDefaultStorageLayout()
+	defer func() {
+		if !panicking {
+			zfs.Close()
+		}
+
+	}()
+	defaultStorageLayout, err := extension.NewDefaultStorageLayout()
 	if err != nil {
 		panic(err)
 	}
 
 	storageRoot, err := ocfl.NewOCFLStorageRoot(zfs, defaultStorageLayout, logger)
 	if err != nil {
-		st := ocfl.GetErrorStacktrace(err)
-		if st != nil {
-			log.Printf("%+v", st[0:2]) // top two frames
-		}
-		emperror.Panic(err)
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		panic(err)
 	}
 
 	// TEST042
 	o, err := storageRoot.OpenObject("test042")
 	if err != nil {
-		st := ocfl.GetErrorStacktrace(err)
-		if st != nil {
-			log.Printf("%+v", st[0:2]) // top two frames
-		}
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 		panic(err)
 	}
-	defer o.Close()
+	defer func() {
+		if !panicking {
+			o.Close()
+		}
+	}()
 
 	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 		panic(err)
 	}
 
@@ -117,14 +131,14 @@ func main() {
 		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
-			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 			panic(err)
 		}
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
 		if err := o.AddFile(strings.Trim(strings.TrimPrefix(filepath.ToSlash(path), testdir), "/"), file, checksum); err != nil {
-			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 			panic(err)
 		}
 		return nil
@@ -135,13 +149,17 @@ func main() {
 	// TEST041
 	o2, err := storageRoot.OpenObject("test041")
 	if err != nil {
-		err = emperror.ExposeStackTrace(errors.Wrapf(err, "cannot open object %s", "test042"))
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 		panic(err)
 	}
-	defer o2.Close()
+	defer func() {
+		if !panicking {
+			o2.Close()
+		}
+	}()
 
 	if err := o2.StartUpdate("test 41", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 		panic(err)
 	}
 
@@ -159,18 +177,20 @@ func main() {
 		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
-			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 			panic(err)
 		}
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
 		if err := o2.AddFile(strings.Trim("x"+strings.TrimPrefix(filepath.ToSlash(path), testdir2), "/"), file, checksum); err != nil {
-			err = emperror.ExposeStackTrace(errors.Wrap(err, "cannot add file"))
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
 			panic(err)
 		}
 		return nil
 	}); err != nil {
 		panic(err)
 	}
+
+	panicking = false
 }

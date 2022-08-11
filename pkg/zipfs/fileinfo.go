@@ -3,6 +3,7 @@ package zipfs
 import (
 	"archive/zip"
 	"io/fs"
+	"strings"
 	"time"
 )
 
@@ -22,11 +23,13 @@ func NewFileInfoDir(dirName string) (*FileInfo, error) {
 }
 
 func (fi *FileInfo) Name() string {
+	var parts []string
 	if fi.zf != nil {
-		return fi.zf.Name
+		parts = strings.Split(fi.zf.Name, "/")
 	} else {
-		return fi.dirName
+		parts = strings.Split(fi.dirName, "/")
 	}
+	return parts[len(parts)-1]
 }
 
 func (fi *FileInfo) Size() int64 {

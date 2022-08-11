@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
-	"gitlab.switch.ch/ub-unibas/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -15,7 +15,7 @@ import (
 
 const VERSION = "1.0"
 
-var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
+var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type OCFLObject struct {
 	fs         OCFLFS
@@ -159,12 +159,12 @@ func (ocfl *OCFLObject) New(id string) error {
 	ocfl.logger.Debugf("%s", id)
 
 	// first check whether ocfl is not empty
-	fp, err := ocfl.fs.Open(ocfl.pathPrefix + rootConformanceDeclaration)
+	fp, err := ocfl.fs.Open(ocfl.pathPrefix + objectConformanceDeclaration)
 	if err == nil {
 		if err := fp.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close %s", rootConformanceDeclaration)
+			return errors.Wrapf(err, "cannot close %s", objectConformanceDeclaration)
 		}
-		return fmt.Errorf("cannot create object %s. %s already exists", id, ocfl.pathPrefix+rootConformanceDeclaration)
+		return fmt.Errorf("cannot create object %s. %s already exists", id, ocfl.pathPrefix+objectConformanceDeclaration)
 	}
 	cnt, err := ocfl.fs.ReadDir(ocfl.pathPrefix)
 	if err != nil && err != fs.ErrNotExist {
@@ -173,12 +173,12 @@ func (ocfl *OCFLObject) New(id string) error {
 	if len(cnt) > 0 {
 		return fmt.Errorf("%s is not empty", ocfl.pathPrefix)
 	}
-	rfp, err := ocfl.fs.Create(ocfl.pathPrefix + rootConformanceDeclaration)
+	rfp, err := ocfl.fs.Create(ocfl.pathPrefix + objectConformanceDeclaration)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", rootConformanceDeclaration)
+		return errors.Wrapf(err, "cannot create %s", objectConformanceDeclaration)
 	}
 	if err := rfp.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close %s", rootConformanceDeclaration)
+		return errors.Wrapf(err, "cannot close %s", objectConformanceDeclaration)
 	}
 
 	ocfl.i, err = NewInventory(id, ocfl.logger)
