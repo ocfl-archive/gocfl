@@ -3,6 +3,7 @@ package ocfl
 import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -104,4 +105,32 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 
 	return stack
 	// fmt.Printf("%+v", st[0:2]) // top two frames
+}
+
+func getVersion(fs OCFLFS, folder, prefix string) (version string, err error) {
+	rString := fmt.Sprintf("[0-9]+=%s([0-9]+\\.[0-9]+)", prefix)
+	r, err := regexp.Compile(rString)
+	if err != nil {
+		return "", errors.Wrapf(err, "cannot compile %s", rString)
+	}
+	files, err := fs.ReadDir(folder)
+	if err != nil {
+		return "", errors.Wrapf(err, "cannot get %s files", folder)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		matches := r.FindStringSubmatch(file.Name())
+		if matches != nil {
+			if version != "" {
+				return "", errVersionMultiple
+			}
+			version = matches[1]
+		}
+	}
+	if version == "" {
+		return "", errVersionNone
+	}
+	return version, nil
 }

@@ -2,6 +2,10 @@ module go.ub.unibas.ch/gocfl/v2
 
 go 1.19
 
+replace (
+	go.ub.unibas.ch/gocfl/v2 => ./
+)
+
 require (
 	emperror.dev/emperror v0.33.0
 	github.com/je4/utils/v2 v2.0.6

@@ -2,301 +2,32 @@ package ocfl
 
 import (
 	"emperror.dev/errors"
-	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io"
-	"io/fs"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
-const VERSION = "1.0"
-
-var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
-
-type OCFLObject struct {
-	fs         OCFLFS
-	pathPrefix string
-	i          *Inventory
-	changed    bool
-	logger     *logging.Logger
-	version    string
+type Object interface {
+	LoadInventory() (Inventory, error)
+	StoreInventory() error
+	New(id string) error
+	Load() error
+	StartUpdate(msg string, UserName string, UserAddress string) error
+	AddFile(virtualFilename string, reader io.Reader, digest string) error
+	GetID() string
+	Check() error
+	Close() error
 }
 
-// NewOCFL creates an empty OCFL structure
-func NewOCFLObject(fs OCFLFS, pathPrefix, id string, logger *logging.Logger) (*OCFLObject, error) {
-	if pathPrefix == "." {
-		pathPrefix = ""
-	}
-	// no / prefix, but / suffix
-	pathPrefix = strings.Trim(pathPrefix, "/") + "/"
-	ocfl := &OCFLObject{fs: fs, logger: logger, pathPrefix: pathPrefix}
-	if id != "" {
-		if err := ocfl.New(id); err == nil {
-			return ocfl, nil
-		}
-	}
-	if err := ocfl.Load(); err != nil {
-		return nil, errors.Wrapf(err, "cannot load object at %s", pathPrefix)
-	}
-	if id != "" && ocfl.GetID() != id {
-		return nil, fmt.Errorf("id mismatch. %s != %s", id, ocfl.GetID())
-	}
-	return ocfl, nil
-}
-
-var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
-
-//var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
-
-// LoadInventory loads inventory from existing OCFLFS
-func (ocfl *OCFLObject) LoadInventory(folder string) (*Inventory, error) {
-	// current dir is the empty name
-	if folder == "." {
-		folder = ""
-	}
-	ocfl.logger.Debugf("%s", folder)
-
-	// load inventory file
-	iFp, err := ocfl.fs.Open(ocfl.pathPrefix + "inventory.json")
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", "inventory.json")
-	}
-	// read inventory into memory
-	inventoryBytes, err := io.ReadAll(iFp)
-	iFp.Close()
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read %s", "inventory.json")
-	}
-	var inventory = &Inventory{logger: ocfl.logger}
-	if err := json.Unmarshal(inventoryBytes, inventory); err != nil {
-		return nil, errors.Wrap(err, "cannot marshal inventory.json")
-	}
-	digest := inventory.GetDigestAlgorithm()
-
-	// check digest for inventory
-	digestPath := fmt.Sprintf("%sinventory.json.%s", ocfl.pathPrefix, digest)
-	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
-	if err != nil {
-		return nil, MultiError(err, ErrorE058)
-	}
-	digestString := strings.TrimSpace(string(digestBytes))
-	if !strings.HasSuffix(digestString, " inventory.json") {
-		return nil, ErrorE061
-	}
-	digestString = strings.TrimSuffix(digestString, " inventory.json")
-	h, err := checksum.GetHash(digest)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
-	}
-	sumBytes := h.Sum(inventoryBytes)
-	inventoryDigestString := fmt.Sprintf("%x", sumBytes)
-	if digestString != inventoryDigestString {
-		return nil, MultiError(fmt.Errorf("%s != %s", digestString, inventoryDigestString), ErrorE060)
-	}
-
-	return inventory, nil
-}
-
-func (ocfl *OCFLObject) StoreInventory() error {
-	ocfl.logger.Debug()
-
-	// check whether ocfl filesystem is writeable
-	if !ocfl.i.IsWriteable() {
-		return errors.New("inventory not writeable - not updated")
-	}
-
-	// create inventory.json from inventory
-	iFileName := "inventory.json"
-	jsonBytes, err := json.MarshalIndent(ocfl.i, "", "   ")
-	if err != nil {
-		return errors.Wrap(err, "cannot marshal inventory")
-	}
-	h, err := checksum.GetHash(ocfl.i.GetDigestAlgorithm())
-	if err != nil {
-		return errors.Wrapf(err, "invalid digest algorithm %s", string(ocfl.i.GetDigestAlgorithm()))
-	}
-	checksumBytes := h.Sum(jsonBytes)
-	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
-	iWriter, err := ocfl.fs.Create(ocfl.pathPrefix + iFileName)
-	if err != nil {
-		return errors.Wrap(err, "cannot create inventory.json")
-	}
-	if _, err := iWriter.Write(jsonBytes); err != nil {
-		return errors.Wrap(err, "cannot write to inventory.json")
-	}
-	iFileName = fmt.Sprintf("%s/inventory.json", ocfl.i.GetVersion())
-	iWriter, err = ocfl.fs.Create(ocfl.pathPrefix + iFileName)
-	if err != nil {
-		return errors.Wrap(err, "cannot create inventory.json")
-	}
-	if _, err := iWriter.Write(jsonBytes); err != nil {
-		return errors.Wrap(err, "cannot write to inventory.json")
-	}
-	csFileName := fmt.Sprintf("inventory.json.%s", string(ocfl.i.GetDigestAlgorithm()))
-	iCSWriter, err := ocfl.fs.Create(ocfl.pathPrefix + csFileName)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", csFileName)
-	}
-	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-		return errors.Wrapf(err, "cannot write to %s", csFileName)
-	}
-	csFileName = fmt.Sprintf("%s/inventory.json.%s", ocfl.i.GetVersion(), string(ocfl.i.GetDigestAlgorithm()))
-	iCSWriter, err = ocfl.fs.Create(ocfl.pathPrefix + csFileName)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", csFileName)
-	}
-	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-		return errors.Wrapf(err, "cannot write to %s", csFileName)
-	}
-	return nil
-}
-
-func (ocfl *OCFLObject) New(id string) error {
-	ocfl.logger.Debugf("%s", id)
-
-	// first check whether ocfl is not empty
-	fp, err := ocfl.fs.Open(ocfl.pathPrefix + objectConformanceDeclaration)
-	if err == nil {
-		if err := fp.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close %s", objectConformanceDeclaration)
-		}
-		return fmt.Errorf("cannot create object %s. %s already exists", id, ocfl.pathPrefix+objectConformanceDeclaration)
-	}
-	cnt, err := ocfl.fs.ReadDir(ocfl.pathPrefix)
-	if err != nil && err != fs.ErrNotExist {
-		return errors.Wrapf(err, "cannot read %s", ocfl.pathPrefix)
-	}
-	if len(cnt) > 0 {
-		return fmt.Errorf("%s is not empty", ocfl.pathPrefix)
-	}
-	rfp, err := ocfl.fs.Create(ocfl.pathPrefix + objectConformanceDeclaration)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", objectConformanceDeclaration)
-	}
-	if err := rfp.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close %s", objectConformanceDeclaration)
-	}
-
-	ocfl.i, err = NewInventory(id, ocfl.logger)
-	return nil
-}
-
-func (ocfl *OCFLObject) Load() error {
-	var err error
-	// first check whether object already exists
-	ocfl.version, err = ocfl.LoadVersion()
-	if err != nil {
-		return err
-	}
-	if ocfl.version != VERSION {
-		return errors.New(fmt.Sprintf("OCFL of version %s found. Supporting only version %s", ocfl.version, VERSION))
-	}
-	// load the inventory
-	if ocfl.i, err = ocfl.LoadInventory("."); err != nil {
-		return errors.Wrap(err, "cannot load inventory.json of root")
-	}
-	return nil
-}
-
-func (ocfl *OCFLObject) LoadVersion() (string, error) {
-	dirs, err := ocfl.fs.ReadDir(ocfl.pathPrefix)
-	if err != nil {
-		return "", errors.Wrap(err, "cannot read filesystem")
-	}
-	var version string
-	for _, d := range dirs {
-		if strings.HasPrefix(d.Name(), "0=ocfl_object_") && !d.IsDir() {
-			if version != "" {
-				// multiple version files are not allowed
-				return "", ErrorE003
-			}
-			version = strings.TrimPrefix(d.Name(), "0=ocfl_object_")
-		}
-	}
-	if version == "" {
-		// no version file found
-		return "", ErrorE003
-	}
-	return version, nil
-}
-
-func (ocfl *OCFLObject) GetDigestAlgorithm() checksum.DigestAlgorithm {
-	return ocfl.i.GetDigestAlgorithm()
-}
-func (ocfl *OCFLObject) Close() error {
-	ocfl.logger.Debug()
-	if ocfl.i.IsWriteable() {
-		if err := ocfl.i.Clean(); err != nil {
-			return errors.Wrap(err, "cannot clean inventory")
-		}
-		if err := ocfl.StoreInventory(); err != nil {
-			return errors.Wrap(err, "cannot store inventory")
-		}
-	}
-	return nil
-}
-
-func (ocfl *OCFLObject) StartUpdate(msg string, UserName string, UserAddress string) error {
-	ocfl.logger.Debugf("%s / %s / %s", msg, UserName, UserAddress)
-
-	if ocfl.i.IsWriteable() {
-		return errors.New("ocfl already writeable")
-	}
-	if err := ocfl.i.NewVersion(msg, UserName, UserAddress); err != nil {
-		return errors.Wrap(err, "cannot create new ocfl version")
-	}
-	return nil
-}
-
-func (ocfl *OCFLObject) AddFile(virtualFilename string, reader io.Reader, digest string) error {
-	virtualFilename = filepath.ToSlash(virtualFilename)
-	ocfl.logger.Debugf("%s [%s]", virtualFilename, digest)
-
-	if !ocfl.i.IsWriteable() {
-		return errors.New("ocfl not writeable")
-	}
-
-	// if file is already there we do nothing
-	dup, err := ocfl.i.AlreadyExists(virtualFilename, digest)
-	if err != nil {
-		return errors.Wrapf(err, "cannot check duplicate for %s [%s]", virtualFilename, digest)
-	}
-	if dup {
-		ocfl.logger.Debugf("%s [%s] is a duplicate", virtualFilename, digest)
-		return nil
-	}
-	var realFilename string
-	if !ocfl.i.IsDuplicate(digest) {
-		realFilename = ocfl.i.BuildRealname(virtualFilename)
-		writer, err := ocfl.fs.Create(ocfl.pathPrefix + realFilename)
+func NewObject(fs OCFLFS, pathPrefix, version string, id string, logger *logging.Logger) (Object, error) {
+	switch version {
+	case "1.0":
+		o, err := NewObjectV10(fs, pathPrefix, id, logger)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create %s", realFilename)
+			return nil, errors.WithStack(err)
 		}
-		csw := checksum.NewChecksumWriter([]checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()})
-		checksums, err := csw.Copy(writer, reader)
-		if digest != "" && digest != checksums[ocfl.i.GetDigestAlgorithm()] {
-			return fmt.Errorf("invalid checksum %s", digest)
-		}
-		digest = checksums[ocfl.i.GetDigestAlgorithm()]
-		if err != nil {
-			return errors.Wrapf(err, "cannot copy to %s", realFilename)
-		}
+		return o, nil
+	default:
+		return nil, errors.New(fmt.Sprintf("Object Version %s not supported", version))
 	}
-	if err := ocfl.i.AddFile(virtualFilename, realFilename, digest); err != nil {
-		return errors.Wrapf(err, "cannot append %s/%s to inventory", realFilename, virtualFilename)
-	}
-	return nil
-}
-
-func (ocfl *OCFLObject) GetID() string {
-	return ocfl.i.Id
-}
-
-func (ocfl *OCFLObject) Check() error {
-	//
-	return nil
 }

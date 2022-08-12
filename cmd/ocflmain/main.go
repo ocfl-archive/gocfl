@@ -19,6 +19,7 @@ import (
 
 // const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{module}::%{shortfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
+const VERSION = "1.0"
 
 func main() {
 	var panicking = true
@@ -40,7 +41,7 @@ func main() {
 
 	tempFile := fmt.Sprintf("%s.tmp", *zipfile)
 	if zipWriter, err = os.Create(tempFile); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		panic(err)
 	}
 	defer func() {
@@ -63,7 +64,7 @@ func main() {
 	} else {
 		zipSize = stat.Size()
 		if zipReader, err = os.Open(*zipfile); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
 		defer func() {
@@ -80,7 +81,7 @@ func main() {
 
 	zfs, err := zipfs.NewFSIO(zipReader, zipSize, zipWriter, logger)
 	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		panic(err)
 	}
 	defer func() {
@@ -94,16 +95,21 @@ func main() {
 		panic(err)
 	}
 
-	storageRoot, err := ocfl.NewOCFLStorageRoot(zfs, defaultStorageLayout, logger)
+	storageRoot, err := ocfl.NewStorageRoot(zfs, VERSION, defaultStorageLayout, logger)
 	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		panic(err)
 	}
 
 	// TEST042
 	o, err := storageRoot.OpenObject("test042")
 	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		panic(err)
+	}
+
+	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		panic(err)
 	}
 	defer func() {
@@ -111,11 +117,6 @@ func main() {
 			o.Close()
 		}
 	}()
-
-	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
-		panic(err)
-	}
 
 	testdir := "C:/temp/bangbang/datatables"
 
@@ -131,14 +132,14 @@ func main() {
 		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
 		if err := o.AddFile(strings.Trim(strings.TrimPrefix(filepath.ToSlash(path), testdir), "/"), file, checksum); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
 		return nil
@@ -149,7 +150,7 @@ func main() {
 	// TEST041
 	o2, err := storageRoot.OpenObject("test041")
 	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		panic(err)
 	}
 	defer func() {
@@ -159,7 +160,7 @@ func main() {
 	}()
 
 	if err := o2.StartUpdate("test 41", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		panic(err)
 	}
 
@@ -177,14 +178,14 @@ func main() {
 		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
 		if err := o2.AddFile(strings.Trim("x"+strings.TrimPrefix(filepath.ToSlash(path), testdir2), "/"), file, checksum); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err)) // top two frames
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
 		return nil
