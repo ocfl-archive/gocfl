@@ -71,7 +71,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *HashAndIdNTuple) ID2Path(id string) (string, error) {
+func (sl *HashAndIdNTuple) ExecutePath(id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {

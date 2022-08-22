@@ -55,7 +55,7 @@ func (sl *PairTree) Name() string {
 	return PairTreeName
 }
 
-func (sl *PairTree) ID2Path(id string) (string, error) {
+func (sl *PairTree) ExecutePath(id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))

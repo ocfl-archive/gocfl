@@ -22,7 +22,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	fmt.Printf("\nNewHashAndIdNTuple(%s, %v, %v)\n", checksum.DigestSHA256, 3, 3)
 	objectID := "object-01"
 	testResult := "3c0/ff4/240/object-01"
-	rootPath, err := l.ID2Path(objectID)
+	rootPath, err := l.ExecutePath(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -33,7 +33,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 
 	objectID = "..hor/rib:le-$id"
 	testResult = "487/326/d8c/%2e%2ehor%2frib%3ale-%24id"
-	rootPath, err = l.ID2Path(objectID)
+	rootPath, err = l.ExecutePath(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -57,7 +57,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	fmt.Printf("\nNewHashAndIdNTuple(%s, %v, %v)\n", checksum.DigestMD5, 2, 15)
 	objectID = "object-01"
 	testResult = "ff/75/53/44/92/48/5e/ab/b3/9f/86/35/67/28/88/object-01"
-	rootPath, err = l.ID2Path(objectID)
+	rootPath, err = l.ExecutePath(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -68,7 +68,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 
 	objectID = "..hor/rib:le-$id"
 	testResult = "08/31/97/66/fb/6c/29/35/dd/17/5b/94/26/77/17/%2e%2ehor%2frib%3ale-%24id"
-	rootPath, err = l.ID2Path(objectID)
+	rootPath, err = l.ExecutePath(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -92,7 +92,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	fmt.Printf("\nNewHashAndIdNTuple(%s, %v, %v)\n", checksum.DigestSHA256, 0, 0)
 	objectID = "object-01"
 	testResult = "object-01"
-	rootPath, err = l.ID2Path(objectID)
+	rootPath, err = l.ExecutePath(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -103,7 +103,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 
 	objectID = "..hor/rib:le-$id"
 	testResult = "%2e%2ehor%2frib%3ale-%24id"
-	rootPath, err = l.ID2Path(objectID)
+	rootPath, err = l.ExecutePath(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}

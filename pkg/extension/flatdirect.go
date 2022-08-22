@@ -21,12 +21,12 @@ func NewFlatDirect(config *Config) (*FlatDirect, error) {
 	return sl, nil
 }
 func (sl *FlatDirect) Name() string { return FlatDirectName }
-func (sl *FlatDirect) ID2Path(id string) (string, error) {
+func (sl *FlatDirect) ExecutePath(id string) (string, error) {
 	/*
 		if len(id) > MAX_DIR_LEN {
 			return "", errors.New(fmt.Sprintf("%s to long (max. %v)", id, MAX_DIR_LEN))
 		}
-		if FixFilename(id) != id {
+		if CleanPath(id) != id {
 			return "", errors.New(fmt.Sprintf("%s contains forbidden characters", id))
 		}
 	*/

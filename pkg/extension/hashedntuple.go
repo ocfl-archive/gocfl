@@ -51,7 +51,7 @@ func (sl *HashedNTuple) Name() string {
 	return HashedNTupleName
 }
 
-func (sl *HashedNTuple) ID2Path(id string) (string, error) {
+func (sl *HashedNTuple) ExecutePath(id string) (string, error) {
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
 		return "", errors.Wrapf(err, "cannot hash %s", id)

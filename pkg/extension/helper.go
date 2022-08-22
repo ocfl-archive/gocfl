@@ -1,11 +1,12 @@
 package extension
 
 import (
+	"emperror.dev/errors"
 	"regexp"
 	"strings"
 )
 
-// FixFilename
+// CleanPath
 /**********************************************************************
  * 1) Forbid/escape ASCII control characters (bytes 1-31 and 127) in filenames, including newline, escape, and tab.
  *    I know of no user or program that actually requires this capability. As far as I can tell, this capability
@@ -42,9 +43,13 @@ import (
  *
  * https://www.dwheeler.com/essays/fixing-unix-linux-filenames.html
  */
-func FixFilename(fname string) string {
-	rule_1_5 := regexp.MustCompile("[\x00-\x1F\x7F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
-	rule_2_4_6 := regexp.MustCompile("^[\\s\\-~]*(.*?)\\s*$")
+var rule_1_5 = regexp.MustCompile("[\x00-\x1F\x7F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
+var rule_2_4_6 = regexp.MustCompile("^[\\s\\-~]*(.*?)\\s*$")
+
+var ErrFilenameTooLong = errors.New("filename too long")
+var ErrPathnameTooLong = errors.New("pathname too long")
+
+func CleanPath(fname string, MaxFilenameLength, MaxPathnameLength int) (string, error) {
 
 	fname = strings.ToValidUTF8(fname, "_")
 
@@ -54,15 +59,21 @@ func FixFilename(fname string) string {
 	for _, n := range names {
 		n = rule_1_5.ReplaceAllString(n, "_")
 		n = rule_2_4_6.ReplaceAllString(n, "$1")
-		result = append(result, n)
+
+		lenN := len(n)
+		if lenN > MaxFilenameLength {
+			return "", errors.Wrapf(ErrFilenameTooLong, "filename: %s", n)
+		}
+		if lenN > 0 {
+			result = append(result, n)
+		}
 	}
 
 	fname = strings.Join(result, "/")
-	if len(result) > 0 {
-		if result[0] == "" {
-			fname = "/" + fname
-		}
 
+	if len(fname) > MaxPathnameLength {
+		return "", errors.Wrapf(ErrPathnameTooLong, "pathname: %s", fname)
 	}
-	return fname
+
+	return fname, nil
 }

@@ -159,7 +159,7 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 }
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
-	folder, err := osr.layout.ID2Path(id)
+	folder, err := osr.layout.ExecutePath(id)
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		return NewObject(osr.fs, folder, osr.version, id, osr.logger)

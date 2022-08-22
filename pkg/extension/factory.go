@@ -10,7 +10,13 @@ var ErrNotSupported = errors.New("storage layout not supported")
 func NewDefaultStorageLayout() (StorageLayout, error) {
 	var layout StorageLayout
 	var err error
-	var cfg = &FlatDirectCleanConfig{Config: &Config{ExtensionName: FlatDirectCleanName}, MaxLen: 255}
+	var cfg = &DirectCleanConfig{
+		Config:                      &Config{ExtensionName: FlatDirectCleanName},
+		MaxPathnameLen:              32000,
+		MaxFilenameLen:              127,
+		WhitespaceReplacementString: " ",
+		ReplacementString:           "_",
+	}
 	if layout, err = NewFlatDirectClean(cfg); err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 	}
@@ -26,9 +32,12 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 	var err error
 	switch cfg.ExtensionName {
 	case FlatDirectCleanName:
-		var conf = &FlatDirectCleanConfig{
-			Config: cfg,
-			MaxLen: 255,
+		var conf = &DirectCleanConfig{
+			Config:                      cfg,
+			MaxPathnameLen:              32000,
+			MaxFilenameLen:              127,
+			WhitespaceReplacementString: " ",
+			ReplacementString:           "_",
 		}
 		if err := json.Unmarshal(config, conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
