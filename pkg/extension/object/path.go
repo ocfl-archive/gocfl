@@ -15,10 +15,15 @@ type Path interface {
 var ErrNotSupported = errors.New("path extension not supported")
 
 func NewDefaultPath() (Path, error) {
-	var cfg = &PathDirectConfig{
-		Config: &Config{ExtensionName: DirectPathName},
+	var cfg = &PathDirectCleanConfig{
+		Config:                      &Config{ExtensionName: PathDirectCleanName},
+		MaxPathnameLen:              32000,
+		MaxFilenameLen:              127,
+		ReplacementString:           "_",
+		WhitespaceReplacementString: " ",
+		UTFEncode:                   true,
 	}
-	path, err := NewPathDirect(cfg)
+	path, err := NewPathDirectClean(cfg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 	}
@@ -33,7 +38,7 @@ func NewPath(config []byte) (Path, error) {
 	var path Path
 	var err error
 	switch cfg.ExtensionName {
-	case DirectPathName:
+	case PathDirectName:
 		var conf = &PathDirectConfig{
 			Config: cfg,
 		}

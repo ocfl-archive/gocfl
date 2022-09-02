@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-const DirectPathName = "NNNN-direct-path-object"
+const PathDirectName = "NNNN-direct-path-object"
 
 type PathDirectConfig struct {
 	*Config
@@ -24,7 +24,7 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 	}
 	return sl, nil
 }
-func (sl *PathDirect) Name() string { return DirectPathName }
+func (sl *PathDirect) Name() string { return PathDirectName }
 func (sl *PathDirect) ExecutePath(id string) (string, error) {
 	return id, nil
 }
