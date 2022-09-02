@@ -6,7 +6,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"io"
 	"io/fs"
 )
@@ -15,14 +15,14 @@ type StorageRootBase struct {
 	fs      OCFLFS
 	changed bool
 	logger  *logging.Logger
-	layout  extension.StorageLayout
+	layout  storageroot.StorageLayout
 	version string
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(fs OCFLFS, defaultVersion string, defaultStorageLayout extension.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
+func NewStorageRootBase(fs OCFLFS, defaultVersion string, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
 	ocfl := &StorageRootBase{fs: fs, version: defaultVersion, layout: defaultStorageLayout, logger: logger}
 
 	if err := ocfl.Init(); err != nil {
@@ -53,7 +53,7 @@ func (osr *StorageRootBase) Init() error {
 			return errors.Wrapf(err, "cannot create %s", rootConformanceDeclarationFile)
 		}
 		defer rcd.Close()
-		if _, err := rcd.Write([]byte(rootConformanceDeclaration)); err != nil {
+		if _, err := rcd.Write([]byte(rootConformanceDeclaration + "\n")); err != nil {
 			return errors.Wrapf(err, "cannot write into %s", rootConformanceDeclarationFile)
 		}
 
@@ -70,13 +70,13 @@ func (osr *StorageRootBase) Init() error {
 		// read storage layout from extension folder...
 		exts, err := osr.fs.ReadDir("extensions")
 		if err != nil {
-			// if directory does not exists - no problem
+			// if directory does not exist - no problem
 			if err != fs.ErrNotExist {
 				return errors.Wrap(err, "cannot read extensions folder")
 			}
 			exts = []fs.DirEntry{}
 		}
-		var layout extension.StorageLayout
+		var layout storageroot.StorageLayout
 		for _, extFolder := range exts {
 			extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
 			configReader, err := osr.fs.Open(extConfig)
@@ -87,14 +87,14 @@ func (osr *StorageRootBase) Init() error {
 			if _, err := io.Copy(buf, configReader); err != nil {
 				return errors.Wrapf(err, "cannot read %s", extConfig)
 			}
-			if layout, err = extension.NewStorageLayout(buf.Bytes()); err != nil {
+			if layout, err = storageroot.NewStorageLayout(buf.Bytes()); err != nil {
 				osr.logger.Warningf("%s not a storage layout: %v", extConfig, err)
 				continue
 			}
 		}
 		if layout == nil {
 			// ...or set to default
-			if layout, err = extension.NewDefaultStorageLayout(); err != nil {
+			if layout, err = storageroot.NewDefaultStorageLayout(); err != nil {
 				return errors.Wrap(err, "cannot initiate default storage layout")
 			}
 		}
@@ -150,7 +150,7 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return nil, ErrorE003
+		return nil, GetValidationError(osr.version, E003)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s", folder)
@@ -159,7 +159,7 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 }
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
-	folder, err := osr.layout.ExecutePath(id)
+	folder, err := osr.layout.ExecuteID(id)
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		return NewObject(osr.fs, folder, osr.version, id, osr.logger)

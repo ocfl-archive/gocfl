@@ -6,7 +6,7 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	flag "github.com/spf13/pflag"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
 	"io/fs"
@@ -90,7 +90,7 @@ func main() {
 		}
 
 	}()
-	defaultStorageLayout, err := extension.NewDefaultStorageLayout()
+	defaultStorageLayout, err := storageroot.NewDefaultStorageLayout()
 	if err != nil {
 		panic(err)
 	}

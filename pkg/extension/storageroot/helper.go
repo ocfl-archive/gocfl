@@ -1,4 +1,4 @@
-package extension
+package storageroot
 
 import (
 	"emperror.dev/errors"

@@ -1,4 +1,4 @@
-package extension
+package storageroot
 
 import (
 	"emperror.dev/errors"
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const PairTreeName = "gocfl-pairtree"
+const StorageLayoutPairTreeName = "gocfl-pairtree"
 
 /*
 	https://pythonhosted.org/Pairtree/pairtree.pairtree_client.PairtreeStorageClient-class.html
@@ -25,12 +25,12 @@ var convert = map[rune]rune{
 	'.': ',',
 }
 
-type PairTree struct {
-	*PairTreeConfig
+type StorageLayoutPairTree struct {
+	*StorageLayoutPairTreeConfig
 	hash hash.Hash
 }
 
-type PairTreeConfig struct {
+type StorageLayoutPairTreeConfig struct {
 	*Config
 	UriBase         string `json:"uriBase"`
 	StoreDir        string `json:"storeDir"`
@@ -38,8 +38,8 @@ type PairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewPairTree(config *PairTreeConfig) (*PairTree, error) {
-	sl := &PairTree{PairTreeConfig: config}
+func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayoutPairTree, error) {
+	sl := &StorageLayoutPairTree{StorageLayoutPairTreeConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, errors.Wrapf(err, "hash %s not found", config.DigestAlgorithm)
@@ -51,11 +51,11 @@ func NewPairTree(config *PairTreeConfig) (*PairTree, error) {
 	return sl, nil
 }
 
-func (sl *PairTree) Name() string {
-	return PairTreeName
+func (sl *StorageLayoutPairTree) Name() string {
+	return StorageLayoutPairTreeName
 }
 
-func (sl *PairTree) ExecutePath(id string) (string, error) {
+func (sl *StorageLayoutPairTree) ExecuteID(id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))
@@ -70,7 +70,7 @@ func (sl *PairTree) ExecutePath(id string) (string, error) {
 	return strings.Join(dirparts, "/"), nil
 }
 
-func (sl *PairTree) idEncode(str string) string {
+func (sl *StorageLayoutPairTree) idEncode(str string) string {
 	var result = []rune{}
 	for _, c := range []rune(str) {
 		isVisible := 0x21 <= c && c <= 0x7e
@@ -107,7 +107,7 @@ func (sl *PairTree) idEncode(str string) string {
 	return string(result)
 }
 
-func (sl *PairTree) WriteConfig(configWriter io.Writer) error {
+func (sl *StorageLayoutPairTree) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.Config); err != nil {

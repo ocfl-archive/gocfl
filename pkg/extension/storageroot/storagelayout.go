@@ -1,23 +1,35 @@
-package extension
+package storageroot
 
 import (
 	"emperror.dev/errors"
 	"encoding/json"
+	"io"
 )
+
+type StorageLayout interface {
+	ExecuteID(id string) (string, error)
+	Name() string
+	WriteConfig(config io.Writer) error
+}
+
+type Config struct {
+	ExtensionName string `json:"extensionName"`
+}
 
 var ErrNotSupported = errors.New("storage layout not supported")
 
 func NewDefaultStorageLayout() (StorageLayout, error) {
 	var layout StorageLayout
 	var err error
-	var cfg = &DirectCleanConfig{
-		Config:                      &Config{ExtensionName: FlatDirectCleanName},
+	var cfg = &StorageLayoutDirectCleanConfig{
+		Config:                      &Config{ExtensionName: StorageLayoutDirectCleanName},
 		MaxPathnameLen:              32000,
 		MaxFilenameLen:              127,
 		WhitespaceReplacementString: " ",
 		ReplacementString:           "_",
+		UTFEncode:                   true,
 	}
-	if layout, err = NewFlatDirectClean(cfg); err != nil {
+	if layout, err = NewStorageLayoutDirectClean(cfg); err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 	}
 	return layout, nil
@@ -31,8 +43,8 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 	var layout StorageLayout
 	var err error
 	switch cfg.ExtensionName {
-	case FlatDirectCleanName:
-		var conf = &DirectCleanConfig{
+	case StorageLayoutDirectCleanName:
+		var conf = &StorageLayoutDirectCleanConfig{
 			Config:                      cfg,
 			MaxPathnameLen:              32000,
 			MaxFilenameLen:              127,
@@ -42,15 +54,15 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 		if err := json.Unmarshal(config, conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
-		if layout, err = NewFlatDirectClean(conf); err != nil {
+		if layout, err = NewStorageLayoutDirectClean(conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
-	case FlatDirectName:
-		if layout, err = NewFlatDirect(cfg); err != nil {
+	case StorageLayoutFlatDirectName:
+		if layout, err = NewStorageLayoutFlatDirect(cfg); err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
-	case HashAndIdNTupleName:
-		var conf = &HashAndIdNTupleConfig{
+	case StorageLayoutHashAndIdNTupleName:
+		var conf = &StorageLayoutHashAndIdNTupleConfig{
 			Config:          cfg,
 			DigestAlgorithm: "",
 			TupleSize:       0,
@@ -59,11 +71,11 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 		if err := json.Unmarshal(config, conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
-		if layout, err = NewHashAndIdNTuple(conf); err != nil {
+		if layout, err = NewStorageLayoutHashAndIdNTuple(conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
-	case HashedNTupleName:
-		var conf = &HashedNTupleConfig{
+	case StorageLayoutHashedNTupleName:
+		var conf = &StorageLayoutHashedNTupleConfig{
 			Config:          cfg,
 			DigestAlgorithm: "",
 			TupleSize:       0,
@@ -72,11 +84,11 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 		if err := json.Unmarshal(config, conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
-		if layout, err = NewHashedNTuple(conf); err != nil {
+		if layout, err = NewStorageLayoutHashedNTuple(conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
-	case PairTreeName:
-		var conf = &PairTreeConfig{
+	case StorageLayoutPairTreeName:
+		var conf = &StorageLayoutPairTreeConfig{
 			Config:          cfg,
 			DigestAlgorithm: "",
 			ShortyLength:    0,
@@ -85,7 +97,7 @@ func NewStorageLayout(config []byte) (StorageLayout, error) {
 		if err := json.Unmarshal(config, conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))
 		}
-		if layout, err = NewPairTree(conf); err != nil {
+		if layout, err = NewStorageLayoutPairTree(conf); err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 		}
 	default:

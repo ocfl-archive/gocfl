@@ -1,4 +1,4 @@
-package extension
+package storageroot
 
 import (
 	"fmt"
@@ -8,28 +8,28 @@ import (
 func TestFlatDirectory(t *testing.T) {
 	// https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html
 	// Example 1
-	l := FlatDirect{}
+	l := StorageLayoutFlatDirect{}
 	objectID := "object-01"
 	testResult := "object-01"
-	rootPath, err := l.ExecutePath(objectID)
+	rootPath, err := l.ExecuteID(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
 	if rootPath != testResult {
 		t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 	}
-	fmt.Printf("FlatDirect(%s) -> %s\n", objectID, rootPath)
+	fmt.Printf("StorageLayoutFlatDirect(%s) -> %s\n", objectID, rootPath)
 
 	objectID = "..hor_rib:lé-$id"
 	testResult = "..hor_rib:lé-$id"
-	rootPath, err = l.ExecutePath(objectID)
+	rootPath, err = l.ExecuteID(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("FlatDirect(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("StorageLayoutFlatDirect(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -37,27 +37,27 @@ func TestFlatDirectory(t *testing.T) {
 	// Example 2
 	objectID = "info:fedora/object-01"
 	testResult = "info:fedora/object-01"
-	rootPath, err = l.ExecutePath(objectID)
+	rootPath, err = l.ExecuteID(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("FlatDirect(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("StorageLayoutFlatDirect(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
 	objectID = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
 	testResult = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
-	rootPath, err = l.ExecutePath(objectID)
+	rootPath, err = l.ExecuteID(objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("FlatDirect(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("StorageLayoutFlatDirect(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 

@@ -4,11 +4,10 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 )
 
 type StorageRoot interface {
-	//Init() error
 	GetFiles() ([]string, error)
 	GetFolders() ([]string, error)
 	GetObjectFolders() ([]string, error)
@@ -17,7 +16,7 @@ type StorageRoot interface {
 	Check() error
 }
 
-func NewStorageRoot(fs OCFLFS, defaultVersion string, defaultStorageLayout extension.StorageLayout, logger *logging.Logger) (StorageRoot, error) {
+func NewStorageRoot(fs OCFLFS, defaultVersion string, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (StorageRoot, error) {
 	version, err := getVersion(fs, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
@@ -28,13 +27,13 @@ func NewStorageRoot(fs OCFLFS, defaultVersion string, defaultStorageLayout exten
 			return nil, errors.Wrap(err, "cannot read storage root directory")
 		}
 		if len(cnt) > 0 {
-			return nil, errors.WithStack(ErrorE069)
+			return nil, errors.WithStack(GetValidationError(defaultVersion, E069))
 		}
 		version = defaultVersion
 	}
 	switch version {
 	case "1.0":
-		sr, err := NewStorageRootV10(fs, defaultStorageLayout, logger)
+		sr, err := NewStorageRootV1_0(fs, defaultStorageLayout, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

@@ -4,6 +4,7 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -108,7 +109,7 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 }
 
 func getVersion(fs OCFLFS, folder, prefix string) (version string, err error) {
-	rString := fmt.Sprintf("[0-9]+=%s([0-9]+\\.[0-9]+)", prefix)
+	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot compile %s", rString)
@@ -127,10 +128,27 @@ func getVersion(fs OCFLFS, folder, prefix string) (version string, err error) {
 				return "", errVersionMultiple
 			}
 			version = matches[1]
+			r, err := fs.Open(fmt.Sprintf("%s/%s", folder, file.Name()))
+			if err != nil {
+				return "", errors.Wrapf(err, "cannot open %s/%s", prefix, file.Name())
+			}
+			defer r.Close()
+			cnt, err := io.ReadAll(r)
+			if err != nil {
+				return "", errors.Wrapf(err, "cannot read %s/%s", prefix, file.Name())
+			}
+			if string(cnt) != fmt.Sprintf("%s%s\n", prefix, version) {
+				return "", GetValidationError(version, E007)
+			}
 		}
 	}
 	if version == "" {
 		return "", errVersionNone
 	}
 	return version, nil
+}
+
+func validVersion(fs OCFLFS, version, folder, prefix string) bool {
+	v, _ := getVersion(fs, folder, prefix)
+	return v == version
 }

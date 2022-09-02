@@ -90,18 +90,30 @@ only 63 characters on 255 byte restrictions.
 
 The following is an outline to the steps for mapping an identifier/filepath:
 
+### `utfEncode == true`
+
+
 1. Replace all non-UTF8 characters with `replacementString`
 2. Split the string at path separator "/"
 3. For each part do the following
-   1. **If `utfEncode == true`**   
-      Replace any character from this list with it's utf code in the form "=uXXXX" where XXXX is the code: U+0000-U+001f U+007f U+0020 U+0085 U+00a0 U+1680 U+2000-U+20a0 U+2028 U+2029 U+202f U+205f U+3000 \n \t * ? : [ ] " < > | ( ) { } & ' ! ; # @  
-      **else**  
-      1. Replace any whitespace character from this list with `whitespaceReplacementString`: U+0009 U+000a-U+000d U+0020 U+0085 U+00a0 U+1680 U+2000-U+20a0 U+2028 U+2029 U+202f U+205f U+3000
-      2. Replace any character from this list with `replacementString`: 0x00-0x1f 0x7f * ? : [ ] " <> | ( ) { } & ' ! ; # @ 
-   2. Remove leading spaces, "-" and "~" / remove trailing spaces
-   3. Replace any period ("."), if part contains only periods, with `replacementString` or UTF Code (depending on `utfEncode`) 
+   1. Replace any character from this list with it's utf code in the form "=uXXXX" where XXXX is the code: U+0000-U+001f U+007f U+0020 U+0085 U+00a0 U+1680 U+2000-U+20a0 U+2028 U+2029 U+202f U+205f U+3000 \n \t * ? : [ ] " < > | ( ) { } & ' ! ; # @  
+   3. If part contains only periods Replace first period ("."), with UTF Code (U+002E)
    4. Remove part completely, if its len is 0
    5. Check length of part according to `maxFilenameLen`
+4. Join the parts with path separator "/"
+5. Check length of result according `maxPathnameLen`
+
+### `utfEncode == false`
+
+1. Replace all non-UTF8 characters with `replacementString`
+2. Split the string at path separator "/"
+3. For each part do the following
+    1. Replace any whitespace character from this list with `whitespaceReplacementString`: U+0009 U+000a-U+000d U+0020 U+0085 U+00a0 U+1680 U+2000-U+20a0 U+2028 U+2029 U+202f U+205f U+3000
+    2. Replace any character from this list with `replacementString`: 0x00-0x1f 0x7f * ? : [ ] " <> | ( ) { } & ' ! ; # @
+    3. Remove leading spaces, "-" and "~" / remove trailing spaces
+    4. If part contains only periods replace first period (".") with `replacementString`
+    5. Remove part completely, if its len is 0
+    6. Check length of part according to `maxFilenameLen`
 4. Join the parts with path separator "/"
 5. Check length of result according `maxPathnameLen`
 
@@ -124,7 +136,7 @@ However, if you were to do so, it would look like the following:
 
 ### Mappings 
 
-#### #1 without `utfEncode`
+#### #1 `utfEncode == false`
 
 ```json
 {
@@ -142,10 +154,11 @@ However, if you were to do so, it would look like the following:
 | `..hor_rib:lé-$id`                        | `..hor_rib_lé-$id`                      |
 | `info:fedora/object-01`                   | `info_fedora/object-01`                 |
 | `~ info:fedora/-obj#ec@t-"01 `            | `info_fedora/obj_ec_t-_01`              |
-| `/test/ ~/.../blah`                       | `test/___/blah`                         |
+| `/test/ ~/.../blah`                       | `test/_../blah`                         |
  | `https://hdl.handle.net/XXXXX/test/bl ah` | `https_/hdl.handle.net/XXXXX/test/bl ah` |
 
-#### #2 with `utfEncode`
+#### #2 `utfEncode == true`
+
 ```json
 {
     "extensionName": "NNNN-direct-clean-path-layout",
@@ -161,8 +174,8 @@ However, if you were to do so, it would look like the following:
 |-------------------------------------------|------------------------------------------------------------|
 | `..hor_rib:lé-$id`                        | `..hor_rib=u003Alé-$id`                                    |
 | `info:fedora/object-01`                   | `info=u003Afedora/object-01`                               |
-| `~ info:fedora/-obj#ec@t-"01 `            | `=u0020info=u003Afedora/obj=u0023ec=u0040t-=u002201=u0020` |
-| `/test/ ~/.../blah`                       | `test/=u0020~/=u002E=u002E=u002E/blah`                     |
+| `~ info:fedora/-obj#ec@t-"01 `            | `=u007E=u0020info=u003Afedora/-obj=u0023ec=u0040t-=u002201=u0020` |
+| `/test/ ~/.../blah`                       | `test/=u0020~/=u002E../blah`                     |
 | `https://hdl.handle.net/XXXXX/test/bl ah` | `https=u003A/hdl.handle.net/XXXXX/test/bl=u0020ah`         |
 
 ### Implementation
@@ -202,19 +215,20 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 	result := []string{}
 
 	for _, n := range names {
-
+		if len(n) == 0 {
+			continue
+		}
 		if sl.UTFEncode {
 			n = flatDirectCleanRuleAll.ReplaceAllStringFunc(n, encodeUTFCode)
+			if n[0] == '~' || flatDirectCleanRulePeriods.MatchString(n) {
+				n = encodeUTFCode(string(n[0])) + n[1:]
+			}
 		} else {
 			n = flatDirectCleanRuleWhitespace.ReplaceAllString(n, sl.WhitespaceReplacementString)
 			n = flatDirectCleanRule_1_5.ReplaceAllString(n, sl.ReplacementString)
-		}
-		n = flatDirectCleanRule_2_4_6.ReplaceAllString(n, "$1")
-		if flatDirectCleanRulePeriods.MatchString(n) {
-			if sl.UTFEncode {
-				n = strings.Replace(n, ".", encodeUTFCode("."), -1)
-			} else {
-				n = strings.Replace(n, ".", sl.ReplacementString, -1)
+			n = flatDirectCleanRule_2_4_6.ReplaceAllString(n, "$1")
+			if flatDirectCleanRulePeriods.MatchString(n) {
+				n = sl.ReplacementString + n[1:]
 			}
 		}
 

@@ -93,6 +93,7 @@ func (zf *FS) Close() error {
 }
 
 func (zfs *FS) Open(name string) (fs.File, error) {
+	name = strings.TrimPrefix(name, "./")
 	if zfs.r == nil {
 		return nil, fs.ErrNotExist
 	}

@@ -64,7 +64,7 @@ type Inventory interface {
 func NewInventory(id, version string, logger *logging.Logger) (Inventory, error) {
 	switch version {
 	case "1.0":
-		sr, err := NewInventoryV10(id, logger)
+		sr, err := NewInventoryV1_0(id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
