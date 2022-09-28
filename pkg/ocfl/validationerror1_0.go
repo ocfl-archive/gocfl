@@ -3,9 +3,7 @@ package ocfl
 var OCFLValidationError1_0 = map[ValidationErrorCode]*ValidationError{
 	E001: {Code: E001, Description: "The OCFL ObjectBase Root must not contain files or directories other than those specified in the following sections.", Ref: "https://ocfl.io/1.0/spec/#E001"},
 	E002: {Code: E002, Description: "The version declaration must be formatted according to the NAMASTE specification.", Ref: "https://ocfl.io/1.0/spec/#E002"},
-
 	E003: {Code: E003, Description: "[The version declaration] must be a file in the base directory of the OCFL ObjectBase Root giving the OCFL version in the filename.", Ref: "https://ocfl.io/1.0/spec/#E003"},
-
 	// E003: {Code: E003, Description: "There must be exactly one version declaration file in the base directory of the OCFL ObjectBase Root giving the OCFL version in the filename.", Ref: "https://ocfl.io/draft/spec/#E003"},
 	E004: {Code: E004, Description: "The [version declaration] filename MUST conform to the pattern T=dvalue, where T must be 0, and dvalue must be ocfl_object_, followed by the OCFL specification version number.", Ref: "https://ocfl.io/1.0/spec/#E004"},
 	E005: {Code: E005, Description: "The [version declaration] filename must conform to the pattern T=dvalue, where T MUST be 0, and dvalue must be ocfl_object_, followed by the OCFL specification version number.", Ref: "https://ocfl.io/1.0/spec/#E005"},

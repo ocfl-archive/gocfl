@@ -5,6 +5,7 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
 	"os"
@@ -215,4 +216,14 @@ func (zf *FS) Stat(name string) (fs.FileInfo, error) {
 		}
 	}
 	return nil, fs.ErrNotExist
+}
+
+func (zf *FS) SubFS(name string) ocfl.OCFLFS {
+	if name == "." {
+		name = ""
+	}
+	return &SubFS{
+		FS:         zf,
+		pathPrefix: name,
+	}
 }

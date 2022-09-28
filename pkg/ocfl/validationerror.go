@@ -106,6 +106,30 @@ const (
 	E100 = ValidationErrorCode("E100")
 	E101 = ValidationErrorCode("E101")
 	E102 = ValidationErrorCode("E102")
+	E103 = ValidationErrorCode("E103")
+	E104 = ValidationErrorCode("E104")
+	E105 = ValidationErrorCode("E105")
+	E106 = ValidationErrorCode("E106")
+	E107 = ValidationErrorCode("E107")
+	E108 = ValidationErrorCode("E108")
+	E110 = ValidationErrorCode("E110")
+	E111 = ValidationErrorCode("E111")
+	E112 = ValidationErrorCode("E112")
+	W001 = ValidationErrorCode("W001")
+	W002 = ValidationErrorCode("W002")
+	W003 = ValidationErrorCode("W003")
+	W004 = ValidationErrorCode("W004")
+	W005 = ValidationErrorCode("W005")
+	W007 = ValidationErrorCode("W007")
+	W008 = ValidationErrorCode("W008")
+	W009 = ValidationErrorCode("W009")
+	W010 = ValidationErrorCode("W010")
+	W011 = ValidationErrorCode("W011")
+	W012 = ValidationErrorCode("W012")
+	W013 = ValidationErrorCode("W013")
+	W014 = ValidationErrorCode("W014")
+	W015 = ValidationErrorCode("W015")
+	W016 = ValidationErrorCode("W016")
 )
 
 type ValidationError struct {
@@ -123,11 +147,13 @@ func (verr *ValidationError) Error() string {
 	}
 }
 
-func GetValidationError(version string, errno ValidationErrorCode) *ValidationError {
+func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *ValidationError {
 	var errlist map[ValidationErrorCode]*ValidationError
 	switch version {
 	case "1.0":
 		errlist = OCFLValidationError1_0
+	case "1.1":
+		errlist = OCFLValidationError1_1
 	default:
 		errlist = map[ValidationErrorCode]*ValidationError{}
 	}

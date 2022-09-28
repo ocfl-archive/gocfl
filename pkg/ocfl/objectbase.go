@@ -25,18 +25,13 @@ type ObjectBase struct {
 	i          Inventory
 	changed    bool
 	logger     *logging.Logger
-	version    string
+	version    OCFLVersion
 	path       object.Path
 }
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(fs OCFLFS, pathPrefix, defaultVersion string, id string, logger *logging.Logger) (*ObjectBase, error) {
-	if pathPrefix == "." {
-		pathPrefix = ""
-	}
-	// no / prefix, but / suffix
-	pathPrefix = strings.Trim(pathPrefix, "/") + "/"
-	ocfl := &ObjectBase{fs: fs, version: defaultVersion, logger: logger, pathPrefix: pathPrefix}
+func NewObjectBase(fs OCFLFS, defaultVersion OCFLVersion, id string, logger *logging.Logger) (*ObjectBase, error) {
+	ocfl := &ObjectBase{fs: fs, version: defaultVersion, logger: logger}
 	if id != "" {
 		dPath, err := object.NewDefaultPath()
 		if err != nil {
@@ -49,7 +44,7 @@ func NewObjectBase(fs OCFLFS, pathPrefix, defaultVersion string, id string, logg
 	}
 	// load the object
 	if err := ocfl.Load(); err != nil {
-		return nil, errors.Wrapf(err, "cannot load object at %s", pathPrefix)
+		return nil, errors.Wrapf(err, "cannot load object %s", id)
 	}
 	if id != "" && ocfl.GetID() != id {
 		return nil, fmt.Errorf("id mismatch. %s != %s", id, ocfl.GetID())
@@ -178,7 +173,7 @@ func (ocfl *ObjectBase) New(id string, path object.Path) error {
 	ocfl.logger.Debugf("%s", id)
 
 	ocfl.path = path
-	objectConformanceDeclaration := "ocfl_object_" + ocfl.version
+	objectConformanceDeclaration := "ocfl_object_" + string(ocfl.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
 	// first check whether ocfl is not empty
@@ -290,7 +285,7 @@ func (ocfl *ObjectBase) StartUpdate(msg string, UserName string, UserAddress str
 
 func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest string) error {
 	virtualFilename = filepath.ToSlash(virtualFilename)
-	ocfl.logger.Debugf("%s [%s]", virtualFilename, digest)
+	ocfl.logger.Debugf("adding %s [%s]", virtualFilename, digest)
 
 	if !ocfl.i.IsWriteable() {
 		return errors.New("ocfl not writeable")
@@ -307,7 +302,11 @@ func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest
 	}
 	var realFilename string
 	if !ocfl.i.IsDuplicate(digest) {
-		realFilename = ocfl.i.BuildRealname(virtualFilename)
+		//		realFilename = ocfl.i.BuildRealname(virtualFilename)
+		if realFilename, err = ocfl.path.ExecutePath(virtualFilename); err != nil {
+			return errors.Wrapf(err, "cannot transform filename %s", virtualFilename)
+		}
+		realFilename = ocfl.i.BuildRealname(realFilename)
 		writer, err := ocfl.fs.Create(ocfl.pathPrefix + realFilename)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create %s", realFilename)
@@ -328,16 +327,41 @@ func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest
 	return nil
 }
 
+func (ocfl *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, digest string) error {
+	virtualFilename = filepath.ToSlash(virtualFilename)
+	ocfl.logger.Debugf("removing %s [%s]", virtualFilename, digest)
+
+	if !ocfl.i.IsWriteable() {
+		return errors.New("ocfl not writeable")
+	}
+
+	// if file is already there we do nothing
+	dup, err := ocfl.i.AlreadyExists(virtualFilename, digest)
+	if err != nil {
+		return errors.Wrapf(err, "cannot check duplicate for %s [%s]", virtualFilename, digest)
+	}
+	if !dup {
+		ocfl.logger.Debugf("%s [%s] not in archive - ignoring", virtualFilename, digest)
+		return nil
+	}
+	if err := ocfl.i.DeleteFile(virtualFilename); err != nil {
+		return errors.Wrapf(err, "cannot delete %s", virtualFilename)
+	}
+	return nil
+
+}
+
 func (ocfl *ObjectBase) GetID() string {
 	return ocfl.i.GetID()
 }
 
 func (ocfl *ObjectBase) Check() error {
-	//
+	// https://ocfl.io/1.0/spec/#object-structure
+	//ocfl.fs
 	return nil
 }
 
-func (ocfl *ObjectBase) getVersion() (version string, err error) {
+func (ocfl *ObjectBase) getVersion() (version OCFLVersion, err error) {
 	rString := "0=ocfl_object_([0-9]+\\.[0-9]+)"
 	r, err := regexp.Compile(rString)
 	if err != nil {
@@ -356,7 +380,7 @@ func (ocfl *ObjectBase) getVersion() (version string, err error) {
 			if version != "" {
 				return "", errVersionMultiple
 			}
-			version = matches[1]
+			version = OCFLVersion(matches[1])
 			r, err := ocfl.fs.Open(filepath.Join(filepath.Join(ocfl.pathPrefix, file.Name())))
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot open %s%s", ocfl.pathPrefix, file.Name())

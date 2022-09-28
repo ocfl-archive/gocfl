@@ -4,31 +4,20 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"io"
+	"net/url"
 )
 
-type Path interface {
-	ExecutePath(id string) (string, error)
+type Logging interface {
 	Name() string
+	Start() error
+	AddFile(fullpath url.URL) error
+	DeleteFile(fullpath url.URL) error
+	MoveFile(src, target url.URL) error
+	WriteLog(logfile io.Writer) error
 	WriteConfig(config io.Writer) error
 }
 
-func NewDefaultPath() (Path, error) {
-	var cfg = &PathDirectCleanConfig{
-		Config:                      &Config{ExtensionName: PathDirectCleanName},
-		MaxPathnameLen:              32000,
-		MaxFilenameLen:              127,
-		ReplacementString:           "_",
-		WhitespaceReplacementString: " ",
-		UTFEncode:                   true,
-	}
-	path, err := NewPathDirectClean(cfg)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
-	}
-	return path, nil
-}
-
-func NewPath(config []byte) (Path, error) {
+func NewLogging(config []byte) (Path, error) {
 	var cfg = &Config{}
 	if err := json.Unmarshal(config, cfg); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal json - %s", string(config))

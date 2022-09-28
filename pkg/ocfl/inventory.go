@@ -61,10 +61,16 @@ type Inventory interface {
 	Clean() error
 }
 
-func NewInventory(id, version string, logger *logging.Logger) (Inventory, error) {
+func NewInventory(id string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
 	switch version {
-	case "1.0":
+	case Version1_0:
 		sr, err := NewInventoryV1_0(id, logger)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return sr, nil
+	case Version1_1:
+		sr, err := NewInventoryV1_1(id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

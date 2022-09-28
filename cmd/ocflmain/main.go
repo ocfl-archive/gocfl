@@ -27,6 +27,7 @@ func main() {
 	var err error
 
 	var zipfile = flag.String("file", "", "ocfl zip filename")
+	var srcdir = flag.String("source", "", "source folder")
 	var logfile = flag.String("logfile", "", "name of logfile")
 	var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
 
@@ -34,6 +35,21 @@ func main() {
 
 	logger, lf := lm.CreateLogger("ocfl", *logfile, nil, *loglevel, LOGFORMAT)
 	defer lf.Close()
+
+	if *srcdir == "" {
+		logger.Errorf("invalid source dir: %s", *srcdir)
+		return
+	}
+
+	fi, err := os.Stat(*srcdir)
+	if err != nil {
+		logger.Errorf("cannot stat source dir %s: %v", *srcdir, err)
+		return
+	}
+	if !fi.IsDir() {
+		logger.Errorf("source dir %s is not a directory", *srcdir)
+		return
+	}
 
 	var zipSize int64
 	var zipReader *os.File
@@ -118,9 +134,7 @@ func main() {
 		}
 	}()
 
-	testdir := "C:/temp/bangbang/datatables"
-
-	if err := filepath.Walk(testdir, func(path string, info fs.FileInfo, err error) error {
+	if err := filepath.Walk(*srcdir, func(path string, info fs.FileInfo, err error) error {
 		// directory not interesting
 		if info.IsDir() {
 			return nil
@@ -138,7 +152,7 @@ func main() {
 		if _, err := file.Seek(0, 0); err != nil {
 			panic(err)
 		}
-		if err := o.AddFile(strings.Trim(strings.TrimPrefix(filepath.ToSlash(path), testdir), "/"), file, checksum); err != nil {
+		if err := o.AddFile(strings.Trim(strings.TrimPrefix(filepath.ToSlash(path), *srcdir), "/"), file, checksum); err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}

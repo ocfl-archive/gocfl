@@ -108,7 +108,7 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
-func getVersion(fs OCFLFS, folder, prefix string) (version string, err error) {
+func getVersion(fs OCFLFS, folder, prefix string) (version OCFLVersion, err error) {
 	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)
 	if err != nil {
@@ -127,7 +127,7 @@ func getVersion(fs OCFLFS, folder, prefix string) (version string, err error) {
 			if version != "" {
 				return "", errVersionMultiple
 			}
-			version = matches[1]
+			version = OCFLVersion(matches[1])
 			r, err := fs.Open(fmt.Sprintf("%s/%s", folder, file.Name()))
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot open %s/%s", prefix, file.Name())
@@ -148,7 +148,7 @@ func getVersion(fs OCFLFS, folder, prefix string) (version string, err error) {
 	return version, nil
 }
 
-func validVersion(fs OCFLFS, version, folder, prefix string) bool {
+func validVersion(fs OCFLFS, version OCFLVersion, folder, prefix string) bool {
 	v, _ := getVersion(fs, folder, prefix)
 	return v == version
 }

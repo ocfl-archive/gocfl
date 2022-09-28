@@ -76,7 +76,8 @@ func (sl *PathDirectClean) ExecutePath(fname string) (string, error) {
 			}
 		}
 
-		lenN := len(n)
+		// count characters, not bytes
+		lenN := len([]rune(n))
 		if lenN > sl.MaxFilenameLen {
 			return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
 		}

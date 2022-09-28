@@ -16,15 +16,23 @@ type Object interface {
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string) error
 	AddFile(virtualFilename string, reader io.Reader, digest string) error
+	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
 	Check() error
 	Close() error
 }
 
-func NewObject(fs OCFLFS, pathPrefix, version string, id string, logger *logging.Logger) (Object, error) {
+func NewObject(fsys OCFLFS, pathPrefix string, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
+	objectFS := fsys.SubFS(pathPrefix)
 	switch version {
-	case "1.0":
-		o, err := NewObjectV1_0(fs, pathPrefix, id, logger)
+	case Version1_0:
+		o, err := NewObjectV1_0(objectFS, id, logger)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return o, nil
+	case Version1_1:
+		o, err := NewObjectV1_1(objectFS, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

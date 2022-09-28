@@ -6,14 +6,16 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 )
 
+const Version1_0 OCFLVersion = "1.0"
+
 type StorageRootV1_0 struct {
 	*StorageRootBase
 }
 
 func NewStorageRootV1_0(fs OCFLFS, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootV1_0, error) {
-	srb, err := NewStorageRootBase(fs, "1.0", defaultStorageLayout, logger)
+	srb, err := NewStorageRootBase(fs, Version1_0, defaultStorageLayout, logger)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot create StorageRootBase Version 1.0")
+		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version1_0)
 	}
 
 	sr := &StorageRootV1_0{StorageRootBase: srb}

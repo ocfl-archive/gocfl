@@ -16,13 +16,13 @@ type StorageRootBase struct {
 	changed bool
 	logger  *logging.Logger
 	layout  storageroot.StorageLayout
-	version string
+	version OCFLVersion
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(fs OCFLFS, defaultVersion string, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
+func NewStorageRootBase(fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
 	ocfl := &StorageRootBase{fs: fs, version: defaultVersion, layout: defaultStorageLayout, logger: logger}
 
 	if err := ocfl.Init(); err != nil {
@@ -46,7 +46,7 @@ func (osr *StorageRootBase) Init() error {
 		return errors.Wrap(err, "cannot get root entities")
 	}
 	if len(entities) == 0 {
-		rootConformanceDeclaration := "ocfl_" + osr.version
+		rootConformanceDeclaration := "ocfl_" + string(osr.version)
 		rootConformanceDeclarationFile := "0=" + rootConformanceDeclaration
 		rcd, err := osr.fs.Create(rootConformanceDeclarationFile)
 		if err != nil {

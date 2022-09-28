@@ -49,8 +49,10 @@ func (i *InventoryBase) GetVersion() string                           { return i
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
 func (i *InventoryBase) IsWriteable() bool                            { return i.writeable }
 func (i *InventoryBase) IsModified() bool                             { return i.modified }
+
 func (i *InventoryBase) BuildRealname(virtualFilename string) string {
-	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
+	//	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
+	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), filepath.ToSlash(virtualFilename))
 }
 
 func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
