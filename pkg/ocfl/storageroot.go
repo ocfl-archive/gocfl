@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
+	"regexp"
 )
 
 type OCFLVersion string
@@ -17,6 +18,8 @@ type StorageRoot interface {
 	OpenObject(id string) (Object, error)
 	Check() error
 }
+
+var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
 func NewStorageRoot(fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (StorageRoot, error) {
 	version, err := getVersion(fs, ".", "ocfl_")

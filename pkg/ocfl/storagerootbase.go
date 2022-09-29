@@ -189,3 +189,48 @@ func (osr *StorageRootBase) Check() error {
 	}
 	return multiError.ErrOrNil()
 }
+
+func (osr *StorageRootBase) CheckObject(baseFolder, version string) error {
+
+}
+
+func (osr *StorageRootBase) CheckDirectory() (version string, err error) {
+	files, err := osr.fs.ReadDir(".")
+	if err != nil {
+		return "", errors.Wrap(err, "cannot get files")
+	}
+	var multiErr = emperror.NewMultiErrorBuilder()
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		} else {
+			// check for version file
+			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
+				// more than one version file is confusing...
+				if version != "" {
+					multiErr.Add(errors.WithStack(GetValidationError(osr.version, E003)))
+				} else {
+					osr.version = OCFLVersion(matches[1])
+				}
+			} else {
+				// any files are ok -- https://ocfl.io/1.0/spec/#root-structure
+			}
+		}
+	}
+	// no version found
+	if version == "" {
+		multiErr.Add(errors.WithStack(GetValidationError(osr.version, E004)))
+	}
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		// extensions folder is ok
+		if file.Name() == "extensions" {
+			continue
+		}
+		// all other folders must contain an object
+		osr.C
+	}
+	return "", nil
+}
