@@ -4,30 +4,89 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
+	"github.com/op/go-logging"
 	flag "github.com/spf13/pflag"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"go.ub.unibas.ch/gocfl/v2/pkg/osfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
-	"io/fs"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 )
 
 // const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{module}::%{shortfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const VERSION = "1.0"
 
+func check(dest ocfl.OCFLFS, logger *logging.Logger) error {
+	defaultStorageLayout, err := storageroot.NewDefaultStorageLayout()
+	if err != nil {
+		panic(err)
+	}
+
+	storageRoot, err := ocfl.NewStorageRoot(dest, VERSION, defaultStorageLayout, logger)
+	if err != nil {
+		return errors.Wrap(err, "cannot create new storageroot")
+	}
+	if err := storageRoot.Check(); err != nil {
+		return errors.Wrap(err, "ocfl not valid")
+	}
+	return nil
+}
+
+func ingest(dest ocfl.OCFLFS, srcdir string, logger *logging.Logger) error {
+
+	if srcdir == "" {
+		return errors.Errorf("invalid source dir: %s", srcdir)
+	}
+
+	fi, err := os.Stat(srcdir)
+	if err != nil {
+		return errors.Wrapf(err, "cannot stat source dir %s", srcdir)
+	}
+	if !fi.IsDir() {
+		return errors.Errorf("source dir %s is not a directory", srcdir)
+	}
+
+	defaultStorageLayout, err := storageroot.NewDefaultStorageLayout()
+	if err != nil {
+		panic(err)
+	}
+
+	storageRoot, err := ocfl.NewStorageRoot(dest, VERSION, defaultStorageLayout, logger)
+	if err != nil {
+		return errors.Wrap(err, "cannot create new storageroot")
+	}
+
+	// TEST042
+	o, err := storageRoot.OpenObject("test042")
+	if err != nil {
+		return errors.Wrapf(err, "cannot create object %s", "test042")
+	}
+
+	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
+		return errors.Wrapf(err, "cannot start update for object %s", "test 42")
+	}
+
+	if err := o.AddFolder(os.DirFS(srcdir)); err != nil {
+		panic(err)
+	}
+
+	if err := o.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close object %s", "test042")
+	}
+
+	return nil
+}
+
 func main() {
-	var panicking = true
 
 	var err error
 
-	var zipfile = flag.String("file", "", "ocfl zip filename")
-	var srcdir = flag.String("source", "", "source folder")
+	var target = flag.String("target", "", "ocfl zip or folder")
+	var checkFlag = flag.Bool("check", false, "only checkFlag file")
+	var srcDir = flag.String("source", "", "source folder")
 	var logfile = flag.String("logfile", "", "name of logfile")
 	var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
 
@@ -36,176 +95,79 @@ func main() {
 	logger, lf := lm.CreateLogger("ocfl", *logfile, nil, *loglevel, LOGFORMAT)
 	defer lf.Close()
 
-	if *srcdir == "" {
-		logger.Errorf("invalid source dir: %s", *srcdir)
-		return
-	}
-
-	fi, err := os.Stat(*srcdir)
-	if err != nil {
-		logger.Errorf("cannot stat source dir %s: %v", *srcdir, err)
-		return
-	}
-	if !fi.IsDir() {
-		logger.Errorf("source dir %s is not a directory", *srcdir)
-		return
-	}
+	var ocfs ocfl.OCFLFS
 
 	var zipSize int64
 	var zipReader *os.File
 	var zipWriter *os.File
 
-	tempFile := fmt.Sprintf("%s.tmp", *zipfile)
-	if zipWriter, err = os.Create(tempFile); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-	defer func() {
-		zipWriter.Close()
-		// only if no panic has happened
-		if panicking {
-			if err := os.Remove(fmt.Sprintf("%s.tmp", *zipfile)); err != nil {
-				logger.Error(err)
-			}
+	if strings.HasSuffix(strings.ToLower(*target), ".zip") {
+		stat, err := os.Stat(*target)
+		if err != nil {
+			log.Print(errors.Wrapf(err, "%s does not exist. creating new file", *target))
 		} else {
-			if err := os.Rename(fmt.Sprintf("%s.tmp", *zipfile), *zipfile); err != nil {
-				logger.Error(err)
+			zipSize = stat.Size()
+			if zipReader, err = os.Open(*target); err != nil {
+				logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				panic(err)
+			}
+
+		}
+
+		if *srcDir != "" {
+			tempFile := fmt.Sprintf("%s.tmp", *target)
+			if zipWriter, err = os.Create(tempFile); err != nil {
+				logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				panic(err)
 			}
 		}
-	}()
-
-	stat, err := os.Stat(*zipfile)
-	if err != nil {
-		log.Print(errors.Wrapf(err, "%s does not exist. creating new file", *zipfile))
+		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, logger)
+		if err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
 	} else {
-		zipSize = stat.Size()
-		if zipReader, err = os.Open(*zipfile); err != nil {
+		ocfs, err = osfs.NewFSIO(*target, logger)
+		if err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
-		defer func() {
-			zipReader.Close()
-			// only if no panic has happened
-			if !panicking {
-				if err := os.Rename(*zipfile, fmt.Sprintf("%s.%s", *zipfile, time.Now().Format("20060201_150405"))); err != nil {
-					logger.Error(err)
-				}
+	}
+
+	// do stuff here...
+	switch {
+	case *srcDir != "":
+		if err := ingest(ocfs, *srcDir, logger); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+	case *checkFlag:
+		if err := check(ocfs, logger); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+	}
+
+	if err := ocfs.Close(); err != nil {
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		panic(err)
+	}
+	if zipWriter != nil {
+		if err := zipWriter.Close(); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+	}
+	if zipReader != nil {
+		if err := zipReader.Close(); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+		if zipWriter != nil {
+			if err := os.Rename(fmt.Sprintf("%s.tmp", *target), *target); err != nil {
+				logger.Error(err)
+				panic(err)
 			}
-		}()
-
+		}
 	}
-
-	zfs, err := zipfs.NewFSIO(zipReader, zipSize, zipWriter, logger)
-	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-	defer func() {
-		if !panicking {
-			zfs.Close()
-		}
-
-	}()
-	defaultStorageLayout, err := storageroot.NewDefaultStorageLayout()
-	if err != nil {
-		panic(err)
-	}
-
-	storageRoot, err := ocfl.NewStorageRoot(zfs, VERSION, defaultStorageLayout, logger)
-	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-
-	// TEST042
-	o, err := storageRoot.OpenObject("test042")
-	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-
-	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-	defer func() {
-		if !panicking {
-			o.Close()
-		}
-	}()
-
-	if err := filepath.Walk(*srcdir, func(path string, info fs.FileInfo, err error) error {
-		// directory not interesting
-		if info.IsDir() {
-			return nil
-		}
-		file, err := os.Open(path)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
-		if err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			panic(err)
-		}
-		if _, err := file.Seek(0, 0); err != nil {
-			panic(err)
-		}
-		if err := o.AddFile(strings.Trim(strings.TrimPrefix(filepath.ToSlash(path), *srcdir), "/"), file, checksum); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			panic(err)
-		}
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	// TEST041
-	o2, err := storageRoot.OpenObject("test041")
-	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-	defer func() {
-		if !panicking {
-			o2.Close()
-		}
-	}()
-
-	if err := o2.StartUpdate("test 41", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
-	}
-
-	testdir2 := "C:/temp/bangbang/img"
-
-	if err := filepath.Walk(testdir2, func(path string, info fs.FileInfo, err error) error {
-		// directory not interesting
-		if info.IsDir() {
-			return nil
-		}
-		file, err := os.Open(path)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
-		if err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			panic(err)
-		}
-		if _, err := file.Seek(0, 0); err != nil {
-			panic(err)
-		}
-		if err := o2.AddFile(strings.Trim("x"+strings.TrimPrefix(filepath.ToSlash(path), testdir2), "/"), file, checksum); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			panic(err)
-		}
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	panicking = false
 }

@@ -81,11 +81,11 @@ func copyMapStringSlice(dest, src map[string][]string) {
 }
 
 func MultiError(errs ...error) error {
-	me := emperror.NewMultiErrorBuilder()
+	me := []error{}
 	for _, err := range errs {
-		me.Add(err)
+		me = append(me, err)
 	}
-	return me.ErrOrNil()
+	return errors.Combine(me...)
 }
 
 func GetErrorStacktrace(err error) errors.StackTrace {

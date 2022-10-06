@@ -17,22 +17,22 @@ func (zSubFS *SubFS) Close() error {
 }
 
 func (zSubFS *SubFS) Open(name string) (fs.File, error) {
-	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, name))
+	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, filepath.Clean(name)))
 	return zSubFS.FS.Open(name)
 }
 
 func (zSubFS *SubFS) Create(name string) (io.WriteCloser, error) {
-	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, name))
+	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, filepath.Clean(name)))
 	return zSubFS.FS.Create(name)
 }
 
 func (zSubFS *SubFS) ReadDir(name string) ([]fs.DirEntry, error) {
-	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, name))
+	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, filepath.Clean(name)))
 	return zSubFS.FS.ReadDir(name)
 }
 
 func (zSubFS *SubFS) Stat(name string) (fs.FileInfo, error) {
-	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, name))
+	name = filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, filepath.Clean(name)))
 	return zSubFS.FS.Stat(name)
 }
 
@@ -42,6 +42,6 @@ func (zSubFS *SubFS) SubFS(name string) ocfl.OCFLFS {
 	}
 	return &SubFS{
 		FS:         zSubFS.FS,
-		pathPrefix: filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, name)),
+		pathPrefix: filepath.ToSlash(filepath.Join(zSubFS.pathPrefix, filepath.Clean(name))),
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension/object"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -20,13 +21,12 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type ObjectBase struct {
-	fs         OCFLFS
-	pathPrefix string
-	i          Inventory
-	changed    bool
-	logger     *logging.Logger
-	version    OCFLVersion
-	path       object.Path
+	fs      OCFLFS
+	i       Inventory
+	changed bool
+	logger  *logging.Logger
+	version OCFLVersion
+	path    object.Path
 }
 
 // NewObjectBase creates an empty ObjectBase structure
@@ -59,7 +59,7 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 // LoadInventory loads inventory from existing Object
 func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	// load inventory file
-	iFp, err := ocfl.fs.Open(ocfl.pathPrefix + "inventory.json")
+	iFp, err := ocfl.fs.Open("inventory.json")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open %s", "inventory.json")
 	}
@@ -79,7 +79,7 @@ func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	digest := inventory.GetDigestAlgorithm()
 
 	// check digest for inventory
-	digestPath := fmt.Sprintf("%sinventory.json.%s", ocfl.pathPrefix, digest)
+	digestPath := fmt.Sprintf("inventory.json.%s", digest)
 	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
 	if err != nil {
 		return nil, MultiError(err, GetValidationError(ocfl.version, E058))
@@ -122,7 +122,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 	}
 	checksumBytes := h.Sum(jsonBytes)
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
-	iWriter, err := ocfl.fs.Create(ocfl.pathPrefix + iFileName)
+	iWriter, err := ocfl.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
@@ -130,7 +130,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
 	iFileName = fmt.Sprintf("%s/inventory.json", ocfl.i.GetVersion())
-	iWriter, err = ocfl.fs.Create(ocfl.pathPrefix + iFileName)
+	iWriter, err = ocfl.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
@@ -138,7 +138,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
 	csFileName := fmt.Sprintf("inventory.json.%s", string(ocfl.i.GetDigestAlgorithm()))
-	iCSWriter, err := ocfl.fs.Create(ocfl.pathPrefix + csFileName)
+	iCSWriter, err := ocfl.fs.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", csFileName)
 	}
@@ -146,7 +146,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 		return errors.Wrapf(err, "cannot write to %s", csFileName)
 	}
 	csFileName = fmt.Sprintf("%s/inventory.json.%s", ocfl.i.GetVersion(), string(ocfl.i.GetDigestAlgorithm()))
-	iCSWriter, err = ocfl.fs.Create(ocfl.pathPrefix + csFileName)
+	iCSWriter, err = ocfl.fs.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", csFileName)
 	}
@@ -159,7 +159,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 func (ocfl *ObjectBase) StoreExtensions() error {
 	ocfl.logger.Debug()
 	configFile := fmt.Sprintf("extensions/%s/config.json", ocfl.path.Name())
-	extConfig, err := ocfl.fs.Create(filepath.ToSlash(filepath.Join(ocfl.pathPrefix, configFile)))
+	extConfig, err := ocfl.fs.Create(configFile)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", configFile)
 	}
@@ -177,28 +177,28 @@ func (ocfl *ObjectBase) New(id string, path object.Path) error {
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
 	// first check whether ocfl is not empty
-	fp, err := ocfl.fs.Open(ocfl.pathPrefix + objectConformanceDeclarationFile)
+	fp, err := ocfl.fs.Open(objectConformanceDeclarationFile)
 	if err == nil {
 		// not empty, close it and return error
 		if err := fp.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close %s", ocfl.pathPrefix+objectConformanceDeclarationFile)
+			return errors.Wrapf(err, "cannot close %s", objectConformanceDeclarationFile)
 		}
-		return fmt.Errorf("cannot create object %s. %s already exists", id, ocfl.pathPrefix+objectConformanceDeclarationFile)
+		return fmt.Errorf("cannot create object %s. %s already exists", id, objectConformanceDeclarationFile)
 	}
-	cnt, err := ocfl.fs.ReadDir(ocfl.pathPrefix)
+	cnt, err := ocfl.fs.ReadDir(".")
 	if err != nil && err != fs.ErrNotExist {
-		return errors.Wrapf(err, "cannot read %s", ocfl.pathPrefix)
+		return errors.Wrapf(err, "cannot read %s", ".")
 	}
 	if len(cnt) > 0 {
-		return fmt.Errorf("%s is not empty", ocfl.pathPrefix)
+		return fmt.Errorf("%s is not empty", ".")
 	}
-	rfp, err := ocfl.fs.Create(ocfl.pathPrefix + objectConformanceDeclarationFile)
+	rfp, err := ocfl.fs.Create(objectConformanceDeclarationFile)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", ocfl.pathPrefix+objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot create %s", objectConformanceDeclarationFile)
 	}
 	defer rfp.Close()
 	if _, err := rfp.Write([]byte(objectConformanceDeclaration + "\n")); err != nil {
-		return errors.Wrapf(err, "cannot write into %s", ocfl.pathPrefix+objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot write into %s", objectConformanceDeclarationFile)
 	}
 
 	ocfl.i, err = NewInventory(id, ocfl.version, ocfl.logger)
@@ -283,6 +283,35 @@ func (ocfl *ObjectBase) StartUpdate(msg string, UserName string, UserAddress str
 	return nil
 }
 
+func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
+	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
+		// directory not interesting
+		if info.IsDir() {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create checksum of %s", path)
+		}
+		if _, err := file.Seek(0, 0); err != nil {
+			panic(err)
+		}
+		if err := ocfl.AddFile(strings.Trim(filepath.ToSlash(path), "/"), file, checksum); err != nil {
+			return errors.Wrapf(err, "cannot add file %s", path)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "cannot walk filesystem")
+	}
+
+	return nil
+}
+
 func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest string) error {
 	virtualFilename = filepath.ToSlash(virtualFilename)
 	ocfl.logger.Debugf("adding %s [%s]", virtualFilename, digest)
@@ -307,7 +336,7 @@ func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest
 			return errors.Wrapf(err, "cannot transform filename %s", virtualFilename)
 		}
 		realFilename = ocfl.i.BuildRealname(realFilename)
-		writer, err := ocfl.fs.Create(ocfl.pathPrefix + realFilename)
+		writer, err := ocfl.fs.Create(realFilename)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create %s", realFilename)
 		}
@@ -358,16 +387,19 @@ func (ocfl *ObjectBase) GetID() string {
 func (ocfl *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
 	//ocfl.fs
+	var multiError = []error{}
+	version, err := ocfl.getVersion()
+	if err != nil {
+		multiError = append(multiError, errors.Wrap(err, "cannot get version"))
+	}
+	ocfl.logger.Infof("object with ocfl version %s found", version)
 	return nil
 }
 
+var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
+
 func (ocfl *ObjectBase) getVersion() (version OCFLVersion, err error) {
-	rString := "0=ocfl_object_([0-9]+\\.[0-9]+)"
-	r, err := regexp.Compile(rString)
-	if err != nil {
-		return "", errors.Wrapf(err, "cannot compile %s", rString)
-	}
-	files, err := ocfl.fs.ReadDir(ocfl.pathPrefix)
+	files, err := ocfl.fs.ReadDir(".")
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get files")
 	}
@@ -375,15 +407,15 @@ func (ocfl *ObjectBase) getVersion() (version OCFLVersion, err error) {
 		if file.IsDir() {
 			continue
 		}
-		matches := r.FindStringSubmatch(file.Name())
+		matches := objectVersionRegexp.FindStringSubmatch(file.Name())
 		if matches != nil {
 			if version != "" {
 				return "", errVersionMultiple
 			}
 			version = OCFLVersion(matches[1])
-			r, err := ocfl.fs.Open(filepath.Join(filepath.Join(ocfl.pathPrefix, file.Name())))
+			r, err := ocfl.fs.Open(filepath.Join(file.Name()))
 			if err != nil {
-				return "", errors.Wrapf(err, "cannot open %s%s", ocfl.pathPrefix, file.Name())
+				return "", errors.Wrapf(err, "cannot open %s", file.Name())
 			}
 			cnt, err := io.ReadAll(r)
 			if err != nil {
@@ -399,5 +431,6 @@ func (ocfl *ObjectBase) getVersion() (version OCFLVersion, err error) {
 	if version == "" {
 		return "", GetValidationError(ocfl.version, E003)
 	}
+	ocfl.version = version
 	return version, nil
 }

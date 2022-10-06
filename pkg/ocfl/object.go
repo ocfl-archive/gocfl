@@ -6,6 +6,7 @@ import (
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension/object"
 	"io"
+	"io/fs"
 )
 
 type Object interface {
@@ -15,6 +16,7 @@ type Object interface {
 	New(id string, path object.Path) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string) error
+	AddFolder(fsys fs.FS) error
 	AddFile(virtualFilename string, reader io.Reader, digest string) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
@@ -22,17 +24,16 @@ type Object interface {
 	Close() error
 }
 
-func NewObject(fsys OCFLFS, pathPrefix string, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
-	objectFS := fsys.SubFS(pathPrefix)
+func NewObject(fsys OCFLFS, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
 	switch version {
 	case Version1_0:
-		o, err := NewObjectV1_0(objectFS, id, logger)
+		o, err := NewObjectV1_0(fsys, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	case Version1_1:
-		o, err := NewObjectV1_1(objectFS, id, logger)
+		o, err := NewObjectV1_1(fsys, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

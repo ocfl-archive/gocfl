@@ -2,13 +2,14 @@ package ocfl
 
 import (
 	"bytes"
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"io"
 	"io/fs"
+	"path/filepath"
 )
 
 type StorageRootBase struct {
@@ -102,6 +103,22 @@ func (osr *StorageRootBase) Init() error {
 	return nil
 }
 
+func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error {
+	extConfig := fmt.Sprintf("extensions/%s/config.json", name)
+	cfgJson, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal extension %s config [%v]", name, config)
+	}
+	w, err := osr.fs.Create(extConfig)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create file %s", extConfig)
+	}
+	if _, err := w.Write(cfgJson); err != nil {
+		return errors.Wrapf(err, "cannot write file %s - %s", extConfig, string(cfgJson))
+	}
+	return nil
+}
+
 func (osr *StorageRootBase) GetFiles() ([]string, error) {
 	dirs, err := osr.fs.ReadDir("")
 	if err != nil {
@@ -132,17 +149,49 @@ func (osr *StorageRootBase) GetFolders() ([]string, error) {
 	return result, nil
 }
 
+// all folder trees, which end in a folder containing a file
 func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
+	var recurse func(base string) ([]string, error)
+	recurse = func(base string) ([]string, error) {
+		des, err := osr.fs.ReadDir(base)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot read content of %s", base)
+		}
+		result := []string{}
+		for _, de := range des {
+			currPath := filepath.ToSlash(filepath.Join(base, de.Name()))
+			// directory hierarchy must contain only folders, no files --> if file exists, it's an object folder
+			if de.IsDir() {
+				dirs, err := recurse(currPath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot recurse into %s", currPath)
+				}
+				result = append(result, dirs...)
+			} else {
+				if de.Name() == "." || de.Name() == ".." {
+					continue
+				}
+				result = append(result, base)
+				break
+			}
+
+		}
+		return result, nil
+	}
 	dirs, err := osr.GetFolders()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var result = []string{}
 	for _, dir := range dirs {
 		if dir == "extensions" {
 			continue
 		}
-		result = append(result, dir)
+		dirs, err := recurse(dir)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		result = append(result, dirs...)
 	}
 	return result, nil
 }
@@ -150,56 +199,50 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return nil, GetValidationError(osr.version, E003)
+		return nil, errors.WithStack(GetValidationError(osr.version, E003))
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s", folder)
 	}
-	return NewObject(osr.fs, folder, version, "", osr.logger)
+	return NewObject(osr.fs.SubFS(folder), version, "", osr.logger)
 }
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
 	folder, err := osr.layout.ExecuteID(id)
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return NewObject(osr.fs, folder, osr.version, id, osr.logger)
+		return NewObject(osr.fs.SubFS(folder), osr.version, id, osr.logger)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
 	}
-	return NewObject(osr.fs, folder, version, id, osr.logger)
+	return NewObject(osr.fs.SubFS(folder), version, id, osr.logger)
 }
 
 func (osr *StorageRootBase) Check() error {
 	// https://ocfl.io/1.0/spec/validation-codes.html
-	objectFolders, err := osr.GetObjectFolders()
-	if err != nil {
-		return errors.Wrapf(err, "cannot get object folders")
+	multiError := []error{}
+
+	if err := osr.CheckDirectory(); err != nil {
+		multiError = append(multiError, errors.WithStack(err))
+	} else {
+		osr.logger.Infof("StorageRoot with version %s found", osr.version)
 	}
-	multiError := emperror.NewMultiErrorBuilder()
-	for _, objectFolder := range objectFolders {
-		osr.logger.Infof("checking folder %s", objectFolder)
-		obj, err := osr.OpenObjectFolder(objectFolder)
-		if err != nil {
-			return errors.Wrapf(err, "cannot instantiate OCFL ObjectBase at %s", objectFolder)
-		}
-		if err := obj.Check(); err != nil {
-			multiError.Add(err)
-		}
+	if err := osr.CheckObjects(); err != nil {
+		multiError = append(multiError, errors.WithStack(err))
 	}
-	return multiError.ErrOrNil()
+
+	return errors.Combine(multiError...)
 }
 
-func (osr *StorageRootBase) CheckObject(baseFolder, version string) error {
-
-}
-
-func (osr *StorageRootBase) CheckDirectory() (version string, err error) {
+func (osr *StorageRootBase) CheckDirectory() (err error) {
+	// An OCFL Storage Root must contain a Root Conformance Declaration identifying it as such.
 	files, err := osr.fs.ReadDir(".")
 	if err != nil {
-		return "", errors.Wrap(err, "cannot get files")
+		return errors.Wrap(err, "cannot get files")
 	}
-	var multiErr = emperror.NewMultiErrorBuilder()
+	var multiErr = []error{}
+	var version OCFLVersion
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -208,9 +251,9 @@ func (osr *StorageRootBase) CheckDirectory() (version string, err error) {
 			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
 				// more than one version file is confusing...
 				if version != "" {
-					multiErr.Add(errors.WithStack(GetValidationError(osr.version, E003)))
+					multiErr = append(multiErr, errors.WithStack(GetValidationError(osr.version, E003)))
 				} else {
-					osr.version = OCFLVersion(matches[1])
+					version = OCFLVersion(matches[1])
 				}
 			} else {
 				// any files are ok -- https://ocfl.io/1.0/spec/#root-structure
@@ -219,18 +262,28 @@ func (osr *StorageRootBase) CheckDirectory() (version string, err error) {
 	}
 	// no version found
 	if version == "" {
-		multiErr.Add(errors.WithStack(GetValidationError(osr.version, E004)))
+		multiErr = append(multiErr, errors.WithStack(GetValidationError(osr.version, E004)))
+	} else {
+		osr.version = version
 	}
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-		// extensions folder is ok
-		if file.Name() == "extensions" {
-			continue
-		}
-		// all other folders must contain an object
-		osr.C
+	return errors.Combine(multiErr...)
+}
+
+func (osr *StorageRootBase) CheckObjects() error {
+	objectFolders, err := osr.GetObjectFolders()
+	if err != nil {
+		return errors.Wrapf(err, "cannot get object folders")
 	}
-	return "", nil
+	multiError := []error{}
+	for _, objectFolder := range objectFolders {
+		osr.logger.Infof("checking folder %s", objectFolder)
+		obj, err := osr.OpenObjectFolder(objectFolder)
+		if err != nil {
+			return errors.Wrapf(err, "cannot instantiate OCFL ObjectBase at %s", objectFolder)
+		}
+		if err := obj.Check(); err != nil {
+			multiError = append(multiError, errors.WithStack(err))
+		}
+	}
+	return errors.Combine(multiError...)
 }

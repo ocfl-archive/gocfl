@@ -2,7 +2,6 @@ package zipfs
 
 import (
 	"archive/zip"
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
@@ -43,14 +42,14 @@ func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logg
 			return nil, errors.Wrap(err, "cannot create zip reader")
 		}
 	}
-	if dst != nil {
+	if dst != nil && dst != (*os.File)(nil) {
 		zfs.w = zip.NewWriter(dst)
 	}
 	return zfs, nil
 }
 
 func (zf *FS) Close() error {
-	zf.logger.Debug()
+	zf.logger.Debug("Close ZipFS")
 	// check whether we have to copy all stuff
 	if zf.r != nil && zf.w != nil {
 		// check whether there's a new version of the file
@@ -81,16 +80,16 @@ func (zf *FS) Close() error {
 			}
 		}
 	}
-	finalError := emperror.NewMultiErrorBuilder()
+	finalError := []error{}
 	if zf.w != nil {
 		if err := zf.w.Flush(); err != nil {
-			finalError.Add(err)
+			finalError = append(finalError, err)
 		}
 		if err := zf.w.Close(); err != nil {
-			finalError.Add(err)
+			finalError = append(finalError, err)
 		}
 	}
-	return finalError.ErrOrNil()
+	return errors.Combine(finalError...)
 }
 
 func (zfs *FS) Open(name string) (fs.File, error) {
@@ -224,6 +223,6 @@ func (zf *FS) SubFS(name string) ocfl.OCFLFS {
 	}
 	return &SubFS{
 		FS:         zf,
-		pathPrefix: name,
+		pathPrefix: filepath.ToSlash(filepath.Clean(name)),
 	}
 }
