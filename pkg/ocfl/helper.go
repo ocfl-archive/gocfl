@@ -137,7 +137,9 @@ func getVersion(fs OCFLFS, folder, prefix string) (version OCFLVersion, err erro
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot read %s/%s", prefix, file.Name())
 			}
-			if string(cnt) != fmt.Sprintf("%s%s\n", prefix, version) {
+			t1 := fmt.Sprintf("%s%s\n", prefix, version)
+			t2 := fmt.Sprintf("%s%s\r\n", prefix, version)
+			if string(cnt) != t1 && string(cnt) != t2 {
 				return "", GetValidationError(version, E007)
 			}
 		}

@@ -61,6 +61,9 @@ func (ofs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	fullpath := filepath.Join(ofs.folder, name)
 	ofs.logger.Debugf("reading entries of %s", fullpath)
 	dentries, err := os.ReadDir(fullpath)
+	if os.IsNotExist(err) {
+		return nil, fs.ErrNotExist
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read folder %s", fullpath)
 	}

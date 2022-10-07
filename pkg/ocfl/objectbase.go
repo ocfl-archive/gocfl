@@ -88,11 +88,12 @@ func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	if !strings.HasSuffix(digestString, " inventory.json") {
 		return nil, GetValidationError(ocfl.version, E061)
 	}
-	digestString = strings.TrimSuffix(digestString, " inventory.json")
+	digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 	h, err := checksum.GetHash(digest)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
 	}
+	h.Reset()
 	sumBytes := h.Sum(inventoryBytes)
 	inventoryDigestString := fmt.Sprintf("%x", sumBytes)
 	if digestString != inventoryDigestString {
@@ -423,7 +424,9 @@ func (ocfl *ObjectBase) getVersion() (version OCFLVersion, err error) {
 				return "", errors.Wrapf(err, "cannot read %s", file.Name())
 			}
 			r.Close()
-			if string(cnt) != fmt.Sprintf("ocfl_object_%s\n", version) {
+			t1 := fmt.Sprintf("ocfl_object_%s\n", version)
+			t2 := fmt.Sprintf("ocfl_object_%s\r\n", version)
+			if string(cnt) != t1 && string(cnt) != t2 {
 				return "", GetValidationError(ocfl.version, E007)
 			}
 		}

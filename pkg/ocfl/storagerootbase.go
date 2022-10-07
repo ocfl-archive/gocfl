@@ -279,7 +279,8 @@ func (osr *StorageRootBase) CheckObjects() error {
 		osr.logger.Infof("checking folder %s", objectFolder)
 		obj, err := osr.OpenObjectFolder(objectFolder)
 		if err != nil {
-			return errors.Wrapf(err, "cannot instantiate OCFL ObjectBase at %s", objectFolder)
+			multiError = append(multiError, errors.WithStack(err))
+			continue
 		}
 		if err := obj.Check(); err != nil {
 			multiError = append(multiError, errors.WithStack(err))

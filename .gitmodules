@@ -1,0 +1,4 @@
+[submodule "fixtures/fixtures"]
+	path = fixtures/fixtures
+	url = https://github.com/OCFL/fixtures.git
+	branch = main
