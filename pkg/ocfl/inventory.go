@@ -42,6 +42,7 @@ type Version struct {
 }
 
 type Inventory interface {
+	Init() error
 	GetID() string
 
 	DeleteFile(virtualFilename string) error
@@ -50,6 +51,7 @@ type Inventory interface {
 
 	//GetContentDirectory() string
 	GetVersion() string
+	GetVersions() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	IsWriteable() bool
 	//	IsModified() bool
@@ -61,16 +63,16 @@ type Inventory interface {
 	Clean() error
 }
 
-func NewInventory(id string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
+func NewInventory(object Object, id string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
 	switch version {
 	case Version1_0:
-		sr, err := NewInventoryV1_0(id, logger)
+		sr, err := NewInventoryV1_0(object, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	case Version1_1:
-		sr, err := NewInventoryV1_1(id, logger)
+		sr, err := NewInventoryV1_1(object, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

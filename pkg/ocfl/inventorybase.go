@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"golang.org/x/exp/slices"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -15,8 +16,10 @@ import (
 )
 
 type InventoryBase struct {
+	object           Object                                           `json:"-"`
 	modified         bool                                             `json:"-"`
 	writeable        bool                                             `json:"-"`
+	paddingLength    int                                              `json:"-"`
 	Id               string                                           `json:"id"`
 	Type             string                                           `json:"type"`
 	DigestAlgorithm  checksum.DigestAlgorithm                         `json:"digestAlgorithm"`
@@ -28,9 +31,11 @@ type InventoryBase struct {
 	logger           *logging.Logger
 }
 
-func NewInventoryBase(id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
+func NewInventoryBase(object Object, id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
 	i := &InventoryBase{
+		object:           object,
 		Id:               id,
+		paddingLength:    0,
 		Type:             objectType.String(),
 		DigestAlgorithm:  digestAlg,
 		Head:             "",
@@ -42,13 +47,85 @@ func NewInventoryBase(id string, objectType *url.URL, digestAlg checksum.DigestA
 	}
 	return i, nil
 }
-
+func (i *InventoryBase) Init() (err error) {
+	if err := i.check(); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
 func (i *InventoryBase) GetID() string                                { return i.Id }
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetVersion() string                           { return i.Head }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
 func (i *InventoryBase) IsWriteable() bool                            { return i.writeable }
 func (i *InventoryBase) IsModified() bool                             { return i.modified }
+
+func (i *InventoryBase) GetVersions() []string {
+	var versions = []string{}
+	for version, _ := range i.Versions {
+		versions = append(versions, version)
+	}
+	return versions
+}
+
+var versionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
+var versionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
+
+func (i *InventoryBase) check() error {
+	var multiErr = []error{}
+	if err := i.checkVersions(); err != nil {
+		multiErr = append(multiErr, err)
+	}
+	if i.Id == "" || i.Head == "" || i.Type == "" || i.DigestAlgorithm == "" {
+		multiErr = append(multiErr, GetValidationError(i.object.GetVersion(), E036))
+	}
+	return errors.Combine(multiErr...)
+}
+
+func (i *InventoryBase) checkVersions() error {
+	var paddingLength int = -1
+	var versions = []int{}
+	if len(i.Versions) == 0 {
+		return GetValidationError(i.object.GetVersion(), E008)
+	}
+	for version, _ := range i.Versions {
+		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
+		if err != nil {
+			return errors.Wrapf(GetValidationError(i.object.GetVersion(), E104), "invalid version format %s", version)
+		}
+		versions = append(versions, vInt)
+		if versionZeroRegexp.MatchString(version) {
+			if paddingLength == -1 {
+				paddingLength = len(version) - 2
+			} else {
+				if paddingLength != len(version)-2 {
+					return GetValidationError(i.object.GetVersion(), E012)
+				}
+			}
+		} else {
+			if versionNoZeroRegexp.MatchString(version) {
+				if paddingLength == -1 {
+					paddingLength = 0
+				} else {
+					if paddingLength != 0 {
+						return errors.Combine(GetValidationError(i.object.GetVersion(), E011), GetValidationError(i.object.GetVersion(), E013))
+					}
+				}
+			} else {
+				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
+				return errors.Wrapf(GetValidationError(i.object.GetVersion(), E104), "invalid version format %s", version)
+			}
+		}
+	}
+	slices.Sort(versions)
+	for key, val := range versions {
+		if key != val-1 {
+			return GetValidationError(i.object.GetVersion(), E010)
+		}
+	}
+	i.paddingLength = paddingLength
+	return nil
+}
 
 func (i *InventoryBase) BuildRealname(virtualFilename string) string {
 	//	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
@@ -61,14 +138,23 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 	}
 	lastHead := i.Head
 	if lastHead == "" {
-		i.Head = "v1"
+		if i.paddingLength <= 0 {
+			i.Head = "v1"
+		} else {
+			i.Head = fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), 1)
+		}
 	} else {
-		vStr := strings.TrimPrefix(strings.ToLower(i.Head), "v")
+		vStr := strings.TrimLeft(strings.ToLower(i.Head), "v0")
 		v, err := strconv.Atoi(vStr)
 		if err != nil {
 			return errors.Wrapf(err, "cannot determine head of ObjectBase - %s", vStr)
 		}
-		i.Head = fmt.Sprintf("v%d", v+1)
+
+		if i.paddingLength <= 0 {
+			i.Head = fmt.Sprintf("v%d", v+1)
+		} else {
+			i.Head = fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), v+1)
+		}
 	}
 	i.Versions[i.Head] = &Version{
 		Created: OCFLTime{time.Now()},

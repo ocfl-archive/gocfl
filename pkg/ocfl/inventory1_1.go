@@ -17,9 +17,9 @@ type InventoryV1_1 struct {
 	*InventoryBase
 }
 
-func NewInventoryV1_1(id string, logger *logging.Logger) (*InventoryV1_1, error) {
+func NewInventoryV1_1(object Object, id string, logger *logging.Logger) (*InventoryV1_1, error) {
 	ivUrl, _ := url.Parse(InventoryType1_1)
-	ib, err := NewInventoryBase(id, ivUrl, DigestAlg1_0, ContentDirectory1_1, logger)
+	ib, err := NewInventoryBase(object, id, ivUrl, DigestAlg1_0, ContentDirectory1_1, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}

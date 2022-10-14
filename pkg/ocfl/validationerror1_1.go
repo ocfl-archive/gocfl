@@ -1,5 +1,7 @@
 package ocfl
 
+var OCFLValidationErrorMapping1_1 = map[ValidationErrorCode]ValidationErrorCode{}
+
 var OCFLValidationError1_1 = map[ValidationErrorCode]*ValidationError{
 	E001: {Code: E001, Description: "‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’", Ref: "https://ocfl.io/1.1/spec/#E001"},
 	E002: {Code: E002, Description: "‘The version declaration must be formatted according to the NAMASTE specification.’", Ref: "https://ocfl.io/1.1/spec/#E002"},
@@ -7,7 +9,7 @@ var OCFLValidationError1_1 = map[ValidationErrorCode]*ValidationError{
 	E004: {Code: E004, Description: "‘The [version declaration] filename MUST conform to the pattern T=dvalue, where T must be 0, and dvalue must be ocfl_object_, followed by the OCFL specification version number.’", Ref: "https://ocfl.io/1.1/spec/#E004"},
 	E005: {Code: E005, Description: "‘The [version declaration] filename must conform to the pattern T=dvalue, where T MUST be 0, and dvalue must be ocfl_object_, followed by the OCFL specification version number.’", Ref: "https://ocfl.io/1.1/spec/#E005"},
 	E006: {Code: E006, Description: "‘The [version declaration] filename must conform to the pattern T=dvalue, where T must be 0, and dvalue MUST be ocfl_object_, followed by the OCFL specification version number.’", Ref: "https://ocfl.io/1.1/spec/#E006"},
-	E007: {Code: E007, Description: "‘The text contents of the [version declaration] file must be the same as dvalue, followed by a newline (\n).’", Ref: "https://ocfl.io/1.1/spec/#E007"},
+	E007: {Code: E007, Description: "‘The text contents of the [version declaration] file must be the same as dvalue, followed by a newline (\\n).’", Ref: "https://ocfl.io/1.1/spec/#E007"},
 	E008: {Code: E008, Description: "‘OCFL Object content must be stored as a sequence of one or more versions.’", Ref: "https://ocfl.io/1.1/spec/#E008"},
 	E009: {Code: E009, Description: "‘The version number sequence MUST start at 1 and must be continuous without missing integers.’", Ref: "https://ocfl.io/1.1/spec/#E009"},
 	E010: {Code: E010, Description: "‘The version number sequence must start at 1 and MUST be continuous without missing integers.’", Ref: "https://ocfl.io/1.1/spec/#E010"},

@@ -19,6 +19,17 @@ import (
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const VERSION = "1.0"
 
+func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
+	object, err := ocfl.NewObject(dest, "", "", logger)
+	if err != nil {
+		return errors.Wrap(err, "cannot load object")
+	}
+	if err := object.Check(); err != nil {
+		return errors.Wrapf(err, "check of %s failed", object.GetID())
+	}
+	return nil
+}
+
 func check(dest ocfl.OCFLFS, logger *logging.Logger) error {
 	defaultStorageLayout, err := storageroot.NewDefaultStorageLayout()
 	if err != nil {
@@ -85,10 +96,12 @@ func main() {
 	var err error
 
 	var target = flag.String("target", "", "ocfl zip or folder")
-	var checkFlag = flag.Bool("check", false, "only checkFlag file")
+	var checkFlag = flag.Bool("check", false, "only check file")
+	var checkObjectFlag = flag.Bool("checkobject", false, "only check object structure file")
 	var srcDir = flag.String("source", "", "source folder")
 	var logfile = flag.String("logfile", "", "name of logfile")
 	var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
+	//	var version = flag.String("version", "", "ocfl version")
 
 	flag.Parse()
 
@@ -101,13 +114,23 @@ func main() {
 	var zipReader *os.File
 	var zipWriter *os.File
 
+	var zipFile string
+	var objectPath string
 	if strings.HasSuffix(strings.ToLower(*target), ".zip") {
-		stat, err := os.Stat(*target)
+		zipFile = *target
+	} else {
+		if pos := strings.Index(*target, ".zip/"); pos != -1 {
+			zipFile = (*target)[0 : pos+4]
+			objectPath = (*target)[pos+4:]
+		}
+	}
+	if zipFile != "" {
+		stat, err := os.Stat(zipFile)
 		if err != nil {
-			log.Print(errors.Wrapf(err, "%s does not exist. creating new file", *target))
+			log.Print(errors.Wrapf(err, "%s does not exist. creating new file", zipFile))
 		} else {
 			zipSize = stat.Size()
-			if zipReader, err = os.Open(*target); err != nil {
+			if zipReader, err = os.Open(zipFile); err != nil {
 				logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 				panic(err)
 			}
@@ -138,6 +161,12 @@ func main() {
 	switch {
 	case *srcDir != "":
 		if err := ingest(ocfs, *srcDir, logger); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+	case *checkObjectFlag:
+		objfs := ocfs.SubFS(objectPath)
+		if err := checkObject(objfs, logger); err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}

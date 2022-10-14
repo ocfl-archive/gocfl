@@ -149,16 +149,26 @@ func (verr *ValidationError) Error() string {
 
 func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *ValidationError {
 	var errlist map[ValidationErrorCode]*ValidationError
+	var mapping map[ValidationErrorCode]ValidationErrorCode
 	switch version {
 	case "1.0":
 		errlist = OCFLValidationError1_0
+		mapping = OCFLValidationErrorMapping1_0
 	case "1.1":
 		errlist = OCFLValidationError1_1
+		mapping = OCFLValidationErrorMapping1_1
 	default:
 		errlist = map[ValidationErrorCode]*ValidationError{}
 	}
 	err, ok := errlist[errno]
 	if !ok {
+		errno, ok = mapping[errno]
+		if ok {
+			err, ok = errlist[errno]
+			if ok {
+				return err
+			}
+		}
 		return &ValidationError{
 			Code:        errno,
 			Description: fmt.Sprintf("unknown error %s", errno),

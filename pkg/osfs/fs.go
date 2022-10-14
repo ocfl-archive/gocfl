@@ -98,6 +98,9 @@ func (ofs *FS) SubFS(name string) ocfl.OCFLFS {
 	if name == "." {
 		name = ""
 	}
+	if name == "" {
+		return ofs
+	}
 	// error not possible, since base-folder is ok
 	sfs, _ := NewFSIO(filepath.Join(ofs.folder, name), ofs.logger)
 	return sfs
