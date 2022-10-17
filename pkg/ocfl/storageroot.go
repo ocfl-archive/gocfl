@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"context"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -21,7 +22,7 @@ type StorageRoot interface {
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
-func NewStorageRoot(fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (StorageRoot, error) {
+func NewStorageRoot(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (StorageRoot, error) {
 	version, err := getVersion(fs, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
@@ -38,13 +39,13 @@ func NewStorageRoot(fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout 
 	}
 	switch version {
 	case Version1_0:
-		sr, err := NewStorageRootV1_0(fs, defaultStorageLayout, logger)
+		sr, err := NewStorageRootV1_0(ctx, fs, defaultStorageLayout, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	case Version1_1:
-		sr, err := NewStorageRootV1_1(fs, defaultStorageLayout, logger)
+		sr, err := NewStorageRootV1_1(ctx, fs, defaultStorageLayout, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

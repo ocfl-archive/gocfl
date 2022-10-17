@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"context"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -16,6 +17,7 @@ import (
 )
 
 type InventoryBase struct {
+	ctx              context.Context
 	object           Object                                           `json:"-"`
 	modified         bool                                             `json:"-"`
 	writeable        bool                                             `json:"-"`
@@ -31,8 +33,9 @@ type InventoryBase struct {
 	logger           *logging.Logger
 }
 
-func NewInventoryBase(object Object, id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
+func NewInventoryBase(ctx context.Context, object Object, id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
 	i := &InventoryBase{
+		ctx:              ctx,
 		object:           object,
 		Id:               id,
 		paddingLength:    0,
@@ -72,26 +75,28 @@ var versionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
 var versionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
 
 func (i *InventoryBase) check() error {
-	var multiErr = []error{}
+
 	if err := i.checkVersions(); err != nil {
-		multiErr = append(multiErr, err)
+		return errors.WithStack(err)
 	}
 	if i.Id == "" || i.Head == "" || i.Type == "" || i.DigestAlgorithm == "" {
-		multiErr = append(multiErr, GetValidationError(i.object.GetVersion(), E036))
+		addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), E036))
 	}
-	return errors.Combine(multiErr...)
+	return nil
 }
 
 func (i *InventoryBase) checkVersions() error {
 	var paddingLength int = -1
 	var versions = []int{}
 	if len(i.Versions) == 0 {
-		return GetValidationError(i.object.GetVersion(), E008)
+		addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), E008))
 	}
 	for version, _ := range i.Versions {
 		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
 		if err != nil {
-			return errors.Wrapf(GetValidationError(i.object.GetVersion(), E104), "invalid version format %s", version)
+			vErr := GetValidationError(i.object.GetVersion(), E104).AppendDescription("invalid version format %s", version)
+			addValidationErrors(i.ctx, vErr)
+			return errors.WithStack(vErr)
 		}
 		versions = append(versions, vInt)
 		if versionZeroRegexp.MatchString(version) {
@@ -99,7 +104,9 @@ func (i *InventoryBase) checkVersions() error {
 				paddingLength = len(version) - 2
 			} else {
 				if paddingLength != len(version)-2 {
-					return GetValidationError(i.object.GetVersion(), E012)
+					vErr := GetValidationError(i.object.GetVersion(), E012)
+					addValidationErrors(i.ctx, vErr)
+					return vErr
 				}
 			}
 		} else {
@@ -108,6 +115,7 @@ func (i *InventoryBase) checkVersions() error {
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
+						addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), E011), GetValidationError(i.object.GetVersion(), E013))
 						return errors.Combine(GetValidationError(i.object.GetVersion(), E011), GetValidationError(i.object.GetVersion(), E013))
 					}
 				}

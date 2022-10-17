@@ -1,6 +1,11 @@
 package ocfl
 
-import "fmt"
+import (
+	"context"
+	"emperror.dev/errors"
+	"fmt"
+	"strings"
+)
 
 type ValidationErrorCode string
 
@@ -133,18 +138,64 @@ const (
 )
 
 type ValidationError struct {
-	Code        ValidationErrorCode
-	Description string
-	Ref         string
-	Err         error
+	Code         ValidationErrorCode
+	Description  string
+	Ref          string
+	Description2 string
+}
+
+type ValidationStatus struct {
+	Errors, Warnings []*ValidationError
+}
+
+func NewContextValidation(parent context.Context) context.Context {
+	return context.WithValue(parent, "validationStatus", &ValidationStatus{
+		Errors:   []*ValidationError{},
+		Warnings: []*ValidationError{},
+	})
+}
+
+func getValidationStatus(ctx context.Context) (*ValidationStatus, error) {
+	statusAny := ctx.Value("validationStatus")
+	if statusAny != nil {
+		return nil, errors.New("no Value validationStatus in context")
+	}
+	status, ok := statusAny.(*ValidationStatus)
+	if !ok {
+		return nil, errors.New("validationStatus not of type *ValidationStatus")
+	}
+	return status, nil
+}
+
+func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
+	status, err := getValidationStatus(ctx)
+	if err != nil {
+		return errors.Wrap(err, "cannot add validation error")
+	}
+	status.Errors = append(status.Errors, vErrs...)
+	return nil
+}
+
+func addValidationWarnings(ctx context.Context, vWarns ...*ValidationError) error {
+	status, err := getValidationStatus(ctx)
+	if err != nil {
+		return errors.Wrap(err, "cannot add validation error")
+	}
+	status.Warnings = append(status.Warnings, vWarns...)
+	return nil
+}
+
+func (ve *ValidationError) AppendDescription(format string, a ...any) *ValidationError {
+	return &ValidationError{
+		Code:         ve.Code,
+		Description:  ve.Description,
+		Ref:          ve.Ref,
+		Description2: strings.TrimSpace(ve.Description2 + " " + fmt.Sprintf(format, a...)),
+	}
 }
 
 func (verr *ValidationError) Error() string {
-	if verr.Err == nil {
-		return fmt.Sprintf("Validation Error #%s - %s (%s)", verr.Code, verr.Description, verr.Ref)
-	} else {
-		return fmt.Sprintf("Validation Error #%s - %s (%s): %v", verr.Code, verr.Description, verr.Ref, verr.Err)
-	}
+	return fmt.Sprintf("Validation Error #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
 }
 
 func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *ValidationError {
@@ -173,7 +224,6 @@ func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *Validat
 			Code:        errno,
 			Description: fmt.Sprintf("unknown error %s", errno),
 			Ref:         "",
-			Err:         nil,
 		}
 	}
 	return err

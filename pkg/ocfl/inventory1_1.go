@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"context"
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
@@ -17,9 +18,9 @@ type InventoryV1_1 struct {
 	*InventoryBase
 }
 
-func NewInventoryV1_1(object Object, id string, logger *logging.Logger) (*InventoryV1_1, error) {
+func NewInventoryV1_1(ctx context.Context, object Object, id string, logger *logging.Logger) (*InventoryV1_1, error) {
 	ivUrl, _ := url.Parse(InventoryType1_1)
-	ib, err := NewInventoryBase(object, id, ivUrl, DigestAlg1_0, ContentDirectory1_1, logger)
+	ib, err := NewInventoryBase(ctx, object, id, ivUrl, DigestAlg1_0, ContentDirectory1_1, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}

@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"context"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -55,17 +56,19 @@ func GetObjectVersion(ofs OCFLFS) (version OCFLVersion, err error) {
 			t2 := fmt.Sprintf("ocfl_object_%s\r\n", version)
 			if string(cnt) != t1 && string(cnt) != t2 {
 				// todo: which error version should be used???
-				return "", GetValidationError(Version1_0, E007)
+				vErr := GetValidationError(Version1_0, E007).AppendDescription("cannot get version of %s", ofs.String())
+				return "", errors.WithStack(vErr)
 			}
 		}
 	}
 	if version == "" {
-		return "", GetValidationError(Version1_0, E003)
+		vErr := GetValidationError(Version1_0, E003)
+		return "", errors.WithStack(vErr)
 	}
 	return version, nil
 }
 
-func NewObject(fsys OCFLFS, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
+func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(fsys)
@@ -75,13 +78,13 @@ func NewObject(fsys OCFLFS, version OCFLVersion, id string, logger *logging.Logg
 	}
 	switch version {
 	case Version1_0:
-		o, err := NewObjectV1_0(fsys, id, logger)
+		o, err := NewObjectV1_0(ctx, fsys, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	case Version1_1:
-		o, err := NewObjectV1_1(fsys, id, logger)
+		o, err := NewObjectV1_1(ctx, fsys, id, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

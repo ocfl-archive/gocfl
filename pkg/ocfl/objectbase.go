@@ -2,6 +2,7 @@ package ocfl
 
 import (
 	"bytes"
+	"context"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type ObjectBase struct {
+	ctx     context.Context
 	fs      OCFLFS
 	i       Inventory
 	changed bool
@@ -31,8 +33,8 @@ type ObjectBase struct {
 }
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(fs OCFLFS, defaultVersion OCFLVersion, id string, logger *logging.Logger) (*ObjectBase, error) {
-	ocfl := &ObjectBase{fs: fs, version: defaultVersion, logger: logger}
+func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, id string, logger *logging.Logger) (*ObjectBase, error) {
+	ocfl := &ObjectBase{ctx: ctx, fs: fs, version: defaultVersion, logger: logger}
 	if id != "" {
 		dPath, err := object.NewDefaultPath()
 		if err != nil {
@@ -70,7 +72,7 @@ func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %s", "inventory.json")
 	}
-	inventory, err := NewInventory(ocfl, "", ocfl.version, ocfl.logger)
+	inventory, err := NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot initiate inventory object")
 	}
@@ -204,7 +206,7 @@ func (ocfl *ObjectBase) New(id string, path object.Path) error {
 		return errors.Wrapf(err, "cannot write into %s", objectConformanceDeclarationFile)
 	}
 
-	ocfl.i, err = NewInventory(ocfl, id, ocfl.version, ocfl.logger)
+	ocfl.i, err = NewInventory(ocfl.ctx, ocfl, id, ocfl.version, ocfl.logger)
 	return nil
 }
 
@@ -390,10 +392,35 @@ func (ocfl *ObjectBase) GetVersion() OCFLVersion {
 
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
+func (ocfl *ObjectBase) checkVersionFolder(version string) error {
+	var multiError = []error{}
+	versionEntries, err := ocfl.fs.ReadDir(version)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read version folder %s", version)
+	}
+	hasContent := false
+	for _, ve := range versionEntries {
+		if ve.IsDir() {
+			if ve.Name() == "content" {
+				hasContent = true
+			} else {
+				multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "forbidden subfolder %s in version directory %s", ve.Name(), version))
+			}
+		} else {
+			if !allowedFilesRegexp.MatchString(ve.Name()) {
+				multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "forbidden file %s in version directory %s", ve.Name(), version))
+			}
+		}
+	}
+	if !hasContent {
+		multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "no content in version directory %s", version))
+	}
+	return errors.Combine(multiError...)
+}
+
 func (ocfl *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
 	//ocfl.fs
-	var multiError = []error{}
 	ocfl.logger.Infof("object %s with ocfl version %s found", ocfl.GetID(), ocfl.GetVersion())
 	// check folders
 	versions := ocfl.i.GetVersions()
@@ -408,44 +435,27 @@ func (ocfl *ObjectBase) Check() error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
-				multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E001), "invalid directory %s found", entry.Name()))
+				addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, E001).AppendDescription("invalid directory %s found", entry.Name()))
 			}
 			// check version directories
 			if slices.Contains(versions, entry.Name()) {
-				versionEntries, err := ocfl.fs.ReadDir(entry.Name())
+				err := ocfl.checkVersionFolder(entry.Name())
 				if err != nil {
-					return errors.Wrapf(err, "cannot read version folder %s", entry.Name())
-				}
-				hasContent := false
-				for _, ve := range versionEntries {
-					if ve.IsDir() {
-						if ve.Name() == "content" {
-							hasContent = true
-						} else {
-							multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "forbidden subfolder %s in version directory %s", ve.Name(), entry.Name()))
-						}
-					} else {
-						if !allowedFilesRegexp.MatchString(ve.Name()) {
-							multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "forbidden file %s in version directory %s", ve.Name(), entry.Name()))
-						}
-					}
-				}
-				if !hasContent {
-					multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "no content in version directory %s", entry.Name()))
+					return errors.WithStack(err)
 				}
 				versionCounter++
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E001), "invalid file %s found", entry.Name()))
+				addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, E001).AppendDescription("invalid file %s found", entry.Name()))
 			}
 		}
 	}
 
 	if versionCounter != len(versions) {
-		multiError = append(multiError, GetValidationError(ocfl.version, E010))
+		addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, E010))
 	}
-	return errors.Combine(multiError...)
+	return nil
 }
 
 var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")

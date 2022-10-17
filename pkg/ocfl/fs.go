@@ -11,4 +11,5 @@ type OCFLFS interface {
 	Create(name string) (io.WriteCloser, error)
 	SubFS(subfolder string) OCFLFS
 	Close() error
+	String() string
 }

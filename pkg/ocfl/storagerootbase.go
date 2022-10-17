@@ -2,6 +2,7 @@ package ocfl
 
 import (
 	"bytes"
+	"context"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 )
 
 type StorageRootBase struct {
+	ctx     context.Context
 	fs      OCFLFS
 	changed bool
 	logger  *logging.Logger
@@ -23,8 +25,8 @@ type StorageRootBase struct {
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
-	ocfl := &StorageRootBase{fs: fs, version: defaultVersion, layout: defaultStorageLayout, logger: logger}
+func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
+	ocfl := &StorageRootBase{ctx: ctx, fs: fs, version: defaultVersion, layout: defaultStorageLayout, logger: logger}
 
 	if err := ocfl.Init(); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize ocfl")
@@ -102,6 +104,7 @@ func (osr *StorageRootBase) Init() error {
 	}
 	return nil
 }
+func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
 func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error {
 	extConfig := fmt.Sprintf("extensions/%s/config.json", name)
@@ -199,40 +202,40 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return nil, errors.WithStack(GetValidationError(osr.version, E003))
+		vErr := GetValidationError(osr.version, E003).AppendDescription("no version in folder %s", folder)
+		addValidationErrors(osr.ctx, vErr)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s", folder)
 	}
-	return NewObject(osr.fs.SubFS(folder), version, "", osr.logger)
+	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, "", osr.logger)
 }
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
 	folder, err := osr.layout.ExecuteID(id)
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return NewObject(osr.fs.SubFS(folder), osr.version, id, osr.logger)
+		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
 	}
-	return NewObject(osr.fs.SubFS(folder), version, id, osr.logger)
+	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, id, osr.logger)
 }
 
 func (osr *StorageRootBase) Check() error {
 	// https://ocfl.io/1.0/spec/validation-codes.html
-	multiError := []error{}
 
 	if err := osr.CheckDirectory(); err != nil {
-		multiError = append(multiError, errors.WithStack(err))
+		return errors.WithStack(err)
 	} else {
 		osr.logger.Infof("StorageRoot with version %s found", osr.version)
 	}
 	if err := osr.CheckObjects(); err != nil {
-		multiError = append(multiError, errors.WithStack(err))
+		return errors.WithStack(err)
 	}
 
-	return errors.Combine(multiError...)
+	return nil
 }
 
 func (osr *StorageRootBase) CheckDirectory() (err error) {
@@ -274,17 +277,15 @@ func (osr *StorageRootBase) CheckObjects() error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot get object folders")
 	}
-	multiError := []error{}
 	for _, objectFolder := range objectFolders {
 		osr.logger.Infof("checking folder %s", objectFolder)
 		obj, err := osr.OpenObjectFolder(objectFolder)
 		if err != nil {
-			multiError = append(multiError, errors.WithStack(err))
-			continue
+			return errors.Wrapf(err, "cannot open folder %s", objectFolder)
 		}
 		if err := obj.Check(); err != nil {
-			multiError = append(multiError, errors.WithStack(err))
+			return errors.Wrapf(err, "folder %s not ok", objectFolder)
 		}
 	}
-	return errors.Combine(multiError...)
+	return nil
 }
