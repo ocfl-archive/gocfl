@@ -40,6 +40,10 @@ func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersi
 var errVersionMultiple = errors.New("multiple version files found")
 var errVersionNone = errors.New("no version file found")
 
+func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
+	addValidationErrors(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...))
+}
+
 func (osr *StorageRootBase) Init() error {
 	var err error
 	osr.logger.Debug()
@@ -202,8 +206,7 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		vErr := GetValidationError(osr.version, E003).AppendDescription("no version in folder %s", folder)
-		addValidationErrors(osr.ctx, vErr)
+		osr.addValidationError(E003, "no version in folder %s", folder)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s", folder)

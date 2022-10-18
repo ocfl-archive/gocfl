@@ -1,15 +1,21 @@
 package zipfs
 
 import (
+	"fmt"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
 	"path/filepath"
+	"strings"
 )
 
 type SubFS struct {
 	*FS
 	pathPrefix string
+}
+
+func (zSubFS *SubFS) String() string {
+	return fmt.Sprintf("%s/%s", strings.TrimRight(zSubFS.FS.String(), "/"), strings.TrimLeft(zSubFS.pathPrefix, "/"))
 }
 
 func (zSubFS *SubFS) Close() error {

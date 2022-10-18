@@ -155,9 +155,9 @@ func NewContextValidation(parent context.Context) context.Context {
 	})
 }
 
-func getValidationStatus(ctx context.Context) (*ValidationStatus, error) {
+func GetValidationStatus(ctx context.Context) (*ValidationStatus, error) {
 	statusAny := ctx.Value("validationStatus")
-	if statusAny != nil {
+	if statusAny == nil {
 		return nil, errors.New("no Value validationStatus in context")
 	}
 	status, ok := statusAny.(*ValidationStatus)
@@ -168,7 +168,7 @@ func getValidationStatus(ctx context.Context) (*ValidationStatus, error) {
 }
 
 func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
-	status, err := getValidationStatus(ctx)
+	status, err := GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot add validation error")
 	}
@@ -177,7 +177,7 @@ func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
 }
 
 func addValidationWarnings(ctx context.Context, vWarns ...*ValidationError) error {
-	status, err := getValidationStatus(ctx)
+	status, err := GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot add validation error")
 	}

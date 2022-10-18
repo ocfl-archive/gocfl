@@ -56,6 +56,10 @@ func (i *InventoryBase) Init() (err error) {
 	}
 	return nil
 }
+
+func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
+	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...))
+}
 func (i *InventoryBase) GetID() string                                { return i.Id }
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetVersion() string                           { return i.Head }
@@ -80,7 +84,7 @@ func (i *InventoryBase) check() error {
 		return errors.WithStack(err)
 	}
 	if i.Id == "" || i.Head == "" || i.Type == "" || i.DigestAlgorithm == "" {
-		addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), E036))
+		i.addValidationError(E036, "invalid field for object")
 	}
 	return nil
 }
@@ -89,14 +93,13 @@ func (i *InventoryBase) checkVersions() error {
 	var paddingLength int = -1
 	var versions = []int{}
 	if len(i.Versions) == 0 {
-		addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), E008))
+		i.addValidationError(E008, "length of version is 0")
 	}
 	for version, _ := range i.Versions {
 		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
 		if err != nil {
-			vErr := GetValidationError(i.object.GetVersion(), E104).AppendDescription("invalid version format %s", version)
-			addValidationErrors(i.ctx, vErr)
-			return errors.WithStack(vErr)
+			i.addValidationError(E104, "invalid version format %s", version)
+			continue
 		}
 		versions = append(versions, vInt)
 		if versionZeroRegexp.MatchString(version) {
@@ -104,9 +107,7 @@ func (i *InventoryBase) checkVersions() error {
 				paddingLength = len(version) - 2
 			} else {
 				if paddingLength != len(version)-2 {
-					vErr := GetValidationError(i.object.GetVersion(), E012)
-					addValidationErrors(i.ctx, vErr)
-					return vErr
+					i.addValidationError(E012, "invalid version padding %s", version)
 				}
 			}
 		} else {
@@ -115,20 +116,21 @@ func (i *InventoryBase) checkVersions() error {
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
-						addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), E011), GetValidationError(i.object.GetVersion(), E013))
-						return errors.Combine(GetValidationError(i.object.GetVersion(), E011), GetValidationError(i.object.GetVersion(), E013))
+						i.addValidationError(E011, "invalid version padding %s", version)
+						i.addValidationError(E013, "invalid version padding %s", version)
 					}
 				}
 			} else {
 				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
-				return errors.Wrapf(GetValidationError(i.object.GetVersion(), E104), "invalid version format %s", version)
+				i.addValidationError(E104, "invalid version format %s", version)
 			}
 		}
 	}
 	slices.Sort(versions)
 	for key, val := range versions {
 		if key != val-1 {
-			return GetValidationError(i.object.GetVersion(), E010)
+			i.addValidationError(E010, "invalid version sequence [%v]", versions)
+			break
 		}
 	}
 	i.paddingLength = paddingLength

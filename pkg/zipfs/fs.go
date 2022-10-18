@@ -48,6 +48,9 @@ func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logg
 	return zfs, nil
 }
 
+func (zf *FS) String() string {
+	return "zipfs://"
+}
 func (zf *FS) Close() error {
 	zf.logger.Debug("Close ZipFS")
 	// check whether we have to copy all stuff

@@ -2,6 +2,7 @@ package osfs
 
 import (
 	"emperror.dev/errors"
+	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
@@ -27,6 +28,10 @@ func NewFSIO(folder string, logger *logging.Logger) (*FS, error) {
 		logger: logger,
 	}
 	return osfs, nil
+}
+
+func (ofs *FS) String() string {
+	return fmt.Sprintf("file://%s", ofs.folder)
 }
 
 func (ofs *FS) Close() error {

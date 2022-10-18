@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"emperror.dev/errors"
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
@@ -20,12 +21,23 @@ const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{s
 const VERSION = "1.0"
 
 func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
-	object, err := ocfl.NewObject(dest, "", "", logger)
+	ctx := ocfl.NewContextValidation(context.TODO())
+	object, err := ocfl.NewObject(ctx, dest, "", "", logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot load object")
 	}
 	if err := object.Check(); err != nil {
 		return errors.Wrapf(err, "check of %s failed", object.GetID())
+	}
+	status, err := ocfl.GetValidationStatus(ctx)
+	if err != nil {
+		return errors.Wrap(err, "cannot get status of validation")
+	}
+	for _, err := range status.Errors {
+		logger.Infof("ERROR: %v", err)
+	}
+	for _, err := range status.Warnings {
+		logger.Infof("WARN:  %v", err)
 	}
 	return nil
 }
@@ -36,7 +48,7 @@ func check(dest ocfl.OCFLFS, logger *logging.Logger) error {
 		panic(err)
 	}
 
-	storageRoot, err := ocfl.NewStorageRoot(dest, VERSION, defaultStorageLayout, logger)
+	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, defaultStorageLayout, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -65,7 +77,7 @@ func ingest(dest ocfl.OCFLFS, srcdir string, logger *logging.Logger) error {
 		panic(err)
 	}
 
-	storageRoot, err := ocfl.NewStorageRoot(dest, VERSION, defaultStorageLayout, logger)
+	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, defaultStorageLayout, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}

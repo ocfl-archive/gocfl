@@ -59,6 +59,10 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
+func (ocfl *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
+	addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
+}
+
 // LoadInventory loads inventory from existing Object
 func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	// load inventory file
@@ -82,28 +86,29 @@ func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	digest := inventory.GetDigestAlgorithm()
 
 	// check digest for inventory
-	digestPath := fmt.Sprintf("inventory.json.%s", digest)
+	digestPath := fmt.Sprintf("inventory.jsonx.%s", digest)
 	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
 	if err != nil {
-		return nil, MultiError(err, GetValidationError(ocfl.version, E058))
+		ocfl.addValidationError(E058, "cannot read %s: %v", digestPath, err)
+	} else {
+		digestString := strings.TrimSpace(string(digestBytes))
+		if !strings.HasSuffix(digestString, " inventory.json") {
+			ocfl.addValidationError(E061, "no suffix \" inventory.json\" in %s", digestPath)
+		} else {
+			digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
+			h, err := checksum.GetHash(digest)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
+			}
+			h.Reset()
+			h.Write(inventoryBytes)
+			sumBytes := h.Sum(nil)
+			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
+			if digestString != inventoryDigestString {
+				ocfl.addValidationError(E060, "%s != %s", digestString, inventoryDigestString)
+			}
+		}
 	}
-	digestString := strings.TrimSpace(string(digestBytes))
-	if !strings.HasSuffix(digestString, " inventory.json") {
-		return nil, GetValidationError(ocfl.version, E061)
-	}
-	digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
-	h, err := checksum.GetHash(digest)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
-	}
-	h.Reset()
-	h.Write(inventoryBytes)
-	sumBytes := h.Sum(nil)
-	inventoryDigestString := fmt.Sprintf("%x", sumBytes)
-	if digestString != inventoryDigestString {
-		return nil, MultiError(fmt.Errorf("%s != %s", digestString, inventoryDigestString), GetValidationError(ocfl.version, E060))
-	}
-
 	return inventory, inventory.Init()
 }
 
@@ -393,7 +398,6 @@ func (ocfl *ObjectBase) GetVersion() OCFLVersion {
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
 func (ocfl *ObjectBase) checkVersionFolder(version string) error {
-	var multiError = []error{}
 	versionEntries, err := ocfl.fs.ReadDir(version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder %s", version)
@@ -404,18 +408,18 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 			if ve.Name() == "content" {
 				hasContent = true
 			} else {
-				multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "forbidden subfolder %s in version directory %s", ve.Name(), version))
 			}
+			ocfl.addValidationError(E015, "forbidden subfolder %s in version directory %s", ve.Name(), version)
 		} else {
 			if !allowedFilesRegexp.MatchString(ve.Name()) {
-				multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "forbidden file %s in version directory %s", ve.Name(), version))
+				ocfl.addValidationError(E015, "forbidden file %s in version directory %s", ve.Name(), version)
 			}
 		}
 	}
 	if !hasContent {
-		multiError = append(multiError, errors.Wrapf(GetValidationError(ocfl.version, E015), "no content in version directory %s", version))
+		ocfl.addValidationError(E015, "no content in version directory %s", version)
 	}
-	return errors.Combine(multiError...)
+	return nil
 }
 
 func (ocfl *ObjectBase) Check() error {
@@ -435,7 +439,7 @@ func (ocfl *ObjectBase) Check() error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
-				addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, E001).AppendDescription("invalid directory %s found", entry.Name()))
+				ocfl.addValidationError(E001, "invalid directory %s found", entry.Name())
 			}
 			// check version directories
 			if slices.Contains(versions, entry.Name()) {
@@ -447,13 +451,13 @@ func (ocfl *ObjectBase) Check() error {
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, E001).AppendDescription("invalid file %s found", entry.Name()))
+				ocfl.addValidationError(E001, "invalid file %s found", entry.Name())
 			}
 		}
 	}
 
 	if versionCounter != len(versions) {
-		addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, E010))
+		ocfl.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
 	}
 	return nil
 }
