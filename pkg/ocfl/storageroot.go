@@ -23,7 +23,7 @@ type StorageRoot interface {
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
 func NewStorageRoot(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (StorageRoot, error) {
-	version, err := getVersion(fs, ".", "ocfl_")
+	version, err := getVersion(ctx, fs, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
 	}

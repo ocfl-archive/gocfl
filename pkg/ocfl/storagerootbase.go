@@ -204,7 +204,7 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 }
 
 func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
-	version, err := getVersion(osr.fs, folder, "ocfl_object_")
+	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		osr.addValidationError(E003, "no version in folder %s", folder)
 	}
@@ -216,7 +216,7 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
 	folder, err := osr.layout.ExecuteID(id)
-	version, err := getVersion(osr.fs, folder, "ocfl_object_")
+	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)
 	}
@@ -247,7 +247,6 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 	if err != nil {
 		return errors.Wrap(err, "cannot get files")
 	}
-	var multiErr = []error{}
 	var version OCFLVersion
 	for _, file := range files {
 		if file.IsDir() {
@@ -257,7 +256,7 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
 				// more than one version file is confusing...
 				if version != "" {
-					multiErr = append(multiErr, errors.WithStack(GetValidationError(osr.version, E003)))
+					osr.addValidationError(E076, "additional version file \"%s\" in storage root", file.Name())
 				} else {
 					version = OCFLVersion(matches[1])
 				}
@@ -268,11 +267,12 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 	}
 	// no version found
 	if version == "" {
-		multiErr = append(multiErr, errors.WithStack(GetValidationError(osr.version, E004)))
+		osr.addValidationError(E076, "no version file in storage root")
+		osr.addValidationError(E077, "no version file in storage root")
 	} else {
 		osr.version = version
 	}
-	return errors.Combine(multiErr...)
+	return nil
 }
 
 func (osr *StorageRootBase) CheckObjects() error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"strings"
 )
 
@@ -148,6 +149,16 @@ type ValidationStatus struct {
 	Errors, Warnings []*ValidationError
 }
 
+func (status ValidationStatus) Compact() {
+	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *ValidationError) bool {
+		return E1.Code == E2.Code && E1.Description2 == E2.Description2
+	})
+	status.Warnings = slices.CompactFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
+		return E1.Code == E2.Code && E1.Description2 == E2.Description2
+	})
+
+}
+
 func NewContextValidation(parent context.Context) context.Context {
 	return context.WithValue(parent, "validationStatus", &ValidationStatus{
 		Errors:   []*ValidationError{},
@@ -202,14 +213,14 @@ func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *Validat
 	var errlist map[ValidationErrorCode]*ValidationError
 	var mapping map[ValidationErrorCode]ValidationErrorCode
 	switch version {
-	case "1.0":
-		errlist = OCFLValidationError1_0
-		mapping = OCFLValidationErrorMapping1_0
 	case "1.1":
 		errlist = OCFLValidationError1_1
 		mapping = OCFLValidationErrorMapping1_1
 	default:
-		errlist = map[ValidationErrorCode]*ValidationError{}
+		//case "1.0":
+		errlist = OCFLValidationError1_0
+		mapping = OCFLValidationErrorMapping1_0
+		//		errlist = map[ValidationErrorCode]*ValidationError{}
 	}
 	err, ok := errlist[errno]
 	if !ok {

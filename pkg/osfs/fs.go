@@ -34,8 +34,12 @@ func (ofs *FS) String() string {
 	return fmt.Sprintf("file://%s", ofs.folder)
 }
 
+func (ofs *FS) IsNotExist(err error) bool {
+	return os.IsNotExist(errors.Cause(err))
+}
+
 func (ofs *FS) Close() error {
-	ofs.logger.Debug("Close OSFS")
+	//	ofs.logger.Debug("Close OSFS")
 	return nil
 }
 

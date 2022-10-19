@@ -26,7 +26,7 @@ func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, defaultStorageLayout sto
 
 func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 	folder, err := osr.layout.ExecuteID(id)
-	version, err := getVersion(osr.fs, folder, "ocfl_object_")
+	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)
 	}

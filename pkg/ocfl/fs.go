@@ -1,3 +1,9 @@
+// Package ocfl for manipulating and checking Oxford Common Filesystem Layout
+// This Oxford Common File Layout (OCFL) specification describes an
+// application-independent approach to the storage of digital information in a
+// structured, transparent, and predictable manner. It is designed to promote
+// long-term object management best practices within digital repositories.
+// https://ocfl.io
 package ocfl
 
 import (
@@ -5,11 +11,12 @@ import (
 	"io/fs"
 )
 
-// OCFLFS for OCFL we need a fs.ReadDirFS plus Create function
+// Filesystem abstraction for OCFL access
 type OCFLFS interface {
 	fs.ReadDirFS
 	Create(name string) (io.WriteCloser, error)
 	SubFS(subfolder string) OCFLFS
 	Close() error
 	String() string
+	IsNotExist(err error) bool
 }

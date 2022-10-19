@@ -4,7 +4,6 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"encoding/json"
-	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"time"
@@ -66,12 +65,6 @@ type Inventory interface {
 
 func NewInventory(ctx context.Context, object Object, id string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
 	switch version {
-	case Version1_0:
-		sr, err := NewInventoryV1_0(ctx, object, id, logger)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return sr, nil
 	case Version1_1:
 		sr, err := NewInventoryV1_1(ctx, object, id, logger)
 		if err != nil {
@@ -79,6 +72,12 @@ func NewInventory(ctx context.Context, object Object, id string, version OCFLVer
 		}
 		return sr, nil
 	default:
-		return nil, errors.New(fmt.Sprintf("Inventory Version %s not supported", version))
+		//case Version1_0:
+		sr, err := NewInventoryV1_0(ctx, object, id, logger)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return sr, nil
+		//		return nil, errors.New(fmt.Sprintf("Inventory Version %s not supported", version))
 	}
 }

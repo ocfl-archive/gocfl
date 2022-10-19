@@ -27,7 +27,7 @@ type Object interface {
 	Close() error
 }
 
-func GetObjectVersion(ofs OCFLFS) (version OCFLVersion, err error) {
+func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err error) {
 	files, err := ofs.ReadDir(".")
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get files")
@@ -52,18 +52,16 @@ func GetObjectVersion(ofs OCFLFS) (version OCFLVersion, err error) {
 				return "", errors.Wrapf(err, "cannot read %s", file.Name())
 			}
 			r.Close()
-			t1 := fmt.Sprintf("ocfl_object_%s\n", version)
-			t2 := fmt.Sprintf("ocfl_object_%s\r\n", version)
-			if string(cnt) != t1 && string(cnt) != t2 {
+			t := fmt.Sprintf("ocfl_object_%s", version)
+			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
 				// todo: which error version should be used???
-				vErr := GetValidationError(Version1_0, E007).AppendDescription("cannot get version of %s", ofs.String())
-				return "", errors.WithStack(vErr)
+				addValidationErrors(ctx, GetValidationError(Version1_0, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n"))
 			}
 		}
 	}
 	if version == "" {
-		vErr := GetValidationError(Version1_0, E003)
-		return "", errors.WithStack(vErr)
+		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in \"%s\"", ofs.String()))
+		return "", nil
 	}
 	return version, nil
 }
@@ -71,18 +69,12 @@ func GetObjectVersion(ofs OCFLFS) (version OCFLVersion, err error) {
 func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
-		version, err = GetObjectVersion(fsys)
+		version, err = GetObjectVersion(ctx, fsys)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot get version of object")
 		}
 	}
 	switch version {
-	case Version1_0:
-		o, err := NewObjectV1_0(ctx, fsys, id, logger)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return o, nil
 	case Version1_1:
 		o, err := NewObjectV1_1(ctx, fsys, id, logger)
 		if err != nil {
@@ -90,6 +82,11 @@ func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string,
 		}
 		return o, nil
 	default:
-		return nil, errors.New(fmt.Sprintf("Object Version %s not supported", version))
+		o, err := NewObjectV1_0(ctx, fsys, id, logger)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return o, nil
+		//		return nil, errors.New(fmt.Sprintf("Object Version %s not supported", version))
 	}
 }

@@ -83,8 +83,17 @@ func (i *InventoryBase) check() error {
 	if err := i.checkVersions(); err != nil {
 		return errors.WithStack(err)
 	}
-	if i.Id == "" || i.Head == "" || i.Type == "" || i.DigestAlgorithm == "" {
-		i.addValidationError(E036, "invalid field for object")
+	if i.Id == "" {
+		i.addValidationError(E036, "invalid field \"id\" for object")
+	}
+	if i.Head == "" {
+		i.addValidationError(E036, "invalid field \"head\" for object")
+	}
+	if i.Type == "" {
+		i.addValidationError(E036, "invalid field \"type\" for object")
+	}
+	if i.DigestAlgorithm == "" {
+		i.addValidationError(E036, "invalid field \"digestAlgorithm\" for object")
 	}
 	return nil
 }
@@ -107,7 +116,9 @@ func (i *InventoryBase) checkVersions() error {
 				paddingLength = len(version) - 2
 			} else {
 				if paddingLength != len(version)-2 {
+					//i.addValidationError(E011, "invalid version padding %s", version)
 					i.addValidationError(E012, "invalid version padding %s", version)
+					i.addValidationError(E013, "invalid version padding %s", version)
 				}
 			}
 		} else {
@@ -117,6 +128,7 @@ func (i *InventoryBase) checkVersions() error {
 				} else {
 					if paddingLength != 0 {
 						i.addValidationError(E011, "invalid version padding %s", version)
+						i.addValidationError(E012, "invalid version padding %s", version)
 						i.addValidationError(E013, "invalid version padding %s", version)
 					}
 				}
@@ -129,7 +141,7 @@ func (i *InventoryBase) checkVersions() error {
 	slices.Sort(versions)
 	for key, val := range versions {
 		if key != val-1 {
-			i.addValidationError(E010, "invalid version sequence [%v]", versions)
+			i.addValidationError(E010, "invalid version sequence %v", versions)
 			break
 		}
 	}

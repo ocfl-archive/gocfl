@@ -33,6 +33,7 @@ func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
 	if err != nil {
 		return errors.Wrap(err, "cannot get status of validation")
 	}
+	status.Compact()
 	for _, err := range status.Errors {
 		logger.Infof("ERROR: %v", err)
 	}

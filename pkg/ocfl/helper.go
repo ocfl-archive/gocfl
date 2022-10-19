@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"context"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
@@ -108,7 +109,7 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
-func getVersion(fs OCFLFS, folder, prefix string) (version OCFLVersion, err error) {
+func getVersion(ctx context.Context, fs OCFLFS, folder, prefix string) (version OCFLVersion, err error) {
 	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)
 	if err != nil {
@@ -137,10 +138,9 @@ func getVersion(fs OCFLFS, folder, prefix string) (version OCFLVersion, err erro
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot read %s/%s", prefix, file.Name())
 			}
-			t1 := fmt.Sprintf("%s%s\n", prefix, version)
-			t2 := fmt.Sprintf("%s%s\r\n", prefix, version)
-			if string(cnt) != t1 && string(cnt) != t2 {
-				return "", GetValidationError(version, E007)
+			t := fmt.Sprintf("%s%s", prefix, version)
+			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
+				addValidationErrors(ctx, GetValidationError(version, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n"))
 			}
 		}
 	}
@@ -150,7 +150,7 @@ func getVersion(fs OCFLFS, folder, prefix string) (version OCFLVersion, err erro
 	return version, nil
 }
 
-func validVersion(fs OCFLFS, version OCFLVersion, folder, prefix string) bool {
-	v, _ := getVersion(fs, folder, prefix)
+func validVersion(ctx context.Context, fs OCFLFS, version OCFLVersion, folder, prefix string) bool {
+	v, _ := getVersion(ctx, fs, folder, prefix)
 	return v == version
 }
