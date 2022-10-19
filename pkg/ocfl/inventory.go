@@ -52,6 +52,7 @@ type Inventory interface {
 	//GetContentDirectory() string
 	GetVersion() string
 	GetVersions() []string
+	GetFiles() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	IsWriteable() bool
 	//	IsModified() bool

@@ -149,6 +149,16 @@ func (i *InventoryBase) checkVersions() error {
 	return nil
 }
 
+func (i *InventoryBase) GetFiles() []string {
+	var result = []string{}
+	for _, files := range i.Manifest {
+		for _, filename := range files {
+			result = append(result, filename)
+		}
+	}
+	return result
+}
+
 func (i *InventoryBase) BuildRealname(virtualFilename string) string {
 	//	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
 	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), filepath.ToSlash(virtualFilename))

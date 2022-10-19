@@ -421,6 +421,26 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 	return nil
 }
 
+func (ocfl *ObjectBase) checkFiles() error {
+	files := ocfl.i.GetFiles()
+	for _, filename := range files {
+		f, err := ocfl.fs.Open(filename)
+		if err != nil {
+			if ocfl.fs.IsNotExist(err) {
+				ocfl.addValidationError(E017, "file \"%s\" not found", filename)
+			}
+			return errors.Wrapf(err, "cannot open %s", filename)
+		}
+		f.Close()
+	}
+	versions := ocfl.i.GetVersions()
+	for _, version := range versions {
+		// todo: deep check content
+		ocfl.logger.Debugf("%v", version)
+	}
+	return nil
+}
+
 func (ocfl *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
 	//ocfl.fs
