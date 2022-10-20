@@ -3,6 +3,7 @@ package ocfl
 var OCFLValidationErrorMapping1_1 = map[ValidationErrorCode]ValidationErrorCode{}
 
 var OCFLValidationError1_1 = map[ValidationErrorCode]*ValidationError{
+	E000: {Code: E000, Description: "unknown error", Ref: "https://ocfl.io/1.0/spec/#E000"},
 	E001: {Code: E001, Description: "‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’", Ref: "https://ocfl.io/1.1/spec/#E001"},
 	E002: {Code: E002, Description: "‘The version declaration must be formatted according to the NAMASTE specification.’", Ref: "https://ocfl.io/1.1/spec/#E002"},
 	E003: {Code: E003, Description: "‘There must be exactly one version declaration file in the base directory of the OCFL Object Root giving the OCFL version in the filename.’", Ref: "https://ocfl.io/1.1/spec/#E003"},

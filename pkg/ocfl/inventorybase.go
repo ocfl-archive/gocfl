@@ -33,7 +33,14 @@ type InventoryBase struct {
 	logger           *logging.Logger
 }
 
-func NewInventoryBase(ctx context.Context, object Object, id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
+func NewInventoryBase(
+	ctx context.Context,
+	object Object,
+	id string,
+	objectType *url.URL,
+	digestAlg checksum.DigestAlgorithm,
+	contentDir string,
+	logger *logging.Logger) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:              ctx,
 		object:           object,
@@ -60,7 +67,12 @@ func (i *InventoryBase) Init() (err error) {
 func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
 	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...))
 }
-func (i *InventoryBase) GetID() string                                { return i.Id }
+func (i *InventoryBase) GetID() string { return i.Id }
+
+func (i *InventoryBase) GetContentDir() string {
+	return i.ContentDirectory
+}
+
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetVersion() string                           { return i.Head }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
@@ -94,6 +106,9 @@ func (i *InventoryBase) check() error {
 	}
 	if i.DigestAlgorithm == "" {
 		i.addValidationError(E036, "invalid field \"digestAlgorithm\" for object")
+	}
+	if slices.Contains([]string{"", ".", ".."}, i.ContentDirectory) || strings.Contains(i.ContentDirectory, "/") {
+		i.addValidationError(E017, "invalid content directory \"%s\"", i.ContentDirectory)
 	}
 	return nil
 }
@@ -153,6 +168,13 @@ func (i *InventoryBase) GetFiles() []string {
 	var result = []string{}
 	for _, files := range i.Manifest {
 		for _, filename := range files {
+			parts := strings.Split(filename, "/")
+			if len(parts) < 3 {
+				i.addValidationError(E000, "invalid filepath in manifest \"%s\"", filename)
+			}
+			if parts[1] != i.GetContentDir() {
+				i.addValidationError(E019, "invalid content directory \"%s\" in \"%s\"", parts[1], filename)
+			}
 			result = append(result, filename)
 		}
 	}

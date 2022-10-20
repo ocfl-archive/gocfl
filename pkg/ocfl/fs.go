@@ -19,4 +19,5 @@ type OCFLFS interface {
 	Close() error
 	String() string
 	IsNotExist(err error) bool
+	WalkDir(root string, fn fs.WalkDirFunc) error
 }

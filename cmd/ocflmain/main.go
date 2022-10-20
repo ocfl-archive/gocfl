@@ -35,10 +35,12 @@ func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
 	}
 	status.Compact()
 	for _, err := range status.Errors {
-		logger.Infof("ERROR: %v", err)
+		fmt.Println(err)
+		//logger.Infof("ERROR: %v", err)
 	}
 	for _, err := range status.Warnings {
-		logger.Infof("WARN:  %v", err)
+		fmt.Println(err)
+		//logger.Infof("WARN:  %v", err)
 	}
 	return nil
 }

@@ -63,27 +63,32 @@ func (ocfl *ObjectBase) addValidationError(errno ValidationErrorCode, format str
 	addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
 }
 
-// LoadInventory loads inventory from existing Object
 func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
+	return ocfl.LoadInventoryFolder(".")
+}
+
+// LoadInventory loads inventory from existing Object
+func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 	inventory, err := NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot initiate inventory object")
 	}
 
 	// load inventory file
-	iFp, err := ocfl.fs.Open("inventory.json")
+	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
+	iFp, err := ocfl.fs.Open(filename)
 	if ocfl.fs.IsNotExist(err) {
 		ocfl.addValidationError(E063, "no inventory file in \"%s\"", ocfl.fs.String())
 		return inventory, nil
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", "inventory.json")
+		return nil, errors.Wrapf(err, "cannot open %s", filename)
 	}
 	// read inventory into memory
 	inventoryBytes, err := io.ReadAll(iFp)
 	iFp.Close()
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read %s", "inventory.json")
+		return nil, errors.Wrapf(err, "cannot read %s", filename)
 	}
 	if err := json.Unmarshal(inventoryBytes, inventory); err != nil {
 		return nil, errors.Wrap(err, "cannot marshal inventory.json")
@@ -91,7 +96,7 @@ func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	digest := inventory.GetDigestAlgorithm()
 
 	// check digest for inventory
-	digestPath := fmt.Sprintf("inventory.json.%s", digest)
+	digestPath := fmt.Sprintf("%s.%s", filename, digest)
 	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
 	if err != nil {
 		ocfl.addValidationError(E058, "cannot read %s: %v", digestPath, err)
@@ -422,6 +427,11 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 }
 
 func (ocfl *ObjectBase) checkFiles() error {
+	versionContents := map[string]string{}
+	versions := ocfl.i.GetVersions()
+	for _, ver := range versions {
+		versionContents[ver] = ocfl.i.GetContentDir()
+	}
 	files := ocfl.i.GetFiles()
 	for _, filename := range files {
 		f, err := ocfl.fs.Open(filename)
@@ -432,11 +442,40 @@ func (ocfl *ObjectBase) checkFiles() error {
 			return errors.Wrapf(err, "cannot open %s", filename)
 		}
 		f.Close()
+		parts := strings.Split(filename, "/")
+		if len(parts) < 3 {
+			ocfl.addValidationError(E000, "invalid filename \"%s\" in manifest", filename)
+		} else {
+			versionContents[parts[0]] = parts[1]
+		}
 	}
-	versions := ocfl.i.GetVersions()
-	for _, version := range versions {
+	for ver, cont := range versionContents {
+		cfiles := []string{}
+		versionContent := ver + "/" + cont
+		iv, err := ocfl.LoadInventoryFolder(ver)
+		if err != nil {
+			return errors.Wrapf(err, "cannot load inventory from folder \"%s\"", ver)
+		}
+		ivFiles := iv.GetFiles()
+		ocfl.fs.WalkDir(
+			versionContent,
+			func(path string, d fs.DirEntry, err error) error {
+				if d.IsDir() {
+					return nil
+				}
+				cfiles = append(cfiles, filepath.ToSlash(path))
+				return nil
+			},
+		)
+		for _, f := range cfiles {
+			if !slices.Contains(files, f) {
+				ocfl.addValidationError(E023, "file \"%s/%s\" not in manifest", versionContent, f)
+			}
+			if !slices.Contains(ivFiles, f) {
+				ocfl.addValidationError(E023, "file \"%s/%s\" not in manifest %s/inventory.json", versionContent, f, ver)
+			}
+		}
 		// todo: deep check content
-		ocfl.logger.Debugf("%v", version)
 	}
 	return nil
 }
@@ -477,6 +516,10 @@ func (ocfl *ObjectBase) Check() error {
 
 	if versionCounter != len(versions) {
 		ocfl.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
+	}
+
+	if err := ocfl.checkFiles(); err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }

@@ -39,7 +39,8 @@ func (ofs *FS) IsNotExist(err error) bool {
 }
 
 func (ofs *FS) Close() error {
-	//	ofs.logger.Debug("Close OSFS")
+	ofs.logger.Debug("Close OSFS")
+
 	return nil
 }
 
@@ -89,6 +90,24 @@ func (ofs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 		return result[i].Name() < result[j].Name()
 	})
 	return result, nil
+}
+
+func (ofs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
+	basepath := filepath.Join(ofs.folder, root)
+	lb := len(ofs.folder)
+	return filepath.WalkDir(basepath, func(path string, d fs.DirEntry, err error) error {
+		if d == nil {
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if len(path) <= lb {
+			return errors.Errorf("path \"%s\" not a subpath of \"%s\"", path, basepath)
+		}
+		path = path[lb+1:]
+		return fn(filepath.ToSlash(path), d, err)
+	})
 }
 
 func (ofs *FS) Stat(name string) (fs.FileInfo, error) {

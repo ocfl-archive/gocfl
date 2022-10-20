@@ -44,6 +44,7 @@ type Version struct {
 type Inventory interface {
 	Init() error
 	GetID() string
+	GetContentDir() string
 
 	DeleteFile(virtualFilename string) error
 	Rename(oldVirtualFilename, newVirtualFilename string) error

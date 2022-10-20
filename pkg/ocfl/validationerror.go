@@ -11,6 +11,7 @@ import (
 type ValidationErrorCode string
 
 const (
+	E000 = ValidationErrorCode("E000")
 	E001 = ValidationErrorCode("E001")
 	E002 = ValidationErrorCode("E002")
 	E003 = ValidationErrorCode("E003")

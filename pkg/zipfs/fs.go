@@ -203,6 +203,24 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return result, nil
 }
 
+func (zf *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
+	root = filepath.ToSlash(filepath.Clean(root))
+	lr := len(root)
+	for _, file := range zf.r.File {
+		if !strings.HasPrefix(file.Name, root) {
+			continue
+		}
+		fi, err := NewFileInfoFile(file)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create FileInfo for %s", file.Name)
+		}
+		if err := fn(file.Name[lr:], NewDirEntry(fi), nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (zf *FS) Stat(name string) (fs.FileInfo, error) {
 	name = filepath.ToSlash(name)
 	zf.logger.Debugf("%s", name)
