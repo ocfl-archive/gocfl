@@ -69,17 +69,12 @@ func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 
 // LoadInventory loads inventory from existing Object
 func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
-	inventory, err := NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot initiate inventory object")
-	}
 
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
 	iFp, err := ocfl.fs.Open(filename)
 	if ocfl.fs.IsNotExist(err) {
 		ocfl.addValidationError(E063, "no inventory file in \"%s\"", ocfl.fs.String())
-		return inventory, nil
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open %s", filename)
@@ -90,8 +85,9 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %s", filename)
 	}
-	if err := json.Unmarshal(inventoryBytes, inventory); err != nil {
-		return nil, errors.Wrap(err, "cannot marshal inventory.json")
+	inventory, err := LoadInventory(ocfl.ctx, ocfl, inventoryBytes, ocfl.version, ocfl.logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot initiate inventory object")
 	}
 	digest := inventory.GetDigestAlgorithm()
 
@@ -427,53 +423,91 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 }
 
 func (ocfl *ObjectBase) checkFiles() error {
-	versionContents := map[string]string{}
+	// create list of version content directories
 	versions := ocfl.i.GetVersions()
+	versionContents := map[string]string{}
 	for _, ver := range versions {
 		versionContents[ver] = ocfl.i.GetContentDir()
 	}
-	files := ocfl.i.GetFiles()
-	for _, filename := range files {
-		f, err := ocfl.fs.Open(filename)
-		if err != nil {
-			if ocfl.fs.IsNotExist(err) {
-				ocfl.addValidationError(E017, "file \"%s\" not found", filename)
-			}
-			return errors.Wrapf(err, "cannot open %s", filename)
-		}
-		f.Close()
-		parts := strings.Split(filename, "/")
-		if len(parts) < 3 {
-			ocfl.addValidationError(E000, "invalid filename \"%s\" in manifest", filename)
-		} else {
-			versionContents[parts[0]] = parts[1]
-		}
-	}
+
+	// load object content files
+	objectContentFiles := map[string][]string{}
+	objectContentFilesFlat := []string{}
 	for ver, cont := range versionContents {
-		cfiles := []string{}
+		// load all object version content files
 		versionContent := ver + "/" + cont
-		iv, err := ocfl.LoadInventoryFolder(ver)
-		if err != nil {
-			return errors.Wrapf(err, "cannot load inventory from folder \"%s\"", ver)
-		}
-		ivFiles := iv.GetFiles()
 		ocfl.fs.WalkDir(
 			versionContent,
 			func(path string, d fs.DirEntry, err error) error {
 				if d.IsDir() {
 					return nil
 				}
-				cfiles = append(cfiles, filepath.ToSlash(path))
+				if _, ok := objectContentFiles[ver]; !ok {
+					objectContentFiles[ver] = []string{}
+				}
+				path = filepath.ToSlash(path)
+				objectContentFiles[ver] = append(objectContentFiles[ver], path)
+				objectContentFilesFlat = append(objectContentFilesFlat, path)
 				return nil
 			},
 		)
-		for _, f := range cfiles {
-			if !slices.Contains(files, f) {
-				ocfl.addValidationError(E023, "file \"%s/%s\" not in manifest", versionContent, f)
+	}
+	// load all inventories
+	versionInventories := map[string]Inventory{}
+	var err error
+	for _, ver := range versions {
+		versionInventories[ver], err = ocfl.LoadInventoryFolder(ver)
+		if err != nil {
+			return errors.Wrapf(err, "cannot load inventory from folder \"%s\"", ver)
+		}
+	}
+
+	//
+	// all files in any manifest must belong to a physical file #E092
+	//
+	for inventoryVersion, inventory := range versionInventories {
+		manifestFiles := inventory.GetFilesFlat()
+		for _, manifestFile := range manifestFiles {
+			if !slices.Contains(objectContentFilesFlat, manifestFile) {
+				ocfl.addValidationError(E092, "file \"%s\" from manifest version %s not in object content", manifestFile, inventoryVersion)
 			}
-			if !slices.Contains(ivFiles, f) {
-				ocfl.addValidationError(E023, "file \"%s/%s\" not in manifest %s/inventory.json", versionContent, f, ver)
+		}
+	}
+
+	rootManifestFiles := ocfl.i.GetFilesFlat()
+	for _, manifestFile := range rootManifestFiles {
+		if !slices.Contains(objectContentFilesFlat, manifestFile) {
+			ocfl.addValidationError(E092, "file \"%s\" from object root manifest not in object content", manifestFile)
+		}
+	}
+
+	//
+	// all object content files must belong to manifest
+	//
+
+	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
+		// check version inventories
+		for inventoryVersion, versionInventory := range versionInventories {
+			if versionInventory.VersionLessOrEqual(objectContentVersion, inventoryVersion) {
+				versionManifestFiles := versionInventory.GetFilesFlat()
+				for _, objectContentVersionFile := range objectContentVersionFiles {
+					// check all inventories which are less in version
+					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
+						ocfl.addValidationError(E023, "file \"%s\" not in manifest version %s", objectContentVersionFile, inventoryVersion)
+					}
+				}
 			}
+		}
+		rootVersion := ocfl.i.GetVersion()
+		if ocfl.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
+			rootManifestFiles := ocfl.i.GetFilesFlat()
+			for _, objectContentVersionFile := range objectContentVersionFiles {
+				// check all inventories which are less in version
+				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
+					ocfl.addValidationError(E023, "file \"%s\" not in manifest version %s", objectContentVersionFile, rootVersion)
+				}
+			}
+
 		}
 		// todo: deep check content
 	}

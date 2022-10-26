@@ -22,6 +22,7 @@ type InventoryBase struct {
 	modified         bool                                             `json:"-"`
 	writeable        bool                                             `json:"-"`
 	paddingLength    int                                              `json:"-"`
+	versionValue     map[string]uint                                  `json:"-"`
 	Id               string                                           `json:"id"`
 	Type             string                                           `json:"type"`
 	DigestAlgorithm  checksum.DigestAlgorithm                         `json:"digestAlgorithm"`
@@ -58,6 +59,16 @@ func NewInventoryBase(
 	return i, nil
 }
 func (i *InventoryBase) Init() (err error) {
+	i.versionValue = map[string]uint{}
+	for version, _ := range i.Versions {
+		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
+		if err != nil {
+			i.addValidationError(E104, "invalid version format %s", version)
+			continue
+		}
+		i.versionValue[version] = uint(vInt)
+	}
+
 	if err := i.check(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -87,6 +98,18 @@ func (i *InventoryBase) GetVersions() []string {
 	return versions
 }
 
+func (i *InventoryBase) VersionLessOrEqual(v1, v2 string) bool {
+	v1Int, ok := i.versionValue[v1]
+	if !ok {
+		return false
+	}
+	v2Int, ok := i.versionValue[v2]
+	if !ok {
+		return false
+	}
+	return v1Int <= v2Int
+}
+
 var versionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
 var versionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
 
@@ -107,6 +130,10 @@ func (i *InventoryBase) check() error {
 	if i.DigestAlgorithm == "" {
 		i.addValidationError(E036, "invalid field \"digestAlgorithm\" for object")
 	}
+	if !slices.Contains([]checksum.DigestAlgorithm{checksum.DigestSHA512, checksum.DigestSHA256}, i.DigestAlgorithm) {
+		i.addValidationError(E025, "invalid digest algorithm \"%s\"", i.DigestAlgorithm)
+	}
+
 	if slices.Contains([]string{"", ".", ".."}, i.ContentDirectory) || strings.Contains(i.ContentDirectory, "/") {
 		i.addValidationError(E017, "invalid content directory \"%s\"", i.ContentDirectory)
 	}
@@ -120,12 +147,12 @@ func (i *InventoryBase) checkVersions() error {
 		i.addValidationError(E008, "length of version is 0")
 	}
 	for version, _ := range i.Versions {
-		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
-		if err != nil {
-			i.addValidationError(E104, "invalid version format %s", version)
+		vInt, ok := i.versionValue[version]
+		if !ok {
+			//			i.addValidationError(E104, "invalid version format %s", version)
 			continue
 		}
-		versions = append(versions, vInt)
+		versions = append(versions, int(vInt))
 		if versionZeroRegexp.MatchString(version) {
 			if paddingLength == -1 {
 				paddingLength = len(version) - 2
@@ -164,18 +191,39 @@ func (i *InventoryBase) checkVersions() error {
 	return nil
 }
 
-func (i *InventoryBase) GetFiles() []string {
-	var result = []string{}
+func (i *InventoryBase) GetFiles() map[string][]string {
+	var result = map[string][]string{}
+	versions := []string{}
 	for _, files := range i.Manifest {
 		for _, filename := range files {
 			parts := strings.Split(filename, "/")
 			if len(parts) < 3 {
 				i.addValidationError(E000, "invalid filepath in manifest \"%s\"", filename)
 			}
+			version := parts[0]
+			//fn := parts[2]
 			if parts[1] != i.GetContentDir() {
 				i.addValidationError(E019, "invalid content directory \"%s\" in \"%s\"", parts[1], filename)
 			}
-			result = append(result, filename)
+			if _, ok := result[version]; !ok {
+				versions = append(versions, version)
+				result[version] = []string{}
+			}
+			result[version] = append(result[version], filename)
+		}
+	}
+	iVersions := i.GetVersions()
+	if !sliceContains(iVersions, versions) {
+		i.addValidationError(E023, "versions %v do not contains versions from manifest %v", iVersions, versions)
+	}
+	return result
+}
+func (i *InventoryBase) GetFilesFlat() []string {
+	filesV := i.GetFiles()
+	result := []string{}
+	for _, files := range filesV {
+		for _, file := range files {
+			result = append(result, file)
 		}
 	}
 	return result

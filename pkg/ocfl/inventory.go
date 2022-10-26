@@ -53,7 +53,8 @@ type Inventory interface {
 	//GetContentDirectory() string
 	GetVersion() string
 	GetVersions() []string
-	GetFiles() []string
+	GetFiles() map[string][]string
+	GetFilesFlat() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	IsWriteable() bool
 	//	IsModified() bool
@@ -63,6 +64,8 @@ type Inventory interface {
 	AlreadyExists(virtualFilename, checksum string) (bool, error)
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)
 	Clean() error
+
+	VersionLessOrEqual(v1, v2 string) bool
 }
 
 func NewInventory(ctx context.Context, object Object, id string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
@@ -82,4 +85,15 @@ func NewInventory(ctx context.Context, object Object, id string, version OCFLVer
 		return sr, nil
 		//		return nil, errors.New(fmt.Sprintf("Inventory Version %s not supported", version))
 	}
+}
+
+func LoadInventory(ctx context.Context, object Object, data []byte, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
+	inventory, err := NewInventory(ctx, object, "", version, logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create empty inventory")
+	}
+	if err := json.Unmarshal(data, inventory); err != nil {
+		return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
+	}
+	return inventory, nil
 }

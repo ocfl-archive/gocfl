@@ -150,7 +150,7 @@ type ValidationStatus struct {
 	Errors, Warnings []*ValidationError
 }
 
-func (status ValidationStatus) Compact() {
+func (status *ValidationStatus) Compact() {
 	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *ValidationError) bool {
 		return E1.Code == E2.Code && E1.Description2 == E2.Description2
 	})

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 )
 
 type FS struct {
@@ -35,7 +36,8 @@ func (ofs *FS) String() string {
 }
 
 func (ofs *FS) IsNotExist(err error) bool {
-	return os.IsNotExist(errors.Cause(err))
+	err = errors.Cause(err)
+	return os.IsNotExist(err) || err == syscall.ENOENT
 }
 
 func (ofs *FS) Close() error {

@@ -5,6 +5,7 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"io"
 	"path/filepath"
 	"regexp"
@@ -153,4 +154,13 @@ func getVersion(ctx context.Context, fs OCFLFS, folder, prefix string) (version 
 func validVersion(ctx context.Context, fs OCFLFS, version OCFLVersion, folder, prefix string) bool {
 	v, _ := getVersion(ctx, fs, folder, prefix)
 	return v == version
+}
+
+func sliceContains[E comparable](s []E, vs []E) bool {
+	for _, v := range vs {
+		if !slices.Contains(s, v) {
+			return false
+		}
+	}
+	return true
 }
