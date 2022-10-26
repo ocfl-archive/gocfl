@@ -78,7 +78,8 @@ func (i *InventoryBase) Init() (err error) {
 func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
 	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...))
 }
-func (i *InventoryBase) GetID() string { return i.Id }
+func (i *InventoryBase) GetID() string   { return i.Id }
+func (i *InventoryBase) GetHead() string { return i.Head }
 
 func (i *InventoryBase) GetContentDir() string {
 	return i.ContentDirectory
@@ -137,6 +138,14 @@ func (i *InventoryBase) check() error {
 	if slices.Contains([]string{"", ".", ".."}, i.ContentDirectory) || strings.Contains(i.ContentDirectory, "/") {
 		i.addValidationError(E017, "invalid content directory \"%s\"", i.ContentDirectory)
 	}
+
+	if i.Manifest == nil || len(i.Manifest) == 0 {
+		i.addValidationError(E041, "no manifest in inventory")
+	}
+	if i.Versions == nil || len(i.Versions) == 0 {
+		i.addValidationError(E041, "no versions in inventory")
+	}
+
 	return nil
 }
 
@@ -188,6 +197,27 @@ func (i *InventoryBase) checkVersions() error {
 		}
 	}
 	i.paddingLength = paddingLength
+
+	// check head is recent version
+	var recentVersion string
+	for _, ver := range i.GetVersions() {
+		if recentVersion == "" {
+			recentVersion = ver
+		} else {
+			if !i.VersionLessOrEqual(ver, recentVersion) {
+				recentVersion = ver
+			}
+		}
+	}
+	if i.GetVersion() != recentVersion {
+		i.addValidationError(E040, "manifest head %s is not recent version %s", i.GetVersion(), recentVersion)
+	}
+
+	// check that head exists in versions
+	if !slices.Contains(i.GetVersions(), i.Head) {
+		i.addValidationError(E040, "manifest head %s does not exists in versions %v", i.Head, i.GetVersions())
+	}
+
 	return nil
 }
 
@@ -259,7 +289,7 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 		}
 	}
 	i.Versions[i.Head] = &Version{
-		Created: OCFLTime{time.Now()},
+		Created: OCFLCreated{time.Now()},
 		Message: msg,
 		State:   map[string][]string{},
 		User: User{

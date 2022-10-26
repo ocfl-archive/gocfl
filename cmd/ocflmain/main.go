@@ -20,15 +20,7 @@ import (
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const VERSION = "1.0"
 
-func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
-	ctx := ocfl.NewContextValidation(context.TODO())
-	object, err := ocfl.NewObject(ctx, dest, "", "", logger)
-	if err != nil {
-		return errors.Wrap(err, "cannot load object")
-	}
-	if err := object.Check(); err != nil {
-		return errors.Wrapf(err, "check of %s failed", object.GetID())
-	}
+func showStatus(ctx context.Context) error {
 	status, err := ocfl.GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot get status of validation")
@@ -41,6 +33,19 @@ func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
 	for _, err := range status.Warnings {
 		fmt.Println(err)
 		//logger.Infof("WARN:  %v", err)
+	}
+	return nil
+}
+
+func checkObject(dest ocfl.OCFLFS, logger *logging.Logger) error {
+	ctx := ocfl.NewContextValidation(context.TODO())
+	defer showStatus(ctx)
+	object, err := ocfl.NewObject(ctx, dest, "", "", logger)
+	if err != nil {
+		return errors.Wrap(err, "cannot load object")
+	}
+	if err := object.Check(); err != nil {
+		return errors.Wrapf(err, "check of %s failed", object.GetID())
 	}
 	return nil
 }

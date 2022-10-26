@@ -9,21 +9,24 @@ import (
 	"time"
 )
 
-type OCFLTime struct{ time.Time }
+// type OCFLTime struct{ time.Time }
+type OCFLCreated struct{ time.Time }
 
-func (t *OCFLTime) MarshalJSON() ([]byte, error) {
+var InvalidOCFLCreatedFormatError = errors.NewPlain("invalid OCFL Time Format")
+
+func (t *OCFLCreated) MarshalJSON() ([]byte, error) {
 	tstr := t.Format(time.RFC3339)
 	return json.Marshal(tstr)
 }
 
-func (t *OCFLTime) UnmarshalJSON(data []byte) error {
+func (t *OCFLCreated) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal string of %s", string(data))
 	}
 	tt, err := time.Parse(time.RFC3339, str)
 	if err != nil {
-		return errors.Wrapf(err, "cannot parse %s", string(data))
+		return errors.Wrapf(errors.Wrap(InvalidOCFLCreatedFormatError, err.Error()), "cannot parse %s", string(data))
 	}
 	t.Time = tt
 	return nil
@@ -35,7 +38,7 @@ type User struct {
 }
 
 type Version struct {
-	Created OCFLTime            `json:"created"`
+	Created OCFLCreated         `json:"created"`
 	Message string              `json:"message"`
 	State   map[string][]string `json:"state"`
 	User    User                `json:"user"`
@@ -45,6 +48,7 @@ type Inventory interface {
 	Init() error
 	GetID() string
 	GetContentDir() string
+	GetHead() string
 
 	DeleteFile(virtualFilename string) error
 	Rename(oldVirtualFilename, newVirtualFilename string) error
@@ -93,6 +97,21 @@ func LoadInventory(ctx context.Context, object Object, data []byte, version OCFL
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
 	if err := json.Unmarshal(data, inventory); err != nil {
+		// now lets try it again
+		jsonMap := map[string]any{}
+		// check for json format error
+		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
+			addValidationErrors(ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2))
+			addValidationErrors(ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2))
+		} else {
+			if _, ok := jsonMap["head"].(string); !ok {
+				addValidationErrors(ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]))
+			}
+		}
+		errCause := errors.Cause(err)
+		if errCause == InvalidOCFLCreatedFormatError {
+			addValidationErrors(ctx, GetValidationError(version, E049).AppendDescription("invalid created field"))
+		}
 		return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
 	}
 	return inventory, nil

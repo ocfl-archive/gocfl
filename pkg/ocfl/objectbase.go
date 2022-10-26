@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -422,10 +423,10 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 	return nil
 }
 
-func (ocfl *ObjectBase) checkFiles() error {
+func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	// create list of version content directories
-	versions := ocfl.i.GetVersions()
 	versionContents := map[string]string{}
+	versions := ocfl.i.GetVersions()
 	for _, ver := range versions {
 		versionContents[ver] = ocfl.i.GetContentDir()
 	}
@@ -462,11 +463,14 @@ func (ocfl *ObjectBase) checkFiles() error {
 		}
 	}
 
-	// check for id consistency
 	id := ocfl.i.GetID()
 	for ver, i := range versionInventories {
+		// check for id consistency
 		if id != i.GetID() {
 			ocfl.addValidationError(E037, "invalid id - root inventory id %s != version %s inventory id %s", id, ver, i.GetID())
+		}
+		if i.GetHead() != ver {
+			ocfl.addValidationError(E040, "wrong head %s in manifest for version %s", i.GetHead(), ver)
 		}
 	}
 
@@ -540,7 +544,16 @@ func (ocfl *ObjectBase) Check() error {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
 				ocfl.addValidationError(E001, "invalid directory \"%s\" found", entry.Name())
+				// could it be a version folder?
+				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
+					if err2 := ocfl.checkVersionFolder(entry.Name()); err2 == nil {
+						ocfl.addValidationError(E046, "root manifest not most recent because of \"%s\"", entry.Name())
+					} else {
+						fmt.Println(err2)
+					}
+				}
 			}
+
 			// check version directories
 			if slices.Contains(versions, entry.Name()) {
 				err := ocfl.checkVersionFolder(entry.Name())
@@ -560,7 +573,7 @@ func (ocfl *ObjectBase) Check() error {
 		ocfl.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
 	}
 
-	if err := ocfl.checkFiles(); err != nil {
+	if err := ocfl.checkFilesAndVersions(); err != nil {
 		return errors.WithStack(err)
 	}
 	return nil

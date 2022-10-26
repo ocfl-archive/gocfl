@@ -150,9 +150,16 @@ type ValidationStatus struct {
 	Errors, Warnings []*ValidationError
 }
 
+// removes duplicate errors
 func (status *ValidationStatus) Compact() {
+	slices.SortFunc(status.Errors, func(E1, E2 *ValidationError) bool {
+		return string(E1.Code)+E1.Description2 < string(E2.Code)+E2.Description2
+	})
 	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *ValidationError) bool {
 		return E1.Code == E2.Code && E1.Description2 == E2.Description2
+	})
+	slices.SortFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
+		return string(E1.Code)+E1.Description2 < string(E2.Code)+E2.Description2
 	})
 	status.Warnings = slices.CompactFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
 		return E1.Code == E2.Code && E1.Description2 == E2.Description2
