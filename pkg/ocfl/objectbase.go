@@ -462,6 +462,14 @@ func (ocfl *ObjectBase) checkFiles() error {
 		}
 	}
 
+	// check for id consistency
+	id := ocfl.i.GetID()
+	for ver, i := range versionInventories {
+		if id != i.GetID() {
+			ocfl.addValidationError(E037, "invalid id - root inventory id %s != version %s inventory id %s", id, ver, i.GetID())
+		}
+	}
+
 	//
 	// all files in any manifest must belong to a physical file #E092
 	//
