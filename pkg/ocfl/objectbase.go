@@ -78,7 +78,8 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 		ocfl.addValidationError(E063, "no inventory file in \"%s\"", ocfl.fs.String())
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", filename)
+		return NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.logger)
+		//return nil, errors.Wrapf(err, "cannot open %s", filename)
 	}
 	// read inventory into memory
 	inventoryBytes, err := io.ReadAll(iFp)
@@ -93,14 +94,14 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 	digest := inventory.GetDigestAlgorithm()
 
 	// check digest for inventory
-	digestPath := fmt.Sprintf("%s.%s", filename, digest)
-	digestBytes, err := fs.ReadFile(ocfl.fs, digestPath)
+	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
+	sidecarBytes, err := fs.ReadFile(ocfl.fs, sidecarPath)
 	if err != nil {
-		ocfl.addValidationError(E058, "cannot read %s: %v", digestPath, err)
+		ocfl.addValidationError(E058, "cannot read %s: %v", sidecarPath, err)
 	} else {
-		digestString := strings.TrimSpace(string(digestBytes))
+		digestString := strings.TrimSpace(string(sidecarBytes))
 		if !strings.HasSuffix(digestString, " inventory.json") {
-			ocfl.addValidationError(E061, "no suffix \" inventory.json\" in %s", digestPath)
+			ocfl.addValidationError(E061, "no suffix \" inventory.json\" in %s", sidecarPath)
 		} else {
 			digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 			h, err := checksum.GetHash(digest)
@@ -146,7 +147,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 	if _, err := iWriter.Write(jsonBytes); err != nil {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
-	iFileName = fmt.Sprintf("%s/inventory.json", ocfl.i.GetVersion())
+	iFileName = fmt.Sprintf("%s/inventory.json", ocfl.i.GetHead())
 	iWriter, err = ocfl.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
@@ -162,7 +163,7 @@ func (ocfl *ObjectBase) StoreInventory() error {
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 		return errors.Wrapf(err, "cannot write to %s", csFileName)
 	}
-	csFileName = fmt.Sprintf("%s/inventory.json.%s", ocfl.i.GetVersion(), string(ocfl.i.GetDigestAlgorithm()))
+	csFileName = fmt.Sprintf("%s/inventory.json.%s", ocfl.i.GetHead(), string(ocfl.i.GetDigestAlgorithm()))
 	iCSWriter, err = ocfl.fs.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", csFileName)
@@ -426,8 +427,8 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	// create list of version content directories
 	versionContents := map[string]string{}
-	versions := ocfl.i.GetVersions()
-	for _, ver := range versions {
+	versionStrings := ocfl.i.GetVersionStrings()
+	for _, ver := range versionStrings {
 		versionContents[ver] = ocfl.i.GetContentDir()
 	}
 
@@ -437,14 +438,14 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	for ver, cont := range versionContents {
 		// load all object version content files
 		versionContent := ver + "/" + cont
+		if _, ok := objectContentFiles[ver]; !ok {
+			objectContentFiles[ver] = []string{}
+		}
 		ocfl.fs.WalkDir(
 			versionContent,
 			func(path string, d fs.DirEntry, err error) error {
 				if d.IsDir() {
 					return nil
-				}
-				if _, ok := objectContentFiles[ver]; !ok {
-					objectContentFiles[ver] = []string{}
 				}
 				path = filepath.ToSlash(path)
 				objectContentFiles[ver] = append(objectContentFiles[ver], path)
@@ -456,7 +457,7 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	// load all inventories
 	versionInventories := map[string]Inventory{}
 	var err error
-	for _, ver := range versions {
+	for _, ver := range versionStrings {
 		versionInventories[ver], err = ocfl.LoadInventoryFolder(ver)
 		if err != nil {
 			return errors.Wrapf(err, "cannot load inventory from folder \"%s\"", ver)
@@ -464,6 +465,8 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	}
 
 	id := ocfl.i.GetID()
+	digestAlg := ocfl.i.GetDigestAlgorithm()
+	versions := ocfl.i.GetVersions()
 	for ver, i := range versionInventories {
 		// check for id consistency
 		if id != i.GetID() {
@@ -471,6 +474,18 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		}
 		if i.GetHead() != ver {
 			ocfl.addValidationError(E040, "wrong head %s in manifest for version %s", i.GetHead(), ver)
+		}
+		if i.GetDigestAlgorithm() != digestAlg {
+			ocfl.addValidationError(E066, "wrong digest algorithm %s in manifest for version %s", i.GetDigestAlgorithm(), ver)
+		}
+		for verVer, verVersion := range i.GetVersions() {
+			testV, ok := versions[verVer]
+			if !ok {
+				ocfl.addValidationError(E066, "version %s not in object root manifest", verVer)
+			}
+			if !testV.Equal(verVersion) {
+				ocfl.addValidationError(E066, "version %s not equal to version in object root manifest", verVer)
+			}
 		}
 	}
 
@@ -497,7 +512,15 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	// all object content files must belong to manifest
 	//
 
+	latestVersion := ""
+
 	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
+		if latestVersion == "" {
+			latestVersion = objectContentVersion
+		}
+		if ocfl.i.VersionLessOrEqual(latestVersion, objectContentVersion) {
+			latestVersion = objectContentVersion
+		}
 		// check version inventories
 		for inventoryVersion, versionInventory := range versionInventories {
 			if versionInventory.VersionLessOrEqual(objectContentVersion, inventoryVersion) {
@@ -510,7 +533,7 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 				}
 			}
 		}
-		rootVersion := ocfl.i.GetVersion()
+		rootVersion := ocfl.i.GetHead()
 		if ocfl.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
 			rootManifestFiles := ocfl.i.GetFilesFlat()
 			for _, objectContentVersionFile := range objectContentVersionFiles {
@@ -519,10 +542,37 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 					ocfl.addValidationError(E023, "file \"%s\" not in manifest version %s", objectContentVersionFile, rootVersion)
 				}
 			}
-
 		}
 		// todo: deep check content
 	}
+
+	if _, ok := versionInventories[latestVersion]; !ok {
+		return errors.Errorf("no inventory for latest version %s", latestVersion)
+	}
+	// semantic identity is not sufficient it must be the identical file
+	/*
+		if !InventoryIsEqual(latestInventory, ocfl.i) {
+			ocfl.addValidationError(E064, "object root inventory not equal to version %s", latestVersion)
+		}
+	*/
+	digest := ocfl.i.GetDigestAlgorithm()
+
+	// check digest for inventory
+	sidecarPath := fmt.Sprintf("%s.%s", "inventory.json", digest)
+	sidecarBytes, err := fs.ReadFile(ocfl.fs, sidecarPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read sidecar %s", sidecarPath)
+	}
+
+	versionSidecarPath := fmt.Sprintf("%s/%s.%s", latestVersion, "inventory.json", digest)
+	versionSidecarBytes, err := fs.ReadFile(ocfl.fs, versionSidecarPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read sidecar %s", versionSidecarPath)
+	}
+	if !slices.Equal(sidecarBytes, versionSidecarBytes) {
+		ocfl.addValidationError(E064, "object root inventory not equal to version %s", latestVersion)
+	}
+
 	return nil
 }
 
@@ -531,7 +581,7 @@ func (ocfl *ObjectBase) Check() error {
 	//ocfl.fs
 	ocfl.logger.Infof("object %s with ocfl version %s found", ocfl.GetID(), ocfl.GetVersion())
 	// check folders
-	versions := ocfl.i.GetVersions()
+	versions := ocfl.i.GetVersionStrings()
 
 	// check for allowed files and directories
 	allowedDirs := append(versions, "logs", "extensions")

@@ -29,7 +29,7 @@ type InventoryBase struct {
 	Head             string                                           `json:"head"`
 	ContentDirectory string                                           `json:"contentDirectory,omitempty"`
 	Manifest         map[string][]string                              `json:"manifest"`
-	Versions         map[string]*Version                              `json:"versions"`
+	Versions         *OCFLVersions                                    `json:"versions"`
 	Fixity           map[checksum.DigestAlgorithm]map[string][]string `json:"fixity,omitempty"`
 	logger           *logging.Logger
 }
@@ -52,7 +52,7 @@ func NewInventoryBase(
 		Head:             "",
 		ContentDirectory: contentDir,
 		Manifest:         map[string][]string{},
-		Versions:         map[string]*Version{},
+		Versions:         &OCFLVersions{Versions: map[string]*Version{}},
 		Fixity:           nil,
 		logger:           logger,
 	}
@@ -60,7 +60,7 @@ func NewInventoryBase(
 }
 func (i *InventoryBase) Init() (err error) {
 	i.versionValue = map[string]uint{}
-	for version, _ := range i.Versions {
+	for version, _ := range i.Versions.Versions {
 		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
 		if err != nil {
 			i.addValidationError(E104, "invalid version format %s", version)
@@ -86,15 +86,21 @@ func (i *InventoryBase) GetContentDir() string {
 }
 
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
-func (i *InventoryBase) GetVersion() string                           { return i.Head }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
 func (i *InventoryBase) IsWriteable() bool                            { return i.writeable }
 func (i *InventoryBase) IsModified() bool                             { return i.modified }
 
-func (i *InventoryBase) GetVersions() []string {
+func (i *InventoryBase) GetVersionStrings() []string {
 	var versions = []string{}
-	for version, _ := range i.Versions {
+	for version, _ := range i.Versions.Versions {
 		versions = append(versions, version)
+	}
+	return versions
+}
+func (i *InventoryBase) GetVersions() map[string]*Version {
+	var versions = map[string]*Version{}
+	for versionStr, version := range i.Versions.Versions {
+		versions[versionStr] = version
 	}
 	return versions
 }
@@ -142,7 +148,7 @@ func (i *InventoryBase) check() error {
 	if i.Manifest == nil || len(i.Manifest) == 0 {
 		i.addValidationError(E041, "no manifest in inventory")
 	}
-	if i.Versions == nil || len(i.Versions) == 0 {
+	if i.Versions == nil || len(i.Versions.Versions) == 0 {
 		i.addValidationError(E041, "no versions in inventory")
 	}
 
@@ -152,55 +158,106 @@ func (i *InventoryBase) check() error {
 func (i *InventoryBase) checkVersions() error {
 	var paddingLength int = -1
 	var versions = []int{}
-	if len(i.Versions) == 0 {
-		i.addValidationError(E008, "length of version is 0")
+	if len(i.Versions.Versions) == 0 {
+		i.addValidationError(E008, "length of ver is 0")
 	}
-	for version, _ := range i.Versions {
-		vInt, ok := i.versionValue[version]
+	for ver, version := range i.Versions.Versions {
+		vInt, ok := i.versionValue[ver]
 		if !ok {
-			//			i.addValidationError(E104, "invalid version format %s", version)
+			//			i.addValidationError(E104, "invalid ver format %s", ver)
 			continue
 		}
 		versions = append(versions, int(vInt))
-		if versionZeroRegexp.MatchString(version) {
+		if versionZeroRegexp.MatchString(ver) {
 			if paddingLength == -1 {
-				paddingLength = len(version) - 2
+				paddingLength = len(ver) - 2
 			} else {
-				if paddingLength != len(version)-2 {
-					//i.addValidationError(E011, "invalid version padding %s", version)
-					i.addValidationError(E012, "invalid version padding %s", version)
-					i.addValidationError(E013, "invalid version padding %s", version)
+				if paddingLength != len(ver)-2 {
+					//i.addValidationError(E011, "invalid ver padding %s", ver)
+					i.addValidationError(E012, "invalid ver padding %s", ver)
+					i.addValidationError(E013, "invalid ver padding %s", ver)
 				}
 			}
 		} else {
-			if versionNoZeroRegexp.MatchString(version) {
+			if versionNoZeroRegexp.MatchString(ver) {
 				if paddingLength == -1 {
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
-						i.addValidationError(E011, "invalid version padding %s", version)
-						i.addValidationError(E012, "invalid version padding %s", version)
-						i.addValidationError(E013, "invalid version padding %s", version)
+						i.addValidationError(E011, "invalid ver padding %s", ver)
+						i.addValidationError(E012, "invalid ver padding %s", ver)
+						i.addValidationError(E013, "invalid ver padding %s", ver)
 					}
 				}
 			} else {
 				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
-				i.addValidationError(E104, "invalid version format %s", version)
+				i.addValidationError(E104, "invalid ver format %s", ver)
+			}
+		}
+		if version.Created.err != nil {
+			i.addValidationError(E049, "invalid created format in version %s: %v", ver, version.Created.err.Error())
+		}
+		if version.User.err != nil {
+			i.addValidationError(E054, "invalid user in version %s: %v", ver, version.Created.err.Error())
+		}
+		if version.User.Name.err != nil {
+			i.addValidationError(E054, "invalid user.name in version %s: %v", ver, version.Created.err.Error())
+		}
+		if version.User.Address.err != nil {
+			i.addValidationError(E054, "invalid user.address in version %s: %v", ver, version.Created.err.Error())
+		}
+		if version.State.err != nil {
+			i.addValidationError(E050, "invalid state format in version %s: %v", ver, version.State.err.Error())
+		}
+		for digest, paths := range version.State.State {
+			digestLowerUpper := []string{strings.ToLower(digest), strings.ToUpper(digest)}
+			found := false
+			for mDigest, _ := range i.Manifest {
+				if mDigest == digest {
+					found = true
+				} else {
+					if slices.Contains(digestLowerUpper, mDigest) {
+						i.addValidationError(E050, "wrong digest case in version %s - '%s' != '%s'", ver, digest, mDigest)
+						found = true
+						break
+					}
+				}
+			}
+			if !found {
+				i.addValidationError(E050, "digest not in manifest of versions %s - '%s '", ver, digest)
+			}
+			for _, path := range paths {
+				if path[0] == '/' || path[len(path)-1] == '/' {
+					i.addValidationError(E053, "invalid path \"%s\" in state for version %s", path, ver)
+				}
+				if path == "" {
+					i.addValidationError(E051, "empty path in state for version %s", ver)
+				}
+				path2 := path
+				if path[0] == '/' {
+					path2 = path[1:]
+				}
+				elements := strings.Split(path2, "/")
+				for _, element := range elements {
+					if slices.Contains([]string{"", ".", ".."}, element) {
+						i.addValidationError(E052, "invalid path \"%s\" in state for version %s", path, ver)
+					}
+				}
 			}
 		}
 	}
 	slices.Sort(versions)
 	for key, val := range versions {
 		if key != val-1 {
-			i.addValidationError(E010, "invalid version sequence %v", versions)
+			i.addValidationError(E010, "invalid ver sequence %v", versions)
 			break
 		}
 	}
 	i.paddingLength = paddingLength
 
-	// check head is recent version
+	// check head is recent ver
 	var recentVersion string
-	for _, ver := range i.GetVersions() {
+	for _, ver := range i.GetVersionStrings() {
 		if recentVersion == "" {
 			recentVersion = ver
 		} else {
@@ -209,13 +266,13 @@ func (i *InventoryBase) checkVersions() error {
 			}
 		}
 	}
-	if i.GetVersion() != recentVersion {
-		i.addValidationError(E040, "manifest head %s is not recent version %s", i.GetVersion(), recentVersion)
+	if i.GetHead() != recentVersion {
+		i.addValidationError(E040, "manifest head %s is not recent ver %s", i.GetHead(), recentVersion)
 	}
 
 	// check that head exists in versions
-	if !slices.Contains(i.GetVersions(), i.Head) {
-		i.addValidationError(E040, "manifest head %s does not exists in versions %v", i.Head, i.GetVersions())
+	if !slices.Contains(i.GetVersionStrings(), i.Head) {
+		i.addValidationError(E040, "manifest head %s does not exists in versions %v", i.Head, i.GetVersionStrings())
 	}
 
 	return nil
@@ -242,7 +299,7 @@ func (i *InventoryBase) GetFiles() map[string][]string {
 			result[version] = append(result[version], filename)
 		}
 	}
-	iVersions := i.GetVersions()
+	iVersions := i.GetVersionStrings()
 	if !sliceContains(iVersions, versions) {
 		i.addValidationError(E023, "versions %v do not contains versions from manifest %v", iVersions, versions)
 	}
@@ -260,13 +317,13 @@ func (i *InventoryBase) GetFilesFlat() []string {
 }
 
 func (i *InventoryBase) BuildRealname(virtualFilename string) string {
-	//	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
-	return fmt.Sprintf("%s/%s/%s", i.GetVersion(), i.GetContentDirectory(), filepath.ToSlash(virtualFilename))
+	//	return fmt.Sprintf("%s/%s/%s", i.GetHead(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
+	return fmt.Sprintf("%s/%s/%s", i.GetHead(), i.GetContentDirectory(), filepath.ToSlash(virtualFilename))
 }
 
 func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 	if i.IsWriteable() {
-		return errors.New(fmt.Sprintf("version %s already writeable", i.GetVersion()))
+		return errors.New(fmt.Sprintf("version %s already writeable", i.GetHead()))
 	}
 	lastHead := i.Head
 	if lastHead == "" {
@@ -288,18 +345,20 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 			i.Head = fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), v+1)
 		}
 	}
-	i.Versions[i.Head] = &Version{
-		Created: OCFLCreated{time.Now()},
-		Message: msg,
-		State:   map[string][]string{},
-		User: User{
-			Name:    UserName,
-			Address: UserAddress,
+	i.Versions.Versions[i.Head] = &Version{
+		Created: OCFLTime{time.Now(), nil},
+		Message: OCFLString{msg, nil},
+		State:   OCFLState{},
+		User: OCFLUser{
+			User: User{
+				Name:    OCFLString{string: UserName},
+				Address: OCFLString{string: UserAddress},
+			},
 		},
 	}
 	// copy last state...
 	if lastHead != "" {
-		copyMapStringSlice(i.Versions[i.Head].State, i.Versions[lastHead].State)
+		copyMapStringSlice(i.Versions.Versions[i.Head].State.State, i.Versions.Versions[lastHead].State.State)
 	}
 	i.writeable = true
 	return nil
@@ -309,7 +368,7 @@ var vRegexp *regexp.Regexp = regexp.MustCompile("^v(\\d+)$")
 
 func (i *InventoryBase) getLastVersion() (string, error) {
 	versions := []int{}
-	for ver, _ := range i.Versions {
+	for ver, _ := range i.Versions.Versions {
 		matches := vRegexp.FindStringSubmatch(ver)
 		if matches == nil {
 			return "", errors.New(fmt.Sprintf("invalid version in inventory - %s", ver))
@@ -347,8 +406,8 @@ func (i *InventoryBase) AlreadyExists(virtualFilename, checksum string) (bool, e
 
 	// first get checksum of last version of a file
 	cs := map[string]string{}
-	for ver, version := range i.Versions {
-		for checksum, filenames := range version.State {
+	for ver, version := range i.Versions.Versions {
+		for checksum, filenames := range version.State.State {
 			found := false
 			for _, filename := range filenames {
 				if filename == virtualFilename {
@@ -398,8 +457,8 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 
 	// first get checksum of last version of a file
 	cs := map[string]string{}
-	for ver, version := range i.Versions {
-		for checksum, filenames := range version.State {
+	for ver, version := range i.Versions.Versions {
+		for checksum, filenames := range version.State.State {
 			found := false
 			for _, filename := range filenames {
 				if filename == virtualFilename {
@@ -443,7 +502,7 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 	var newState = map[string][]string{}
 	var found = false
-	for key, vals := range i.Versions[i.GetVersion()].State {
+	for key, vals := range i.Versions.Versions[i.GetHead()].State.State {
 		newState[key] = []string{}
 		for _, val := range vals {
 			if val == virtualFilename {
@@ -453,14 +512,14 @@ func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 			}
 		}
 	}
-	i.Versions[i.GetVersion()].State = newState
+	i.Versions.Versions[i.GetHead()].State.State = newState
 	i.modified = found
 	return nil
 }
 func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) error {
 	var newState = map[string][]string{}
 	var found = false
-	for key, vals := range i.Versions[i.GetVersion()].State {
+	for key, vals := range i.Versions.Versions[i.GetHead()].State.State {
 		newState[key] = []string{}
 		for _, val := range vals {
 			if val == oldVirtualFilename {
@@ -471,7 +530,7 @@ func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) er
 			}
 		}
 	}
-	i.Versions[i.GetVersion()].State = newState
+	i.Versions.Versions[i.GetHead()].State.State = newState
 	i.modified = found
 	return nil
 }
@@ -495,8 +554,8 @@ func (i *InventoryBase) AddFile(virtualFilename string, realFilename string, che
 		i.Manifest[checksum] = append(i.Manifest[checksum], realFilename)
 	}
 
-	if _, ok := i.Versions[i.Head].State[checksum]; !ok {
-		i.Versions[i.Head].State[checksum] = []string{}
+	if _, ok := i.Versions.Versions[i.Head].State.State[checksum]; !ok {
+		i.Versions.Versions[i.Head].State.State[checksum] = []string{}
 	}
 
 	upd, err := i.IsUpdate(virtualFilename, checksum)
@@ -508,7 +567,7 @@ func (i *InventoryBase) AddFile(virtualFilename string, realFilename string, che
 		i.DeleteFile(virtualFilename)
 	}
 
-	i.Versions[i.Head].State[checksum] = append(i.Versions[i.Head].State[checksum], virtualFilename)
+	i.Versions.Versions[i.Head].State.State[checksum] = append(i.Versions.Versions[i.Head].State.State[checksum], virtualFilename)
 
 	i.modified = true
 
@@ -523,11 +582,11 @@ func (i *InventoryBase) Clean() error {
 		return nil
 	}
 	// only one version. could be empty
-	if i.GetVersion() == "v1" {
+	if i.GetHead() == "v1" {
 		return nil
 	}
-	i.logger.Debugf("deleting %v", i.GetVersion())
-	delete(i.Versions, i.GetVersion())
+	i.logger.Debugf("deleting %v", i.GetHead())
+	delete(i.Versions.Versions, i.GetHead())
 	lastVersion, err := i.getLastVersion()
 	if err != nil {
 		return errors.Wrap(err, "cannot get last version")

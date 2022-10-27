@@ -6,43 +6,8 @@ import (
 	"encoding/json"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"time"
+	"golang.org/x/exp/slices"
 )
-
-// type OCFLTime struct{ time.Time }
-type OCFLCreated struct{ time.Time }
-
-var InvalidOCFLCreatedFormatError = errors.NewPlain("invalid OCFL Time Format")
-
-func (t *OCFLCreated) MarshalJSON() ([]byte, error) {
-	tstr := t.Format(time.RFC3339)
-	return json.Marshal(tstr)
-}
-
-func (t *OCFLCreated) UnmarshalJSON(data []byte) error {
-	var str string
-	if err := json.Unmarshal(data, &str); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal string of %s", string(data))
-	}
-	tt, err := time.Parse(time.RFC3339, str)
-	if err != nil {
-		return errors.Wrapf(errors.Wrap(InvalidOCFLCreatedFormatError, err.Error()), "cannot parse %s", string(data))
-	}
-	t.Time = tt
-	return nil
-}
-
-type User struct {
-	Address string `json:"address"`
-	Name    string `json:"name"`
-}
-
-type Version struct {
-	Created OCFLCreated         `json:"created"`
-	Message string              `json:"message"`
-	State   map[string][]string `json:"state"`
-	User    User                `json:"user"`
-}
 
 type Inventory interface {
 	Init() error
@@ -55,8 +20,8 @@ type Inventory interface {
 	AddFile(virtualFilename string, realFilename string, checksum string) error
 
 	//GetContentDirectory() string
-	GetVersion() string
-	GetVersions() []string
+	GetVersionStrings() []string
+	GetVersions() map[string]*Version
 	GetFiles() map[string][]string
 	GetFilesFlat() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
@@ -108,11 +73,20 @@ func LoadInventory(ctx context.Context, object Object, data []byte, version OCFL
 				addValidationErrors(ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]))
 			}
 		}
-		errCause := errors.Cause(err)
-		if errCause == InvalidOCFLCreatedFormatError {
-			addValidationErrors(ctx, GetValidationError(version, E049).AppendDescription("invalid created field"))
-		}
 		return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
 	}
 	return inventory, nil
+}
+
+func InventoryIsEqual(i1, i2 Inventory) bool {
+	data1, err := json.Marshal(i1)
+	if err != nil {
+		return false
+	}
+
+	data2, err := json.Marshal(i2)
+	if err != nil {
+		return false
+	}
+	return slices.Equal(data1, data2)
 }

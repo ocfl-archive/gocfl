@@ -34,6 +34,7 @@ func showStatus(ctx context.Context) error {
 		fmt.Println(err)
 		//logger.Infof("WARN:  %v", err)
 	}
+	fmt.Println("\n")
 	return nil
 }
 
