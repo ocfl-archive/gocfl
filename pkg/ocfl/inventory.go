@@ -23,8 +23,11 @@ type Inventory interface {
 	GetVersionStrings() []string
 	GetVersions() map[string]*Version
 	GetFiles() map[string][]string
+	GetManifest() map[string][]string
+	GetFixity() map[checksum.DigestAlgorithm]map[string][]string
 	GetFilesFlat() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
+	GetFixityDigestAlgorithm() []checksum.DigestAlgorithm
 	IsWriteable() bool
 	//	IsModified() bool
 	BuildRealname(virtualFilename string) string
@@ -56,7 +59,29 @@ func NewInventory(ctx context.Context, object Object, id string, version OCFLVer
 	}
 }
 
-func LoadInventory(ctx context.Context, object Object, data []byte, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
+func LoadInventory(ctx context.Context, object Object, data []byte, logger *logging.Logger) (Inventory, error) {
+	anyMap := map[string]any{}
+	if err := json.Unmarshal(data, &anyMap); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
+	}
+	var version OCFLVersion
+	t, ok := anyMap["type"]
+	if !ok {
+		return nil, errors.New("no type in inventory")
+	}
+	sStr, ok := t.(string)
+	if !ok {
+		return nil, errors.Errorf("type not a string in inventory - '%v'", t)
+	}
+	switch sStr {
+	case "https://ocfl.io/1.1/spec/#inventory":
+		version = Version1_1
+	case "https://ocfl.io/1.0/spec/#inventory":
+		version = Version1_0
+	default:
+		// if we don't know anything use the old stuff
+		version = Version1_0
+	}
 	inventory, err := NewInventory(ctx, object, "", version, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")

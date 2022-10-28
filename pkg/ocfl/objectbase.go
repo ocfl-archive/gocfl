@@ -87,7 +87,7 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %s", filename)
 	}
-	inventory, err := LoadInventory(ocfl.ctx, ocfl, inventoryBytes, ocfl.version, ocfl.logger)
+	inventory, err := LoadInventory(ocfl.ctx, ocfl, inventoryBytes, ocfl.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot initiate inventory object")
 	}
@@ -239,18 +239,45 @@ func (ocfl *ObjectBase) Load() (err error) {
 		exts = []fs.DirEntry{}
 	}
 	for _, extFolder := range exts {
+		if !extFolder.IsDir() {
+			ocfl.addValidationError(E067, "invalid file '%s' in extension dir", extFolder.Name())
+			continue
+		}
 		extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
 		configReader, err := ocfl.fs.Open(extConfig)
 		if err != nil {
-			return errors.Wrapf(err, "cannot open %s for reading", extConfig)
+			if ocfl.fs.IsNotExist(err) {
+				ocfl.addValidationError(E067, "'%s' not a valid extension dir", extFolder.Name())
+				continue
+			} else {
+				return errors.Wrapf(err, "cannot open %s for reading", extConfig)
+			}
 		}
 		buf := bytes.NewBuffer(nil)
 		if _, err := io.Copy(buf, configReader); err != nil {
+			configReader.Close()
 			return errors.Wrapf(err, "cannot read %s", extConfig)
 		}
+		configReader.Close()
 		if ocfl.path, err = object.NewPath(buf.Bytes()); err != nil {
 			ocfl.logger.Warningf("%s not a storage layout: %v", extConfig, err)
 			continue
+		}
+		// check for invalid files and folders
+		files, err := ocfl.fs.ReadDir(fmt.Sprintf("extensions/%s", extFolder.Name()))
+		if err != nil {
+			return errors.Wrapf(err, "cannot read content of extensions/%s", extFolder.Name())
+		}
+		for _, file := range files {
+			if !file.IsDir() {
+				if file.Name() == "config.json" {
+					continue
+				}
+				ocfl.addValidationError(E067, "invalid file '%s' in extension/%s dir", file.Name(), extFolder.Name())
+			} else {
+				ocfl.addValidationError(E067, "invalid folder '%s' in extension/%s dir", file.Name(), extFolder.Name())
+			}
+
 		}
 	}
 	if ocfl.path == nil {
@@ -626,7 +653,87 @@ func (ocfl *ObjectBase) Check() error {
 	if err := ocfl.checkFilesAndVersions(); err != nil {
 		return errors.WithStack(err)
 	}
+
+	dAlgs := []checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()}
+	dAlgs = append(dAlgs, ocfl.i.GetFixityDigestAlgorithm()...)
+	csDigestFiles, err := ocfl.createContentManifest(dAlgs)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// check manifest now
+	csfiles, ok := csDigestFiles[ocfl.i.GetDigestAlgorithm()]
+	if !ok {
+		return errors.Errorf("checksum for %s not created", ocfl.i.GetDigestAlgorithm())
+	}
+	for digest, files := range ocfl.i.GetManifest() {
+		csFilenames, ok := csfiles[digest]
+		if !ok {
+			ocfl.addValidationError(E092, "digest '%s' for file(s) %v not found in content", digest, files)
+			continue
+		}
+		for _, file := range files {
+			if !slices.Contains(csFilenames, file) {
+				ocfl.addValidationError(E092, "invalid digest for file %s", file)
+			}
+		}
+	}
+
+	//check fixity
+	for digestAlg, fixity := range ocfl.i.GetFixity() {
+		csfiles, ok = csDigestFiles[digestAlg]
+		if !ok {
+			return errors.Errorf("checksum for %s not created", ocfl.i.GetDigestAlgorithm())
+		}
+		for digest, files := range fixity {
+			csFilenames, ok := csfiles[digest]
+			if !ok {
+				ocfl.addValidationError(E093, "fixity digest '%s' for file(s) %v not found in content", digest, files)
+				continue
+			}
+			for _, file := range files {
+				if !slices.Contains(csFilenames, file) {
+					ocfl.addValidationError(E093, "invalid fixity digest for file %s", file)
+				}
+			}
+		}
+
+	}
 	return nil
+}
+
+// create checksums of all content files
+func (ocfl *ObjectBase) createContentManifest(digestAlgorithms []checksum.DigestAlgorithm) (map[checksum.DigestAlgorithm]map[string][]string, error) {
+	result := map[checksum.DigestAlgorithm]map[string][]string{}
+	checksumWriter := checksum.NewChecksumWriter(digestAlgorithms)
+	versions := ocfl.i.GetVersionStrings()
+	for _, version := range versions {
+		if err := ocfl.fs.WalkDir(fmt.Sprintf("%s/%s", version, ocfl.i.GetContentDir()), func(path string, d fs.DirEntry, err error) error {
+			//ocfl.logger.Debug(path)
+			fp, err := ocfl.fs.Open(path)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open file '%s'", path)
+			}
+			defer fp.Close()
+			css, err := checksumWriter.Copy(&checksum.NullWriter{}, fp)
+			if err != nil {
+				return errors.Wrapf(err, "cannot read and create checksums for file '%s'", path)
+			}
+			for d, cs := range css {
+				if _, ok := result[d]; !ok {
+					result[d] = map[string][]string{}
+				}
+				if _, ok := result[d][cs]; !ok {
+					result[d][cs] = []string{}
+				}
+				result[d][cs] = append(result[d][cs], path)
+			}
+			return nil
+		}); err != nil {
+			return nil, errors.Wrapf(err, "cannot walk content dir %s", ocfl.i.GetContentDir())
+		}
+	}
+	return result, nil
 }
 
 var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")

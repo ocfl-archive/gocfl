@@ -92,10 +92,10 @@ func (v *Version) Equal(v2 *Version) bool {
 	if v2 == nil {
 		return false
 	}
-	if v.Created.Time != v2.Created.Time ||
+	if v.Created.Time.String() != v2.Created.Time.String() ||
 		v.Message.string != v2.Message.string ||
-		v.User.Name != v2.User.Name ||
-		v.User.Address != v.User.Address {
+		v.User.Name.string != v2.User.Name.string ||
+		v.User.Address.string != v2.User.Address.string {
 		return false
 	}
 	if len(v.State.State) != len(v2.State.State) {

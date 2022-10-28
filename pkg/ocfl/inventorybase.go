@@ -87,8 +87,20 @@ func (i *InventoryBase) GetContentDir() string {
 
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
-func (i *InventoryBase) IsWriteable() bool                            { return i.writeable }
-func (i *InventoryBase) IsModified() bool                             { return i.modified }
+func (i *InventoryBase) GetFixityDigestAlgorithm() []checksum.DigestAlgorithm {
+	result := []checksum.DigestAlgorithm{}
+	if i.Fixity == nil {
+		return result
+	}
+	for digest, _ := range i.Fixity {
+		if !slices.Contains(result, digest) {
+			result = append(result, digest)
+		}
+	}
+	return result
+}
+func (i *InventoryBase) IsWriteable() bool { return i.writeable }
+func (i *InventoryBase) IsModified() bool  { return i.modified }
 
 func (i *InventoryBase) GetVersionStrings() []string {
 	var versions = []string{}
@@ -125,6 +137,12 @@ func (i *InventoryBase) check() error {
 	if err := i.checkVersions(); err != nil {
 		return errors.WithStack(err)
 	}
+	if err := i.checkManifest(); err != nil {
+		return errors.WithStack(err)
+	}
+	if err := i.checkFixity(); err != nil {
+		return errors.WithStack(err)
+	}
 	if i.Id == "" {
 		i.addValidationError(E036, "invalid field \"id\" for object")
 	}
@@ -152,6 +170,81 @@ func (i *InventoryBase) check() error {
 		i.addValidationError(E041, "no versions in inventory")
 	}
 
+	return nil
+}
+func (i *InventoryBase) checkManifest() error {
+	digests := []string{}
+	allPaths := []string{}
+	for digest, paths := range i.Manifest {
+		digest = strings.ToLower(digest)
+		if slices.Contains(digests, digest) {
+			i.addValidationError(E096, "manifest digest '%s' is duplicate", digest)
+		} else {
+			digests = append(digests, digest)
+		}
+		for _, path := range paths {
+			allPaths = append(allPaths, path)
+			if path[0] == '/' || path[len(path)-1] == '/' {
+				i.addValidationError(E100, "invalid path \"%s\" in manifest", path)
+			}
+			if path == "" {
+				i.addValidationError(E099, "empty path in manifest")
+			}
+			path2 := path
+			if path[0] == '/' {
+				path2 = path[1:]
+			}
+			elements := strings.Split(path2, "/")
+			for _, element := range elements {
+				if slices.Contains([]string{"", ".", ".."}, element) {
+					i.addValidationError(E099, "invalid path \"%s\" in manifest", path)
+				}
+			}
+
+		}
+
+	}
+	slices.Sort(allPaths)
+	for j := 0; j < len(allPaths)-1; j++ {
+		if strings.HasPrefix(allPaths[j+1], allPaths[j]) {
+			i.addValidationError(E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], allPaths[j+1])
+		}
+	}
+
+	return nil
+}
+
+func (i *InventoryBase) checkFixity() error {
+	for digestAlg, digestMap := range i.Fixity {
+		digests := []string{}
+		for digest, paths := range digestMap {
+			digest = strings.ToLower(digest)
+			if slices.Contains(digests, digest) {
+				i.addValidationError(E097, "fixity %s digest '%s' is duplicate", digestAlg, digest)
+			} else {
+				digests = append(digests, digest)
+			}
+			// check content paths
+			for _, path := range paths {
+				if path[0] == '/' || path[len(path)-1] == '/' {
+					i.addValidationError(E100, "invalid path \"%s\" in fixity", path)
+				}
+				if path == "" {
+					i.addValidationError(E099, "empty path in fixity")
+				}
+				path2 := path
+				if path[0] == '/' {
+					path2 = path[1:]
+				}
+				elements := strings.Split(path2, "/")
+				for _, element := range elements {
+					if slices.Contains([]string{"", ".", ".."}, element) {
+						i.addValidationError(E099, "invalid path \"%s\" in fixity", path)
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -275,6 +368,20 @@ func (i *InventoryBase) checkVersions() error {
 		i.addValidationError(E040, "manifest head %s does not exists in versions %v", i.Head, i.GetVersionStrings())
 	}
 
+	// check logical paths
+	logPaths := []string{}
+	for _, version := range i.Versions.Versions {
+		for _, paths := range version.State.State {
+			logPaths = append(logPaths, paths...)
+		}
+	}
+	slices.Sort(logPaths)
+	for j := 0; j < len(logPaths)-1; j++ {
+		if strings.HasPrefix(logPaths[j+1], logPaths[j]) {
+			i.addValidationError(E095, "logical path '%s' is prefix of '%s'", logPaths[j], logPaths[j+1])
+		}
+	}
+
 	return nil
 }
 
@@ -304,6 +411,17 @@ func (i *InventoryBase) GetFiles() map[string][]string {
 		i.addValidationError(E023, "versions %v do not contains versions from manifest %v", iVersions, versions)
 	}
 	return result
+}
+
+func (i *InventoryBase) GetManifest() map[string][]string {
+	return i.Manifest
+}
+
+func (i *InventoryBase) GetFixity() map[checksum.DigestAlgorithm]map[string][]string {
+	if i.Fixity == nil {
+		return map[checksum.DigestAlgorithm]map[string][]string{}
+	}
+	return i.Fixity
 }
 func (i *InventoryBase) GetFilesFlat() []string {
 	filesV := i.GetFiles()
