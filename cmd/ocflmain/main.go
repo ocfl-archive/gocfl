@@ -112,16 +112,17 @@ func ingest(dest ocfl.OCFLFS, srcdir string, logger *logging.Logger) error {
 	return nil
 }
 
+var target = flag.String("target", "", "ocfl zip or folder")
+var checkFlag = flag.Bool("check", false, "only check file")
+var checkObjectFlag = flag.Bool("checkobject", false, "only check object structure file")
+var srcDir = flag.String("source", "", "source folder")
+var logfile = flag.String("logfile", "", "name of logfile")
+var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
+
 func main() {
 
 	var err error
 
-	var target = flag.String("target", "", "ocfl zip or folder")
-	var checkFlag = flag.Bool("check", false, "only check file")
-	var checkObjectFlag = flag.Bool("checkobject", false, "only check object structure file")
-	var srcDir = flag.String("source", "", "source folder")
-	var logfile = flag.String("logfile", "", "name of logfile")
-	var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
 	//	var version = flag.String("version", "", "ocfl version")
 
 	flag.Parse()

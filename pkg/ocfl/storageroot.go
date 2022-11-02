@@ -33,7 +33,7 @@ func NewStorageRoot(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, 
 			return nil, errors.Wrap(err, "cannot read storage root directory")
 		}
 		if len(cnt) > 0 {
-			return nil, errors.WithStack(GetValidationError(defaultVersion, E069))
+			addValidationErrors(ctx, GetValidationError(defaultVersion, E069).AppendDescription("storage root not empty without version information"))
 		}
 		version = defaultVersion
 	}

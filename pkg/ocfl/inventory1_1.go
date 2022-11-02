@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	InventoryType1_1    = "https://ocfl.io/draft/spec/#inventory"
 	DigestAlg1_1        = checksum.DigestSHA512
 	ContentDirectory1_1 = "content"
 )
@@ -19,7 +18,7 @@ type InventoryV1_1 struct {
 }
 
 func NewInventoryV1_1(ctx context.Context, object Object, id string, logger *logging.Logger) (*InventoryV1_1, error) {
-	ivUrl, _ := url.Parse(InventoryType1_1)
+	ivUrl, _ := url.Parse(string(InventorySpec1_1))
 	ib, err := NewInventoryBase(ctx, object, id, ivUrl, DigestAlg1_0, ContentDirectory1_1, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")

@@ -3,8 +3,22 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
+	"golang.org/x/exp/slices"
 	"time"
 )
+
+type InventorySpec string
+
+const (
+	InventorySpec1_0 InventorySpec = "https://ocfl.io/1.0/spec/#inventory"
+	InventorySpec1_1 InventorySpec = "https://ocfl.io/1.1/spec/#inventory"
+)
+
+// return true if Specification s1 < s2
+func SpecIsLessOrEqual(s1, s2 InventorySpec) bool {
+	//return s1 == InventorySpec1_0 && s2 == InventorySpec1_1
+	return s1 <= s2
+}
 
 type OCFLState struct {
 	State map[string][]string
@@ -101,17 +115,23 @@ func (v *Version) Equal(v2 *Version) bool {
 	if len(v.State.State) != len(v2.State.State) {
 		return false
 	}
-	for key, vals := range v.State.State {
-		vals2, ok := v2.State.State[key]
-		if !ok {
-			return false
-		}
-		if len(vals) != len(vals2) {
-			return false
-		}
-		if !sliceContains(vals, vals2) {
-			return false
-		}
+	files := []string{}
+	for _, vals := range v.State.State {
+		files = append(files, vals...)
+	}
+	slices.Sort(files)
+	files = slices.Compact(files)
+	files2 := []string{}
+	for _, vals := range v2.State.State {
+		files2 = append(files2, vals...)
+	}
+	slices.Sort(files2)
+	files2 = slices.Compact(files2)
+	if len(files) != len(files2) {
+		return false
+	}
+	if !sliceContains(files, files2) {
+		return false
 	}
 	return true
 }

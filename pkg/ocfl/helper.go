@@ -164,3 +164,21 @@ func sliceContains[E comparable](s []E, vs []E) bool {
 	}
 	return true
 }
+
+func showStatus(ctx context.Context) error {
+	status, err := GetValidationStatus(ctx)
+	if err != nil {
+		return errors.Wrap(err, "cannot get status of validation")
+	}
+	status.Compact()
+	for _, err := range status.Errors {
+		fmt.Println(err)
+		//logger.Infof("ERROR: %v", err)
+	}
+	for _, err := range status.Warnings {
+		fmt.Println(err)
+		//logger.Infof("WARN:  %v", err)
+	}
+	fmt.Println("\n")
+	return nil
+}

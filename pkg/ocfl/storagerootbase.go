@@ -281,14 +281,17 @@ func (osr *StorageRootBase) CheckObjects() error {
 		return errors.Wrapf(err, "cannot get object folders")
 	}
 	for _, objectFolder := range objectFolders {
-		osr.logger.Infof("checking folder %s", objectFolder)
-		obj, err := osr.OpenObjectFolder(objectFolder)
+		fmt.Printf("object folder '%s'\n", objectFolder)
+		objfs := osr.fs.SubFS(objectFolder)
+		ctx := NewContextValidation(context.TODO())
+		object, err := NewObject(ctx, objfs, "", "", osr.logger)
 		if err != nil {
-			return errors.Wrapf(err, "cannot open folder %s", objectFolder)
+			return errors.Wrap(err, "cannot load object")
 		}
-		if err := obj.Check(); err != nil {
-			return errors.Wrapf(err, "folder %s not ok", objectFolder)
+		if err := object.Check(); err != nil {
+			return errors.Wrapf(err, "check of %s failed", object.GetID())
 		}
+		showStatus(ctx)
 	}
 	return nil
 }

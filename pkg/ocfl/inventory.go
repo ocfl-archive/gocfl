@@ -14,6 +14,8 @@ type Inventory interface {
 	GetID() string
 	GetContentDir() string
 	GetHead() string
+	GetSpec() InventorySpec
+	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
 	DeleteFile(virtualFilename string) error
 	Rename(oldVirtualFilename, newVirtualFilename string) error
@@ -98,7 +100,7 @@ func LoadInventory(ctx context.Context, object Object, data []byte, logger *logg
 				addValidationErrors(ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]))
 			}
 		}
-		return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
+		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
 	}
 	return inventory, nil
 }

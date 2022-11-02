@@ -101,9 +101,11 @@ func (ofs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
 		if d == nil {
 			return nil
 		}
-		if d.IsDir() {
-			return nil
-		}
+		/*
+			if d.IsDir() {
+				return nil
+			}
+		*/
 		if len(path) <= lb {
 			return errors.Errorf("path \"%s\" not a subpath of \"%s\"", path, basepath)
 		}
