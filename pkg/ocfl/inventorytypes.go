@@ -45,7 +45,7 @@ func (s *OCFLString) UnmarshalJSON(data []byte) error {
 		s.err = errors.Wrapf(err, "cannot unmarshal string '%s'", string(data))
 		return nil
 	}
-	s.string = string(data)
+	s.string = str
 	return nil
 }
 

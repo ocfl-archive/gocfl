@@ -4,9 +4,9 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"fmt"
-	urn "github.com/leodido/go-urn"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/uri"
 	"golang.org/x/exp/slices"
 	"net/url"
 	"path/filepath"
@@ -151,9 +151,8 @@ func (i *InventoryBase) check() error {
 	if i.Id == "" {
 		i.addValidationError(E036, "invalid field \"id\" for object")
 	}
-	_, ok := urn.Parse([]byte(i.Id))
-	if !ok {
-		i.addValidationWarning(W005, "cannot parse id '%s'", i.Id)
+	if _, err := uri.Parse(i.Id); err != nil {
+		i.addValidationWarning(W005, "cannot parse id '%s': %v", i.Id, err)
 	} /* else {
 		if u.Scheme == "" {
 			i.addValidationWarning(W005, "id '%s' is not an uri", i.Id)
@@ -334,9 +333,16 @@ func (i *InventoryBase) checkVersions() error {
 		if version.User.Address.string == "" {
 			i.addValidationWarning(W007, "no user address in version %s", ver)
 		} else {
-			_, ok := urn.Parse([]byte(version.User.Address.string))
-			if !ok {
-				i.addValidationWarning(W009, "cannot parse user address '%s' in version %s", version.User.Address.string, ver)
+			mailtoUriRegexp := regexp.MustCompile(`mailto:[^@]+@[^@]+`)
+			if !mailtoUriRegexp.MatchString(version.User.Address.string) {
+				u, err := url.Parse(version.User.Address.string)
+				if err != nil {
+					i.addValidationWarning(W009, "cannot parse user address '%s' in version %s: %v", version.User.Address.string, ver, err)
+				} else {
+					if u.Scheme == "" {
+						i.addValidationWarning(W009, "cannot parse user address '%s' in version %s", version.User.Address.string, ver)
+					}
+				}
 			} /* else {
 				if u.Scheme == "" {
 					i.addValidationWarning(W009, "no scheme in user address '%s'in version %s", version.User.Address.string, ver)

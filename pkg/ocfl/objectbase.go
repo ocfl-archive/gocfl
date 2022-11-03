@@ -24,13 +24,15 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type ObjectBase struct {
-	ctx     context.Context
-	fs      OCFLFS
-	i       Inventory
-	changed bool
-	logger  *logging.Logger
-	version OCFLVersion
-	path    object.Path
+	ctx                context.Context
+	fs                 OCFLFS
+	i                  Inventory
+	versionFolders     []string
+	versionInventories map[string]Inventory
+	changed            bool
+	logger             *logging.Logger
+	version            OCFLVersion
+	path               object.Path
 }
 
 // NewObjectBase creates an empty ObjectBase structure
@@ -102,7 +104,8 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
 	sidecarBytes, err := fs.ReadFile(ocfl.fs, sidecarPath)
 	if err != nil {
-		ocfl.addValidationError(E058, "cannot read %s: %v", sidecarPath, err)
+		ocfl.addValidationError(E060, "cannot read sidecar %s: %v", sidecarPath, err.Error())
+		//		ocfl.addValidationError(E058, "cannot read %s: %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
 		if !strings.HasSuffix(digestString, " inventory.json") {
@@ -496,31 +499,12 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		)
 	}
 	// load all inventories
-	versionInventories := map[string]Inventory{}
-	var err error
-	for _, ver := range versionStrings {
-		vi, err := ocfl.LoadInventoryFolder(ver)
-		if err != nil {
-			if ocfl.fs.IsNotExist(err) {
-				ocfl.addValidationWarning(W010, "no inventory file for version %s", ver)
-				continue
-			}
-			return errors.Wrapf(err, "cannot load inventory from folder \"%s\"", ver)
-		}
-		versionInventories[ver] = vi
+	versionInventories, err := ocfl.getVersionInventories()
+	if err != nil {
+		return errors.Wrap(err, "cannot get version inventories")
 	}
 
-	// get all possible digest algs
-	allDigestAlgs := []checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()}
-	for _, vi := range versionInventories {
-		allDigestAlgs = append(allDigestAlgs, vi.GetDigestAlgorithm())
-		for digestAlg, _ := range vi.GetFixity() {
-			allDigestAlgs = append(allDigestAlgs, digestAlg)
-		}
-	}
-	slices.Sort(allDigestAlgs)
-	allDigestAlgs = slices.Compact(allDigestAlgs)
-	csDigestFiles, err := ocfl.createContentManifest(allDigestAlgs)
+	csDigestFiles, err := ocfl.createContentManifest()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -657,40 +641,6 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 				}
 			}
 		}
-		// todo: deep check content
-	}
-
-	/*
-		if latestVersion != "" {
-			if _, ok := versionInventories[latestVersion]; !ok {
-				return errors.Errorf("no inventory for latest version %s", latestVersion)
-			}
-		}
-	*/
-	// semantic identity is not sufficient it must be the identical file
-	/*
-		if !InventoryIsEqual(latestInventory, ocfl.i) {
-			ocfl.addValidationError(E064, "object root inventory not equal to version %s", latestVersion)
-		}
-	*/
-	digest := ocfl.i.GetDigestAlgorithm()
-
-	// check digest for inventory
-	sidecarPath := fmt.Sprintf("%s.%s", "inventory.json", digest)
-	sidecarBytes, err := fs.ReadFile(ocfl.fs, sidecarPath)
-	if err != nil {
-		//		return errors.Wrapf(err, "cannot read sidecar %s", sidecarPath)
-		ocfl.addValidationError(E060, "cannot read sidecar %s: %v", sidecarPath, err.Error())
-	}
-
-	versionSidecarPath := fmt.Sprintf("%s/%s.%s", latestVersion, "inventory.json", digest)
-	versionSidecarBytes, err := fs.ReadFile(ocfl.fs, versionSidecarPath)
-	if err != nil {
-		ocfl.addValidationError(E060, "cannot read sidecar %s: %v", sidecarPath, err.Error())
-		//		return errors.Wrapf(err, "cannot read sidecar %s", versionSidecarPath)
-	}
-	if !slices.Equal(sidecarBytes, versionSidecarBytes) {
-		ocfl.addValidationError(E064, "object root inventory not equal to version %s", latestVersion)
 	}
 
 	return nil
@@ -753,7 +703,13 @@ func (ocfl *ObjectBase) Check() error {
 }
 
 // create checksums of all content files
-func (ocfl *ObjectBase) createContentManifest(digestAlgorithms []checksum.DigestAlgorithm) (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (ocfl *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+	// get all possible digest algs
+	digestAlgorithms, err := ocfl.getAllDigests()
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get digests")
+	}
+
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 	checksumWriter := checksum.NewChecksumWriter(digestAlgorithms)
 	versions := ocfl.i.GetVersionStrings()
@@ -787,3 +743,49 @@ func (ocfl *ObjectBase) createContentManifest(digestAlgorithms []checksum.Digest
 }
 
 var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
+
+// helper functions
+
+func (ocfl *ObjectBase) getVersionInventories() (map[string]Inventory, error) {
+	if ocfl.versionInventories != nil {
+		return ocfl.versionInventories, nil
+	}
+
+	versionStrings := ocfl.i.GetVersionStrings()
+
+	// sort in ascending order
+	slices.SortFunc(versionStrings, func(a, b string) bool {
+		return ocfl.i.VersionLessOrEqual(a, b) && a != b
+	})
+	versionInventories := map[string]Inventory{}
+	for _, ver := range versionStrings {
+		vi, err := ocfl.LoadInventoryFolder(ver)
+		if err != nil {
+			if ocfl.fs.IsNotExist(err) {
+				ocfl.addValidationWarning(W010, "no inventory file for version %s", ver)
+				continue
+			}
+			return nil, errors.Wrapf(err, "cannot load inventory from folder \"%s\"", ver)
+		}
+		versionInventories[ver] = vi
+	}
+	ocfl.versionInventories = versionInventories
+	return ocfl.versionInventories, nil
+}
+
+func (ocfl *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
+	versionInventories, err := ocfl.getVersionInventories()
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get version inventories")
+	}
+	allDigestAlgs := []checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()}
+	for _, vi := range versionInventories {
+		allDigestAlgs = append(allDigestAlgs, vi.GetDigestAlgorithm())
+		for digestAlg, _ := range vi.GetFixity() {
+			allDigestAlgs = append(allDigestAlgs, digestAlg)
+		}
+	}
+	slices.Sort(allDigestAlgs)
+	allDigestAlgs = slices.Compact(allDigestAlgs)
+	return allDigestAlgs, nil
+}
