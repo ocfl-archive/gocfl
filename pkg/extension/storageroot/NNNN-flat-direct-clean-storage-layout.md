@@ -86,12 +86,14 @@ invalid because the first object contains the second.
 
 ### Definition of terms
 * **`maxFilenameLen`/`maxPathnameLen`:**
-Several filesystems (e.g. Ext2/3/4) have byte restrictions on filename length.
-When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quad of the character length.
-Using UTF8 characters in filesystems, byte length can only be determined by checking each string for maximum.  
-**Hint:** UTF8 has always less or equal bytes than UTF32 which means, that
-assuming UTF32 instead of UTF8 for length calculation is safe, but would give you
-only 63 characters on 255 byte restrictions.
+  Several filesystems (e.g. Ext2/3/4) have byte restrictions on filename length.
+  When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quad of the character length.
+  For filesystems which are using UTF8 character sets, the length of a name in bytes 
+  can be calculated only by building the UTF8 string and count the byte length afterwards.
+
+  **Hint:** UTF8 has always less or equal bytes than UTF32 which means, that
+  assuming UTF32 instead of UTF8 for length calculation is safe, but would give you
+  only 63 characters on 255 byte restrictions.
   
 ## Procedure
 
@@ -308,8 +310,8 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 | U+001E | 30       | 36        | Record Separator               | RS                        |
 | U+001F | 31       | 37        | Unit Separator                 | US                        |
 | U+001F | 31       | 37        | Unit Separator                 | US                        |
+| U+0020 | 32       | 40        | Space                          |                           |
 | U+007F | 127      | 177       | Delete                         | DEL                       |
-| U+0020 |          | 32        | 40                             | Space                     |
 | U+0085 | 133      | 0302 0205 | Next Line                      | NEL                       |
 | U+00A0 | 160      | 0302 0240 | &nbsp;                         | Non-breaking space        |
 | U+1680 | 2760     |           |                                | OGHAM SPACE MARK          |
