@@ -214,7 +214,11 @@ func (ve *ValidationError) AppendDescription(format string, a ...any) *Validatio
 }
 
 func (verr *ValidationError) Error() string {
-	return fmt.Sprintf("Validation Error #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
+	if verr.Code[0] == 'W' {
+		return fmt.Sprintf("Validation Warning #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
+	} else {
+		return fmt.Sprintf("Validation Error #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
+	}
 }
 
 func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *ValidationError {

@@ -99,7 +99,7 @@ invalid because the first object contains the second.
 
 The following is an outline to the steps for mapping an identifier/filepath.
     
-[Appendix UTF Replacement Character List](#appendix-utf-replacement-character-list)
+[UTF Replacement Character List](#utf-replacement-character-list)
 is a list of UTF characters mentioned below.
 
 ### When `utfEncode` is `true`
@@ -211,10 +211,10 @@ import (
 	[...]
 )
 
-var flatDirectCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000\n\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
-var flatDirectCleanRuleWhitespace = regexp.MustCompile("[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]")
+var flatDirectCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000\n\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
+var flatDirectCleanRuleWhitespace = regexp.MustCompile("[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]")
 var flatDirectCleanRule_1_5 = regexp.MustCompile("[\u0000-\u001F\u007F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
-var flatDirectCleanRule_2_4_6 = regexp.MustCompile("^[\\-~\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]*(.*?)[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]*$")
+var flatDirectCleanRule_2_4_6 = regexp.MustCompile("^[\\-~\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]*(.*?)[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]*$")
 var flatDirectCleanRulePeriods = regexp.MustCompile("^\\.+$")
 
 var flatDirectCleanErrFilenameTooLong = errors.New("filename too long")
@@ -273,7 +273,9 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 [...]
 ```
 
-# Appendix A: UTF Replacement Character List
+# Appendix
+
+## UTF Replacement Character List
 
 | Code	  | Decimal	 | Octal     | 	Description                   | 	Abbreviation / Key       |
 |--------|----------|-----------|--------------------------------|---------------------------|
@@ -314,7 +316,7 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 | U+007F | 127      | 177       | Delete                         | DEL                       |
 | U+0085 | 133      | 0302 0205 | Next Line                      | NEL                       |
 | U+00A0 | 160      | 0302 0240 | &nbsp;                         | Non-breaking space        |
-| U+1680 | 2760     |           |                                | OGHAM SPACE MARK          |
+| U+1680 | 5760     | 13200     |                                | OGHAM SPACE MARK          |
 | U+2000 | 8192     | 20000     |                                | EN QUAD                   |
 | U+2001 | 8193     | 20001     |                                | EM QUAD                   |
 | U+2002 | 8194     | 20002     |                                | EN SPACE                  |
@@ -326,11 +328,11 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 | U+2008 | 8200     | 20010     |                                | PUNCTUATION SPACE         |
 | U+2009 | 8201     | 20011     |                                | THIN SPACE                |
 | U+200A | 8202     | 20012     |                                | HAIR SPACE                |
-| U+200B | 8203     |           |                                | ZERO WIDTH SPACE          |
-| U+200C | 8204     |           |                                | ZERO WIDTH NON-JOINER     |
-| U+200D | 8205     |           |                                | ZERO WIDTH JOINER         |
-| U+200E | 8206     |           |                                | LEFT-TO-RIGHT MARK        |
-| U+200F | 8207     |           |                                | RIGHT-TO-LEFT MARK        |
+| U+200B | 8203     | 20013     |                                | ZERO WIDTH SPACE          |
+| U+200C | 8204     | 20014     |                                | ZERO WIDTH NON-JOINER     |
+| U+200D | 8205     | 20015     |                                | ZERO WIDTH JOINER         |
+| U+200E | 8206     | 20016     |                                | LEFT-TO-RIGHT MARK        |
+| U+200F | 8207     | 20017     |                                | RIGHT-TO-LEFT MARK        |
 | U+2028 | 8232     | 20050     |                                | LINE SEPARATOR            |
 | U+2029 | 8233     | 20051     |                                | PARAGRAPH SEPARATOR       |
 | U+205F | 8287     | 20137     |                                | MEDIUM MATHEMATICAL SPACE |

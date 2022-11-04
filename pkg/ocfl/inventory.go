@@ -11,6 +11,7 @@ import (
 
 type Inventory interface {
 	Init() error
+	AfterLoad()
 	GetID() string
 	GetContentDir() string
 	GetHead() string
@@ -102,6 +103,7 @@ func LoadInventory(ctx context.Context, object Object, data []byte, logger *logg
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
 	}
+	inventory.AfterLoad()
 	return inventory, nil
 }
 

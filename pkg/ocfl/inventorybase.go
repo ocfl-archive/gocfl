@@ -82,6 +82,39 @@ func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format str
 func (i *InventoryBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
 	addValidationWarnings(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...))
 }
+
+// after loading fix empty structures
+func (i *InventoryBase) AfterLoad() {
+
+	if i.Manifest == nil {
+		i.addValidationError(E041, "no manifest in inventory")
+		i.Manifest = map[string][]string{}
+	}
+
+	if i.Versions == nil {
+		i.addValidationError(E041, "no versions in inventory")
+		i.Versions = &OCFLVersions{Versions: map[string]*Version{}}
+	}
+	for ver, version := range i.Versions.Versions {
+		if version.User == nil {
+			i.addValidationWarning(W007, "no user key in version '%s'", ver)
+			version.User = &OCFLUser{User: User{
+				Address: OCFLString{},
+				Name:    OCFLString{},
+			}}
+		}
+		if version.Message == nil {
+			i.addValidationWarning(W007, "no message key in version '%s'", ver)
+			version.Message = &OCFLString{}
+		}
+		if version.State == nil {
+			version.State = &OCFLState{
+				State: map[string][]string{},
+				err:   nil,
+			}
+		}
+	}
+}
 func (i *InventoryBase) GetID() string          { return i.Id }
 func (i *InventoryBase) GetHead() string        { return i.Head }
 func (i *InventoryBase) GetSpec() InventorySpec { return i.Type }
@@ -179,13 +212,6 @@ func (i *InventoryBase) check() error {
 
 	if slices.Contains([]string{"", ".", ".."}, i.ContentDirectory) || strings.Contains(i.ContentDirectory, "/") {
 		i.addValidationError(E017, "invalid content directory \"%s\"", i.ContentDirectory)
-	}
-
-	if i.Manifest == nil || len(i.Manifest) == 0 {
-		i.addValidationError(E041, "no manifest in inventory")
-	}
-	if i.Versions == nil || len(i.Versions.Versions) == 0 {
-		i.addValidationError(E041, "no versions in inventory")
 	}
 
 	return nil
@@ -327,11 +353,8 @@ func (i *InventoryBase) checkVersions() error {
 		if version.User.Address.err != nil {
 			i.addValidationError(E054, "invalid user address in version %s: %v", ver, version.User.Address.err.Error())
 		}
-		if version.User.Name.string == "" {
-			i.addValidationWarning(W007, "no user name in version %s", ver)
-		}
 		if version.User.Address.string == "" {
-			i.addValidationWarning(W007, "no user address in version %s", ver)
+			i.addValidationWarning(W008, "no user address in version %s", ver)
 		} else {
 			mailtoUriRegexp := regexp.MustCompile(`mailto:[^@]+@[^@]+`)
 			if !mailtoUriRegexp.MatchString(version.User.Address.string) {
@@ -343,14 +366,10 @@ func (i *InventoryBase) checkVersions() error {
 						i.addValidationWarning(W009, "cannot parse user address '%s' in version %s", version.User.Address.string, ver)
 					}
 				}
-			} /* else {
-				if u.Scheme == "" {
-					i.addValidationWarning(W009, "no scheme in user address '%s'in version %s", version.User.Address.string, ver)
-				}
-			} */
+			}
 		}
-		if version.Message.string == "" {
-			i.addValidationWarning(W007, "no message in version %s", ver)
+		if version.Message.err != nil {
+			i.addValidationError(E094, "invalid format for message in version '%s': %v", ver, version.Message.err)
 		}
 
 		if version.State.err != nil {
@@ -564,10 +583,10 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 		}
 	}
 	i.Versions.Versions[i.Head] = &Version{
-		Created: OCFLTime{time.Now(), nil},
-		Message: OCFLString{msg, nil},
-		State:   OCFLState{},
-		User: OCFLUser{
+		Created: &OCFLTime{time.Now(), nil},
+		Message: &OCFLString{msg, nil},
+		State:   &OCFLState{},
+		User: &OCFLUser{
 			User: User{
 				Name:    OCFLString{string: UserName},
 				Address: OCFLString{string: UserAddress},

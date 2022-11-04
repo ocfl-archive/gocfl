@@ -238,6 +238,10 @@ func (zf *FS) Stat(name string) (fs.FileInfo, error) {
 				return nil, errors.Wrapf(err, "cannot create zipfs.FileInfo for %s", zipItem.Name)
 			}
 			return finfo, nil
+		} else {
+			if strings.HasPrefix(zipItem.Name, name) {
+				return NewFileInfoDir(name)
+			}
 		}
 	}
 	return nil, fs.ErrNotExist

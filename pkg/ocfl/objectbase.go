@@ -497,6 +497,18 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 				return nil
 			},
 		)
+		if len(objectContentFiles[ver]) == 0 {
+			fi, err := ocfl.fs.Stat(versionContent)
+			if err != nil {
+				if !ocfl.fs.IsNotExist(err) {
+					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
+				}
+			} else {
+				if fi.IsDir() {
+					ocfl.addValidationWarning(W003, "empty content folder '%s'", versionContent)
+				}
+			}
+		}
 	}
 	// load all inventories
 	versionInventories, err := ocfl.getVersionInventories()
@@ -579,10 +591,13 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		for verVer, verVersion := range i.GetVersions() {
 			testV, ok := versions[verVer]
 			if !ok {
-				ocfl.addValidationError(E066, "version %s not in object root manifest", verVer)
+				ocfl.addValidationError(E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
 			}
-			if !testV.Equal(verVersion) {
-				ocfl.addValidationError(E066, "version %s not equal to version in object root manifest", verVer)
+			if !testV.EqualState(verVersion) {
+				ocfl.addValidationError(E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
+			}
+			if !testV.EqualMeta(verVersion) {
+				ocfl.addValidationError(W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
 			}
 		}
 	}
