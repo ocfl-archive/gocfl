@@ -9,20 +9,19 @@
 
 ## Overview
 
-This extension can be used as root storage layout extension to map OCFL object
-identifiers to path names as well as a mapping for content path names.
+This extension can be used to either as a storage layout extension that maps OCFL 
+object identifiers to storage paths or as an object extension that maps logical paths to content paths.
 This is done by replacing or removing "dangerous characters" from names.
 
-The functionality has been derived from David A. Wheeler - "Fixing Unix/Linux/POSIX Filenames" (https://www.dwheeler.com/essays/fixing-unix-linux-filenames.html)
+This functionality is based on David A. Wheeler's essay "Fixing Unix/Linux/POSIX Filenames" (https://www.dwheeler.com/essays/fixing-unix-linux-filenames.html)
 
-#### Usage Scenario
+### Usage Scenario
 
-If you want to make sure, that the internal layout of the OCFL content 
-substructure or the object id is as close as possible to the original structure, but you want to 
-make sure, that there are no possibly dangerous file- or foldernames, which 
-may oppose with durability.
+This extension is intended to be used when you want the internal OCFL layout to match 
+the logical structure of the stored objects as closely as possible, while also 
+ensuring all file and directory names do not include problematic characters.
 
-One Example could be complete filesystems, which come from estates, and are not
+One example could be complete filesystems, which come from estates, and are not
 under control of the archivists.
 
 ### Caveat
@@ -30,91 +29,109 @@ under control of the archivists.
 #### Projection
 This extension does  provide injective (one-to-one) projections only if 
 `encodeUTF == true`.  
-If you don't want to use the longish UTF-Code replacements, first check your source to make sure, that there's no chance of 
-different names to be mapped on one target. Software which generates the OCFL 
-structure should raise an error in this case.
+If you don't want to use the verbose UTF-Code replacements (`encodeUTF == false`), first check your source to make sure, that there's no chance of 
+different names to be mapped on one target. This happens on whitespace replacement as well as on 
+the removal of leading `-`, `~` and ` ` (blank) or trailing ` ` (blank)
+Software which generates the OCFL 
+structure should raise an error in this case. 
+##### Example
+* `~file` => `file`
+* `-file` => `file`
+* ` file` => `file`
+* `file` => `file`
+* `file ` => `file`
 
 #### Object Identifiers
-Besides the caveat below, when using as storage layout root extension, you must 
-be sure, that no object identifier is  contained in another identifier as a 
-prefix path.  
-I.e. https://hdl.handle.net/XXXXX/test and https://hdl.handle.net/XXXXX/test/blah 
-could result to into storage root folders like  
-https/hdl.handle.net/XXXXX/test    
-https/hdl.handle.net/XXXXX/test/blah  
-This is an invalid OCFL storage root hierarchy.
+When using this extension as a storage layout, you must ensure that none of your 
+object identifiers are prefixes of other identifiers. For example, 
+`https://hdl.handle.net/XXXXX/test` and `https://hdl.handle.net/XXXXX/test/blah`. 
+This is a problem because it would result in the storage paths 
+`https/hdl.handle.net/XXXXX/test` and `https/hdl.handle.net/XXXXX/test/blah`, which is 
+invalid because the first object contains the second.
 
-#### Length
-Several filesystems (e.g. Ext2/3/4) have byte restrictions on filename length.
-When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quad of the character length.
-Using UTF8 characters in filesystems, byte length can only be determined by checking each string for maximum.  
-**Hint:** UTF8 has always less or equal bytes than UTF32 which means, that 
-assuming UTF32 instead of UTF8 for length calculation is safe, but would give you
-only 63 characters on 255 byte restrictions. 
 
 ## Parameters
 
 ### Summary
 
 * **Name:** `encodeUTF`
-    * **Description:** decides whether "dangerous" characters will be replaced by a 
-      defined replacement string or it's utf code (e.g. =u0020 for blank char) 
+    * **Description:** Decides whether "dangerous" characters will be replaced by a 
+      defined replacement string or it's utf code (e.g. `=u0020` for blank char) 
     * **Type:** bool
     * **Default:** false
 * **Name:** `maxFilenameLen`
-   * **Description:** determines the maximum number of characters within parts of the full pathname separated by `/` (files or folders).   
+   * **Description:** Determines the maximum number of characters within parts of the full pathname separated by `/` (files or folders).   
      A result with more characters will raise an error.  
     * **Type:** number
-   * **Constraints:** An integer greater 0
+   * **Constraints:** An integer greater than 0
    * **Default:** 127
 * **Name:** `maxPathnameLen`
-    * **Description:** determines the maximum number of result characters.
+    * **Description:** Determines the maximum number of result characters.
       A result with more characters will raise an error.  
     * **Type:** number
-    * **Constraints:** An integer greater 0
+    * **Constraints:** An integer greater than 0
     * **Default:** 32000
 * **Name:** `replacementString`
-  * **Description: String which is used to replace non-whitespace characters 
+  * **Description:** String that is used to replace non-whitespace characters 
     which need replacement.  
     If `encodeUTF == true` only used for replacement of non-UTF8 characters.
   * **Type:** string
   * **Default:** "_"
 * **Name:** `whitespaceReplacementString`
-    * **Description:** String which is used to replace whitespaces (https://en.wikipedia.org/wiki/Template:Whitespace_(Unicode)).  
+    * **Description:** String that is used to replace [whitespaces](https://en.wikipedia.org/wiki/Template:Whitespace_(Unicode)).  
       Only used if `encodeUTF == false`.  
       **Hint:** if you want to remove (inner) whitespaces, just use the empty string
     * **Type:** string
     * **Default:** " " (U+0020)
+
+### Definition of terms
+* **`maxFilenameLen`/`maxPathnameLen`:**
+Several filesystems (e.g. Ext2/3/4) have byte restrictions on filename length.
+When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quad of the character length.
+Using UTF8 characters in filesystems, byte length can only be determined by checking each string for maximum.  
+**Hint:** UTF8 has always less or equal bytes than UTF32 which means, that
+assuming UTF32 instead of UTF8 for length calculation is safe, but would give you
+only 63 characters on 255 byte restrictions.
   
 ## Procedure
 
-The following is an outline to the steps for mapping an identifier/filepath:
+The following is an outline to the steps for mapping an identifier/filepath.
+    
+[Appendix UTF Replacement Character List](#appendix-utf-replacement-character-list)
+is a list of UTF characters mentioned below.
 
-### `utfEncode == true`
-
+### When `utfEncode` is `true`
 
 1. Replace all non-UTF8 characters with `replacementString`
-2. Split the string at path separator "/"
+2. Split the string at path separator `/`
 3. For each part do the following
-   1. Replace any character from this list with it's utf code in the form "=uXXXX" where XXXX is the code: U+0000-U+001f U+007f U+0020 U+0085 U+00a0 U+1680 U+2000-U+20a0 U+2028 U+2029 U+202f U+205f U+3000 \n \t * ? : [ ] " < > | ( ) { } & ' ! ; # @  
-   3. If part contains only periods Replace first period ("."), with UTF Code (U+002E)
-   4. Remove part completely, if its len is 0
+   1. Replace any character from this list with its utf code in the form `=uXXXX` 
+       where `XXXX` is the code: 
+       `U+0000-U+001F` `U+007F` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F` 
+       `U+2028` `U+2029` `U+202F` `U+205F` `U+3000` `\n` `\t` `*` `?` `:` `[` `]` `"` 
+       `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`  
+   3. If part only contains periods, replace first period (`.`), with UTF Code (`U+002E`)
+   4. Remove part completely, if its length is 0
    5. Check length of part according to `maxFilenameLen`
-4. Join the parts with path separator "/"
+4. Join the parts with path separator `/`
 5. Check length of result according `maxPathnameLen`
 
-### `utfEncode == false`
+### When `utfEncode` is `false`
 
 1. Replace all non-UTF8 characters with `replacementString`
-2. Split the string at path separator "/"
+2. Split the string at path separator `/`
 3. For each part do the following
-    1. Replace any whitespace character from this list with `whitespaceReplacementString`: U+0009 U+000a-U+000d U+0020 U+0085 U+00a0 U+1680 U+2000-U+20a0 U+2028 U+2029 U+202f U+205f U+3000
-    2. Replace any character from this list with `replacementString`: 0x00-0x1f 0x7f * ? : [ ] " <> | ( ) { } & ' ! ; # @
-    3. Remove leading spaces, "-" and "~" / remove trailing spaces
-    4. If part contains only periods replace first period (".") with `replacementString`
-    5. Remove part completely, if its len is 0
+    1. Replace any whitespace character from this list with `whitespaceReplacementString`: 
+       `U+0009` `U+000A-U+000D` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F`
+       `U+2028` `U+2029` `U+202F` `U+205F` `U+3000`
+    2. Replace any character from this list with `replacementString`: 
+       `U+0000-U+001F` `U+007f` `*` `?` `:` `[` `]` `"`
+       `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`
+    3. Remove leading spaces, `-` and `~` / remove trailing spaces
+    4. If part only contains periods, replace first period (`.`) with `replacementString`
+    5. Remove part completely, if its length is 0
     6. Check length of part according to `maxFilenameLen`
-4. Join the parts with path separator "/"
+4. Join the parts with path separator `/`
 5. Check length of result according `maxPathnameLen`
 
 ## Examples
@@ -253,3 +270,71 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 
 [...]
 ```
+
+# Appendix A: UTF Replacement Character List
+
+| Code	  | Decimal	 | Octal     | 	Description                   | 	Abbreviation / Key       |
+|--------|----------|-----------|--------------------------------|---------------------------|
+| U+0000 | 0        | 0         | Null character                 | NUL                       |
+| U+0001 | 1        | 1         | Start of Heading               | SOH / Ctrl-A              |
+| U+0002 | 2        | 2         | Start of Text                  | STX / Ctrl-B              |
+| U+0003 | 3        | 3         | End-of-text character          | ETX / Ctrl-C1             |
+| U+0004 | 4        | 4         | End-of-transmission character  | EOT / Ctrl-D2             |
+| U+0005 | 5        | 5         | Enquiry character              | ENQ / Ctrl-E              |
+| U+0006 | 6        | 6         | Acknowledge character          | ACK / Ctrl-F              |
+| U+0007 | 7        | 7         | Bell character                 | BEL / Ctrl-G3             |
+| U+0008 | 8        | 10        | Backspace                      | BS / Ctrl-H               |
+| U+0009 | 9        | 11        | Horizontal tab                 | HT / Ctrl-I               |
+| U+000A | 10       | 12        | Line feed                      | LF / Ctrl-J4              |
+| U+000B | 11       | 13        | Vertical tab                   | VT / Ctrl-K               |
+| U+000C | 12       | 14        | Form feed                      | FF / Ctrl-L               |
+| U+000D | 13       | 15        | Carriage return                | CR / Ctrl-M5              |
+| U+000E | 14       | 16        | Shift Out                      | SO / Ctrl-N               |
+| U+000F | 15       | 17        | Shift In                       | SI / Ctrl-O6              |
+| U+0010 | 16       | 20        | Data Link Escape               | DLE / Ctrl-P              |
+| U+0011 | 17       | 21        | Device Control 1               | DC1 / Ctrl-Q7             |
+| U+0012 | 18       | 22        | Device Control 2               | DC2 / Ctrl-R              |
+| U+0013 | 19       | 23        | Device Control 3               | DC3 / Ctrl-S8             |
+| U+0014 | 20       | 24        | Device Control 4               | DC4 / Ctrl-T              |
+| U+0015 | 21       | 25        | Negative-acknowledge character | NAK / Ctrl-U9             |
+| U+0016 | 22       | 26        | Synchronous Idle               | SYN / Ctrl-V              |
+| U+0017 | 23       | 27        | End of Transmission Block      | ETB / Ctrl-W              |
+| U+0018 | 24       | 30        | Cancel character               | CAN / Ctrl-X10            |
+| U+0019 | 25       | 31        | End of Medium                  | EM / Ctrl-Y               |
+| U+001A | 26       | 32        | Substitute character           | SUB / Ctrl-Z11            |
+| U+001B | 27       | 33        | Escape character               | ESC                       |
+| U+001C | 28       | 34        | File Separator                 | FS                        |
+| U+001D | 29       | 35        | Group Separator                | GS                        |
+| U+001E | 30       | 36        | Record Separator               | RS                        |
+| U+001F | 31       | 37        | Unit Separator                 | US                        |
+| U+001F | 31       | 37        | Unit Separator                 | US                        |
+| U+007F | 127      | 177       | Delete                         | DEL                       |
+| U+0020 |          | 32        | 40                             | Space                     |
+| U+0085 | 133      | 0302 0205 | Next Line                      | NEL                       |
+| U+00A0 | 160      | 0302 0240 | &nbsp;                         | Non-breaking space        |
+| U+1680 | 2760     |           |                                | OGHAM SPACE MARK          |
+| U+2000 | 8192     | 20000     |                                | EN QUAD                   |
+| U+2001 | 8193     | 20001     |                                | EM QUAD                   |
+| U+2002 | 8194     | 20002     |                                | EN SPACE                  |
+| U+2003 | 8195     | 20003     |                                | EM SPACE                  |
+| U+2004 | 8196     | 20004     |                                | THREE-PER-EM SPACE        |
+| U+2005 | 8197     | 20005     |                                | FOUR-PER-EM SPACE         |
+| U+2006 | 8198     | 20006     |                                | SIX-PER-EM SPACE          |
+| U+2007 | 8199     | 20007     |                                | FIGURE SPACE              |
+| U+2008 | 8200     | 20010     |                                | PUNCTUATION SPACE         |
+| U+2009 | 8201     | 20011     |                                | THIN SPACE                |
+| U+200A | 8202     | 20012     |                                | HAIR SPACE                |
+| U+200B | 8203     |           |                                | ZERO WIDTH SPACE          |
+| U+200C | 8204     |           |                                | ZERO WIDTH NON-JOINER     |
+| U+200D | 8205     |           |                                | ZERO WIDTH JOINER         |
+| U+200E | 8206     |           |                                | LEFT-TO-RIGHT MARK        |
+| U+200F | 8207     |           |                                | RIGHT-TO-LEFT MARK        |
+| U+2028 | 8232     | 20050     |                                | LINE SEPARATOR            |
+| U+2029 | 8233     | 20051     |                                | PARAGRAPH SEPARATOR       |
+| U+205F | 8287     | 20137     |                                | MEDIUM MATHEMATICAL SPACE |
+| U+3000 | 12288    | 30000     |                                | IDEOGRAPHIC SPACE         |
+
+
+* Wikipedia contributors. (2022, November 3). List of Unicode characters. In Wikipedia, The Free Encyclopedia. Retrieved 14:00, November 4, 2022, from https://en.wikipedia.org/w/index.php?title=List_of_Unicode_characters&oldid=1119877694
+* Unicode/Character reference/2000-2FFF. (2021, September 27). Wikibooks, The Free Textbook Project. Retrieved 14:29, November 4, 2022 from https://en.wikibooks.org/w/index.php?title=Unicode/Character_reference/2000-2FFF&oldid=3991460.
+* Unicode/Character reference/3000-3FFF. (2020, March 18). Wikibooks, The Free Textbook Project. Retrieved 14:50, November 4, 2022 from https://en.wikibooks.org/w/index.php?title=Unicode/Character_reference/3000-3FFF&oldid=3668212.
