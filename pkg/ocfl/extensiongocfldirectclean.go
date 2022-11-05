@@ -1,4 +1,4 @@
-package storageroot
+package ocfl
 
 import (
 	"emperror.dev/errors"
@@ -25,7 +25,7 @@ type StorageLayoutDirectClean struct {
 }
 
 type StorageLayoutDirectCleanConfig struct {
-	*Config
+	*ExtensionConfig
 	MaxPathnameLen              int    `json:"maxPathnameLen,omitempty"`
 	MaxFilenameLen              int    `json:"maxFilenameLen,omitempty"`
 	ReplacementString           string `json:"replacementString,omitempty"`
@@ -33,7 +33,12 @@ type StorageLayoutDirectCleanConfig struct {
 	UTFEncode                   bool   `json:"utfEncode,omitempty"`
 }
 
-func NewStorageLayoutDirectClean(config *StorageLayoutDirectCleanConfig) (*StorageLayoutDirectClean, error) {
+func NewStorageLayoutDirectClean(data []byte) (Extension, error) {
+	var config = &StorageLayoutDirectCleanConfig{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal StorageLayoutDirectCleanConfig '%s'", string(data))
+	}
+
 	if config.MaxPathnameLen == 0 {
 		config.MaxPathnameLen = 32000
 	}
@@ -41,8 +46,8 @@ func NewStorageLayoutDirectClean(config *StorageLayoutDirectCleanConfig) (*Stora
 		config.MaxFilenameLen = 127
 	}
 	sl := &StorageLayoutDirectClean{StorageLayoutDirectCleanConfig: config}
-	if config.ExtensionName != sl.Name() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.Name()))
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.Errorf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName())
 	}
 	return sl, nil
 }
@@ -51,7 +56,26 @@ func encodeUTFCode(s string) string {
 	return "=u" + strings.Trim(fmt.Sprintf("%U", []rune(s)), "U+[]")
 }
 
-func (sl *StorageLayoutDirectClean) ExecuteID(fname string) (string, error) {
+func (sl *StorageLayoutDirectClean) GetName() string { return StorageLayoutDirectCleanName }
+
+func (sl *StorageLayoutDirectClean) WriteConfig(configWriter io.Writer) error {
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(sl.StorageLayoutDirectCleanConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
+
+func (sl *StorageLayoutDirectClean) BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error) {
+	return sl.build(id)
+}
+
+func (sl *StorageLayoutDirectClean) BuildObjectContentPath(storageRoot StorageRoot, id string) (string, error) {
+	return sl.build(id)
+}
+
+func (sl *StorageLayoutDirectClean) build(fname string) (string, error) {
 
 	fname = strings.ToValidUTF8(fname, sl.ReplacementString)
 
@@ -93,15 +117,4 @@ func (sl *StorageLayoutDirectClean) ExecuteID(fname string) (string, error) {
 	}
 
 	return fname, nil
-}
-
-func (sl *StorageLayoutDirectClean) Name() string { return StorageLayoutDirectCleanName }
-
-func (sl *StorageLayoutDirectClean) WriteConfig(configWriter io.Writer) error {
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.StorageLayoutDirectCleanConfig); err != nil {
-		return errors.Wrapf(err, "cannot encode config to file")
-	}
-	return nil
 }

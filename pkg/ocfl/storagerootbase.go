@@ -1,41 +1,51 @@
 package ocfl
 
 import (
-	"bytes"
 	"context"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"io"
 	"io/fs"
 	"path/filepath"
 )
 
 type StorageRootBase struct {
-	ctx     context.Context
-	fs      OCFLFS
-	changed bool
-	logger  *logging.Logger
-	layout  storageroot.StorageLayout
-	version OCFLVersion
+	ctx              context.Context
+	fs               OCFLFS
+	extensionFactory *ExtensionFactory
+	extensionManager *ExtensionManager
+	changed          bool
+	logger           *logging.Logger
+	version          OCFLVersion
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootBase, error) {
-	ocfl := &StorageRootBase{ctx: ctx, fs: fs, version: defaultVersion, layout: defaultStorageLayout, logger: logger}
+func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, defaultExtension Extension, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootBase, error) {
+	var err error
+	ocfl := &StorageRootBase{
+		ctx:              ctx,
+		fs:               fs,
+		extensionFactory: extensionFactory,
+		version:          defaultVersion,
+		logger:           logger,
+	}
+	ocfl.extensionManager, err = NewExtensionManager()
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot instantiate extension manager")
+	}
+	if defaultExtension != nil {
+		ocfl.extensionManager.Add(defaultExtension)
+	}
 
 	if err := ocfl.Init(); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize ocfl")
 	}
 	return ocfl, nil
 }
-
-//var NAMASTERootVersionRegexp = regexp.MustCompile("[0-9]+=ocfl_([0-9]+\\.[0-9]+)")
-//var NAMASTEObjectVersionRegexp = regexp.MustCompile("[0-9]+=ocfl_object_([0-9]+\\.[0-9]+)")
 
 var errVersionMultiple = errors.New("multiple version files found")
 var errVersionNone = errors.New("no version file found")
@@ -63,15 +73,8 @@ func (osr *StorageRootBase) Init() error {
 		if _, err := rcd.Write([]byte(rootConformanceDeclaration + "\n")); err != nil {
 			return errors.Wrapf(err, "cannot write into %s", rootConformanceDeclarationFile)
 		}
-
-		configFile := fmt.Sprintf("extensions/%s/config.json", osr.layout.Name())
-		extConfig, err := osr.fs.Create(configFile)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create %s", configFile)
-		}
-		defer extConfig.Close()
-		if err := osr.layout.WriteConfig(extConfig); err != nil {
-			return errors.Wrap(err, "cannot write config")
+		if err := osr.extensionManager.StoreConfigs(osr.fs.SubFS("extensions")); err != nil {
+			return errors.Wrap(err, "cannot store extension configs")
 		}
 	} else {
 		// read storage layout from extension folder...
@@ -83,26 +86,22 @@ func (osr *StorageRootBase) Init() error {
 			}
 			exts = []fs.DirEntry{}
 		}
-		var layout storageroot.StorageLayout
 		for _, extFolder := range exts {
 			extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
 			configReader, err := osr.fs.Open(extConfig)
 			if err != nil {
 				return errors.Wrapf(err, "cannot open %s for reading", extConfig)
 			}
-			buf := bytes.NewBuffer(nil)
-			if _, err := io.Copy(buf, configReader); err != nil {
+			data, err := io.ReadAll(configReader)
+			if err != nil {
 				return errors.Wrapf(err, "cannot read %s", extConfig)
 			}
-			if layout, err = storageroot.NewStorageLayout(buf.Bytes()); err != nil {
-				osr.logger.Warningf("%s not a storage layout: %v", extConfig, err)
-				continue
+			ext, err := osr.extensionFactory.Create(data)
+			if err != nil {
+				return errors.Wrapf(err, "cannot create extension for config '%s' - '%s'", extConfig, string(data))
 			}
-		}
-		if layout == nil {
-			// ...or set to default
-			if layout, err = storageroot.NewDefaultStorageLayout(); err != nil {
-				return errors.Wrap(err, "cannot initiate default storage layout")
+			if err := osr.extensionManager.Add(ext); err != nil {
+				return errors.Wrapf(err, "cannot add extension '%s' to manager", extConfig)
 			}
 		}
 	}
@@ -215,7 +214,7 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 }
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
-	folder, err := osr.layout.ExecuteID(id)
+	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)

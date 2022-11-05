@@ -1,4 +1,4 @@
-package storageroot
+package ocfl
 
 import (
 	"emperror.dev/errors"
@@ -10,21 +10,20 @@ import (
 	"strings"
 )
 
-const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
+const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
 
-type StorageLayoutHashedNTuple struct {
-	*StorageLayoutHashedNTupleConfig
+type StorageLayoutHashAndIdNTuple struct {
+	*StorageLayoutHashAndIdNTupleConfig
 	hash hash.Hash
 }
-type StorageLayoutHashedNTupleConfig struct {
-	*Config
+type StorageLayoutHashAndIdNTupleConfig struct {
+	*ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
-	ShortObjectRoot bool   `json:"shortObjectRoot"`
 }
 
-func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*StorageLayoutHashedNTuple, error) {
+func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig) (*StorageLayoutHashAndIdNTuple, error) {
 	var err error
 	if config.NumberOfTuples > 32 {
 		config.NumberOfTuples = 32
@@ -36,7 +35,7 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 		config.NumberOfTuples = 0
 		config.TupleSize = 0
 	}
-	sl := &StorageLayoutHashedNTuple{StorageLayoutHashedNTupleConfig: config}
+	sl := &StorageLayoutHashAndIdNTuple{StorageLayoutHashAndIdNTupleConfig: config}
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, errors.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
 	}
@@ -47,11 +46,33 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 	return sl, nil
 }
 
-func (sl *StorageLayoutHashedNTuple) Name() string {
-	return StorageLayoutHashedNTupleName
+func (sl *StorageLayoutHashAndIdNTuple) Name() string {
+	return StorageLayoutHashAndIdNTupleName
 }
 
-func (sl *StorageLayoutHashedNTuple) ExecuteID(id string) (string, error) {
+func shouldEscape(c rune) bool {
+	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '-' || c == '_' {
+		return false
+	}
+	// Everything else must be escaped.
+	return true
+}
+
+func escape(str string) string {
+	var result = []byte{}
+	for _, c := range []byte(str) {
+		if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '-' || c == '_' {
+			result = append(result, c)
+			continue
+		}
+		result = append(result, '%')
+		result = append(result, fmt.Sprintf("%x", c)...)
+	}
+	return string(result)
+}
+
+func (sl *StorageLayoutHashAndIdNTuple) ExecuteID(id string) (string, error) {
+	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
 		return "", errors.Wrapf(err, "cannot hash %s", id)
@@ -63,20 +84,20 @@ func (sl *StorageLayoutHashedNTuple) ExecuteID(id string) (string, error) {
 	}
 	dirparts := []string{}
 	for i := 0; i < sl.NumberOfTuples; i++ {
-		dirparts = append(dirparts, digest[i*sl.TupleSize:(i+1)*sl.TupleSize])
+		dirparts = append(dirparts, string(digest[i*sl.TupleSize:(i+1)*sl.TupleSize]))
 	}
-	if sl.ShortObjectRoot {
-		dirparts = append(dirparts, digest[sl.NumberOfTuples*sl.TupleSize:])
-	} else {
-		dirparts = append(dirparts, digest)
+	if len(path) > 100 {
+		path = string([]rune(path)[0:100])
+		path += "-" + digest
 	}
+	dirparts = append(dirparts, path)
 	return strings.Join(dirparts, "/"), nil
 }
 
-func (sl *StorageLayoutHashedNTuple) WriteConfig(configWriter io.Writer) error {
+func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.Config); err != nil {
+	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil

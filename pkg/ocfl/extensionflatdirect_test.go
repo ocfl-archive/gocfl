@@ -1,4 +1,4 @@
-package storageroot
+package ocfl
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ func TestFlatDirectory(t *testing.T) {
 	l := StorageLayoutFlatDirect{}
 	objectID := "object-01"
 	testResult := "object-01"
-	rootPath, err := l.ExecuteID(objectID)
+	rootPath, err := l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -22,7 +22,7 @@ func TestFlatDirectory(t *testing.T) {
 
 	objectID = "..hor_rib:lé-$id"
 	testResult = "..hor_rib:lé-$id"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -37,7 +37,7 @@ func TestFlatDirectory(t *testing.T) {
 	// Example 2
 	objectID = "info:fedora/object-01"
 	testResult = "info:fedora/object-01"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -50,7 +50,7 @@ func TestFlatDirectory(t *testing.T) {
 
 	objectID = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
 	testResult = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {

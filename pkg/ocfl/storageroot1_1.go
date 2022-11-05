@@ -4,7 +4,6 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"strconv"
 )
 
@@ -14,8 +13,8 @@ type StorageRootV1_1 struct {
 	*StorageRootBase
 }
 
-func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, defaultStorageLayout storageroot.StorageLayout, logger *logging.Logger) (*StorageRootV1_1, error) {
-	srb, err := NewStorageRootBase(ctx, fs, Version1_1, defaultStorageLayout, logger)
+func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, defaultStorageLayout Extension, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootV1_1, error) {
+	srb, err := NewStorageRootBase(ctx, fs, Version1_1, defaultStorageLayout, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version1_1)
 	}
@@ -25,7 +24,7 @@ func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, defaultStorageLayout sto
 }
 
 func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
-	folder, err := osr.layout.ExecuteID(id)
+	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)

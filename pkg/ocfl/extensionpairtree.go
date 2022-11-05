@@ -1,4 +1,4 @@
-package storageroot
+package ocfl
 
 import (
 	"emperror.dev/errors"
@@ -31,7 +31,7 @@ type StorageLayoutPairTree struct {
 }
 
 type StorageLayoutPairTreeConfig struct {
-	*Config
+	*ExtensionConfig
 	UriBase         string `json:"uriBase"`
 	StoreDir        string `json:"storeDir"`
 	ShortyLength    int    `json:"shortyLength"`
@@ -110,7 +110,7 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 func (sl *StorageLayoutPairTree) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.Config); err != nil {
+	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil

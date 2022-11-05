@@ -1,13 +1,14 @@
-package storageroot
+package ocfl
 
 import (
 	"fmt"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"testing"
 )
 
 func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	l, err := NewStorageLayoutDirectClean(&StorageLayoutDirectCleanConfig{
-		Config:                      &Config{ExtensionName: StorageLayoutDirectCleanName},
+		Config:                      &storageroot.Config{ExtensionName: StorageLayoutDirectCleanName},
 		MaxPathnameLen:              32000,
 		MaxFilenameLen:              127,
 		WhitespaceReplacementString: " ",
@@ -105,7 +106,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	l, err := NewStorageLayoutDirectClean(&StorageLayoutDirectCleanConfig{
-		Config:                      &Config{ExtensionName: StorageLayoutDirectCleanName},
+		Config:                      &storageroot.Config{ExtensionName: StorageLayoutDirectCleanName},
 		MaxPathnameLen:              32000,
 		MaxFilenameLen:              127,
 		WhitespaceReplacementString: " ",
