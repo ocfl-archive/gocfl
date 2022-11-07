@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
-	"io"
 	"io/fs"
 	"path/filepath"
 )
@@ -87,21 +86,13 @@ func (osr *StorageRootBase) Init() error {
 			exts = []fs.DirEntry{}
 		}
 		for _, extFolder := range exts {
-			extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
-			configReader, err := osr.fs.Open(extConfig)
+			extFolder := fmt.Sprintf("extensions/%s", extFolder.Name())
+			ext, err := osr.extensionFactory.Create(osr.fs.SubFS(extFolder))
 			if err != nil {
-				return errors.Wrapf(err, "cannot open %s for reading", extConfig)
-			}
-			data, err := io.ReadAll(configReader)
-			if err != nil {
-				return errors.Wrapf(err, "cannot read %s", extConfig)
-			}
-			ext, err := osr.extensionFactory.Create(data)
-			if err != nil {
-				return errors.Wrapf(err, "cannot create extension for config '%s' - '%s'", extConfig, string(data))
+				return errors.Wrapf(err, "cannot create extension for config '%s'", extFolder)
 			}
 			if err := osr.extensionManager.Add(ext); err != nil {
-				return errors.Wrapf(err, "cannot add extension '%s' to manager", extConfig)
+				return errors.Wrapf(err, "cannot add extension '%s' to manager", extFolder)
 			}
 		}
 	}

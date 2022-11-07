@@ -3,9 +3,10 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
+	"io"
 )
 
-type creatorFunc func(config []byte) (Extension, error)
+type creatorFunc func(fs OCFLFS) (Extension, error)
 
 type ExtensionFactory struct {
 	creators map[string]creatorFunc
@@ -22,24 +23,34 @@ func (f *ExtensionFactory) AddCreator(name string, creator creatorFunc) {
 	f.creators[name] = creator
 }
 
-func (f *ExtensionFactory) Create(config []byte) (Extension, error) {
+func (f *ExtensionFactory) Create(fs OCFLFS) (Extension, error) {
+	fp, err := fs.Open("config.json")
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open config.json")
+	}
+	defer fp.Close()
+	data, err := io.ReadAll(fp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot read config.json")
+	}
+
 	var temp = map[string]any{}
-	if err := json.Unmarshal(config, &temp); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(config))
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
 	}
 	nameVar, ok := temp["extensionName"]
 	if !ok {
-		return nil, errors.Errorf("no field 'extensionName' in config '%s'", string(config))
+		return nil, errors.Errorf("no field 'extensionName' in config '%s'", string(data))
 	}
 	name, ok := nameVar.(string)
 	if !ok {
-		return nil, errors.Errorf("field 'extensionName' is not a string in config '%s'", string(config))
+		return nil, errors.Errorf("field 'extensionName' is not a string in config '%s'", string(data))
 	}
 	creator, ok := f.creators[name]
 	if !ok {
 		return nil, errors.Errorf("unknown extension '%s'", name)
 	}
-	ext, err := creator(config)
+	ext, err := creator(fs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize extension '%s'", name)
 	}

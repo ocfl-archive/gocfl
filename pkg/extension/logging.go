@@ -1,4 +1,4 @@
-package object
+package extension
 
 import (
 	"emperror.dev/errors"

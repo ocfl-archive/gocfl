@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension/object"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -32,14 +32,14 @@ type ObjectBase struct {
 	changed            bool
 	logger             *logging.Logger
 	version            OCFLVersion
-	path               object.Path
+	path               extension.Path
 }
 
 // NewObjectBase creates an empty ObjectBase structure
 func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, id string, logger *logging.Logger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{ctx: ctx, fs: fs, version: defaultVersion, logger: logger}
 	if id != "" {
-		dPath, err := object.NewDefaultPath()
+		dPath, err := extension.NewDefaultPath()
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot initialize default path")
 		}
@@ -195,7 +195,7 @@ func (ocfl *ObjectBase) StoreExtensions() error {
 	}
 	return nil
 }
-func (ocfl *ObjectBase) New(id string, path object.Path) error {
+func (ocfl *ObjectBase) New(id string, path extension.Path) error {
 	ocfl.logger.Debugf("%s", id)
 
 	ocfl.path = path
@@ -267,7 +267,7 @@ func (ocfl *ObjectBase) Load() (err error) {
 			return errors.Wrapf(err, "cannot read %s", extConfig)
 		}
 		configReader.Close()
-		if ocfl.path, err = object.NewPath(buf.Bytes()); err != nil {
+		if ocfl.path, err = extension.NewPath(buf.Bytes()); err != nil {
 			ocfl.logger.Warningf("%s not a storage layout: %v", extConfig, err)
 			continue
 		}
@@ -290,7 +290,7 @@ func (ocfl *ObjectBase) Load() (err error) {
 	}
 	if ocfl.path == nil {
 		// ...or set to default
-		if ocfl.path, err = object.NewDefaultPath(); err != nil {
+		if ocfl.path, err = extension.NewDefaultPath(); err != nil {
 			return errors.Wrap(err, "cannot initiate default storage layout")
 		}
 	}
@@ -451,8 +451,8 @@ func (ocfl *ObjectBase) checkVersionFolder(version string) error {
 				ocfl.addValidationError(E015, "forbidden file \"%s\" in version directory \"%s\"", ve.Name(), version)
 			}
 			// else {
-			//	if ve.Name() != "content" {
-			//		ocfl.addValidationError(E022, "forbidden subfolder \"%s\" in version directory \"%s\"", ve.Name(), version)
+			//	if ve.GetName() != "content" {
+			//		ocfl.addValidationError(E022, "forbidden subfolder \"%s\" in version directory \"%s\"", ve.GetName(), version)
 			//	}
 		}
 	}

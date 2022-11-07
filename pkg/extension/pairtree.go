@@ -1,17 +1,18 @@
-package ocfl
+package extension
 
 import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"hash"
 	"io"
 	"math"
 	"strings"
 )
 
-const StorageLayoutPairTreeName = "gocfl-pairtree"
+const StorageLayoutPairTreeName = "NNNN-pairtree-storage-layout"
 
 /*
 	https://pythonhosted.org/Pairtree/pairtree.pairtree_client.PairtreeStorageClient-class.html
@@ -31,11 +32,28 @@ type StorageLayoutPairTree struct {
 }
 
 type StorageLayoutPairTreeConfig struct {
-	*ExtensionConfig
+	*ocfl.ExtensionConfig
 	UriBase         string `json:"uriBase"`
 	StoreDir        string `json:"storeDir"`
 	ShortyLength    int    `json:"shortyLength"`
 	DigestAlgorithm string `json:"digestAlgorithm"`
+}
+
+func NewStorageLayoutPairTreeFS(fs ocfl.OCFLFS) (*StorageLayoutPairTree, error) {
+	fp, err := fs.Open("config.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot open config.json")
+	}
+	defer fp.Close()
+	data, err := io.ReadAll(fp)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read config.json")
+	}
+	var config = &StorageLayoutPairTreeConfig{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	return NewStorageLayoutPairTree(config)
 }
 
 func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayoutPairTree, error) {
@@ -44,18 +62,26 @@ func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayo
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, errors.Wrapf(err, "hash %s not found", config.DigestAlgorithm)
 	}
-	if config.ExtensionName != sl.Name() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.Name()))
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
 	}
 
 	return sl, nil
 }
 
-func (sl *StorageLayoutPairTree) Name() string {
+func (sl *StorageLayoutPairTree) GetName() string {
 	return StorageLayoutPairTreeName
 }
+func (sl *StorageLayoutPairTree) WriteConfig(configWriter io.Writer) error {
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
 
-func (sl *StorageLayoutPairTree) ExecuteID(id string) (string, error) {
+func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))
@@ -105,13 +131,4 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 		}
 	}
 	return string(result)
-}
-
-func (sl *StorageLayoutPairTree) WriteConfig(configWriter io.Writer) error {
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
-		return errors.Wrapf(err, "cannot encode config to file")
-	}
-	return nil
 }

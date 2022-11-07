@@ -1,9 +1,8 @@
-package ocfl
+package extension
 
 import (
 	"fmt"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension/storageroot"
 	"testing"
 )
 
@@ -11,7 +10,7 @@ func TestPairtreeIDEncode(t *testing.T) {
 	fmt.Printf("(NewPairTreeStorageLayout(%s, %s, %v, %s)\n", "", "", 2, checksum.DigestSHA256)
 
 	ptsl, err := NewStorageLayoutPairTree(&StorageLayoutPairTreeConfig{
-		Config:          &storageroot.Config{ExtensionName: "gocfl-pairtree"},
+		Config:          &Config{ExtensionName: "gocfl-pairtree"},
 		UriBase:         "",
 		StoreDir:        "",
 		ShortyLength:    2,

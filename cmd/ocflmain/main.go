@@ -7,6 +7,7 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/op/go-logging"
 	flag "github.com/spf13/pflag"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"go.ub.unibas.ch/gocfl/v2/pkg/osfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
@@ -51,7 +52,7 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 }
 
 func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
-	defaultStorageLayout, err := ocfl.NewDefaultStorageRootExtension()
+	defaultStorageLayout, err := extension.NewDefaultStorageRootExtension()
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +81,7 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 		return errors.Errorf("source dir %s is not a directory", srcdir)
 	}
 
-	defaultStorageLayout, err := ocfl.NewDefaultStorageRootExtension()
+	defaultStorageLayout, err := extension.NewDefaultStorageRootExtension()
 	if err != nil {
 		panic(err)
 	}
@@ -135,12 +136,28 @@ func main() {
 		return
 	}
 
-	extensionFactory.AddCreator(ocfl.StorageLayoutDirectCleanName, func(config []byte) (ocfl.Extension, error) {
-		return ocfl.NewStorageLayoutDirectClean(config)
+	extensionFactory.AddCreator(extension.DirectCleanName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewDirectCleanFS(fs)
 	})
 
-	extensionFactory.AddCreator(ocfl.StorageLayoutFlatDirectName, func(config []byte) (ocfl.Extension, error) {
-		return ocfl.NewStorageLayoutFlatDirect(config)
+	extensionFactory.AddCreator(extension.PathDirectName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewPathDirectFS(fs)
+	})
+
+	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewStorageLayoutFlatDirectFS(fs)
+	})
+
+	extensionFactory.AddCreator(extension.StorageLayoutHashAndIdNTupleName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewStorageLayoutHashAndIdNTupleFS(fs)
+	})
+
+	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewStorageLayoutHashedNTupleFS(fs)
+	})
+
+	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewStorageLayoutPairTreeFS(fs)
 	})
 
 	var ocfs ocfl.OCFLFS

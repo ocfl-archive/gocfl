@@ -121,7 +121,7 @@ func (v *Version) EqualState(v2 *Version) bool {
 	/*
 		if v.Created.Time.String() != v2.Created.Time.String() ||
 			v.Message.string != v2.Message.string ||
-			v.User.Name.string != v2.User.Name.string ||
+			v.User.GetName.string != v2.User.GetName.string ||
 			v.User.Address.string != v2.User.Address.string {
 			return false
 		}

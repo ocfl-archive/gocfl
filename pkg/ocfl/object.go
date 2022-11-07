@@ -5,7 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension/object"
+	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -15,7 +15,7 @@ type Object interface {
 	LoadInventory() (Inventory, error)
 	StoreInventory() error
 	StoreExtensions() error
-	New(id string, path object.Path) error
+	New(id string, path extension.Path) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string) error
 	AddFolder(fsys fs.FS) error

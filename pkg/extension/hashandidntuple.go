@@ -1,10 +1,11 @@
-package ocfl
+package extension
 
 import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"hash"
 	"io"
 	"strings"
@@ -17,10 +18,27 @@ type StorageLayoutHashAndIdNTuple struct {
 	hash hash.Hash
 }
 type StorageLayoutHashAndIdNTupleConfig struct {
-	*ExtensionConfig
+	*ocfl.ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
+}
+
+func NewStorageLayoutHashAndIdNTupleFS(fs ocfl.OCFLFS) (*StorageLayoutHashAndIdNTuple, error) {
+	fp, err := fs.Open("config.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot open config.json")
+	}
+	defer fp.Close()
+	data, err := io.ReadAll(fp)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read config.json")
+	}
+	var config = &StorageLayoutHashAndIdNTupleConfig{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	return NewStorageLayoutHashAndIdNTuple(config)
 }
 
 func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig) (*StorageLayoutHashAndIdNTuple, error) {
@@ -39,15 +57,23 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, errors.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
 	}
-	if config.ExtensionName != sl.Name() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.Name()))
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
 	}
 
 	return sl, nil
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) Name() string {
+func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
+}
+func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(configWriter io.Writer) error {
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
 }
 
 func shouldEscape(c rune) bool {
@@ -71,7 +97,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) ExecuteID(id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
@@ -92,13 +118,4 @@ func (sl *StorageLayoutHashAndIdNTuple) ExecuteID(id string) (string, error) {
 	}
 	dirparts = append(dirparts, path)
 	return strings.Join(dirparts, "/"), nil
-}
-
-func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(configWriter io.Writer) error {
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
-		return errors.Wrapf(err, "cannot encode config to file")
-	}
-	return nil
 }

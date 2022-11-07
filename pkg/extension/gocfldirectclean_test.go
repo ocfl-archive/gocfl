@@ -1,4 +1,4 @@
-package ocfl
+package extension
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 )
 
 func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
-	l, err := NewStorageLayoutDirectClean(&StorageLayoutDirectCleanConfig{
-		Config:                      &storageroot.Config{ExtensionName: StorageLayoutDirectCleanName},
+	l, err := NewStorageLayoutDirectClean(&DirectCleanConfig{
+		Config:                      &storageroot.Config{ExtensionName: DirectCleanName},
 		MaxPathnameLen:              32000,
 		MaxFilenameLen:              127,
 		WhitespaceReplacementString: " ",
@@ -24,7 +24,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	if rootPath != testResult {
 		t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 	}
-	fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+	fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 
 	objectID = "..hor_rib:lé-$id"
 	testResult = "..hor_rib_lé-$id"
@@ -35,7 +35,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -50,7 +50,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -63,7 +63,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -76,7 +76,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -89,7 +89,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -97,7 +97,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	testResult = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
 	rootPath, err = l.ExecuteID(objectID)
 	if err != nil {
-		fmt.Printf("StorageLayoutDirectClean(%s) -> %v\n", objectID, err)
+		fmt.Printf("DirectClean(%s) -> %v\n", objectID, err)
 	} else {
 		t.Errorf("%s -> should have error too long", objectID)
 	}
@@ -105,8 +105,8 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 }
 
 func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
-	l, err := NewStorageLayoutDirectClean(&StorageLayoutDirectCleanConfig{
-		Config:                      &storageroot.Config{ExtensionName: StorageLayoutDirectCleanName},
+	l, err := NewStorageLayoutDirectClean(&DirectCleanConfig{
+		Config:                      &storageroot.Config{ExtensionName: DirectCleanName},
 		MaxPathnameLen:              32000,
 		MaxFilenameLen:              127,
 		WhitespaceReplacementString: " ",
@@ -122,7 +122,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	if rootPath != testResult {
 		t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 	}
-	fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+	fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 
 	objectID = "..hor_rib:lé-$id"
 	testResult = "..hor_rib=u003Alé-$id"
@@ -133,7 +133,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -148,7 +148,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -161,7 +161,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -174,7 +174,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -187,7 +187,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 		if rootPath != testResult {
 			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
 		} else {
-			fmt.Printf("StorageLayoutDirectClean(%s) -> %s\n", objectID, rootPath)
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
 		}
 	}
 
@@ -195,7 +195,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	testResult = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
 	rootPath, err = l.ExecuteID(objectID)
 	if err != nil {
-		fmt.Printf("StorageLayoutDirectClean(%s) -> %v\n", objectID, err)
+		fmt.Printf("DirectClean(%s) -> %v\n", objectID, err)
 	} else {
 		t.Errorf("%s -> should have error too long", objectID)
 	}
