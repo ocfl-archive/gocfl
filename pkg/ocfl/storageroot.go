@@ -16,6 +16,7 @@ type StorageRoot interface {
 	GetObjectFolders() ([]string, error)
 	OpenObjectFolder(folder string) (Object, error)
 	OpenObject(id string) (Object, error)
+	CreateExtension(fs OCFLFS) (Extension, error)
 	Check() error
 }
 

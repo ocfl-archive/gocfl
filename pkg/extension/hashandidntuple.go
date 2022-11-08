@@ -64,6 +64,9 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 	return sl, nil
 }
 
+func (*StorageLayoutHashAndIdNTuple) IsObjectExtension() bool      { return false }
+func (*StorageLayoutHashAndIdNTuple) IsStoragerootExtension() bool { return true }
+
 func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }

@@ -1,14 +1,12 @@
 package ocfl
 
 import (
-	"bytes"
 	"context"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -24,6 +22,8 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type ObjectBase struct {
+	storageRoot        StorageRoot
+	extensionManager   *ExtensionManager
 	ctx                context.Context
 	fs                 OCFLFS
 	i                  Inventory
@@ -32,19 +32,14 @@ type ObjectBase struct {
 	changed            bool
 	logger             *logging.Logger
 	version            OCFLVersion
-	path               extension.Path
 }
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, id string, logger *logging.Logger) (*ObjectBase, error) {
-	ocfl := &ObjectBase{ctx: ctx, fs: fs, version: defaultVersion, logger: logger}
+func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, id string, storageroot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
+	ocfl := &ObjectBase{ctx: ctx, fs: fs, version: defaultVersion, storageRoot: storageroot, logger: logger}
 	if id != "" {
-		dPath, err := extension.NewDefaultPath()
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot initialize default path")
-		}
 		// create initial filesystem structure for new object
-		if err := ocfl.New(id, dPath); err == nil {
+		if err := ocfl.New(id); err == nil {
 			return ocfl, nil
 		}
 	}
@@ -184,21 +179,14 @@ func (ocfl *ObjectBase) StoreInventory() error {
 
 func (ocfl *ObjectBase) StoreExtensions() error {
 	ocfl.logger.Debug()
-	configFile := fmt.Sprintf("extensions/%s/config.json", ocfl.path.Name())
-	extConfig, err := ocfl.fs.Create(configFile)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", configFile)
-	}
-	defer extConfig.Close()
-	if err := ocfl.path.WriteConfig(extConfig); err != nil {
-		return errors.Wrap(err, "cannot write config")
+	if err := ocfl.extensionManager.StoreConfigs(ocfl.fs.SubFS("extensions")); err != nil {
+		return errors.Wrap(err, "cannot store extension configs")
 	}
 	return nil
 }
-func (ocfl *ObjectBase) New(id string, path extension.Path) error {
+func (ocfl *ObjectBase) New(id string) error {
 	ocfl.logger.Debugf("%s", id)
 
-	ocfl.path = path
 	objectConformanceDeclaration := "ocfl_object_" + string(ocfl.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
@@ -251,50 +239,15 @@ func (ocfl *ObjectBase) Load() (err error) {
 			ocfl.addValidationError(E067, "invalid file '%s' in extension dir", extFolder.Name())
 			continue
 		}
-		extConfig := fmt.Sprintf("extensions/%s/config.json", extFolder.Name())
-		configReader, err := ocfl.fs.Open(extConfig)
+		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
+		ext, err := ocfl.storageRoot.CreateExtension(ocfl.fs.SubFS(extConfig))
 		if err != nil {
-			if ocfl.fs.IsNotExist(err) {
-				ocfl.addValidationError(E067, "'%s' not a valid extension dir", extFolder.Name())
-				continue
-			} else {
-				return errors.Wrapf(err, "cannot open %s for reading", extConfig)
-			}
+			return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
 		}
-		buf := bytes.NewBuffer(nil)
-		if _, err := io.Copy(buf, configReader); err != nil {
-			configReader.Close()
-			return errors.Wrapf(err, "cannot read %s", extConfig)
-		}
-		configReader.Close()
-		if ocfl.path, err = extension.NewPath(buf.Bytes()); err != nil {
-			ocfl.logger.Warningf("%s not a storage layout: %v", extConfig, err)
-			continue
-		}
-		// check for invalid files and folders
-		files, err := ocfl.fs.ReadDir(fmt.Sprintf("extensions/%s", extFolder.Name()))
-		if err != nil {
-			return errors.Wrapf(err, "cannot read content of extensions/%s", extFolder.Name())
-		}
-		for _, file := range files {
-			if !file.IsDir() {
-				if file.Name() == "config.json" {
-					continue
-				}
-				ocfl.addValidationError(E067, "invalid file '%s' in extension/%s dir", file.Name(), extFolder.Name())
-			} else {
-				ocfl.addValidationError(E067, "invalid folder '%s' in extension/%s dir", file.Name(), extFolder.Name())
-			}
-
+		if err := ocfl.extensionManager.Add(ext); err != nil {
+			return errors.Wrapf(err, "cannot add extension %s", extFolder.Name())
 		}
 	}
-	if ocfl.path == nil {
-		// ...or set to default
-		if ocfl.path, err = extension.NewDefaultPath(); err != nil {
-			return errors.Wrap(err, "cannot initiate default storage layout")
-		}
-	}
-
 	// load the inventory
 	if ocfl.i, err = ocfl.LoadInventory(); err != nil {
 		return errors.Wrap(err, "cannot load inventory.json of root")
@@ -382,7 +335,7 @@ func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest
 	var realFilename string
 	if !ocfl.i.IsDuplicate(digest) {
 		//		realFilename = ocfl.i.BuildRealname(virtualFilename)
-		if realFilename, err = ocfl.path.ExecutePath(virtualFilename); err != nil {
+		if realFilename, err = ocfl.extensionManager.BuildObjectContentPath(ocfl, virtualFilename); err != nil {
 			return errors.Wrapf(err, "cannot transform filename %s", virtualFilename)
 		}
 		realFilename = ocfl.i.BuildRealname(realFilename)

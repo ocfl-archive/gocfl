@@ -69,9 +69,10 @@ func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayo
 	return sl, nil
 }
 
-func (sl *StorageLayoutPairTree) GetName() string {
-	return StorageLayoutPairTreeName
-}
+func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }
+func (sl *StorageLayoutPairTree) IsStoragerootExtension() bool { return true }
+func (sl *StorageLayoutPairTree) GetName() string              { return StorageLayoutPairTreeName }
+
 func (sl *StorageLayoutPairTree) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")

@@ -95,17 +95,22 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 		StackTrace() errors.StackTrace
 	}
 
-	e := emperror.ExposeStackTrace(err)
-	st, ok := e.(stackTracer)
-	if !ok {
-		return nil
-	}
+	var stack errors.StackTrace
 
-	stack := st.StackTrace()
+	errors.UnwrapEach(err, func(err error) bool {
+		e := emperror.ExposeStackTrace(err)
+		st, ok := e.(stackTracer)
+		if !ok {
+			return true
+		}
+
+		stack = st.StackTrace()
+		return true
+	})
+
 	if len(stack) > 2 {
 		stack = stack[:len(stack)-2]
 	}
-
 	return stack
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }

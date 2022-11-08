@@ -20,13 +20,13 @@ type LoggingIndexer struct {
 
 func NewLoggingIndexer(config *LoggingIndexerConfig) (*LoggingIndexer, error) {
 	li := &LoggingIndexer{LoggingIndexerConfig: config, metadata: map[string]any{}}
-	if config.ExtensionName != li.Name() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, li.Name()))
+	if config.ExtensionName != li.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, li.GetName()))
 	}
 	return li, nil
 }
 
-func (li *LoggingIndexer) Name() string {
+func (li *LoggingIndexer) GetName() string {
 	return LoggingIndexerName
 }
 func (li *LoggingIndexer) Start() error {

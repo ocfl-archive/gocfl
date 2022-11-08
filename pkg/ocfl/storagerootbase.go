@@ -87,18 +87,23 @@ func (osr *StorageRootBase) Init() error {
 		}
 		for _, extFolder := range exts {
 			extFolder := fmt.Sprintf("extensions/%s", extFolder.Name())
-			ext, err := osr.extensionFactory.Create(osr.fs.SubFS(extFolder))
-			if err != nil {
-				return errors.Wrapf(err, "cannot create extension for config '%s'", extFolder)
-			}
-			if err := osr.extensionManager.Add(ext); err != nil {
-				return errors.Wrapf(err, "cannot add extension '%s' to manager", extFolder)
+			if ext, err := osr.extensionFactory.Create(osr.fs.SubFS(extFolder)); err != nil {
+				osr.addValidationError(E000, "unknown extension in folder '%s'", extFolder)
+				//return errors.Wrapf(err, "cannot create extension for config '%s'", extFolder)
+			} else {
+				if err := osr.extensionManager.Add(ext); err != nil {
+					return errors.Wrapf(err, "cannot add extension '%s' to manager", extFolder)
+				}
 			}
 		}
 	}
 	return nil
 }
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
+
+func (osr *StorageRootBase) CreateExtension(fs OCFLFS) (Extension, error) {
+	return osr.extensionFactory.Create(fs)
+}
 
 func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error {
 	extConfig := fmt.Sprintf("extensions/%s/config.json", name)
@@ -201,19 +206,19 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s", folder)
 	}
-	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, "", osr.logger)
+	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, "", osr, osr.logger)
 }
 
 func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)
+		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr, osr.logger)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
 	}
-	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, id, osr.logger)
+	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, id, osr, osr.logger)
 }
 
 func (osr *StorageRootBase) Check() error {
@@ -274,7 +279,7 @@ func (osr *StorageRootBase) CheckObjects() error {
 		fmt.Printf("object folder '%s'\n", objectFolder)
 		objfs := osr.fs.SubFS(objectFolder)
 		ctx := NewContextValidation(context.TODO())
-		object, err := NewObject(ctx, objfs, "", "", osr.logger)
+		object, err := NewObject(ctx, objfs, "", "", osr, osr.logger)
 		if err != nil {
 			return errors.Wrap(err, "cannot load object")
 		}

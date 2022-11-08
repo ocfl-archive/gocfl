@@ -41,6 +41,10 @@ func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*Storage
 	}
 	return sl, nil
 }
+
+func (sl *StorageLayoutFlatDirect) IsObjectExtension() bool      { return false }
+func (sl *StorageLayoutFlatDirect) IsStoragerootExtension() bool { return true }
+
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
 func (sl *StorageLayoutFlatDirect) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)

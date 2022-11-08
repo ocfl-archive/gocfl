@@ -15,7 +15,7 @@ func NewDefaultStorageRootExtension() (ocfl.Extension, error) {
 		ReplacementString:           "_",
 		UTFEncode:                   true,
 	}
-	layout, err := NewStorageLayoutDirectClean(nil, cfg)
+	layout, err := NewDirectClean(cfg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize %s", cfg.ExtensionName)
 	}

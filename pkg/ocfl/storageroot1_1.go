@@ -27,7 +27,7 @@ func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr.logger)
+		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr, osr.logger)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
@@ -44,5 +44,5 @@ func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 	if versionFloat > rootVersionFloat {
 		return nil, errors.Errorf("root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version)
 	}
-	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, id, osr.logger)
+	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, id, osr, osr.logger)
 }

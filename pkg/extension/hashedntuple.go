@@ -65,9 +65,10 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 	return sl, nil
 }
 
-func (sl *StorageLayoutHashedNTuple) GetName() string {
-	return StorageLayoutHashedNTupleName
-}
+func (sl *StorageLayoutHashedNTuple) IsObjectExtension() bool      { return false }
+func (sl *StorageLayoutHashedNTuple) IsStoragerootExtension() bool { return true }
+func (sl *StorageLayoutHashedNTuple) GetName() string              { return StorageLayoutHashedNTupleName }
+
 func (sl *StorageLayoutHashedNTuple) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")

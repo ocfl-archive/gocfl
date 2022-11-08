@@ -42,7 +42,9 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 	}
 	return sl, nil
 }
-func (sl *PathDirect) GetName() string { return PathDirectName }
+func (sl *PathDirect) IsObjectExtension() bool      { return false }
+func (sl *PathDirect) IsStoragerootExtension() bool { return true }
+func (sl *PathDirect) GetName() string              { return PathDirectName }
 func (sl *PathDirect) WriteConfig(configWriter io.Writer) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")

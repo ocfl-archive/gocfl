@@ -61,6 +61,10 @@ func (ofs *FS) Create(name string) (io.WriteCloser, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
 	fullpath := filepath.Join(ofs.folder, name)
 	ofs.logger.Debugf("creating %s", fullpath)
+	dir := filepath.Dir(fullpath)
+	if err := os.MkdirAll(dir, 0777); err != nil {
+		return nil, errors.Wrapf(err, "cannot create folder '%s'", dir)
+	}
 	file, err := os.Create(fullpath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create %s", fullpath)

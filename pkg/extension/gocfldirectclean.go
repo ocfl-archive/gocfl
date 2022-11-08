@@ -70,6 +70,9 @@ func encodeUTFCode(s string) string {
 }
 
 // interface Extension
+func (*DirectClean) IsObjectExtension() bool      { return true }
+func (*DirectClean) IsStoragerootExtension() bool { return true }
+
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
 // interface Extension

@@ -38,6 +38,7 @@ func showStatus(ctx context.Context) error {
 	return nil
 }
 
+/*
 func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
@@ -50,6 +51,7 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 	}
 	return nil
 }
+*/
 
 func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
 	defaultStorageLayout, err := extension.NewDefaultStorageRootExtension()
@@ -167,13 +169,13 @@ func main() {
 	var zipWriter *os.File
 
 	var zipFile string
-	var objectPath string
+	//var objectPath string
 	if strings.HasSuffix(strings.ToLower(*target), ".zip") {
 		zipFile = *target
 	} else {
 		if pos := strings.Index(*target, ".zip/"); pos != -1 {
 			zipFile = (*target)[0 : pos+4]
-			objectPath = (*target)[pos+4:]
+			//objectPath = (*target)[pos+4:]
 		}
 	}
 	if zipFile != "" {
@@ -213,15 +215,18 @@ func main() {
 	switch {
 	case *srcDir != "":
 		if err := ingest(ocfs, *srcDir, extensionFactory, logger); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			stackTrace := ocfl.GetErrorStacktrace(err)
+			logger.Errorf("%v%+v", err, stackTrace)
 			panic(err)
 		}
-	case *checkObjectFlag:
-		objfs := ocfs.SubFS(objectPath)
-		if err := checkObject(objfs, extensionFactory, logger); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			panic(err)
-		}
+		/*
+			case *checkObjectFlag:
+				objfs := ocfs.SubFS(objectPath)
+				if err := checkObject(objfs, extensionFactory, logger); err != nil {
+					logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+					panic(err)
+				}
+		*/
 	case *checkFlag:
 		if err := check(ocfs, extensionFactory, logger); err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

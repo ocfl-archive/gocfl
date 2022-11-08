@@ -5,7 +5,6 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -15,7 +14,7 @@ type Object interface {
 	LoadInventory() (Inventory, error)
 	StoreInventory() error
 	StoreExtensions() error
-	New(id string, path extension.Path) error
+	New(id string) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string) error
 	AddFolder(fsys fs.FS) error
@@ -66,7 +65,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 	return version, nil
 }
 
-func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string, logger *logging.Logger) (Object, error) {
+func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string, storageroot StorageRoot, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)
@@ -76,13 +75,13 @@ func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string,
 	}
 	switch version {
 	case Version1_1:
-		o, err := NewObjectV1_1(ctx, fsys, id, logger)
+		o, err := NewObjectV1_1(ctx, fsys, id, storageroot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	default:
-		o, err := NewObjectV1_0(ctx, fsys, id, logger)
+		o, err := NewObjectV1_0(ctx, fsys, id, storageroot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
