@@ -53,6 +53,10 @@ func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format
 	addValidationErrors(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...))
 }
 
+func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
+	addValidationWarnings(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...))
+}
+
 func (osr *StorageRootBase) Init() error {
 	var err error
 	osr.logger.Debug()
@@ -88,7 +92,7 @@ func (osr *StorageRootBase) Init() error {
 		for _, extFolder := range exts {
 			extFolder := fmt.Sprintf("extensions/%s", extFolder.Name())
 			if ext, err := osr.extensionFactory.Create(osr.fs.SubFS(extFolder)); err != nil {
-				osr.addValidationError(E000, "unknown extension in folder '%s'", extFolder)
+				osr.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder)
 				//return errors.Wrapf(err, "cannot create extension for config '%s'", extFolder)
 			} else {
 				if err := osr.extensionManager.Add(ext); err != nil {

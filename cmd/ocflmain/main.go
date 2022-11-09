@@ -88,10 +88,13 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 		panic(err)
 	}
 
-	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, defaultStorageLayout, extensionFactory, logger)
+	ctx := ocfl.NewContextValidation(context.TODO())
+	storageRoot, err := ocfl.NewStorageRoot(ctx, dest, VERSION, defaultStorageLayout, extensionFactory, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
+
+	defer showStatus(ctx)
 
 	// TEST042
 	o, err := storageRoot.OpenObject("test042")
@@ -188,7 +191,6 @@ func main() {
 				logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 				panic(err)
 			}
-
 		}
 
 		if *srcDir != "" {
@@ -204,7 +206,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		ocfs, err = osfs.NewFSIO(*target, logger)
+		ocfs, err = osfs.NewFSIO(".", logger)
 		if err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
@@ -249,11 +251,11 @@ func main() {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
-		if zipWriter != nil {
-			if err := os.Rename(fmt.Sprintf("%s.tmp", *target), *target); err != nil {
-				logger.Error(err)
-				panic(err)
-			}
+	}
+	if zipWriter != nil {
+		if err := os.Rename(fmt.Sprintf("%s.tmp", *target), *target); err != nil {
+			logger.Error(err)
+			panic(err)
 		}
 	}
 }

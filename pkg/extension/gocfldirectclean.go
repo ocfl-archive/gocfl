@@ -76,7 +76,12 @@ func (*DirectClean) IsStoragerootExtension() bool { return true }
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
 // interface Extension
-func (sl *DirectClean) WriteConfig(configWriter io.Writer) error {
+func (sl *DirectClean) WriteConfig(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.DirectCleanConfig); err != nil {

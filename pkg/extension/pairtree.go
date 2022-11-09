@@ -73,7 +73,12 @@ func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }
 func (sl *StorageLayoutPairTree) IsStoragerootExtension() bool { return true }
 func (sl *StorageLayoutPairTree) GetName() string              { return StorageLayoutPairTreeName }
 
-func (sl *StorageLayoutPairTree) WriteConfig(configWriter io.Writer) error {
+func (sl *StorageLayoutPairTree) WriteConfig(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.ExtensionConfig); err != nil {

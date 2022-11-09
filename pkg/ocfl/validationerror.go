@@ -122,6 +122,7 @@ const (
 	E110 = ValidationErrorCode("E110")
 	E111 = ValidationErrorCode("E111")
 	E112 = ValidationErrorCode("E112")
+	W000 = ValidationErrorCode("W000")
 	W001 = ValidationErrorCode("W001")
 	W002 = ValidationErrorCode("W002")
 	W003 = ValidationErrorCode("W003")

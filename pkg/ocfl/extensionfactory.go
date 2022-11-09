@@ -9,7 +9,9 @@ import (
 type creatorFunc func(fs OCFLFS) (Extension, error)
 
 type ExtensionFactory struct {
-	creators map[string]creatorFunc
+	creators           map[string]creatorFunc
+	defaultStorageRoot []Extension
+	defaultObject      []Extension
 }
 
 func NewExtensionFactory() (*ExtensionFactory, error) {
@@ -23,6 +25,14 @@ func (f *ExtensionFactory) AddCreator(name string, creator creatorFunc) {
 	f.creators[name] = creator
 }
 
+func (f *ExtensionFactory) AddStorageRootDefaultExtension(ext Extension) {
+	f.defaultStorageRoot = append(f.defaultStorageRoot, ext)
+}
+
+func (f *ExtensionFactory) AddObjectDefaultExtension(ext Extension) {
+	f.defaultObject = append(f.defaultObject, ext)
+}
+
 func (f *ExtensionFactory) Create(fs OCFLFS) (Extension, error) {
 	fp, err := fs.Open("config.json")
 	if err != nil {
@@ -33,7 +43,6 @@ func (f *ExtensionFactory) Create(fs OCFLFS) (Extension, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read config.json")
 	}
-
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))

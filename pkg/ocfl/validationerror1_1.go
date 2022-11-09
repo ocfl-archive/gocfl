@@ -112,6 +112,7 @@ var OCFLValidationError1_1 = map[ValidationErrorCode]*ValidationError{
 	E110: {Code: E110, Description: "‘A unique identifier for the OCFL Object MUST NOT change between versions of the same object.’", Ref: "https://ocfl.io/1.1/spec/#E110"},
 	E111: {Code: E111, Description: "‘If present, [the value of the fixity key] MUST be a JSON object, which may be empty.’", Ref: "https://ocfl.io/1.1/spec/#E111"},
 	E112: {Code: E112, Description: "‘The extensions directory must not contain any files or sub-directories other than extension sub-directories.’", Ref: "https://ocfl.io/1.1/spec/#E112"},
+	W000: {Code: W000, Description: "unknown warning", Ref: "https://ocfl.io/1.1/spec/"},
 	W001: {Code: W001, Description: "‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’", Ref: "https://ocfl.io/1.1/spec/#W001"},
 	W002: {Code: W002, Description: "‘The version directory SHOULD NOT contain any directories other than the designated content sub-directory. Once created, the contents of a version directory are expected to be immutable.’", Ref: "https://ocfl.io/1.1/spec/#W002"},
 	W003: {Code: W003, Description: "‘Version directories must contain a designated content sub-directory if the version contains files to be preserved, and SHOULD NOT contain this sub-directory otherwise.’", Ref: "https://ocfl.io/1.1/spec/#W003"},

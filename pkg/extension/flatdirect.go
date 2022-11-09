@@ -46,7 +46,12 @@ func (sl *StorageLayoutFlatDirect) IsObjectExtension() bool      { return false 
 func (sl *StorageLayoutFlatDirect) IsStoragerootExtension() bool { return true }
 
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
-func (sl *StorageLayoutFlatDirect) WriteConfig(configWriter io.Writer) error {
+func (sl *StorageLayoutFlatDirect) WriteConfig(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.ExtensionConfig); err != nil {

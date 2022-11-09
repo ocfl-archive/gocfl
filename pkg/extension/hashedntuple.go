@@ -69,7 +69,12 @@ func (sl *StorageLayoutHashedNTuple) IsObjectExtension() bool      { return fals
 func (sl *StorageLayoutHashedNTuple) IsStoragerootExtension() bool { return true }
 func (sl *StorageLayoutHashedNTuple) GetName() string              { return StorageLayoutHashedNTupleName }
 
-func (sl *StorageLayoutHashedNTuple) WriteConfig(configWriter io.Writer) error {
+func (sl *StorageLayoutHashedNTuple) WriteConfig(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.ExtensionConfig); err != nil {

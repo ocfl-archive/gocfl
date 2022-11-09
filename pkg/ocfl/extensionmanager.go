@@ -2,7 +2,6 @@ package ocfl
 
 import (
 	"emperror.dev/errors"
-	"fmt"
 )
 
 type ExtensionManager struct {
@@ -63,16 +62,9 @@ func (manager *ExtensionManager) BuildObjectContentPath(object Object, path stri
 
 func (manager *ExtensionManager) StoreConfigs(fs OCFLFS) error {
 	for _, ext := range manager.extensions {
-		configName := fmt.Sprintf("%s/config.json", ext.GetName())
-		fp, err := fs.Create(configName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create '%s'", configName)
+		if err := ext.WriteConfig(fs.SubFS(ext.GetName())); err != nil {
+			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
-		if err := ext.WriteConfig(fp); err != nil {
-			fp.Close()
-			return errors.Wrapf(err, "cannot store '%s'", configName)
-		}
-		fp.Close()
 	}
 	return nil
 }

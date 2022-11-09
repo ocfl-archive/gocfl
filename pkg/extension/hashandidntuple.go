@@ -70,7 +70,12 @@ func (*StorageLayoutHashAndIdNTuple) IsStoragerootExtension() bool { return true
 func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }
-func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(configWriter io.Writer) error {
+func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.ExtensionConfig); err != nil {

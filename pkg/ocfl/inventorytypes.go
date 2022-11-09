@@ -34,6 +34,10 @@ func (s *OCFLState) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (s *OCFLState) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.State)
+}
+
 type OCFLString struct {
 	string
 	err error
@@ -47,6 +51,10 @@ func (s *OCFLString) UnmarshalJSON(data []byte) error {
 	}
 	s.string = str
 	return nil
+}
+
+func (s *OCFLString) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.string)
 }
 
 type OCFLTime struct {
@@ -163,4 +171,8 @@ func (v *OCFLVersions) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (v *OCFLVersions) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.Versions)
 }

@@ -585,7 +585,7 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 	i.Versions.Versions[i.Head] = &Version{
 		Created: &OCFLTime{time.Now(), nil},
 		Message: &OCFLString{msg, nil},
-		State:   &OCFLState{},
+		State:   &OCFLState{State: map[string][]string{}},
 		User: &OCFLUser{
 			User: User{
 				Name:    OCFLString{string: UserName},

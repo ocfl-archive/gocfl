@@ -12,7 +12,7 @@ type Extension interface {
 	GetName() string
 	IsObjectExtension() bool
 	IsStoragerootExtension() bool
-	WriteConfig(configWriter io.Writer) error
+	WriteConfig(fs OCFLFS) error
 }
 
 type StoragerootPath interface {

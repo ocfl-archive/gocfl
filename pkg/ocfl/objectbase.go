@@ -10,7 +10,6 @@ import (
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -36,7 +35,18 @@ type ObjectBase struct {
 
 // NewObjectBase creates an empty ObjectBase structure
 func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, id string, storageroot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
-	ocfl := &ObjectBase{ctx: ctx, fs: fs, version: defaultVersion, storageRoot: storageroot, logger: logger}
+	ocfl := &ObjectBase{
+		ctx:         ctx,
+		fs:          fs,
+		version:     defaultVersion,
+		storageRoot: storageroot,
+		extensionManager: &ExtensionManager{
+			extensions:        []Extension{},
+			storagerootPath:   []StoragerootPath{},
+			objectContentPath: []ObjectContentPath{},
+		},
+		logger: logger,
+	}
 	if id != "" {
 		// create initial filesystem structure for new object
 		if err := ocfl.New(id); err == nil {
@@ -141,7 +151,10 @@ func (ocfl *ObjectBase) StoreInventory() error {
 	if err != nil {
 		return errors.Wrapf(err, "invalid digest algorithm %s", string(ocfl.i.GetDigestAlgorithm()))
 	}
-	checksumBytes := h.Sum(jsonBytes)
+	if _, err := h.Write(jsonBytes); err != nil {
+		return errors.Wrapf(err, "cannot create checksum of manifest")
+	}
+	checksumBytes := h.Sum(nil)
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 	iWriter, err := ocfl.fs.Create(iFileName)
 	if err != nil {
@@ -240,12 +253,13 @@ func (ocfl *ObjectBase) Load() (err error) {
 			continue
 		}
 		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
-		ext, err := ocfl.storageRoot.CreateExtension(ocfl.fs.SubFS(extConfig))
-		if err != nil {
-			return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-		}
-		if err := ocfl.extensionManager.Add(ext); err != nil {
-			return errors.Wrapf(err, "cannot add extension %s", extFolder.Name())
+		if ext, err := ocfl.storageRoot.CreateExtension(ocfl.fs.SubFS(extConfig)); err != nil {
+			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
+			ocfl.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder)
+		} else {
+			if err := ocfl.extensionManager.Add(ext); err != nil {
+				return errors.Wrapf(err, "cannot add extension %s", extFolder.Name())
+			}
 		}
 	}
 	// load the inventory
@@ -292,18 +306,30 @@ func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
 		if info.IsDir() {
 			return nil
 		}
-		file, err := os.Open(path)
+		file, err := fsys.Open(path)
 		if err != nil {
-			panic(err)
+			return errors.Wrapf(err, "cannot open file '%s'", path)
 		}
-		defer file.Close()
 		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
 		if err != nil {
+			file.Close()
 			return errors.Wrapf(err, "cannot create checksum of %s", path)
 		}
-		if _, err := file.Seek(0, 0); err != nil {
-			panic(err)
+		// if we have a seeker, we just seek
+		if seeker, ok := file.(io.Seeker); ok {
+			if _, err := seeker.Seek(0, 0); err != nil {
+				panic(err)
+			}
+		} else {
+			// otherwise reopen it
+			file.Close()
+			file, err = fsys.Open(path)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open file '%s'", path)
+			}
 		}
+		defer file.Close()
+
 		if err := ocfl.AddFile(strings.Trim(filepath.ToSlash(path), "/"), file, checksum); err != nil {
 			return errors.Wrapf(err, "cannot add file %s", path)
 		}

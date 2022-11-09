@@ -45,7 +45,12 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 func (sl *PathDirect) IsObjectExtension() bool      { return false }
 func (sl *PathDirect) IsStoragerootExtension() bool { return true }
 func (sl *PathDirect) GetName() string              { return PathDirectName }
-func (sl *PathDirect) WriteConfig(configWriter io.Writer) error {
+func (sl *PathDirect) WriteConfig(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.PathDirectConfig); err != nil {
