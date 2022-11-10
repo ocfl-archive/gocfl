@@ -3,6 +3,7 @@ package zipfs
 import (
 	"archive/zip"
 	"emperror.dev/errors"
+	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
@@ -20,22 +21,27 @@ type nopCloserWriter struct {
 func (*nopCloserWriter) Close() error { return nil }
 
 type FS struct {
-	srcReader io.ReaderAt
-	dstWriter io.Writer
-	r         *zip.Reader
-	w         *zip.Writer
-	newFiles  []string
-	logger    *logging.Logger
+	srcReader  io.ReaderAt
+	dstWriter  io.Writer
+	r          *zip.Reader
+	w          *zip.Writer
+	newFiles   *[]string
+	logger     *logging.Logger
+	pathPrefix string
+	closed     *bool
 }
 
-func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logger) (*FS, error) {
+func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, pathPrefix string, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	var err error
+	var isClosed bool
 	zfs := &FS{
-		newFiles:  []string{},
-		srcReader: src,
-		dstWriter: dst,
-		logger:    logger,
+		newFiles:   &[]string{},
+		srcReader:  src,
+		dstWriter:  dst,
+		pathPrefix: filepath.ToSlash(filepath.Clean(pathPrefix)),
+		logger:     logger,
+		closed:     &isClosed,
 	}
 	if src != nil && src != (*os.File)(nil) {
 		if zfs.r, err = zip.NewReader(src, srcSize); err != nil {
@@ -48,38 +54,45 @@ func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logg
 	return zfs, nil
 }
 
-func (zf *FS) String() string {
-	return "zipfs://"
+func (zfs *FS) String() string {
+	return fmt.Sprintf("zipfs://%s", zfs.pathPrefix)
 }
 
-func (zf *FS) IsNotExist(err error) bool {
+func (zfs *FS) isClosed() bool {
+	return *zfs.closed
+}
+
+func (zfs *FS) IsNotExist(err error) bool {
 	return err == fs.ErrNotExist
 }
 
-func (zf *FS) Close() error {
-	zf.logger.Debug("Close ZipFS")
+func (zfs *FS) Close() error {
+	if zfs.isClosed() {
+		return errors.New("zipFS closed")
+	}
+	zfs.logger.Debug("Close ZipFS")
 	// check whether we have to copy all stuff
-	if zf.r != nil && zf.w != nil {
+	if zfs.r != nil && zfs.w != nil {
 		// check whether there's a new version of the file
-		for _, zipItem := range zf.r.File {
+		for _, zipItem := range zfs.r.File {
 			found := false
-			for _, added := range zf.newFiles {
+			for _, added := range *zfs.newFiles {
 				if added == zipItem.Name {
 					found = true
-					zf.logger.Debugf("overwriting %s", added)
+					zfs.logger.Debugf("overwriting %s", added)
 					break
 				}
 			}
 			if found {
 				continue
 			}
-			zf.logger.Debugf("copying %s", zipItem.Name)
+			zfs.logger.Debugf("copying %s", zipItem.Name)
 			zipItemReader, err := zipItem.OpenRaw()
 			if err != nil {
 				return errors.Wrapf(err, "cannot open raw source %s", zipItem.Name)
 			}
 			header := zipItem.FileHeader
-			targetItem, err := zf.w.CreateRaw(&header)
+			targetItem, err := zfs.w.CreateRaw(&header)
 			if err != nil {
 				return errors.Wrapf(err, "cannot create raw target %s", zipItem.Name)
 			}
@@ -89,11 +102,11 @@ func (zf *FS) Close() error {
 		}
 	}
 	finalError := []error{}
-	if zf.w != nil {
-		if err := zf.w.Flush(); err != nil {
+	if zfs.w != nil {
+		if err := zfs.w.Flush(); err != nil {
 			finalError = append(finalError, err)
 		}
-		if err := zf.w.Close(); err != nil {
+		if err := zfs.w.Close(); err != nil {
 			finalError = append(finalError, err)
 		}
 	}
@@ -101,14 +114,19 @@ func (zf *FS) Close() error {
 }
 
 func (zfs *FS) Open(name string) (fs.File, error) {
-	name = strings.TrimPrefix(name, "./")
+	if zfs.isClosed() {
+		return nil, errors.New("zipFS closed")
+	}
+
+	name = filepath.ToSlash(filepath.Clean(filepath.Join(zfs.pathPrefix, name)))
+	//name = strings.TrimPrefix(name, "./")
 	if zfs.r == nil {
 		return nil, fs.ErrNotExist
 	}
 	name = filepath.ToSlash(name)
 	zfs.logger.Debugf("%s", name)
 	// check whether file is newly created
-	for _, newItem := range zfs.newFiles {
+	for _, newItem := range *zfs.newFiles {
 		if newItem == name {
 			return nil, fs.ErrInvalid // new files cannot be opened
 		}
@@ -131,18 +149,28 @@ func (zfs *FS) Open(name string) (fs.File, error) {
 }
 
 func (zfs *FS) Create(name string) (io.WriteCloser, error) {
+	if zfs.isClosed() {
+		return nil, errors.New("zipFS closed")
+	}
+
+	name = filepath.ToSlash(filepath.Clean(filepath.Join(zfs.pathPrefix, name)))
 	zfs.logger.Debugf("%s", name)
 	wc, err := zfs.w.Create(name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create file %s", name)
 	}
-	zfs.newFiles = append(zfs.newFiles, name)
+	*zfs.newFiles = append(*zfs.newFiles, name)
 	return &nopCloserWriter{wc}, nil
 }
 
-func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
-	zf.logger.Debugf("%s", name)
-	if zf.r == nil {
+func (zfs *FS) ReadDir(path string) ([]fs.DirEntry, error) {
+	if zfs.isClosed() {
+		return nil, errors.New("zipFS closed")
+	}
+
+	name := filepath.ToSlash(filepath.Clean(filepath.Join(zfs.pathPrefix, path)))
+	zfs.logger.Debugf("%s", name)
+	if zfs.r == nil {
 		return []fs.DirEntry{}, nil
 	}
 
@@ -155,7 +183,7 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	}
 	var entries = []*DirEntry{}
 	var dirs = []string{}
-	for _, zipItem := range zf.r.File {
+	for _, zipItem := range zfs.r.File {
 		if name != "" && !strings.HasPrefix(zipItem.Name, name) {
 			continue
 		}
@@ -167,9 +195,21 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 		parts := strings.Split(fname, "/")
 		// only files have one part
 		if len(parts) == 1 {
-			fi, err := NewFileInfoFile(zipItem)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
+			var fi *FileInfo
+			var err error
+			if zipItem.Name == name {
+				continue
+			}
+			if zipItem.FileInfo().IsDir() {
+				fi, err = NewFileInfoDir(strings.TrimLeft(zipItem.Name, name))
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
+				}
+			} else {
+				fi, err = NewFileInfoFile(zipItem)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
+				}
 			}
 			entries = append(entries, NewDirEntry(fi))
 		} else {
@@ -203,35 +243,55 @@ func (zf *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return result, nil
 }
 
-func (zf *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
-	root = filepath.ToSlash(filepath.Clean(root))
-	lr := len(root)
-	for _, file := range zf.r.File {
-		if !strings.HasPrefix(file.Name, root) {
+func (zfs *FS) WalkDir(path string, fn fs.WalkDirFunc) error {
+	if zfs.isClosed() {
+		return errors.New("zipFS closed")
+	}
+	path = filepath.ToSlash(filepath.Clean(path))
+	name := filepath.ToSlash(filepath.Join(zfs.pathPrefix, path))
+	lr := len(name) + 1
+	for _, file := range zfs.r.File {
+		if !strings.HasPrefix(file.Name, name) {
 			continue
 		}
-		fi, err := NewFileInfoFile(file)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create FileInfo for %s", file.Name)
+		var fi *FileInfo
+		var err error
+		if file.FileInfo().IsDir() {
+			fi, err = NewFileInfoDir(file.Name[lr:])
+			if err != nil {
+				return errors.Wrapf(err, "cannot create FileInfo for %s", file.Name)
+			}
+		} else {
+			fi, err = NewFileInfoFile(file)
+			if err != nil {
+				return errors.Wrapf(err, "cannot create FileInfo for %s", file.Name)
+			}
 		}
-		if err := fn(file.Name[lr:], NewDirEntry(fi), nil); err != nil {
+		if err := fn(fmt.Sprintf("%s/%s", path, file.Name[lr:]), NewDirEntry(fi), nil); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (zf *FS) Stat(name string) (fs.FileInfo, error) {
-	name = filepath.ToSlash(name)
-	zf.logger.Debugf("%s", name)
+func (zfs *FS) Stat(path string) (fs.FileInfo, error) {
+	if zfs.r == nil {
+		return nil, fs.ErrNotExist
+	}
+	if zfs.isClosed() {
+		return nil, errors.New("zipFS closed")
+	}
+
+	name := filepath.ToSlash(filepath.Clean(filepath.Join(zfs.pathPrefix, path)))
+	zfs.logger.Debugf("%s", name)
 
 	// check whether file is newly created
-	for _, newItem := range zf.newFiles {
+	for _, newItem := range *zfs.newFiles {
 		if newItem == name {
 			return nil, fs.ErrInvalid // new files cannot be opened
 		}
 	}
-	for _, zipItem := range zf.r.File {
+	for _, zipItem := range zfs.r.File {
 		if zipItem.Name == name {
 			finfo, err := NewFileInfoFile(zipItem)
 			if err != nil {
@@ -247,12 +307,32 @@ func (zf *FS) Stat(name string) (fs.FileInfo, error) {
 	return nil, fs.ErrNotExist
 }
 
-func (zf *FS) SubFS(name string) ocfl.OCFLFS {
+func (zfs *FS) SubFS(path string) (ocfl.OCFLFS, error) {
+	name := filepath.ToSlash(filepath.Clean(filepath.Join(zfs.pathPrefix, path)))
 	if name == "." {
 		name = ""
 	}
-	return &SubFS{
-		FS:         zf,
-		pathPrefix: filepath.ToSlash(filepath.Clean(name)),
+	if name == "" {
+		return zfs, nil
 	}
+	/*
+		fi, err := zfs.Stat(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot stat '%s'", path)
+		}
+		if !fi.IsDir() {
+			return nil, errors.Errorf("%s not a folder", path)
+		}
+
+	*/
+	return &FS{
+		srcReader:  zfs.srcReader,
+		dstWriter:  zfs.dstWriter,
+		r:          zfs.r,
+		w:          zfs.w,
+		newFiles:   zfs.newFiles,
+		logger:     zfs.logger,
+		closed:     zfs.closed,
+		pathPrefix: name,
+	}, nil
 }

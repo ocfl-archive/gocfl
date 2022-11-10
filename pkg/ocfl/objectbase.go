@@ -192,7 +192,12 @@ func (ocfl *ObjectBase) StoreInventory() error {
 
 func (ocfl *ObjectBase) StoreExtensions() error {
 	ocfl.logger.Debug()
-	if err := ocfl.extensionManager.StoreConfigs(ocfl.fs.SubFS("extensions")); err != nil {
+	subfs, err := ocfl.fs.SubFS("extensions")
+	if err != nil {
+		return errors.Wrapf(err, "cannot create subfs of %v for folder %s", ocfl.fs, "extensions")
+	}
+
+	if err := ocfl.extensionManager.StoreConfigs(subfs); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}
 	return nil
@@ -228,6 +233,12 @@ func (ocfl *ObjectBase) New(id string) error {
 		return errors.Wrapf(err, "cannot write into %s", objectConformanceDeclarationFile)
 	}
 
+	for _, ext := range ocfl.storageRoot.GetDefaultObjectExtensions() {
+		if err := ocfl.extensionManager.Add(ext); err != nil {
+			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
+		}
+	}
+
 	ocfl.i, err = NewInventory(ocfl.ctx, ocfl, id, ocfl.version, ocfl.logger)
 	return nil
 }
@@ -253,7 +264,11 @@ func (ocfl *ObjectBase) Load() (err error) {
 			continue
 		}
 		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
-		if ext, err := ocfl.storageRoot.CreateExtension(ocfl.fs.SubFS(extConfig)); err != nil {
+		subfs, err := ocfl.fs.SubFS(extConfig)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create subfs of %v for %s", ocfl.fs, extConfig)
+		}
+		if ext, err := ocfl.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
 			ocfl.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder)
 		} else {
@@ -341,9 +356,9 @@ func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
 	return nil
 }
 
-func (ocfl *ObjectBase) AddFile(virtualFilename string, reader io.Reader, digest string) error {
-	virtualFilename = filepath.ToSlash(virtualFilename)
-	ocfl.logger.Debugf("adding %s [%s]", virtualFilename, digest)
+func (ocfl *ObjectBase) AddFile(filename string, reader io.Reader, digest string) error {
+	ocfl.logger.Debugf("adding %s [%s]", filename, digest)
+	virtualFilename := filepath.ToSlash(filename)
 
 	if !ocfl.i.IsWriteable() {
 		return errors.New("ocfl not writeable")
@@ -710,6 +725,9 @@ func (ocfl *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]ma
 	for _, version := range versions {
 		if err := ocfl.fs.WalkDir(fmt.Sprintf("%s/%s", version, ocfl.i.GetContentDir()), func(path string, d fs.DirEntry, err error) error {
 			//ocfl.logger.Debug(path)
+			if d.IsDir() {
+				return nil
+			}
 			fp, err := ocfl.fs.Open(path)
 			if err != nil {
 				return errors.Wrapf(err, "cannot open file '%s'", path)

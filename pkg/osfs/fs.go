@@ -130,14 +130,12 @@ func (ofs *FS) Stat(name string) (fs.FileInfo, error) {
 	return fi, nil
 }
 
-func (ofs *FS) SubFS(name string) ocfl.OCFLFS {
+func (ofs *FS) SubFS(name string) (ocfl.OCFLFS, error) {
 	if name == "." {
 		name = ""
 	}
 	if name == "" {
-		return ofs
+		return ofs, nil
 	}
-	// error not possible, since base-folder is ok
-	sfs, _ := NewFSIO(filepath.Join(ofs.folder, name), ofs.logger)
-	return sfs
+	return NewFSIO(filepath.Join(ofs.folder, name), ofs.logger)
 }

@@ -9,6 +9,7 @@ import (
 )
 
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
+const StorageLayoutFlatDirectDescription = "one to one mapping without changes"
 
 type StorageLayoutFlatDirectConfig struct {
 	*ocfl.ExtensionConfig
@@ -42,9 +43,6 @@ func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*Storage
 	return sl, nil
 }
 
-func (sl *StorageLayoutFlatDirect) IsObjectExtension() bool      { return false }
-func (sl *StorageLayoutFlatDirect) IsStoragerootExtension() bool { return true }
-
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
 func (sl *StorageLayoutFlatDirect) WriteConfig(fs ocfl.OCFLFS) error {
 	configWriter, err := fs.Create("config.json")
@@ -55,6 +53,26 @@ func (sl *StorageLayoutFlatDirect) WriteConfig(fs ocfl.OCFLFS) error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
+
+func (sl *StorageLayoutFlatDirect) WriteLayout(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("ocfl_layout.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open ocfl_layout.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(struct {
+		Extension   string `json:"extension"`
+		Description string `json:"description"`
+	}{
+		Extension:   StorageLayoutFlatDirectName,
+		Description: StorageLayoutFlatDirectDescription,
+	}); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil

@@ -15,7 +15,7 @@ import (
 type OCFLFS interface {
 	fs.ReadDirFS
 	Create(name string) (io.WriteCloser, error)
-	SubFS(subfolder string) OCFLFS
+	SubFS(subfolder string) (OCFLFS, error)
 	Close() error
 	String() string
 	IsNotExist(err error) bool

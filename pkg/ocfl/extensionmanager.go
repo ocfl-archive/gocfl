@@ -62,8 +62,21 @@ func (manager *ExtensionManager) BuildObjectContentPath(object Object, path stri
 
 func (manager *ExtensionManager) StoreConfigs(fs OCFLFS) error {
 	for _, ext := range manager.extensions {
-		if err := ext.WriteConfig(fs.SubFS(ext.GetName())); err != nil {
+		subfs, err := fs.SubFS(ext.GetName())
+		if err != nil {
+			return errors.Wrapf(err, "cannot create subfs of %v for folder %s", fs, ext.GetName())
+		}
+		if err := ext.WriteConfig(subfs); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
+		}
+	}
+	return nil
+}
+
+func (manager *ExtensionManager) StoreRootLayout(fs OCFLFS) error {
+	for _, ext := range manager.storagerootPath {
+		if err := ext.WriteLayout(fs); err != nil {
+			return errors.Wrapf(err, "cannot store '%v'", ext)
 		}
 	}
 	return nil

@@ -12,6 +12,7 @@ import (
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
+const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 
 type StorageLayoutHashedNTuple struct {
 	*StorageLayoutHashedNTupleConfig
@@ -65,9 +66,7 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 	return sl, nil
 }
 
-func (sl *StorageLayoutHashedNTuple) IsObjectExtension() bool      { return false }
-func (sl *StorageLayoutHashedNTuple) IsStoragerootExtension() bool { return true }
-func (sl *StorageLayoutHashedNTuple) GetName() string              { return StorageLayoutHashedNTupleName }
+func (sl *StorageLayoutHashedNTuple) GetName() string { return StorageLayoutHashedNTupleName }
 
 func (sl *StorageLayoutHashedNTuple) WriteConfig(fs ocfl.OCFLFS) error {
 	configWriter, err := fs.Create("config.json")
@@ -103,4 +102,24 @@ func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot ocfl.Stora
 		dirparts = append(dirparts, digest)
 	}
 	return strings.Join(dirparts, "/"), nil
+}
+
+func (sl *StorageLayoutHashedNTuple) WriteLayout(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("ocfl_layout.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open ocfl_layout.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(struct {
+		Extension   string `json:"extension"`
+		Description string `json:"description"`
+	}{
+		Extension:   StorageLayoutHashedNTupleName,
+		Description: StorageLayoutHashedNTupleDescription,
+	}); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
 }

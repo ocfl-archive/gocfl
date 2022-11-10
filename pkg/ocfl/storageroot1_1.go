@@ -13,8 +13,8 @@ type StorageRootV1_1 struct {
 	*StorageRootBase
 }
 
-func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, defaultStorageLayout Extension, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootV1_1, error) {
-	srb, err := NewStorageRootBase(ctx, fs, Version1_1, defaultStorageLayout, extensionFactory, logger)
+func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootV1_1, error) {
+	srb, err := NewStorageRootBase(ctx, fs, Version1_1, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version1_1)
 	}
@@ -27,7 +27,11 @@ func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		return NewObject(osr.ctx, osr.fs.SubFS(folder), osr.version, id, osr, osr.logger)
+		subfs, err := osr.fs.SubFS(folder)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, folder)
+		}
+		return NewObject(osr.ctx, subfs, osr.version, id, osr, osr.logger)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
@@ -44,5 +48,10 @@ func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 	if versionFloat > rootVersionFloat {
 		return nil, errors.Errorf("root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version)
 	}
-	return NewObject(osr.ctx, osr.fs.SubFS(folder), version, id, osr, osr.logger)
+	subfs, err := osr.fs.SubFS(folder)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, folder)
+	}
+
+	return NewObject(osr.ctx, subfs, version, id, osr, osr.logger)
 }

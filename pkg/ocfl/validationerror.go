@@ -215,7 +215,7 @@ func (ve *ValidationError) AppendDescription(format string, a ...any) *Validatio
 }
 
 func (verr *ValidationError) Error() string {
-	if verr.Code[0] == 'W' {
+	if len(verr.Code) > 0 && verr.Code[0] == 'W' {
 		return fmt.Sprintf("Validation Warning #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
 	} else {
 		return fmt.Sprintf("Validation Error #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
@@ -237,17 +237,26 @@ func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *Validat
 	}
 	err, ok := errlist[errno]
 	if !ok {
-		errno, ok = mapping[errno]
-		if ok {
-			err, ok = errlist[errno]
-			if ok {
-				return err
+		errnomap, ok := mapping[errno]
+		if !ok {
+			if len(errno) > 0 && errno[0] == 'W' {
+				return &ValidationError{
+					Code:        W000,
+					Description: fmt.Sprintf("unknown warning %s", errno),
+					Ref:         "",
+				}
+			} else {
+				return &ValidationError{
+					Code:        E000,
+					Description: fmt.Sprintf("unknown error %s", errno),
+					Ref:         "",
+				}
 			}
 		}
-		return &ValidationError{
-			Code:        errno,
-			Description: fmt.Sprintf("unknown error %s", errno),
-			Ref:         "",
+		errno = errnomap
+		err, ok = errlist[errno]
+		if ok {
+			return err
 		}
 	}
 	return err

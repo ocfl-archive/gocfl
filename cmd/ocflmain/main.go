@@ -7,10 +7,13 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/op/go-logging"
 	flag "github.com/spf13/pflag"
+	"go.ub.unibas.ch/gocfl/v2/data/defaultextensions"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
+	"go.ub.unibas.ch/gocfl/v2/pkg/genericfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"go.ub.unibas.ch/gocfl/v2/pkg/osfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
+	"io/fs"
 	"log"
 	"os"
 	"strings"
@@ -18,7 +21,7 @@ import (
 
 // const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{module}::%{shortfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
-const VERSION = "1.0"
+const VERSION = "1.1"
 
 func showStatus(ctx context.Context) error {
 	status, err := ocfl.GetValidationStatus(ctx)
@@ -54,12 +57,7 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 */
 
 func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
-	defaultStorageLayout, err := extension.NewDefaultStorageRootExtension()
-	if err != nil {
-		panic(err)
-	}
-
-	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, defaultStorageLayout, extensionFactory, logger)
+	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, extensionFactory, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -83,13 +81,8 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 		return errors.Errorf("source dir %s is not a directory", srcdir)
 	}
 
-	defaultStorageLayout, err := extension.NewDefaultStorageRootExtension()
-	if err != nil {
-		panic(err)
-	}
-
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.NewStorageRoot(ctx, dest, VERSION, defaultStorageLayout, extensionFactory, logger)
+	storageRoot, err := ocfl.NewStorageRoot(ctx, dest, VERSION, extensionFactory, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -123,6 +116,7 @@ var checkObjectFlag = flag.Bool("checkobject", false, "only check object structu
 var srcDir = flag.String("source", "", "source folder")
 var logfile = flag.String("logfile", "", "name of logfile")
 var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
+var defaultExtensionFolder = flag.String("extensions", "", "folder with default extension configs. needs subfolder object and storageroot")
 
 func main() {
 
@@ -135,7 +129,7 @@ func main() {
 	logger, lf := lm.CreateLogger("ocfl", *logfile, nil, *loglevel, LOGFORMAT)
 	defer lf.Close()
 
-	extensionFactory, err := ocfl.NewExtensionFactory()
+	extensionFactory, err := ocfl.NewExtensionFactory(logger)
 	if err != nil {
 		logger.Errorf("cannot instantiate extension factory: %v", err)
 		return
@@ -164,6 +158,23 @@ func main() {
 	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutPairTreeFS(fs)
 	})
+
+	//
+	// load default extensions
+	//
+	var dExtDirFS fs.FS
+	if *defaultExtensionFolder == "" {
+		dExtDirFS = defaultextensions.DefaultExtensionFS
+	} else {
+		dExtDirFS = os.DirFS(*defaultExtensionFolder)
+	}
+	ofs, err := genericfs.NewGenericFS(dExtDirFS, ".", logger)
+	if err != nil {
+		logger.Panicf("cannot create generic fs for %v", dExtDirFS)
+	}
+	if err := extensionFactory.LoadDefaultExtensions(ofs); err != nil {
+		logger.Panicf("cannot load extension folder %v", ofs)
+	}
 
 	var ocfs ocfl.OCFLFS
 
@@ -200,7 +211,7 @@ func main() {
 				panic(err)
 			}
 		}
-		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, logger)
+		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, ".", logger)
 		if err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)

@@ -1,22 +1,16 @@
 package ocfl
 
-import (
-	"io"
-)
-
 type ExtensionConfig struct {
 	ExtensionName string `json:"extensionName"`
 }
 
 type Extension interface {
 	GetName() string
-	IsObjectExtension() bool
-	IsStoragerootExtension() bool
 	WriteConfig(fs OCFLFS) error
 }
 
 type StoragerootPath interface {
-	WriteLayout(layoutwriter io.Writer) error
+	WriteLayout(fs OCFLFS) error
 	BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)
 }
 

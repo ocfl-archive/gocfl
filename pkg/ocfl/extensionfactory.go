@@ -3,7 +3,8 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
-	"io"
+	"github.com/op/go-logging"
+	"io/fs"
 )
 
 type creatorFunc func(fs OCFLFS) (Extension, error)
@@ -12,11 +13,13 @@ type ExtensionFactory struct {
 	creators           map[string]creatorFunc
 	defaultStorageRoot []Extension
 	defaultObject      []Extension
+	logger             *logging.Logger
 }
 
-func NewExtensionFactory() (*ExtensionFactory, error) {
+func NewExtensionFactory(logger *logging.Logger) (*ExtensionFactory, error) {
 	m := &ExtensionFactory{
 		creators: map[string]creatorFunc{},
+		logger:   logger,
 	}
 	return m, nil
 }
@@ -33,16 +36,15 @@ func (f *ExtensionFactory) AddObjectDefaultExtension(ext Extension) {
 	f.defaultObject = append(f.defaultObject, ext)
 }
 
-func (f *ExtensionFactory) Create(fs OCFLFS) (Extension, error) {
-	fp, err := fs.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open config.json")
-	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
+func (f *ExtensionFactory) Create(fsys OCFLFS) (Extension, error) {
+	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read config.json")
 	}
+	return f.create(fsys, data)
+}
+
+func (f *ExtensionFactory) create(fsys OCFLFS, data []byte) (Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -59,9 +61,65 @@ func (f *ExtensionFactory) Create(fs OCFLFS) (Extension, error) {
 	if !ok {
 		return nil, errors.Errorf("unknown extension '%s'", name)
 	}
-	ext, err := creator(fs)
+	ext, err := creator(fsys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize extension '%s'", name)
 	}
 	return ext, nil
+}
+
+func (f *ExtensionFactory) CreateExtensions(fsys OCFLFS) ([]Extension, error) {
+	files, err := fsys.ReadDir(".")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read folder storageroot")
+	}
+	var result = []Extension{}
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		sub, err := fsys.SubFS(file.Name())
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
+		}
+
+		ext, err := f.Create(sub)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create extension %s/%s", "storageroot", file.Name())
+		}
+		result = append(result, ext)
+	}
+	return result, nil
+}
+
+func (f *ExtensionFactory) LoadDefaultExtensions(fsys OCFLFS) error {
+	ofs, err := fsys.SubFS("storageroot")
+	if err != nil {
+		return errors.Wrapf(err, "cannot instantiate generic fs for folder %s", "storageroot")
+	}
+	exts, err := f.CreateExtensions(ofs)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create extensions for folder %s", "storageroot")
+	}
+	f.defaultStorageRoot = exts
+
+	ofs, err = fsys.SubFS("object")
+	if err != nil {
+		return errors.Wrapf(err, "cannot instantiate generic fs for folder %s", "storageroot")
+	}
+	exts, err = f.CreateExtensions(ofs)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create extensions for folder %s", "storageroot")
+	}
+	f.defaultObject = exts
+
+	return nil
+}
+
+func (f *ExtensionFactory) GetDefaultStoragerootExtensions() []Extension {
+	return f.defaultStorageRoot
+}
+
+func (f *ExtensionFactory) GetDefaultObjectExtensions() []Extension {
+	return f.defaultObject
 }

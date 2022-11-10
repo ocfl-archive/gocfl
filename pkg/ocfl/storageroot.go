@@ -17,12 +17,14 @@ type StorageRoot interface {
 	OpenObjectFolder(folder string) (Object, error)
 	OpenObject(id string) (Object, error)
 	CreateExtension(fs OCFLFS) (Extension, error)
+	GetDefaultObjectExtensions() []Extension
+	GetDefaultStoragerootExtensions() []Extension
 	Check() error
 }
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
-func NewStorageRoot(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, defaultExtension Extension, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+func NewStorageRoot(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
 	version, err := getVersion(ctx, fs, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
@@ -39,13 +41,13 @@ func NewStorageRoot(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, 
 	}
 	switch version {
 	case Version1_0:
-		sr, err := NewStorageRootV1_0(ctx, fs, defaultExtension, extensionFactory, logger)
+		sr, err := NewStorageRootV1_0(ctx, fs, extensionFactory, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	case Version1_1:
-		sr, err := NewStorageRootV1_1(ctx, fs, defaultExtension, extensionFactory, logger)
+		sr, err := NewStorageRootV1_1(ctx, fs, extensionFactory, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

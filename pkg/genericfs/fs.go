@@ -20,12 +20,12 @@ type FS struct {
 	fs     fs.FS
 }
 
-func NewGenericFS(fs fs.FS, folder string, logger *logging.Logger) (*FS, error) {
+func NewGenericFS(fsys fs.FS, folder string, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	folder = strings.Trim(filepath.ToSlash(filepath.Clean(folder)), "/")
 	osfs := &FS{
 		folder: folder,
-		fs:     os.DirFS(folder),
+		fs:     fsys,
 		logger: logger,
 	}
 	return osfs, nil
@@ -47,7 +47,7 @@ func (ofs *FS) Close() error {
 
 func (ofs *FS) Open(name string) (fs.File, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
+	fullpath := filepath.ToSlash(filepath.Join(ofs.folder, name))
 	ofs.logger.Debugf("opening %s", fullpath)
 	file, err := ofs.fs.Open(fullpath)
 	if err != nil {
@@ -118,14 +118,12 @@ func (ofs *FS) Stat(name string) (fs.FileInfo, error) {
 	return fi, nil
 }
 
-func (ofs *FS) SubFS(name string) ocfl.OCFLFS {
+func (ofs *FS) SubFS(name string) (ocfl.OCFLFS, error) {
 	if name == "." {
 		name = ""
 	}
 	if name == "" {
-		return ofs
+		return ofs, nil
 	}
-	// error not possible, since base-folder is ok
-	sfs, _ := NewGenericFS(ofs.fs, filepath.Join(ofs.folder, name), ofs.logger)
-	return sfs
+	return NewGenericFS(ofs.fs, filepath.ToSlash(filepath.Join(ofs.folder, name)), ofs.logger)
 }

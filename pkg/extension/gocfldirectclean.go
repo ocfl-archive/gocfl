@@ -11,6 +11,7 @@ import (
 )
 
 const DirectCleanName = "NNNN-direct-clean-path-layout"
+const DirectCleanDescription = "Maps OCFL object identifiers to storage paths or as an object extension that maps logical paths to content paths. This is done by replacing or removing \"dangerous characters\" from names"
 
 var directCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
 var directCleanRuleWhitespace = regexp.MustCompile("[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]")
@@ -27,11 +28,11 @@ type DirectClean struct {
 
 type DirectCleanConfig struct {
 	*ocfl.ExtensionConfig
-	MaxPathnameLen              int    `json:"maxPathnameLen,omitempty"`
-	MaxFilenameLen              int    `json:"maxFilenameLen,omitempty"`
-	ReplacementString           string `json:"replacementString,omitempty"`
-	WhitespaceReplacementString string `json:"whitespaceReplacementString,omitempty"`
-	UTFEncode                   bool   `json:"utfEncode,omitempty"`
+	MaxPathnameLen              int    `json:"maxPathnameLen"`
+	MaxFilenameLen              int    `json:"maxFilenameLen"`
+	ReplacementString           string `json:"replacementString"`
+	WhitespaceReplacementString string `json:"whitespaceReplacementString"`
+	UTFEncode                   bool   `json:"utfEncode"`
 }
 
 func NewDirectCleanFS(fs ocfl.OCFLFS) (ocfl.Extension, error) {
@@ -70,12 +71,9 @@ func encodeUTFCode(s string) string {
 }
 
 // interface Extension
-func (*DirectClean) IsObjectExtension() bool      { return true }
-func (*DirectClean) IsStoragerootExtension() bool { return true }
 
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
-// interface Extension
 func (sl *DirectClean) WriteConfig(fs ocfl.OCFLFS) error {
 	configWriter, err := fs.Create("config.json")
 	if err != nil {
@@ -90,12 +88,32 @@ func (sl *DirectClean) WriteConfig(fs ocfl.OCFLFS) error {
 	return nil
 }
 
+func (sl *DirectClean) WriteLayout(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("ocfl_layout.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open ocfl_layout.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(struct {
+		Extension   string `json:"extension"`
+		Description string `json:"description"`
+	}{
+		Extension:   PathDirectName,
+		Description: DirectCleanDescription,
+	}); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
+
 // interface
 func (sl *DirectClean) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectContentPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *DirectClean) BuildObjectContentPath(object ocfl.Object, id string) (string, error) {
 	return sl.build(id)
 }
 
