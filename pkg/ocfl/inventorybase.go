@@ -35,14 +35,7 @@ type InventoryBase struct {
 	logger           *logging.Logger
 }
 
-func NewInventoryBase(
-	ctx context.Context,
-	object Object,
-	id string,
-	objectType *url.URL,
-	digestAlg checksum.DigestAlgorithm,
-	contentDir string,
-	logger *logging.Logger) (*InventoryBase, error) {
+func NewInventoryBase(ctx context.Context, object Object, id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:              ctx,
 		object:           object,
@@ -119,9 +112,7 @@ func (i *InventoryBase) GetID() string          { return i.Id }
 func (i *InventoryBase) GetHead() string        { return i.Head }
 func (i *InventoryBase) GetSpec() InventorySpec { return i.Type }
 
-func (i *InventoryBase) GetContentDir() string {
-	return i.ContentDirectory
-}
+func (i *InventoryBase) GetContentDir() string { return i.ContentDirectory }
 
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
@@ -171,7 +162,6 @@ var versionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
 var versionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
 
 func (i *InventoryBase) check() error {
-
 	if err := i.checkVersions(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -185,7 +175,7 @@ func (i *InventoryBase) check() error {
 		i.addValidationError(E036, "invalid field \"id\" for object")
 	}
 	if _, err := uri.Parse(i.Id); err != nil {
-		i.addValidationWarning(W005, "cannot parse id '%s': %v", i.Id, err)
+		i.addValidationWarning(W005, "cannot parse uri id '%s': %v", i.Id, err)
 	} /* else {
 		if u.Scheme == "" {
 			i.addValidationWarning(W005, "id '%s' is not an uri", i.Id)

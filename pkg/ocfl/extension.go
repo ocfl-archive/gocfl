@@ -1,5 +1,7 @@
 package ocfl
 
+import "go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+
 type ExtensionConfig struct {
 	ExtensionName string `json:"extensionName"`
 }
@@ -22,4 +24,8 @@ type ContentChange interface {
 	AddFile(object Object, source, dest string)
 	UpdateFile(object Object, source, dest string)
 	DeleteFile(object Object, dest string)
+}
+
+type FixityDigest interface {
+	GetDigests() []checksum.DigestAlgorithm
 }

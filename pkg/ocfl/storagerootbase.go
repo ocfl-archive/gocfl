@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/op/go-logging"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io/fs"
 	"path/filepath"
 )
@@ -18,18 +19,20 @@ type StorageRootBase struct {
 	changed          bool
 	logger           *logging.Logger
 	version          OCFLVersion
+	digest           checksum.DigestAlgorithm
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootBase, error) {
+func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, digest checksum.DigestAlgorithm, logger *logging.Logger) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:              ctx,
 		fs:               fs,
 		extensionFactory: extensionFactory,
 		version:          defaultVersion,
+		digest:           digest,
 		logger:           logger,
 	}
 	ocfl.extensionManager, err = NewExtensionManager()
@@ -118,6 +121,8 @@ func (osr *StorageRootBase) Init() error {
 	}
 	return nil
 }
+func (osr *StorageRootBase) GetDigest() checksum.DigestAlgorithm { return osr.digest }
+
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
 func (osr *StorageRootBase) CreateExtension(fs OCFLFS) (Extension, error) {

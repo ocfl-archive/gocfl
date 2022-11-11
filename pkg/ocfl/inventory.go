@@ -43,17 +43,17 @@ type Inventory interface {
 	VersionLessOrEqual(v1, v2 string) bool
 }
 
-func NewInventory(ctx context.Context, object Object, id string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
+func NewInventory(ctx context.Context, object Object, id string, version OCFLVersion, digest checksum.DigestAlgorithm, logger *logging.Logger) (Inventory, error) {
 	switch version {
 	case Version1_1:
-		sr, err := NewInventoryV1_1(ctx, object, id, logger)
+		sr, err := NewInventoryV1_1(ctx, object, id, digest, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	default:
 		//case Version1_0:
-		sr, err := NewInventoryV1_0(ctx, object, id, logger)
+		sr, err := NewInventoryV1_0(ctx, object, id, digest, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -85,7 +85,7 @@ func LoadInventory(ctx context.Context, object Object, data []byte, logger *logg
 		// if we don't know anything use the old stuff
 		version = Version1_0
 	}
-	inventory, err := NewInventory(ctx, object, "", version, logger)
+	inventory, err := NewInventory(ctx, object, "", version, object.GetDigest(), logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}

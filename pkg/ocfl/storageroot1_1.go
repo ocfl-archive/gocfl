@@ -4,6 +4,7 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"strconv"
 )
 
@@ -13,8 +14,8 @@ type StorageRootV1_1 struct {
 	*StorageRootBase
 }
 
-func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootV1_1, error) {
-	srb, err := NewStorageRootBase(ctx, fs, Version1_1, extensionFactory, logger)
+func NewStorageRootV1_1(ctx context.Context, fs OCFLFS, extensionFactory *ExtensionFactory, digest checksum.DigestAlgorithm, logger *logging.Logger) (*StorageRootV1_1, error) {
+	srb, err := NewStorageRootBase(ctx, fs, Version1_1, extensionFactory, digest, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version1_1)
 	}

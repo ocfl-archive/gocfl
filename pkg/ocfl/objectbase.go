@@ -75,13 +75,13 @@ func (ocfl *ObjectBase) addValidationWarning(errno ValidationErrorCode, format s
 	addValidationWarnings(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
 }
 
+func (ocfl *ObjectBase) GetDigest() checksum.DigestAlgorithm { return ocfl.storageRoot.GetDigest() }
 func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	return ocfl.LoadInventoryFolder(".")
 }
 
 // LoadInventory loads inventory from existing Object
 func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
-
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
 	iFp, err := ocfl.fs.Open(filename)
@@ -90,7 +90,7 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 		//ocfl.addValidationError(E063, "no inventory file in \"%s\"", ocfl.fs.String())
 	}
 	if err != nil {
-		return NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.logger)
+		return NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.storageRoot.GetDigest(), ocfl.logger)
 		//return nil, errors.Wrapf(err, "cannot open %s", filename)
 	}
 	// read inventory into memory
@@ -239,7 +239,7 @@ func (ocfl *ObjectBase) New(id string) error {
 		}
 	}
 
-	ocfl.i, err = NewInventory(ocfl.ctx, ocfl, id, ocfl.version, ocfl.logger)
+	ocfl.i, err = NewInventory(ocfl.ctx, ocfl, id, ocfl.version, ocfl.storageRoot.GetDigest(), ocfl.logger)
 	return nil
 }
 
@@ -252,7 +252,7 @@ func (ocfl *ObjectBase) Load() (err error) {
 	// read path from extension folder...
 	exts, err := ocfl.fs.ReadDir("extensions")
 	if err != nil {
-		// if directory does not exists - no problem
+		// if directory does not exist - no problem
 		if err != fs.ErrNotExist {
 			return errors.Wrap(err, "cannot read extensions folder")
 		}
@@ -325,7 +325,7 @@ func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot open file '%s'", path)
 		}
-		checksum, err := checksum.Checksum(file, checksum.DigestSHA512)
+		checksum, err := checksum.Checksum(file, ocfl.GetDigest())
 		if err != nil {
 			file.Close()
 			return errors.Wrapf(err, "cannot create checksum of %s", path)

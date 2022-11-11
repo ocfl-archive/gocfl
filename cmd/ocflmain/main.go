@@ -8,6 +8,7 @@ import (
 	"github.com/op/go-logging"
 	flag "github.com/spf13/pflag"
 	"go.ub.unibas.ch/gocfl/v2/data/defaultextensions"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"go.ub.unibas.ch/gocfl/v2/pkg/genericfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
@@ -56,8 +57,8 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 }
 */
 
-func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
-	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, extensionFactory, logger)
+func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, digest checksum.DigestAlgorithm, logger *logging.Logger) error {
+	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, extensionFactory, digest, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -67,7 +68,7 @@ func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *lo
 	return nil
 }
 
-func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
+func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, digest checksum.DigestAlgorithm, logger *logging.Logger) error {
 
 	if srcdir == "" {
 		return errors.Errorf("invalid source dir: %s", srcdir)
@@ -82,7 +83,7 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.NewStorageRoot(ctx, dest, VERSION, extensionFactory, logger)
+	storageRoot, err := ocfl.NewStorageRoot(ctx, dest, VERSION, extensionFactory, digest, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -117,6 +118,9 @@ var srcDir = flag.String("source", "", "source folder")
 var logfile = flag.String("logfile", "", "name of logfile")
 var loglevel = flag.String("loglevel", "DEBUG", "CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG")
 var defaultExtensionFolder = flag.String("extensions", "", "folder with default extension configs. needs subfolder object and storageroot")
+var sha256 = flag.Bool("sha256", false, "use sha256 as main hash algorithm")
+var sha512 = flag.Bool("sha512", false, "use sha512 as main hash algorithm")
+var fixity = flag.String("fixity", "", "comma separated list of fixity digest algorithms")
 
 func main() {
 
@@ -125,6 +129,15 @@ func main() {
 	//	var version = flag.String("version", "", "ocfl version")
 
 	flag.Parse()
+
+	if *sha256 && *sha512 {
+		log.Println("please do not use -sha256 AND -sha512 at the same time")
+		return
+	}
+
+	if *checkFlag && (*sha256 || *sha512) {
+		log.Println("ignoring hash flags for check")
+	}
 
 	logger, lf := lm.CreateLogger("ocfl", *logfile, nil, *loglevel, LOGFORMAT)
 	defer lf.Close()
@@ -224,10 +237,16 @@ func main() {
 		}
 	}
 
-	// do stuff here...
+	var digest checksum.DigestAlgorithm
+	if *sha256 {
+		digest = checksum.DigestSHA256
+	} else {
+		digest = checksum.DigestSHA512
+	}
 	switch {
 	case *srcDir != "":
-		if err := ingest(ocfs, *srcDir, extensionFactory, logger); err != nil {
+
+		if err := ingest(ocfs, *srcDir, extensionFactory, digest, logger); err != nil {
 			stackTrace := ocfl.GetErrorStacktrace(err)
 			logger.Errorf("%v%+v", err, stackTrace)
 			panic(err)
@@ -235,13 +254,13 @@ func main() {
 		/*
 			case *checkObjectFlag:
 				objfs := ocfs.SubFS(objectPath)
-				if err := checkObject(objfs, extensionFactory, logger); err != nil {
+				if err := checkObject(objfs, extensionFactory, digest, logger); err != nil {
 					logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 					panic(err)
 				}
 		*/
 	case *checkFlag:
-		if err := check(ocfs, extensionFactory, logger); err != nil {
+		if err := check(ocfs, extensionFactory, digest, logger); err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}

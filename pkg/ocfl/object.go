@@ -5,12 +5,14 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io"
 	"io/fs"
 	"path/filepath"
 )
 
 type Object interface {
+	GetDigest() checksum.DigestAlgorithm
 	LoadInventory() (Inventory, error)
 	StoreInventory() error
 	StoreExtensions() error
