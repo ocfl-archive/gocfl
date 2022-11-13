@@ -17,7 +17,7 @@ import (
 type FS struct {
 	folder string
 	logger *logging.Logger
-	fs     fs.FS
+	//fs     fs.FS
 }
 
 func NewFSIO(folder string, logger *logging.Logger) (*FS, error) {
@@ -25,31 +25,31 @@ func NewFSIO(folder string, logger *logging.Logger) (*FS, error) {
 	folder = strings.Trim(filepath.ToSlash(filepath.Clean(folder)), "/")
 	osfs := &FS{
 		folder: folder,
-		fs:     os.DirFS(folder),
+		//fs:     os.DirFS(folder),
 		logger: logger,
 	}
 	return osfs, nil
 }
 
-func (ofs *FS) String() string {
-	return fmt.Sprintf("file://%s", ofs.folder)
+func (osFS *FS) String() string {
+	return fmt.Sprintf("file://%s", osFS.folder)
 }
 
-func (ofs *FS) IsNotExist(err error) bool {
+func (osFS *FS) IsNotExist(err error) bool {
 	err = errors.Cause(err)
 	return os.IsNotExist(err) || err == syscall.ENOENT
 }
 
-func (ofs *FS) Close() error {
-	ofs.logger.Debug("Close OSFS")
+func (osFS *FS) Close() error {
+	osFS.logger.Debug("Close OSFS")
 
 	return nil
 }
 
-func (ofs *FS) Open(name string) (fs.File, error) {
+func (osFS *FS) Open(name string) (fs.File, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
-	ofs.logger.Debugf("opening %s", fullpath)
+	fullpath := filepath.Join(osFS.folder, name)
+	osFS.logger.Debugf("opening %s", fullpath)
 	file, err := os.Open(fullpath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open %s", fullpath)
@@ -57,10 +57,10 @@ func (ofs *FS) Open(name string) (fs.File, error) {
 	return file, nil
 }
 
-func (ofs *FS) Create(name string) (io.WriteCloser, error) {
+func (osFS *FS) Create(name string) (io.WriteCloser, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
-	ofs.logger.Debugf("creating %s", fullpath)
+	fullpath := filepath.Join(osFS.folder, name)
+	osFS.logger.Debugf("creating %s", fullpath)
 	dir := filepath.Dir(fullpath)
 	if err := os.MkdirAll(dir, 0777); err != nil {
 		return nil, errors.Wrapf(err, "cannot create folder '%s'", dir)
@@ -72,10 +72,10 @@ func (ofs *FS) Create(name string) (io.WriteCloser, error) {
 	return file, nil
 }
 
-func (ofs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
+func (osFS *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
-	ofs.logger.Debugf("reading entries of %s", fullpath)
+	fullpath := filepath.Join(osFS.folder, name)
+	osFS.logger.Debugf("reading entries of %s", fullpath)
 	dentries, err := os.ReadDir(fullpath)
 	if os.IsNotExist(err) {
 		return nil, fs.ErrNotExist
@@ -98,9 +98,31 @@ func (ofs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return result, nil
 }
 
-func (ofs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
-	basepath := filepath.Join(ofs.folder, root)
-	lb := len(ofs.folder)
+func (osFS *FS) HasContent() bool {
+	f, err := os.Open(osFS.folder)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	names, err := f.Readdirnames(3) // Or f.Readdir(1)
+	if err != nil {
+		return false
+	}
+	var hasContent bool
+	for _, name := range names {
+		if name == "." || name == ".." {
+			continue
+		}
+		hasContent = true
+		break
+	}
+	return hasContent
+}
+
+func (osFS *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
+	basepath := filepath.Join(osFS.folder, root)
+	lb := len(osFS.folder)
 	return filepath.WalkDir(basepath, func(path string, d fs.DirEntry, err error) error {
 		if d == nil {
 			return nil
@@ -118,10 +140,10 @@ func (ofs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
 	})
 }
 
-func (ofs *FS) Stat(name string) (fs.FileInfo, error) {
+func (osFS *FS) Stat(name string) (fs.FileInfo, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
-	ofs.logger.Debugf("stat %s", fullpath)
+	fullpath := filepath.Join(osFS.folder, name)
+	osFS.logger.Debugf("stat %s", fullpath)
 
 	fi, err := os.Stat(fullpath)
 	if err != nil {
@@ -130,12 +152,12 @@ func (ofs *FS) Stat(name string) (fs.FileInfo, error) {
 	return fi, nil
 }
 
-func (ofs *FS) SubFS(name string) (ocfl.OCFLFS, error) {
+func (osFS *FS) SubFS(name string) (ocfl.OCFLFS, error) {
 	if name == "." {
 		name = ""
 	}
 	if name == "" {
-		return ofs, nil
+		return osFS, nil
 	}
-	return NewFSIO(filepath.Join(ofs.folder, name), ofs.logger)
+	return NewFSIO(filepath.Join(osFS.folder, name), osFS.logger)
 }

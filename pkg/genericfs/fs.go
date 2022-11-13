@@ -31,40 +31,56 @@ func NewGenericFS(fsys fs.FS, folder string, logger *logging.Logger) (*FS, error
 	return osfs, nil
 }
 
-func (ofs *FS) String() string {
-	return fmt.Sprintf("file://%s", ofs.folder)
+func (genericFS *FS) String() string {
+	return fmt.Sprintf("file://%s", genericFS.folder)
 }
 
-func (ofs *FS) IsNotExist(err error) bool {
+func (genericFS *FS) IsNotExist(err error) bool {
 	err = errors.Cause(err)
 	return os.IsNotExist(err) || err == syscall.ENOENT || err == fs.ErrNotExist
 }
 
-func (ofs *FS) Close() error {
-	ofs.logger.Debug("Close OSFS")
+func (genericFS *FS) Close() error {
+	genericFS.logger.Debug("Close OSFS")
 	return nil
 }
 
-func (ofs *FS) Open(name string) (fs.File, error) {
+func (genericFS *FS) Open(name string) (fs.File, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.ToSlash(filepath.Join(ofs.folder, name))
-	ofs.logger.Debugf("opening %s", fullpath)
-	file, err := ofs.fs.Open(fullpath)
+	fullpath := filepath.ToSlash(filepath.Join(genericFS.folder, name))
+	genericFS.logger.Debugf("opening %s", fullpath)
+	file, err := genericFS.fs.Open(fullpath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open %s", fullpath)
 	}
 	return file, nil
 }
 
-func (ofs *FS) Create(name string) (io.WriteCloser, error) {
+func (genericFS *FS) Create(name string) (io.WriteCloser, error) {
 	return nil, errors.Wrap(fs.ErrPermission, "read only filesystem")
 }
 
-func (ofs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
+func (genericFS *FS) HasContent() bool {
+	dirEntries, err := genericFS.ReadDir(".")
+	if err != nil {
+		return false
+	}
+	var hasContent bool
+	for _, de := range dirEntries {
+		if de.Name() == "." || de.Name() == ".." {
+			continue
+		}
+		hasContent = true
+		break
+	}
+	return hasContent
+}
+
+func (genericFS *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
-	ofs.logger.Debugf("reading entries of %s", fullpath)
-	dentries, err := fs.ReadDir(ofs.fs, fullpath)
+	fullpath := filepath.Join(genericFS.folder, name)
+	genericFS.logger.Debugf("reading entries of %s", fullpath)
+	dentries, err := fs.ReadDir(genericFS.fs, fullpath)
 	if os.IsNotExist(err) {
 		return nil, fs.ErrNotExist
 	}
@@ -86,10 +102,10 @@ func (ofs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return result, nil
 }
 
-func (ofs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
-	basepath := filepath.Join(ofs.folder, root)
-	lb := len(ofs.folder)
-	return fs.WalkDir(ofs.fs, basepath, func(path string, d fs.DirEntry, err error) error {
+func (genericFS *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
+	basepath := filepath.Join(genericFS.folder, root)
+	lb := len(genericFS.folder)
+	return fs.WalkDir(genericFS.fs, basepath, func(path string, d fs.DirEntry, err error) error {
 		if d == nil {
 			return nil
 		}
@@ -106,24 +122,24 @@ func (ofs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
 	})
 }
 
-func (ofs *FS) Stat(name string) (fs.FileInfo, error) {
+func (genericFS *FS) Stat(name string) (fs.FileInfo, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
-	fullpath := filepath.Join(ofs.folder, name)
-	ofs.logger.Debugf("stat %s", fullpath)
+	fullpath := filepath.Join(genericFS.folder, name)
+	genericFS.logger.Debugf("stat %s", fullpath)
 
-	fi, err := fs.Stat(ofs.fs, fullpath)
+	fi, err := fs.Stat(genericFS.fs, fullpath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot stat %s", fullpath)
 	}
 	return fi, nil
 }
 
-func (ofs *FS) SubFS(name string) (ocfl.OCFLFS, error) {
+func (genericFS *FS) SubFS(name string) (ocfl.OCFLFS, error) {
 	if name == "." {
 		name = ""
 	}
 	if name == "" {
-		return ofs, nil
+		return genericFS, nil
 	}
-	return NewGenericFS(ofs.fs, filepath.ToSlash(filepath.Join(ofs.folder, name)), ofs.logger)
+	return NewGenericFS(genericFS.fs, filepath.ToSlash(filepath.Join(genericFS.folder, name)), genericFS.logger)
 }

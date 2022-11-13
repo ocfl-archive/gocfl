@@ -21,4 +21,5 @@ type OCFLFS interface {
 	IsNotExist(err error) bool
 	WalkDir(root string, fn fs.WalkDirFunc) error
 	Stat(name string) (fs.FileInfo, error)
+	HasContent() bool
 }

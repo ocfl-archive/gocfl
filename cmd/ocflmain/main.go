@@ -57,8 +57,8 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 }
 */
 
-func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, digest checksum.DigestAlgorithm, logger *logging.Logger) error {
-	storageRoot, err := ocfl.NewStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, VERSION, extensionFactory, digest, logger)
+func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
+	storageRoot, err := ocfl.LoadStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, extensionFactory, logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -68,7 +68,7 @@ func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, digest che
 	return nil
 }
 
-func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, digest checksum.DigestAlgorithm, logger *logging.Logger) error {
+func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, storageRootExtensions, objectExtensions []ocfl.Extension, digest checksum.DigestAlgorithm, logger *logging.Logger) error {
 
 	if srcdir == "" {
 		return errors.Errorf("invalid source dir: %s", srcdir)
@@ -83,9 +83,17 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.NewStorageRoot(ctx, dest, VERSION, extensionFactory, digest, logger)
-	if err != nil {
-		return errors.Wrap(err, "cannot create new storageroot")
+	var storageRoot ocfl.StorageRoot
+	if dest.HasContent() {
+		storageRoot, err = ocfl.LoadStorageRoot(ctx, dest, extensionFactory, logger)
+		if err != nil {
+			return errors.Wrap(err, "cannot load new storageroot")
+		}
+	} else {
+		storageRoot, err = ocfl.CreateStorageRoot(ctx, dest, VERSION, extensionFactory, storageRootExtensions, digest, logger)
+		if err != nil {
+			return errors.Wrap(err, "cannot create new storageroot")
+		}
 	}
 
 	defer showStatus(ctx)
@@ -185,7 +193,20 @@ func main() {
 	if err != nil {
 		logger.Panicf("cannot create generic fs for %v", dExtDirFS)
 	}
-	if err := extensionFactory.LoadDefaultExtensions(ofs); err != nil {
+	subFS, err := ofs.SubFS("storageroot")
+	if err != nil {
+		logger.Panicf("cannot create subfs %s for %v", "storageroot", dExtDirFS)
+	}
+	storageRootExtensions, err := extensionFactory.LoadExtensions(subFS)
+	if err != nil {
+		logger.Panicf("cannot load extension folder %v", ofs)
+	}
+	subFS, err = ofs.SubFS("object")
+	if err != nil {
+		logger.Panicf("cannot create subfs %s for %v", "object", dExtDirFS)
+	}
+	objectExtensions, err := extensionFactory.LoadExtensions(subFS)
+	if err != nil {
 		logger.Panicf("cannot load extension folder %v", ofs)
 	}
 
@@ -246,7 +267,7 @@ func main() {
 	switch {
 	case *srcDir != "":
 
-		if err := ingest(ocfs, *srcDir, extensionFactory, digest, logger); err != nil {
+		if err := ingest(ocfs, *srcDir, extensionFactory, storageRootExtensions, objectExtensions, digest, logger); err != nil {
 			stackTrace := ocfl.GetErrorStacktrace(err)
 			logger.Errorf("%v%+v", err, stackTrace)
 			panic(err)
@@ -260,7 +281,7 @@ func main() {
 				}
 		*/
 	case *checkFlag:
-		if err := check(ocfs, extensionFactory, digest, logger); err != nil {
+		if err := check(ocfs, extensionFactory, logger); err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}

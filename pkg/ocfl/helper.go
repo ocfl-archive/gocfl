@@ -82,14 +82,6 @@ func copyMapStringSlice(dest, src map[string][]string) {
 	}
 }
 
-func MultiError(errs ...error) error {
-	me := []error{}
-	for _, err := range errs {
-		me = append(me, err)
-	}
-	return errors.Combine(me...)
-}
-
 func GetErrorStacktrace(err error) errors.StackTrace {
 	type stackTracer interface {
 		StackTrace() errors.StackTrace
@@ -146,7 +138,8 @@ func getVersion(ctx context.Context, fs OCFLFS, folder, prefix string) (version 
 			}
 			t := fmt.Sprintf("%s%s", prefix, version)
 			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
-				addValidationErrors(ctx, GetValidationError(version, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n"))
+				return version, errInvalidContent
+				//addValidationErrors(ctx, GetValidationError(version, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n"))
 			}
 		}
 	}

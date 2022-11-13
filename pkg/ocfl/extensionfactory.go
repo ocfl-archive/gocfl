@@ -85,41 +85,17 @@ func (f *ExtensionFactory) CreateExtensions(fsys OCFLFS) ([]Extension, error) {
 
 		ext, err := f.Create(sub)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create extension %s/%s", "storageroot", file.Name())
+			return nil, errors.Wrapf(err, "cannot create extension %s", file.Name())
 		}
 		result = append(result, ext)
 	}
 	return result, nil
 }
 
-func (f *ExtensionFactory) LoadDefaultExtensions(fsys OCFLFS) error {
-	ofs, err := fsys.SubFS("storageroot")
+func (f *ExtensionFactory) LoadExtensions(fsys OCFLFS) ([]Extension, error) {
+	extensions, err := f.CreateExtensions(fsys)
 	if err != nil {
-		return errors.Wrapf(err, "cannot instantiate generic fs for folder %s", "storageroot")
+		return nil, errors.Wrap(err, "cannot create extensions")
 	}
-	exts, err := f.CreateExtensions(ofs)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create extensions for folder %s", "storageroot")
-	}
-	f.defaultStorageRoot = exts
-
-	ofs, err = fsys.SubFS("object")
-	if err != nil {
-		return errors.Wrapf(err, "cannot instantiate generic fs for folder %s", "storageroot")
-	}
-	exts, err = f.CreateExtensions(ofs)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create extensions for folder %s", "storageroot")
-	}
-	f.defaultObject = exts
-
-	return nil
-}
-
-func (f *ExtensionFactory) GetDefaultStoragerootExtensions() []Extension {
-	return f.defaultStorageRoot
-}
-
-func (f *ExtensionFactory) GetDefaultObjectExtensions() []Extension {
-	return f.defaultObject
+	return extensions, nil
 }
