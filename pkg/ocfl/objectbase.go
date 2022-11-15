@@ -33,8 +33,8 @@ type ObjectBase struct {
 	version            OCFLVersion
 }
 
-// NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, id string, storageroot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
+// newObjectBase creates an empty ObjectBase structure
+func newObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, storageroot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:         ctx,
 		fs:          fs,
@@ -46,19 +46,6 @@ func NewObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, i
 			objectContentPath: []ObjectContentPath{},
 		},
 		logger: logger,
-	}
-	if id != "" {
-		// create initial filesystem structure for new object
-		if err := ocfl.New(id); err == nil {
-			return ocfl, nil
-		}
-	}
-	// load the object
-	if err := ocfl.Load(); err != nil {
-		return nil, errors.Wrapf(err, "cannot load object %s", id)
-	}
-	if id != "" && ocfl.GetID() != id {
-		return nil, fmt.Errorf("id mismatch. %s != %s", id, ocfl.GetID())
 	}
 	return ocfl, nil
 }
@@ -75,7 +62,6 @@ func (ocfl *ObjectBase) addValidationWarning(errno ValidationErrorCode, format s
 	addValidationWarnings(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
 }
 
-func (ocfl *ObjectBase) GetDigest() checksum.DigestAlgorithm { return ocfl.storageRoot.GetDigest() }
 func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
 	return ocfl.LoadInventoryFolder(".")
 }
@@ -90,7 +76,7 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 		//ocfl.addValidationError(E063, "no inventory file in \"%s\"", ocfl.fs.String())
 	}
 	if err != nil {
-		return NewInventory(ocfl.ctx, ocfl, "", ocfl.version, ocfl.storageRoot.GetDigest(), ocfl.logger)
+		return newInventory(ocfl.ctx, ocfl, ocfl.version, ocfl.logger)
 		//return nil, errors.Wrapf(err, "cannot open %s", filename)
 	}
 	// read inventory into memory
@@ -130,7 +116,8 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 			}
 		}
 	}
-	return inventory, inventory.Init()
+
+	return inventory, inventory.Finalize()
 }
 
 func (ocfl *ObjectBase) StoreInventory() error {
@@ -202,7 +189,7 @@ func (ocfl *ObjectBase) StoreExtensions() error {
 	}
 	return nil
 }
-func (ocfl *ObjectBase) New(id string) error {
+func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm) error {
 	ocfl.logger.Debugf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(ocfl.version)
@@ -239,7 +226,7 @@ func (ocfl *ObjectBase) New(id string) error {
 		}
 	}
 
-	ocfl.i, err = NewInventory(ocfl.ctx, ocfl, id, ocfl.version, ocfl.storageRoot.GetDigest(), ocfl.logger)
+	ocfl.i, err = CreateInventory(ocfl.ctx, ocfl, id, digest, ocfl.logger)
 	return nil
 }
 
@@ -325,7 +312,7 @@ func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot open file '%s'", path)
 		}
-		checksum, err := checksum.Checksum(file, ocfl.GetDigest())
+		checksum, err := checksum.Checksum(file, ocfl.i.GetDigestAlgorithm())
 		if err != nil {
 			file.Close()
 			return errors.Wrapf(err, "cannot create checksum of %s", path)

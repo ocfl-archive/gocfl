@@ -10,8 +10,8 @@ import (
 )
 
 type Inventory interface {
-	Init() error
-	AfterLoad()
+	Finalize() error
+	Init(id string, digest checksum.DigestAlgorithm) error
 	GetID() string
 	GetContentDir() string
 	GetHead() string
@@ -43,22 +43,22 @@ type Inventory interface {
 	VersionLessOrEqual(v1, v2 string) bool
 }
 
-func NewInventory(ctx context.Context, object Object, id string, version OCFLVersion, digest checksum.DigestAlgorithm, logger *logging.Logger) (Inventory, error) {
+func newInventory(ctx context.Context, object Object, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
 	switch version {
 	case Version1_1:
-		sr, err := NewInventoryV1_1(ctx, object, id, digest, logger)
+		sr, err := newInventoryV1_1(ctx, object, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	default:
 		//case Version1_0:
-		sr, err := NewInventoryV1_0(ctx, object, id, digest, logger)
+		sr, err := newInventoryV1_0(ctx, object, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
-		//		return nil, errors.New(fmt.Sprintf("Inventory Version %s not supported", version))
+		//		return nil, errors.Finalize(fmt.Sprintf("Inventory Version %s not supported", version))
 	}
 }
 
@@ -85,7 +85,7 @@ func LoadInventory(ctx context.Context, object Object, data []byte, logger *logg
 		// if we don't know anything use the old stuff
 		version = Version1_0
 	}
-	inventory, err := NewInventory(ctx, object, "", version, object.GetDigest(), logger)
+	inventory, err := newInventory(ctx, object, version, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -103,8 +103,20 @@ func LoadInventory(ctx context.Context, object Object, data []byte, logger *logg
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
 	}
-	inventory.AfterLoad()
-	return inventory, nil
+
+	return inventory, inventory.Finalize()
+}
+
+func CreateInventory(ctx context.Context, object Object, id string, digest checksum.DigestAlgorithm, logger *logging.Logger) (Inventory, error) {
+	inventory, err := newInventory(ctx, object, object.GetVersion(), logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create empty inventory")
+	}
+	if err := inventory.Init(id, digest); err != nil {
+		return nil, errors.Wrap(err, "cannot initialize empty inventory")
+	}
+
+	return inventory, inventory.Finalize()
 }
 
 func InventoryIsEqual(i1, i2 Inventory) bool {

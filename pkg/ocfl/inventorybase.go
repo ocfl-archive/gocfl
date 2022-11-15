@@ -35,14 +35,12 @@ type InventoryBase struct {
 	logger           *logging.Logger
 }
 
-func NewInventoryBase(ctx context.Context, object Object, id string, objectType *url.URL, digestAlg checksum.DigestAlgorithm, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
+func newInventoryBase(ctx context.Context, object Object, objectType *url.URL, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:              ctx,
 		object:           object,
-		Id:               id,
 		paddingLength:    0,
 		Type:             InventorySpec(objectType.String()),
-		DigestAlgorithm:  digestAlg,
 		Head:             "",
 		ContentDirectory: contentDir,
 		Manifest:         map[string][]string{},
@@ -52,7 +50,12 @@ func NewInventoryBase(ctx context.Context, object Object, id string, objectType 
 	}
 	return i, nil
 }
-func (i *InventoryBase) Init() (err error) {
+func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm) (err error) {
+	i.Id = id
+	i.DigestAlgorithm = digest
+	return nil
+}
+func (i *InventoryBase) Finalize() (err error) {
 	i.versionValue = map[string]uint{}
 	for version, _ := range i.Versions.Versions {
 		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))

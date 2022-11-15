@@ -46,7 +46,7 @@ func showStatus(ctx context.Context) error {
 func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	object, err := ocfl.NewObject(ctx, dest, "", "", logger)
+	object, err := ocfl.newObject(ctx, dest, "", "", logger)
 	if err != nil {
 		return errors.Wrap(err, "cannot load object")
 	}

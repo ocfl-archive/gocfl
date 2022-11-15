@@ -31,7 +31,7 @@ func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, folder)
 		}
-		return NewObject(osr.ctx, subfs, osr.version, id, osr, osr.logger)
+		return newObject(osr.ctx, subfs, osr.version, id, osr, osr.logger)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
@@ -53,5 +53,5 @@ func (osr *StorageRootV1_1) OpenObject(id string) (Object, error) {
 		return nil, errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, folder)
 	}
 
-	return NewObject(osr.ctx, subfs, version, id, osr, osr.logger)
+	return newObject(osr.ctx, subfs, version, id, osr, osr.logger)
 }

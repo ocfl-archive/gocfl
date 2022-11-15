@@ -209,6 +209,18 @@ func (osr *StorageRootBase) GetFolders() ([]string, error) {
 	return result, nil
 }
 
+func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
+	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot build storage path for id %s", id)
+	}
+	subFS, err := osr.fs.SubFS(folder)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot create subfs %s of %v", folder, osr.fs)
+	}
+	return subFS.HasContent(), nil
+}
+
 // all folder trees, which end in a folder containing a file
 func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 	var recurse func(base string) ([]string, error)
@@ -268,36 +280,48 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, folder)
 	}
-	return NewObject(osr.ctx, subfs, version, "", osr, osr.logger)
+	object, err := newObject(osr.ctx, subfs, version, osr, osr.logger)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot instantiate object")
+	}
+	// load the object
+	if err := object.Load(); err != nil {
+		return nil, errors.Wrapf(err, "cannot load object from folder %s", folder)
+	}
+
+	return object, nil
 }
 
-func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
+func (osr *StorageRootBase) OpenObject(id string) (object Object, err error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	if err != nil {
-		return false, errors.Wrapf(err, "cannot build storage path for id %s", id)
+		return nil, errors.Wrapf(err, "cannot create folder from id %s", id)
 	}
-	subFS, err := osr.fs.SubFS(folder)
-	if err != nil {
-		return false, errors.Wrapf(err, "cannot create subfs %s of %v", folder, osr.fs)
-	}
-	return subFS.HasContent(), nil
+	return osr.OpenObjectFolder(folder)
 }
 
-func (osr *StorageRootBase) OpenObject(id string) (Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	subfs, err := osr.fs.SubFS(folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for %s", osr.fs, folder)
 	}
-	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
-	if err == errVersionNone {
-		return NewObject(osr.ctx, subfs, osr.version, id, osr, osr.logger)
-	}
+
+	object, err := newObject(osr.ctx, subfs, version, osr, osr.logger)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get version in %s for [%s]", folder, id)
+		return nil, errors.Wrap(err, "cannot instantiate object")
 	}
-	// todo: get digest from somewhere
-	return NewObject(osr.ctx, subfs, version, id, osr, osr.logger)
+
+	// create initial filesystem structure for new object
+	if err := object.Init(id, digest); err != nil {
+		return nil, errors.Wrap(err, "cannot initialize object")
+	}
+
+	if id != "" && object.GetID() != id {
+		return nil, fmt.Errorf("id mismatch. %s != %s", id, object.GetID())
+	}
+
+	return object, nil
 }
 
 func (osr *StorageRootBase) Check() error {
@@ -356,19 +380,14 @@ func (osr *StorageRootBase) CheckObjects() error {
 	}
 	for _, objectFolder := range objectFolders {
 		fmt.Printf("object folder '%s'\n", objectFolder)
-		objfs, err := osr.fs.SubFS(objectFolder)
+		object, err := osr.OpenObjectFolder(objectFolder)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, objectFolder)
-		}
-		ctx := NewContextValidation(context.TODO())
-		object, err := NewObject(ctx, objfs, "", "", osr, osr.logger)
-		if err != nil {
-			return errors.Wrap(err, "cannot load object")
+			return errors.Wrapf(err, "cannot load object from folder %s", objectFolder)
 		}
 		if err := object.Check(); err != nil {
 			return errors.Wrapf(err, "check of %s failed", object.GetID())
 		}
-		showStatus(ctx)
+		//		showStatus(osr.ctx)
 	}
 	return nil
 }

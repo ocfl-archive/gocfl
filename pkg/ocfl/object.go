@@ -8,15 +8,13 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io"
 	"io/fs"
-	"path/filepath"
 )
 
 type Object interface {
-	GetDigest() checksum.DigestAlgorithm
 	LoadInventory() (Inventory, error)
 	StoreInventory() error
 	StoreExtensions() error
-	New(id string) error
+	Init(id string, digest checksum.DigestAlgorithm) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string) error
 	AddFolder(fsys fs.FS) error
@@ -43,16 +41,10 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 				return "", errVersionMultiple
 			}
 			version = OCFLVersion(matches[1])
-			r, err := ofs.Open(filepath.Join(file.Name()))
+			cnt, err := fs.ReadFile(ofs, file.Name())
 			if err != nil {
-				return "", errors.Wrapf(err, "cannot open %s", file.Name())
-			}
-			cnt, err := io.ReadAll(r)
-			if err != nil {
-				r.Close()
 				return "", errors.Wrapf(err, "cannot read %s", file.Name())
 			}
-			r.Close()
 			t := fmt.Sprintf("ocfl_object_%s", version)
 			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
 				// todo: which error version should be used???
@@ -67,7 +59,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 	return version, nil
 }
 
-func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string, storageroot StorageRoot, logger *logging.Logger) (Object, error) {
+func newObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, storageroot StorageRoot, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)
@@ -77,17 +69,17 @@ func NewObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, id string,
 	}
 	switch version {
 	case Version1_1:
-		o, err := NewObjectV1_1(ctx, fsys, id, storageroot, logger)
+		o, err := newObjectV1_1(ctx, fsys, storageroot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	default:
-		o, err := NewObjectV1_0(ctx, fsys, id, storageroot, logger)
+		o, err := newObjectV1_0(ctx, fsys, storageroot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
-		//		return nil, errors.New(fmt.Sprintf("Object Version %s not supported", version))
+		//		return nil, errors.Finalize(fmt.Sprintf("Object Version %s not supported", version))
 	}
 }

@@ -12,8 +12,8 @@ type ObjectV1_1 struct {
 	*ObjectBase
 }
 
-func NewObjectV1_1(ctx context.Context, fs OCFLFS, id string, storageroot StorageRoot, logger *logging.Logger) (*ObjectV1_1, error) {
-	ob, err := NewObjectBase(ctx, fs, Version1_1, id, storageroot, logger)
+func newObjectV1_1(ctx context.Context, fs OCFLFS, storageroot StorageRoot, logger *logging.Logger) (*ObjectV1_1, error) {
+	ob, err := newObjectBase(ctx, fs, Version1_1, storageroot, logger)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

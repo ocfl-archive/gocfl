@@ -4,7 +4,6 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"net/url"
 )
 
@@ -16,9 +15,9 @@ type InventoryV1_0 struct {
 	*InventoryBase
 }
 
-func NewInventoryV1_0(ctx context.Context, object Object, id string, digest checksum.DigestAlgorithm, logger *logging.Logger) (*InventoryV1_0, error) {
+func newInventoryV1_0(ctx context.Context, object Object, logger *logging.Logger) (*InventoryV1_0, error) {
 	ivUrl, _ := url.Parse(string(InventorySpec1_0))
-	ib, err := NewInventoryBase(ctx, object, id, ivUrl, digest, ContentDirectory1_0, logger)
+	ib, err := newInventoryBase(ctx, object, ivUrl, ContentDirectory1_0, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}
