@@ -11,14 +11,15 @@ import (
 )
 
 type Object interface {
-	LoadInventory() (Inventory, error)
+	LoadInventory(folder string) (Inventory, error)
+	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
 	StoreInventory() error
 	StoreExtensions() error
-	Init(id string, digest checksum.DigestAlgorithm) error
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string) error
-	AddFolder(fsys fs.FS) error
-	AddFile(virtualFilename string, reader io.Reader, digest string) error
+	AddFolder(fsys fs.FS, checkDuplicate bool) error
+	AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion

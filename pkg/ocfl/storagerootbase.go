@@ -9,6 +9,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io/fs"
 	"path/filepath"
+	"strconv"
 )
 
 type StorageRootBase struct {
@@ -155,14 +156,6 @@ func (osr *StorageRootBase) CreateExtension(fs OCFLFS) (Extension, error) {
 	return osr.extensionFactory.Create(fs)
 }
 
-func (osr *StorageRootBase) GetDefaultObjectExtensions() []Extension {
-	return osr.extensionFactory.defaultObject
-}
-
-func (osr *StorageRootBase) GetDefaultStoragerootExtensions() []Extension {
-	return osr.extensionFactory.defaultStorageRoot
-}
-
 func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error {
 	extConfig := fmt.Sprintf("extensions/%s/config.json", name)
 	cfgJson, err := json.MarshalIndent(config, "", "  ")
@@ -208,6 +201,10 @@ func (osr *StorageRootBase) GetFolders() ([]string, error) {
 	}
 	return result, nil
 }
+
+//
+// Object Functions
+//
 
 func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
@@ -268,7 +265,7 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 	return result, nil
 }
 
-func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
+func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
 		osr.addValidationError(E003, "no version in folder %s", folder)
@@ -289,18 +286,31 @@ func (osr *StorageRootBase) OpenObjectFolder(folder string) (Object, error) {
 		return nil, errors.Wrapf(err, "cannot load object from folder %s", folder)
 	}
 
+	versionFloat, err := strconv.ParseFloat(string(version), 64)
+	if err != nil {
+		osr.addValidationError(E004, "invalid object version number %s", version)
+	}
+	rootVersionFloat, err := strconv.ParseFloat(string(osr.version), 64)
+	if err != nil {
+		osr.addValidationError(E075, "invalid root version number %s", version)
+	}
+	// TODO: check. could not find this rule in standard
+	if versionFloat > rootVersionFloat {
+		return nil, errors.Errorf("root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version)
+	}
+
 	return object, nil
 }
 
-func (osr *StorageRootBase) OpenObject(id string) (object Object, err error) {
+func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create folder from id %s", id)
 	}
-	return osr.OpenObjectFolder(folder)
+	return osr.LoadObjectByFolder(folder)
 }
 
-func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	subfs, err := osr.fs.SubFS(folder)
 	if err != nil {
@@ -313,7 +323,7 @@ func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest 
 	}
 
 	// create initial filesystem structure for new object
-	if err := object.Init(id, digest); err != nil {
+	if err := object.Init(id, digest, fixity, defaultExtensions); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
 	}
 
@@ -323,6 +333,10 @@ func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest 
 
 	return object, nil
 }
+
+//
+// Check functions
+//
 
 func (osr *StorageRootBase) Check() error {
 	// https://ocfl.io/1.0/spec/validation-codes.html
@@ -380,9 +394,11 @@ func (osr *StorageRootBase) CheckObjects() error {
 	}
 	for _, objectFolder := range objectFolders {
 		fmt.Printf("object folder '%s'\n", objectFolder)
-		object, err := osr.OpenObjectFolder(objectFolder)
+		object, err := osr.LoadObjectByFolder(objectFolder)
 		if err != nil {
-			return errors.Wrapf(err, "cannot load object from folder %s", objectFolder)
+			osr.addValidationError(E001, "invalid folder %s: %v", objectFolder, err)
+			continue
+			//			return errors.Wrapf(err, "cannot load object from folder %s", objectFolder)
 		}
 		if err := object.Check(); err != nil {
 			return errors.Wrapf(err, "check of %s failed", object.GetID())

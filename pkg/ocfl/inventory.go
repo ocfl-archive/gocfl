@@ -11,7 +11,7 @@ import (
 
 type Inventory interface {
 	Finalize() error
-	Init(id string, digest checksum.DigestAlgorithm) error
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	GetID() string
 	GetContentDir() string
 	GetHead() string
@@ -19,8 +19,9 @@ type Inventory interface {
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
 	DeleteFile(virtualFilename string) error
-	Rename(oldVirtualFilename, newVirtualFilename string) error
-	AddFile(virtualFilename string, realFilename string, checksum string) error
+	//Rename(oldVirtualFilename, newVirtualFilename string) error
+	AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error
+	RenameFile(dest string, digest string) error
 
 	//GetContentDirectory() string
 	GetVersionStrings() []string
@@ -35,7 +36,7 @@ type Inventory interface {
 	//	IsModified() bool
 	BuildRealname(virtualFilename string) string
 	NewVersion(msg, UserName, UserAddress string) error
-	IsDuplicate(checksum string) bool
+	GetDuplicates(checksum string) []string
 	AlreadyExists(virtualFilename, checksum string) (bool, error)
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)
 	Clean() error
@@ -60,63 +61,6 @@ func newInventory(ctx context.Context, object Object, version OCFLVersion, logge
 		return sr, nil
 		//		return nil, errors.Finalize(fmt.Sprintf("Inventory Version %s not supported", version))
 	}
-}
-
-func LoadInventory(ctx context.Context, object Object, data []byte, logger *logging.Logger) (Inventory, error) {
-	anyMap := map[string]any{}
-	if err := json.Unmarshal(data, &anyMap); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
-	}
-	var version OCFLVersion
-	t, ok := anyMap["type"]
-	if !ok {
-		return nil, errors.New("no type in inventory")
-	}
-	sStr, ok := t.(string)
-	if !ok {
-		return nil, errors.Errorf("type not a string in inventory - '%v'", t)
-	}
-	switch sStr {
-	case "https://ocfl.io/1.1/spec/#inventory":
-		version = Version1_1
-	case "https://ocfl.io/1.0/spec/#inventory":
-		version = Version1_0
-	default:
-		// if we don't know anything use the old stuff
-		version = Version1_0
-	}
-	inventory, err := newInventory(ctx, object, version, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create empty inventory")
-	}
-	if err := json.Unmarshal(data, inventory); err != nil {
-		// now lets try it again
-		jsonMap := map[string]any{}
-		// check for json format error
-		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			addValidationErrors(ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2))
-			addValidationErrors(ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2))
-		} else {
-			if _, ok := jsonMap["head"].(string); !ok {
-				addValidationErrors(ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]))
-			}
-		}
-		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
-	}
-
-	return inventory, inventory.Finalize()
-}
-
-func CreateInventory(ctx context.Context, object Object, id string, digest checksum.DigestAlgorithm, logger *logging.Logger) (Inventory, error) {
-	inventory, err := newInventory(ctx, object, object.GetVersion(), logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create empty inventory")
-	}
-	if err := inventory.Init(id, digest); err != nil {
-		return nil, errors.Wrap(err, "cannot initialize empty inventory")
-	}
-
-	return inventory, inventory.Finalize()
 }
 
 func InventoryIsEqual(i1, i2 Inventory) bool {

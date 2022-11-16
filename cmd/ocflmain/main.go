@@ -58,7 +58,10 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 */
 
 func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *logging.Logger) error {
-	storageRoot, err := ocfl.LoadStorageRoot(ocfl.NewContextValidation(context.TODO()), dest, extensionFactory, logger)
+	ctx := ocfl.NewContextValidation(context.TODO())
+	defer showStatus(ctx)
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, dest, extensionFactory, logger)
+
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}
@@ -68,7 +71,7 @@ func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *lo
 	return nil
 }
 
-func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, storageRootExtensions, objectExtensions []ocfl.Extension, digest checksum.DigestAlgorithm, logger *logging.Logger) error {
+func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, storageRootExtensions, objectExtensions []ocfl.Extension, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, logger *logging.Logger) error {
 
 	if srcdir == "" {
 		return errors.Errorf("invalid source dir: %s", srcdir)
@@ -99,16 +102,30 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 	defer showStatus(ctx)
 
 	// TEST042
-	o, err := storageRoot.OpenObject("test042")
+	id := "https://hdl.handle.net/20394823094823/test042"
+
+	var o ocfl.Object
+	exists, err := storageRoot.ObjectExists(id)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create object %s", "test042")
+		return errors.Wrapf(err, "cannot check for existence of %s", id)
+	}
+	if exists {
+		o, err = storageRoot.LoadObjectByID(id)
+		if err != nil {
+			return errors.Wrapf(err, "cannot load object %s", id)
+		}
+	} else {
+		o, err = storageRoot.CreateObject(id, VERSION, digest, fixity, objectExtensions)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create object %s", id)
+		}
 	}
 
 	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
 		return errors.Wrapf(err, "cannot start update for object %s", "test 42")
 	}
 
-	if err := o.AddFolder(os.DirFS(srcdir)); err != nil {
+	if err := o.AddFolder(os.DirFS(srcdir), false); err != nil {
 		panic(err)
 	}
 
@@ -129,6 +146,18 @@ var defaultExtensionFolder = flag.String("extensions", "", "folder with default 
 var sha256 = flag.Bool("sha256", false, "use sha256 as main hash algorithm")
 var sha512 = flag.Bool("sha512", false, "use sha512 as main hash algorithm")
 var fixity = flag.String("fixity", "", "comma separated list of fixity digest algorithms")
+
+type x interface {
+	print()
+}
+
+type y struct {
+	s string
+}
+
+func (_y y) print() {
+	fmt.Println(_y.s)
+}
 
 func main() {
 
@@ -251,7 +280,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		ocfs, err = osfs.NewFSIO(".", logger)
+		ocfs, err = osfs.NewFSIO(*target, logger)
 		if err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
@@ -267,7 +296,7 @@ func main() {
 	switch {
 	case *srcDir != "":
 
-		if err := ingest(ocfs, *srcDir, extensionFactory, storageRootExtensions, objectExtensions, digest, logger); err != nil {
+		if err := ingest(ocfs, *srcDir, extensionFactory, storageRootExtensions, objectExtensions, digest, []checksum.DigestAlgorithm{checksum.DigestMD5, checksum.DigestBlake2b256}, logger); err != nil {
 			stackTrace := ocfl.GetErrorStacktrace(err)
 			logger.Errorf("%v%+v", err, stackTrace)
 			panic(err)

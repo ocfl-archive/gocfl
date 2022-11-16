@@ -16,12 +16,11 @@ type StorageRoot interface {
 	GetFiles() ([]string, error)
 	GetFolders() ([]string, error)
 	GetObjectFolders() ([]string, error)
-	OpenObjectFolder(folder string) (Object, error)
 	ObjectExists(id string) (bool, error)
-	OpenObject(id string) (Object, error)
+	LoadObjectByFolder(folder string) (Object, error)
+	LoadObjectByID(id string) (Object, error)
+	CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error)
 	CreateExtension(fs OCFLFS) (Extension, error)
-	GetDefaultObjectExtensions() []Extension
-	GetDefaultStoragerootExtensions() []Extension
 	Check() error
 	Init(version OCFLVersion, digest checksum.DigestAlgorithm, exts []Extension) error
 	Load() error

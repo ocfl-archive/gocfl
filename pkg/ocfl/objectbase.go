@@ -31,6 +31,7 @@ type ObjectBase struct {
 	changed            bool
 	logger             *logging.Logger
 	version            OCFLVersion
+	digest             checksum.DigestAlgorithm
 }
 
 // newObjectBase creates an empty ObjectBase structure
@@ -62,12 +63,65 @@ func (ocfl *ObjectBase) addValidationWarning(errno ValidationErrorCode, format s
 	addValidationWarnings(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
 }
 
-func (ocfl *ObjectBase) LoadInventory() (Inventory, error) {
-	return ocfl.LoadInventoryFolder(".")
+func (ocfl *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
+	inventory, err := newInventory(ocfl.ctx, ocfl, ocfl.GetVersion(), ocfl.logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create empty inventory")
+	}
+	if err := inventory.Init(id, digest, fixity); err != nil {
+		return nil, errors.Wrap(err, "cannot initialize empty inventory")
+	}
+
+	return inventory, nil
 }
 
-// LoadInventory loads inventory from existing Object
-func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
+func (ocfl *ObjectBase) loadInventory(data []byte) (Inventory, error) {
+	anyMap := map[string]any{}
+	if err := json.Unmarshal(data, &anyMap); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
+	}
+	var version OCFLVersion
+	t, ok := anyMap["type"]
+	if !ok {
+		return nil, errors.New("no type in inventory")
+	}
+	sStr, ok := t.(string)
+	if !ok {
+		return nil, errors.Errorf("type not a string in inventory - '%v'", t)
+	}
+	switch sStr {
+	case "https://ocfl.io/1.1/spec/#inventory":
+		version = Version1_1
+	case "https://ocfl.io/1.0/spec/#inventory":
+		version = Version1_0
+	default:
+		// if we don't know anything use the old stuff
+		version = Version1_0
+	}
+	inventory, err := newInventory(ocfl.ctx, ocfl, version, ocfl.logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create empty inventory")
+	}
+	if err := json.Unmarshal(data, inventory); err != nil {
+		// now lets try it again
+		jsonMap := map[string]any{}
+		// check for json format error
+		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
+			addValidationErrors(ocfl.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2))
+			addValidationErrors(ocfl.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2))
+		} else {
+			if _, ok := jsonMap["head"].(string); !ok {
+				addValidationErrors(ocfl.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]))
+			}
+		}
+		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
+	}
+
+	return inventory, inventory.Finalize()
+}
+
+// loadInventory loads inventory from existing Object
+func (ocfl *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
 	iFp, err := ocfl.fs.Open(filename)
@@ -85,7 +139,7 @@ func (ocfl *ObjectBase) LoadInventoryFolder(folder string) (Inventory, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %s", filename)
 	}
-	inventory, err := LoadInventory(ocfl.ctx, ocfl, inventoryBytes, ocfl.logger)
+	inventory, err := ocfl.loadInventory(inventoryBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot initiate inventory object")
 	}
@@ -189,7 +243,7 @@ func (ocfl *ObjectBase) StoreExtensions() error {
 	}
 	return nil
 }
-func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm) error {
+func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error {
 	ocfl.logger.Debugf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(ocfl.version)
@@ -220,22 +274,22 @@ func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm) error {
 		return errors.Wrapf(err, "cannot write into %s", objectConformanceDeclarationFile)
 	}
 
-	for _, ext := range ocfl.storageRoot.GetDefaultObjectExtensions() {
+	for _, ext := range extensions {
 		if err := ocfl.extensionManager.Add(ext); err != nil {
 			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
 		}
 	}
 
-	ocfl.i, err = CreateInventory(ocfl.ctx, ocfl, id, digest, ocfl.logger)
+	ocfl.i, err = ocfl.CreateInventory(id, digest, fixity)
 	return nil
 }
 
 func (ocfl *ObjectBase) Load() (err error) {
 	// first check whether object already exists
-	ocfl.version, err = GetObjectVersion(ocfl.ctx, ocfl.fs)
-	if err != nil {
-		return err
-	}
+	//ocfl.version, err = GetObjectVersion(ocfl.ctx, ocfl.fs)
+	//if err != nil {
+	//	return err
+	//}
 	// read path from extension folder...
 	exts, err := ocfl.fs.ReadDir("extensions")
 	if err != nil {
@@ -265,7 +319,7 @@ func (ocfl *ObjectBase) Load() (err error) {
 		}
 	}
 	// load the inventory
-	if ocfl.i, err = ocfl.LoadInventory(); err != nil {
+	if ocfl.i, err = ocfl.LoadInventory("."); err != nil {
 		return errors.Wrap(err, "cannot load inventory.json of root")
 	}
 	return nil
@@ -302,37 +356,18 @@ func (ocfl *ObjectBase) StartUpdate(msg string, UserName string, UserAddress str
 	return nil
 }
 
-func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
+func (ocfl *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
+		path = filepath.ToSlash(path)
 		// directory not interesting
 		if info.IsDir() {
 			return nil
 		}
-		file, err := fsys.Open(path)
+		realFilename, err := ocfl.extensionManager.BuildObjectContentPath(ocfl, path)
 		if err != nil {
-			return errors.Wrapf(err, "cannot open file '%s'", path)
+			return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 		}
-		checksum, err := checksum.Checksum(file, ocfl.i.GetDigestAlgorithm())
-		if err != nil {
-			file.Close()
-			return errors.Wrapf(err, "cannot create checksum of %s", path)
-		}
-		// if we have a seeker, we just seek
-		if seeker, ok := file.(io.Seeker); ok {
-			if _, err := seeker.Seek(0, 0); err != nil {
-				panic(err)
-			}
-		} else {
-			// otherwise reopen it
-			file.Close()
-			file, err = fsys.Open(path)
-			if err != nil {
-				return errors.Wrapf(err, "cannot open file '%s'", path)
-			}
-		}
-		defer file.Close()
-
-		if err := ocfl.AddFile(strings.Trim(filepath.ToSlash(path), "/"), file, checksum); err != nil {
+		if err := ocfl.AddFile(fsys, path, realFilename, checkDuplicate); err != nil {
 			return errors.Wrapf(err, "cannot add file %s", path)
 		}
 		return nil
@@ -343,46 +378,94 @@ func (ocfl *ObjectBase) AddFolder(fsys fs.FS) error {
 	return nil
 }
 
-func (ocfl *ObjectBase) AddFile(filename string, reader io.Reader, digest string) error {
-	ocfl.logger.Debugf("adding %s [%s]", filename, digest)
-	virtualFilename := filepath.ToSlash(filename)
+func (ocfl *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
+	ocfl.logger.Debugf("adding %s -> %s", sourceFilename, internalFilename)
+	// paranoia
+	internalFilename = filepath.ToSlash(internalFilename)
 
 	if !ocfl.i.IsWriteable() {
 		return errors.New("ocfl not writeable")
 	}
 
-	// if file is already there we do nothing
-	dup, err := ocfl.i.AlreadyExists(virtualFilename, digest)
+	digestAlgorithms := ocfl.i.GetFixityDigestAlgorithm()
+
+	file, err := fsys.Open(sourceFilename)
 	if err != nil {
-		return errors.Wrapf(err, "cannot check duplicate for %s [%s]", virtualFilename, digest)
+		return errors.Wrapf(err, "cannot open file '%s'", sourceFilename)
 	}
-	if dup {
-		ocfl.logger.Debugf("%s [%s] is a duplicate", virtualFilename, digest)
-		return nil
-	}
-	var realFilename string
-	if !ocfl.i.IsDuplicate(digest) {
-		//		realFilename = ocfl.i.BuildRealname(virtualFilename)
-		if realFilename, err = ocfl.extensionManager.BuildObjectContentPath(ocfl, virtualFilename); err != nil {
-			return errors.Wrapf(err, "cannot transform filename %s", virtualFilename)
-		}
-		realFilename = ocfl.i.BuildRealname(realFilename)
-		writer, err := ocfl.fs.Create(realFilename)
+	// file could be replaced by another file
+	defer func() {
+		file.Close()
+	}()
+	var digest string
+	if checkDuplicate {
+		// do the checksum
+		digest, err = checksum.Checksum(file, ocfl.i.GetDigestAlgorithm())
 		if err != nil {
-			return errors.Wrapf(err, "cannot create %s", realFilename)
+			return errors.Wrapf(err, "cannot create digest of %s", sourceFilename)
 		}
-		csw := checksum.NewChecksumWriter([]checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()})
-		checksums, err := csw.Copy(writer, reader)
+		// set filepointer to beginning
+		if seeker, ok := file.(io.Seeker); ok {
+			// if we have a seeker, we just seek
+			if _, err := seeker.Seek(0, 0); err != nil {
+				panic(err)
+			}
+		} else {
+			// otherwise reopen it
+			file, err = fsys.Open(sourceFilename)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open file '%s'", sourceFilename)
+			}
+		}
+		// if file is already there we do nothing
+		dup, err := ocfl.i.AlreadyExists(sourceFilename, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot check duplicate for %s [%s]", internalFilename, digest)
+		}
+		if dup {
+			ocfl.logger.Debugf("%s [%s] is a duplicate", internalFilename, digest)
+			return nil
+		}
+		// file already ingested, but new virtual name
+		if dups := ocfl.i.GetDuplicates(digest); len(dups) > 0 {
+			if err := ocfl.i.RenameFile(sourceFilename, digest); err != nil {
+				return errors.Wrapf(err, "cannot append %s to inventory as %s", sourceFilename, internalFilename)
+			}
+			return nil
+		}
+	} else {
+		if !slices.Contains(digestAlgorithms, ocfl.i.GetDigestAlgorithm()) {
+			digestAlgorithms = append(digestAlgorithms, ocfl.i.GetDigestAlgorithm())
+		}
+	}
+
+	targetFilename := ocfl.i.BuildRealname(internalFilename)
+	writer, err := ocfl.fs.Create(targetFilename)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create %s", targetFilename)
+	}
+	defer writer.Close()
+	csw := checksum.NewChecksumWriter(digestAlgorithms)
+	checksums, err := csw.Copy(writer, file)
+	if err != nil {
+		return errors.Wrapf(err, "cannot copy %s -> %s", sourceFilename, targetFilename)
+	}
+	/*
 		if digest != "" && digest != checksums[ocfl.i.GetDigestAlgorithm()] {
 			return fmt.Errorf("invalid checksum %s", digest)
 		}
-		digest = checksums[ocfl.i.GetDigestAlgorithm()]
-		if err != nil {
-			return errors.Wrapf(err, "cannot copy to %s", realFilename)
+	*/
+	if digest == "" {
+		var ok bool
+		digest, ok = checksums[ocfl.i.GetDigestAlgorithm()]
+		if !ok {
+			return errors.Errorf("digest %s not generated", ocfl.i.GetDigestAlgorithm())
 		}
+	} else {
+		checksums[ocfl.i.GetDigestAlgorithm()] = digest
 	}
-	if err := ocfl.i.AddFile(virtualFilename, realFilename, digest); err != nil {
-		return errors.Wrapf(err, "cannot append %s/%s to inventory", realFilename, virtualFilename)
+	if err := ocfl.i.AddFile(sourceFilename, targetFilename, checksums); err != nil {
+		return errors.Wrapf(err, "cannot append %s/%s to inventory", sourceFilename, internalFilename)
 	}
 	return nil
 }
@@ -758,7 +841,7 @@ func (ocfl *ObjectBase) getVersionInventories() (map[string]Inventory, error) {
 	})
 	versionInventories := map[string]Inventory{}
 	for _, ver := range versionStrings {
-		vi, err := ocfl.LoadInventoryFolder(ver)
+		vi, err := ocfl.LoadInventory(ver)
 		if err != nil {
 			if ocfl.fs.IsNotExist(err) {
 				ocfl.addValidationWarning(W010, "no inventory file for version %s", ver)

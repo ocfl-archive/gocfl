@@ -18,41 +18,44 @@ import (
 )
 
 type InventoryBase struct {
-	ctx              context.Context
-	object           Object                                           `json:"-"`
-	modified         bool                                             `json:"-"`
-	writeable        bool                                             `json:"-"`
-	paddingLength    int                                              `json:"-"`
-	versionValue     map[string]uint                                  `json:"-"`
-	Id               string                                           `json:"id"`
-	Type             InventorySpec                                    `json:"type"`
-	DigestAlgorithm  checksum.DigestAlgorithm                         `json:"digestAlgorithm"`
-	Head             string                                           `json:"head"`
-	ContentDirectory string                                           `json:"contentDirectory,omitempty"`
-	Manifest         map[string][]string                              `json:"manifest"`
-	Versions         *OCFLVersions                                    `json:"versions"`
-	Fixity           map[checksum.DigestAlgorithm]map[string][]string `json:"fixity,omitempty"`
-	logger           *logging.Logger
+	ctx                    context.Context
+	object                 Object                                           `json:"-"`
+	modified               bool                                             `json:"-"`
+	writeable              bool                                             `json:"-"`
+	paddingLength          int                                              `json:"-"`
+	versionValue           map[string]uint                                  `json:"-"`
+	fixityDigestAlgorithms []checksum.DigestAlgorithm                       `json:"-"`
+	Id                     string                                           `json:"id"`
+	Type                   InventorySpec                                    `json:"type"`
+	DigestAlgorithm        checksum.DigestAlgorithm                         `json:"digestAlgorithm"`
+	Head                   string                                           `json:"head"`
+	ContentDirectory       string                                           `json:"contentDirectory,omitempty"`
+	Manifest               map[string][]string                              `json:"manifest"`
+	Versions               *OCFLVersions                                    `json:"versions"`
+	Fixity                 map[checksum.DigestAlgorithm]map[string][]string `json:"fixity,omitempty"`
+	logger                 *logging.Logger
 }
 
 func newInventoryBase(ctx context.Context, object Object, objectType *url.URL, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
 	i := &InventoryBase{
-		ctx:              ctx,
-		object:           object,
-		paddingLength:    0,
-		Type:             InventorySpec(objectType.String()),
-		Head:             "",
-		ContentDirectory: contentDir,
-		Manifest:         map[string][]string{},
-		Versions:         &OCFLVersions{Versions: map[string]*Version{}},
-		Fixity:           nil,
-		logger:           logger,
+		ctx:                    ctx,
+		object:                 object,
+		paddingLength:          0,
+		fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
+		Type:                   InventorySpec(objectType.String()),
+		Head:                   "",
+		ContentDirectory:       contentDir,
+		Manifest:               map[string][]string{},
+		Versions:               &OCFLVersions{Versions: map[string]*Version{}},
+		Fixity:                 nil,
+		logger:                 logger,
 	}
 	return i, nil
 }
-func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm) (err error) {
+func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (err error) {
 	i.Id = id
 	i.DigestAlgorithm = digest
+	i.fixityDigestAlgorithms = fixity
 	return nil
 }
 func (i *InventoryBase) Finalize() (err error) {
@@ -64,6 +67,11 @@ func (i *InventoryBase) Finalize() (err error) {
 			continue
 		}
 		i.versionValue[version] = uint(vInt)
+	}
+	for alg, _ := range i.Fixity {
+		if !slices.Contains(i.fixityDigestAlgorithms, alg) {
+			i.fixityDigestAlgorithms = append(i.fixityDigestAlgorithms, alg)
+		}
 	}
 
 	if err := i.check(); err != nil {
@@ -120,16 +128,7 @@ func (i *InventoryBase) GetContentDir() string { return i.ContentDirectory }
 func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
 func (i *InventoryBase) GetFixityDigestAlgorithm() []checksum.DigestAlgorithm {
-	result := []checksum.DigestAlgorithm{}
-	if i.Fixity == nil {
-		return result
-	}
-	for digest, _ := range i.Fixity {
-		if !slices.Contains(result, digest) {
-			result = append(result, digest)
-		}
-	}
-	return result
+	return i.fixityDigestAlgorithms
 }
 func (i *InventoryBase) IsWriteable() bool { return i.writeable }
 func (i *InventoryBase) IsModified() bool  { return i.modified }
@@ -615,17 +614,17 @@ func (i *InventoryBase) getLastVersion() (string, error) {
 	lastVersion := versions[len(versions)-1]
 	return fmt.Sprintf("v%d", lastVersion), nil
 }
-func (i *InventoryBase) IsDuplicate(checksum string) bool {
+func (i *InventoryBase) GetDuplicates(checksum string) []string {
 	// not necessary but fast...
 	if checksum == "" {
-		return false
+		return nil
 	}
-	for cs, _ := range i.Manifest {
+	for cs, files := range i.Manifest {
 		if cs == checksum {
-			return true
+			return files
 		}
 	}
-	return false
+	return nil
 }
 func (i *InventoryBase) AlreadyExists(virtualFilename, checksum string) (bool, error) {
 	i.logger.Debugf("%s [%s]", virtualFilename, checksum)
@@ -746,6 +745,8 @@ func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 	i.modified = found
 	return nil
 }
+
+/*
 func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) error {
 	var newState = map[string][]string{}
 	var found = false
@@ -764,40 +765,74 @@ func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) er
 	i.modified = found
 	return nil
 }
+*/
 
-func (i *InventoryBase) AddFile(virtualFilename string, realFilename string, checksum string) error {
-	i.logger.Debugf("%s - %s [%s]", virtualFilename, realFilename, checksum)
-	checksum = strings.ToLower(checksum) // paranoia
-	if _, ok := i.Manifest[checksum]; !ok {
-		i.Manifest[checksum] = []string{}
+func (i *InventoryBase) RenameFile(dest string, digest string) error {
+	if _, ok := i.Manifest[digest]; !ok {
+		return errors.Errorf("cannot find file with digest '%s'", digest)
 	}
-	dup, err := i.AlreadyExists(virtualFilename, checksum)
-	if err != nil {
-		return errors.Wrapf(err, "cannot check for duplicate of %s [%s]", virtualFilename, checksum)
-	}
-	if dup {
-		i.logger.Debugf("%s is a duplicate - ignoring", virtualFilename)
+	// nothing to do if already there...
+	if slices.Contains(i.Versions.Versions[i.Head].State.State[digest], dest) {
 		return nil
 	}
+	i.Versions.Versions[i.Head].State.State[digest] = append(i.Versions.Versions[i.Head].State.State[digest], dest)
+	return nil
+}
 
-	if realFilename != "" {
-		i.Manifest[checksum] = append(i.Manifest[checksum], realFilename)
+func (i *InventoryBase) AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error {
+	i.logger.Debugf("%s - %s [%s]", virtualFilename, internalFilename, checksums)
+	digest, ok := checksums[i.GetDigestAlgorithm()]
+	if !ok {
+		return errors.Errorf("no digest for %s in checksums", i.GetDigestAlgorithm())
+	}
+	digest = strings.ToLower(digest) // paranoia
+	/*
+		dup, err := i.AlreadyExists(virtualFilename, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot add for duplicate of %s [%s]", virtualFilename, digest)
+		}
+		if dup {
+			i.logger.Debugf("%s is a duplicate - ignoring", virtualFilename)
+			return nil
+		}
+	*/
+
+	if internalFilename != "" {
+		if _, ok := i.Manifest[digest]; !ok {
+			i.Manifest[digest] = []string{}
+		}
+		i.Manifest[digest] = append(i.Manifest[digest], internalFilename)
+		for alg, fixityDigest := range checksums {
+			if alg == i.GetDigestAlgorithm() {
+				continue
+			}
+			if i.Fixity == nil {
+				i.Fixity = map[checksum.DigestAlgorithm]map[string][]string{}
+			}
+			if _, ok := i.Fixity[alg]; !ok {
+				i.Fixity[alg] = map[string][]string{}
+			}
+			if _, ok := i.Fixity[alg][fixityDigest]; !ok {
+				i.Fixity[alg][fixityDigest] = []string{}
+			}
+			i.Fixity[alg][fixityDigest] = append(i.Fixity[alg][fixityDigest], internalFilename)
+		}
 	}
 
-	if _, ok := i.Versions.Versions[i.Head].State.State[checksum]; !ok {
-		i.Versions.Versions[i.Head].State.State[checksum] = []string{}
+	if _, ok := i.Versions.Versions[i.Head].State.State[digest]; !ok {
+		i.Versions.Versions[i.Head].State.State[digest] = []string{}
 	}
 
-	upd, err := i.IsUpdate(virtualFilename, checksum)
+	upd, err := i.IsUpdate(virtualFilename, digest)
 	if err != nil {
-		return errors.Wrapf(err, "cannot check for update of %s [%s]", virtualFilename, checksum)
+		return errors.Wrapf(err, "cannot check for update of %s [%s]", virtualFilename, digest)
 	}
 	if upd {
 		i.logger.Debugf("%s is an update - removing old version", virtualFilename)
 		i.DeleteFile(virtualFilename)
 	}
 
-	i.Versions.Versions[i.Head].State.State[checksum] = append(i.Versions.Versions[i.Head].State.State[checksum], virtualFilename)
+	i.Versions.Versions[i.Head].State.State[digest] = append(i.Versions.Versions[i.Head].State.State[digest], virtualFilename)
 
 	i.modified = true
 

@@ -152,7 +152,6 @@ func (zipFS *FS) Create(name string) (io.WriteCloser, error) {
 	if zipFS.isClosed() {
 		return nil, errors.New("zipFS closed")
 	}
-
 	name = filepath.ToSlash(filepath.Clean(filepath.Join(zipFS.pathPrefix, name)))
 	zipFS.logger.Debugf("%s", name)
 	wc, err := zipFS.w.Create(name)
