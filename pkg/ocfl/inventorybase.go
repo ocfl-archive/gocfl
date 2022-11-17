@@ -59,14 +59,39 @@ func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity 
 	return nil
 }
 func (i *InventoryBase) Finalize() (err error) {
+	if i.Manifest == nil {
+		i.addValidationError(E041, "no manifest in inventory")
+		i.Manifest = map[string][]string{}
+	}
+
+	if i.Versions == nil {
+		i.addValidationError(E041, "no versions in inventory")
+		i.Versions = &OCFLVersions{Versions: map[string]*Version{}}
+	}
+
 	i.versionValue = map[string]uint{}
-	for version, _ := range i.Versions.Versions {
-		vInt, err := strconv.Atoi(strings.TrimLeft(version, "v0"))
+	for ver, version := range i.Versions.Versions {
+		vInt, err := strconv.Atoi(strings.TrimLeft(ver, "v0"))
 		if err != nil {
-			i.addValidationError(E104, "invalid version format %s", version)
+			i.addValidationError(E104, "invalid ver format %s", ver)
 			continue
 		}
-		i.versionValue[version] = uint(vInt)
+		i.versionValue[ver] = uint(vInt)
+		if version.User == nil {
+			i.addValidationWarning(W007, "no user key in ver '%s'", ver)
+			version.User = NewOCFLUser("", "")
+		}
+		version.User.Finalize()
+		if version.Message == nil {
+			i.addValidationWarning(W007, "no message key in ver '%s'", ver)
+			version.Message = NewOCFLString("")
+		}
+		if version.State == nil {
+			version.State = &OCFLState{
+				State: map[string][]string{},
+				err:   nil,
+			}
+		}
 	}
 	for alg, _ := range i.Fixity {
 		if !slices.Contains(i.fixityDigestAlgorithms, alg) {
@@ -81,43 +106,10 @@ func (i *InventoryBase) Finalize() (err error) {
 }
 
 func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...))
+	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s' [%s]'", i.object.getFS(), i.GetID(), i.getLastVersion()))
 }
 func (i *InventoryBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...))
-}
-
-// after loading fix empty structures
-func (i *InventoryBase) AfterLoad() {
-
-	if i.Manifest == nil {
-		i.addValidationError(E041, "no manifest in inventory")
-		i.Manifest = map[string][]string{}
-	}
-
-	if i.Versions == nil {
-		i.addValidationError(E041, "no versions in inventory")
-		i.Versions = &OCFLVersions{Versions: map[string]*Version{}}
-	}
-	for ver, version := range i.Versions.Versions {
-		if version.User == nil {
-			i.addValidationWarning(W007, "no user key in version '%s'", ver)
-			version.User = &OCFLUser{User: User{
-				Address: OCFLString{},
-				Name:    OCFLString{},
-			}}
-		}
-		if version.Message == nil {
-			i.addValidationWarning(W007, "no message key in version '%s'", ver)
-			version.Message = &OCFLString{}
-		}
-		if version.State == nil {
-			version.State = &OCFLState{
-				State: map[string][]string{},
-				err:   nil,
-			}
-		}
-	}
+	addValidationWarnings(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s' [%s]", i.object.getFS(), i.GetID(), i.getLastVersion()))
 }
 func (i *InventoryBase) GetID() string          { return i.Id }
 func (i *InventoryBase) GetHead() string        { return i.Head }
@@ -519,6 +511,7 @@ func (i *InventoryBase) GetFiles() map[string][]string {
 	}
 	iVersions := i.GetVersionStrings()
 	if !sliceContains(iVersions, versions) {
+		slices.Sort(iVersions)
 		i.addValidationError(E023, "versions %v do not contains versions from manifest %v", iVersions, versions)
 	}
 	return result
@@ -576,14 +569,9 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 	}
 	i.Versions.Versions[i.Head] = &Version{
 		Created: &OCFLTime{time.Now(), nil},
-		Message: &OCFLString{msg, nil},
+		Message: NewOCFLString(msg),
 		State:   &OCFLState{State: map[string][]string{}},
-		User: &OCFLUser{
-			User: User{
-				Name:    OCFLString{string: UserName},
-				Address: OCFLString{string: UserAddress},
-			},
-		},
+		User:    NewOCFLUser(UserName, UserAddress),
 	}
 	// copy last state...
 	if lastHead != "" {
@@ -595,24 +583,29 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 
 var vRegexp *regexp.Regexp = regexp.MustCompile("^v(\\d+)$")
 
-func (i *InventoryBase) getLastVersion() (string, error) {
+func (i *InventoryBase) getLastVersion() string {
+	if len(i.Versions.Versions) == 0 {
+		return ""
+	}
 	versions := []int{}
+	versionString := map[int]string{}
 	for ver, _ := range i.Versions.Versions {
 		matches := vRegexp.FindStringSubmatch(ver)
 		if matches == nil {
-			return "", errors.New(fmt.Sprintf("invalid version in inventory - %s", ver))
+			return ""
 		}
 		versionInt, err := strconv.Atoi(matches[1])
 		if err != nil {
-			return "", errors.Wrapf(err, "cannot convert version number to int - %s", matches[1])
+			return ""
 		}
 		versions = append(versions, versionInt)
+		versionString[versionInt] = ver
 	}
 
 	// sort versions ascending
 	sort.Ints(versions)
 	lastVersion := versions[len(versions)-1]
-	return fmt.Sprintf("v%d", lastVersion), nil
+	return versionString[lastVersion]
 }
 func (i *InventoryBase) GetDuplicates(checksum string) []string {
 	// not necessary but fast...
@@ -852,9 +845,9 @@ func (i *InventoryBase) Clean() error {
 	}
 	i.logger.Debugf("deleting %v", i.GetHead())
 	delete(i.Versions.Versions, i.GetHead())
-	lastVersion, err := i.getLastVersion()
-	if err != nil {
-		return errors.Wrap(err, "cannot get last version")
+	lastVersion := i.getLastVersion()
+	if lastVersion == "" {
+		return errors.New("cannot get last version")
 	}
 	i.Head = lastVersion
 	return nil

@@ -25,6 +25,7 @@ type Object interface {
 	GetVersion() OCFLVersion
 	Check() error
 	Close() error
+	getFS() OCFLFS
 }
 
 func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err error) {
@@ -49,12 +50,12 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 			t := fmt.Sprintf("ocfl_object_%s", version)
 			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
 				// todo: which error version should be used???
-				addValidationErrors(ctx, GetValidationError(Version1_0, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n"))
+				addValidationErrors(ctx, GetValidationError(Version1_0, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n").AppendContext("object folder '%s'", ofs))
 			}
 		}
 	}
 	if version == "" {
-		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in \"%s\"", ofs.String()))
+		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in \"%s\"", ofs.String()).AppendContext("object folder '%s'", ofs))
 		return "", nil
 	}
 	return version, nil

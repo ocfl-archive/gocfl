@@ -56,13 +56,16 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
 func (ocfl *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
+	addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", ocfl.fs, ocfl.GetID()))
 }
 
 func (ocfl *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...))
+	addValidationWarnings(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", ocfl.fs, ocfl.GetID()))
 }
 
+func (ocfl *ObjectBase) getFS() OCFLFS {
+	return ocfl.fs
+}
 func (ocfl *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
 	inventory, err := newInventory(ocfl.ctx, ocfl, ocfl.GetVersion(), ocfl.logger)
 	if err != nil {
@@ -107,11 +110,11 @@ func (ocfl *ObjectBase) loadInventory(data []byte) (Inventory, error) {
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			addValidationErrors(ocfl.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2))
-			addValidationErrors(ocfl.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2))
+			addValidationErrors(ocfl.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", ocfl.fs))
+			addValidationErrors(ocfl.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", ocfl.fs))
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				addValidationErrors(ocfl.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]))
+				addValidationErrors(ocfl.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object %s", ocfl.fs))
 			}
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
@@ -311,7 +314,7 @@ func (ocfl *ObjectBase) Load() (err error) {
 		}
 		if ext, err := ocfl.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-			ocfl.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder)
+			ocfl.addValidationWarning(W013, "unknown extension in folder '%s'", extFolder.Name())
 		} else {
 			if err := ocfl.extensionManager.Add(ext); err != nil {
 				return errors.Wrapf(err, "cannot add extension %s", extFolder.Name())
@@ -495,6 +498,9 @@ func (ocfl *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, dig
 }
 
 func (ocfl *ObjectBase) GetID() string {
+	if ocfl.i == nil {
+		return ""
+	}
 	return ocfl.i.GetID()
 }
 
@@ -629,7 +635,8 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		v2 := versionStrings[key+1]
 		vi2, ok := versionInventories[v2]
 		if !ok {
-			return errors.Errorf("no inventory for version %s", versionStrings[key+1])
+			ocfl.addValidationWarning(W000, "no inventory for version %s", versionStrings[key+1])
+			continue
 		}
 		if !SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
 			ocfl.addValidationError(E103, "spec in version %s (%s) greater than spec in version %s (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())

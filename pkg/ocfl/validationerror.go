@@ -145,6 +145,7 @@ type ValidationError struct {
 	Description  string
 	Ref          string
 	Description2 string
+	Context      string
 }
 
 type ValidationStatus struct {
@@ -154,16 +155,16 @@ type ValidationStatus struct {
 // removes duplicate errors
 func (status *ValidationStatus) Compact() {
 	slices.SortFunc(status.Errors, func(E1, E2 *ValidationError) bool {
-		return string(E1.Code)+E1.Description2 < string(E2.Code)+E2.Description2
+		return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
 	})
 	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *ValidationError) bool {
-		return E1.Code == E2.Code && E1.Description2 == E2.Description2
+		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
 	})
 	slices.SortFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
-		return string(E1.Code)+E1.Description2 < string(E2.Code)+E2.Description2
+		return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
 	})
 	status.Warnings = slices.CompactFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
-		return E1.Code == E2.Code && E1.Description2 == E2.Description2
+		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
 	})
 
 }
@@ -214,11 +215,21 @@ func (ve *ValidationError) AppendDescription(format string, a ...any) *Validatio
 	}
 }
 
+func (ve *ValidationError) AppendContext(format string, a ...any) *ValidationError {
+	return &ValidationError{
+		Code:         ve.Code,
+		Description:  ve.Description,
+		Ref:          ve.Ref,
+		Description2: ve.Description2,
+		Context:      strings.TrimSpace(ve.Context + " " + fmt.Sprintf(format, a...)),
+	}
+}
+
 func (verr *ValidationError) Error() string {
 	if len(verr.Code) > 0 && verr.Code[0] == 'W' {
-		return fmt.Sprintf("Validation Warning #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
+		return fmt.Sprintf("[%s] Validation Warning #%s - %s (%s) [%s]", verr.Context, verr.Code, verr.Description, verr.Ref, verr.Description2)
 	} else {
-		return fmt.Sprintf("Validation Error #%s - %s (%s) [%s]", verr.Code, verr.Description, verr.Ref, verr.Description2)
+		return fmt.Sprintf("[%s] Validation Error #%s - %s (%s) [%s]", verr.Context, verr.Code, verr.Description, verr.Ref, verr.Description2)
 	}
 }
 

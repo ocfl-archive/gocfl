@@ -43,6 +43,13 @@ type OCFLString struct {
 	err error
 }
 
+func NewOCFLString(str string) *OCFLString {
+	return &OCFLString{
+		string: str,
+		err:    nil,
+	}
+}
+
 func (s *OCFLString) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
@@ -83,12 +90,23 @@ func (t *OCFLTime) UnmarshalJSON(data []byte) error {
 }
 
 type User struct {
-	Address OCFLString `json:"address,omitempty"`
-	Name    OCFLString `json:"name"`
+	Address *OCFLString `json:"address,omitempty"`
+	Name    *OCFLString `json:"name"`
 }
 type OCFLUser struct {
 	User
 	err error
+}
+
+func NewOCFLUser(name, address string) *OCFLUser {
+	user := &OCFLUser{
+		User: User{
+			Address: NewOCFLString(address),
+			Name:    NewOCFLString(name),
+		},
+		err: nil,
+	}
+	return user
 }
 
 func (u *OCFLUser) UnmarshalJSON(data []byte) error {
@@ -101,6 +119,15 @@ func (u *OCFLUser) UnmarshalJSON(data []byte) error {
 	u.User.Name = tu.Name
 
 	return nil
+}
+
+func (u *OCFLUser) Finalize() {
+	if u.Name == nil {
+		u.Name = NewOCFLString("")
+	}
+	if u.Address == nil {
+		u.Address = NewOCFLString("")
+	}
 }
 
 type Version struct {

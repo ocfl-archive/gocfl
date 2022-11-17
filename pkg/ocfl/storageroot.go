@@ -71,7 +71,7 @@ func LoadStorageRoot(ctx context.Context, fs OCFLFS, extensionFactory *Extension
 			return nil, errors.Wrap(err, "cannot read storage root directory")
 		}
 		if len(cnt) > 0 {
-			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information")
+			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fs)
 			addValidationErrors(ctx, err)
 			//			return nil, err
 		}

@@ -30,12 +30,21 @@ func showStatus(ctx context.Context) error {
 		return errors.Wrap(err, "cannot get status of validation")
 	}
 	status.Compact()
+	context := ""
 	for _, err := range status.Errors {
-		fmt.Println(err)
+		if err.Context != context {
+			fmt.Printf("\n[%s]\n", err.Context)
+			context = err.Context
+		}
+		fmt.Printf("   Validation Error #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
 		//logger.Infof("ERROR: %v", err)
 	}
 	for _, err := range status.Warnings {
-		fmt.Println(err)
+		if err.Context != context {
+			fmt.Printf("\n[%s]\n", err.Context)
+			context = err.Context
+		}
+		fmt.Printf("   Validation Warning #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
 		//logger.Infof("WARN:  %v", err)
 	}
 	fmt.Println("\n")

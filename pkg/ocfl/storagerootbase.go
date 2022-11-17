@@ -48,11 +48,11 @@ var errVersionNone = errors.New("no version file found")
 var errInvalidContent = errors.New("content of version declaration does not equal filename")
 
 func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...))
+	addValidationErrors(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs))
 }
 
 func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...))
+	addValidationWarnings(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs))
 }
 
 func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, exts []Extension) error {
@@ -296,7 +296,7 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	}
 	// TODO: check. could not find this rule in standard
 	if versionFloat > rootVersionFloat {
-		return nil, errors.Errorf("root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version)
+		osr.addValidationError(E000, "root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version)
 	}
 
 	return object, nil
