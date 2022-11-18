@@ -133,7 +133,7 @@ func (osFS *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
 			}
 		*/
 		if len(path) <= lb {
-			return errors.Errorf("path \"%s\" not a subpath of \"%s\"", path, basepath)
+			return errors.Errorf("path '%s' not a subpath of '%s'", path, basepath)
 		}
 		path = path[lb+1:]
 		return fn(filepath.ToSlash(path), d, err)

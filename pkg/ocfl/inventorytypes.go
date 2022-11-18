@@ -185,6 +185,25 @@ func (v *Version) EqualState(v2 *Version) bool {
 	return true
 }
 
+type OCFLManifest struct {
+	Manifest map[string][]string
+	err      error
+}
+
+func (m *OCFLManifest) UnmarshalJSON(data []byte) error {
+	m.Manifest = map[string][]string{}
+	if err := json.Unmarshal(data, &m.Manifest); err != nil {
+		m.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
+		return nil
+	}
+
+	return nil
+}
+
+func (m *OCFLManifest) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.Manifest)
+}
+
 type OCFLVersions struct {
 	Versions map[string]*Version
 	err      error

@@ -36,18 +36,21 @@ func showStatus(ctx context.Context) error {
 			fmt.Printf("\n[%s]\n", err.Context)
 			context = err.Context
 		}
-		fmt.Printf("   Validation Error #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
+		fmt.Printf("   #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
 		//logger.Infof("ERROR: %v", err)
 	}
-	for _, err := range status.Warnings {
-		if err.Context != context {
-			fmt.Printf("\n[%s]\n", err.Context)
-			context = err.Context
+	/*
+		for _, err := range status.Warnings {
+			if err.Context != context {
+				fmt.Printf("\n[%s]\n", err.Context)
+				context = err.Context
+			}
+			fmt.Printf("   Validation Warning #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
+			//logger.Infof("WARN:  %v", err)
 		}
-		fmt.Printf("   Validation Warning #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
-		//logger.Infof("WARN:  %v", err)
-	}
-	fmt.Println("\n")
+		fmt.Println("\n")
+
+	*/
 	return nil
 }
 
@@ -60,7 +63,7 @@ func checkObject(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logg
 		return errors.Wrap(err, "cannot load object")
 	}
 	if err := object.Check(); err != nil {
-		return errors.Wrapf(err, "check of %s failed", object.GetID())
+		return errors.Wrapf(err, "check of'%s'failed", object.GetID())
 	}
 	return nil
 }
@@ -91,7 +94,7 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 		return errors.Wrapf(err, "cannot stat source dir %s", srcdir)
 	}
 	if !fi.IsDir() {
-		return errors.Errorf("source dir %s is not a directory", srcdir)
+		return errors.Errorf("source dir'%s'is not a directory", srcdir)
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
@@ -233,7 +236,7 @@ func main() {
 	}
 	subFS, err := ofs.SubFS("storageroot")
 	if err != nil {
-		logger.Panicf("cannot create subfs %s for %v", "storageroot", dExtDirFS)
+		logger.Panicf("cannot create subfs'%s'for %v", "storageroot", dExtDirFS)
 	}
 	storageRootExtensions, err := extensionFactory.LoadExtensions(subFS)
 	if err != nil {
@@ -241,7 +244,7 @@ func main() {
 	}
 	subFS, err = ofs.SubFS("object")
 	if err != nil {
-		logger.Panicf("cannot create subfs %s for %v", "object", dExtDirFS)
+		logger.Panicf("cannot create subfs'%s'for %v", "object", dExtDirFS)
 	}
 	objectExtensions, err := extensionFactory.LoadExtensions(subFS)
 	if err != nil {

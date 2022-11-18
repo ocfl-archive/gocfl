@@ -368,7 +368,7 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
 				// more than one version file is confusing...
 				if version != "" {
-					osr.addValidationError(E076, "additional version file \"%s\" in storage root", file.Name())
+					osr.addValidationError(E076, "additional version file '%s' in storage root", file.Name())
 				} else {
 					version = OCFLVersion(matches[1])
 				}

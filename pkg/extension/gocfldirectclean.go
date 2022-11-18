@@ -61,7 +61,7 @@ func NewDirectClean(config *DirectCleanConfig) (ocfl.Extension, error) {
 	}
 	sl := &DirectClean{DirectCleanConfig: config}
 	if config.ExtensionName != sl.GetName() {
-		return nil, errors.Errorf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName())
+		return nil, errors.Errorf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName())
 	}
 	return sl, nil
 }

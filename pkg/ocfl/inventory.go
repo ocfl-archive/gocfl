@@ -14,6 +14,7 @@ type Inventory interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	GetID() string
 	GetContentDir() string
+	GetRealContentDir() string
 	GetHead() string
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
@@ -44,17 +45,17 @@ type Inventory interface {
 	VersionLessOrEqual(v1, v2 string) bool
 }
 
-func newInventory(ctx context.Context, object Object, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
+func newInventory(ctx context.Context, object Object, folder string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
 	switch version {
 	case Version1_1:
-		sr, err := newInventoryV1_1(ctx, object, logger)
+		sr, err := newInventoryV1_1(ctx, object, folder, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	default:
 		//case Version1_0:
-		sr, err := newInventoryV1_0(ctx, object, logger)
+		sr, err := newInventoryV1_0(ctx, object, folder, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

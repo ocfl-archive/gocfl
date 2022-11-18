@@ -55,7 +55,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 		}
 	}
 	if version == "" {
-		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in \"%s\"", ofs.String()).AppendContext("object folder '%s'", ofs))
+		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in '%s'", ofs.String()).AppendContext("object folder '%s'", ofs))
 		return "", nil
 	}
 	return version, nil

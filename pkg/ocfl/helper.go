@@ -173,11 +173,13 @@ func showStatus(ctx context.Context) error {
 		fmt.Println(_err.Error())
 		//logger.Infof("ERROR: %v", err)
 	}
-	for _, warning := range status.Warnings {
-		fmt.Println(warning.Error())
-		//logger.Infof("WARN:  %v", err)
-	}
-	fmt.Println("\n")
+	/*
+		for _, warning := range status.Warnings {
+			fmt.Println(warning.Error())
+			//logger.Infof("WARN:  %v", err)
+		}
+		fmt.Println("\n")
+	*/
 	return nil
 }
 

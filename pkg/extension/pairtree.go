@@ -60,10 +60,10 @@ func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayo
 	sl := &StorageLayoutPairTree{StorageLayoutPairTreeConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil, errors.Wrapf(err, "hash %s not found", config.DigestAlgorithm)
+		return nil, errors.Wrapf(err, "hash'%s'not found", config.DigestAlgorithm)
 	}
 	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
+		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
 
 	return sl, nil

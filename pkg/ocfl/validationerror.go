@@ -149,30 +149,39 @@ type ValidationError struct {
 }
 
 type ValidationStatus struct {
-	Errors, Warnings []*ValidationError
+	Errors []*ValidationError
+}
+
+func validationSort(E1, E2 *ValidationError) bool {
+	sr1 := strings.HasPrefix(E1.Context, "storage root")
+	sr2 := strings.HasPrefix(E2.Context, "storage root")
+	if sr1 != sr2 {
+		return sr1 && !sr2
+	}
+	return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
 }
 
 // removes duplicate errors
 func (status *ValidationStatus) Compact() {
-	slices.SortFunc(status.Errors, func(E1, E2 *ValidationError) bool {
-		return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
-	})
+	slices.SortFunc(status.Errors, validationSort)
 	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *ValidationError) bool {
 		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
 	})
-	slices.SortFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
-		return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
-	})
-	status.Warnings = slices.CompactFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
-		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
-	})
+	/*
+		slices.SortFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
+			return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
+		})
+		status.Warnings = slices.CompactFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
+			return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
+		})
+	*/
 
 }
 
 func NewContextValidation(parent context.Context) context.Context {
 	return context.WithValue(parent, "validationStatus", &ValidationStatus{
-		Errors:   []*ValidationError{},
-		Warnings: []*ValidationError{},
+		Errors: []*ValidationError{},
+		//		Warnings: []*ValidationError{},
 	})
 }
 
@@ -202,7 +211,8 @@ func addValidationWarnings(ctx context.Context, vWarns ...*ValidationError) erro
 	if err != nil {
 		return errors.Wrap(err, "cannot add validation error")
 	}
-	status.Warnings = append(status.Warnings, vWarns...)
+	//	status.Warnings = append(status.Warnings, vWarns...)
+	status.Errors = append(status.Errors, vWarns...)
 	return nil
 }
 

@@ -38,7 +38,7 @@ func NewStorageLayoutFlatDirectFS(fs ocfl.OCFLFS) (*StorageLayoutFlatDirect, err
 func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*StorageLayoutFlatDirect, error) {
 	sl := &StorageLayoutFlatDirect{config}
 	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
+		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
 	return sl, nil
 }
