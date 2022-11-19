@@ -25,3 +25,11 @@ func newInventoryV1_1(ctx context.Context, object Object, folder string, logger 
 	i := &InventoryV1_1{InventoryBase: ib}
 	return i, nil
 }
+
+func (i *InventoryV1_1) IsEqual(i2 Inventory) bool {
+	i11_2, ok := i2.(*InventoryV1_1)
+	if !ok {
+		return false
+	}
+	return i.InventoryBase.isEqual(i11_2.InventoryBase)
+}

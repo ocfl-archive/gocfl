@@ -55,19 +55,19 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
-func (ocfl *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", ocfl.fs, ocfl.GetID()))
+func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
+	addValidationErrors(object.ctx, GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID()))
 }
 
-func (ocfl *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(ocfl.ctx, GetValidationError(ocfl.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", ocfl.fs, ocfl.GetID()))
+func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
+	addValidationWarnings(object.ctx, GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID()))
 }
 
-func (ocfl *ObjectBase) getFS() OCFLFS {
-	return ocfl.fs
+func (object *ObjectBase) getFS() OCFLFS {
+	return object.fs
 }
-func (ocfl *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
-	inventory, err := newInventory(ocfl.ctx, ocfl, "new", ocfl.GetVersion(), ocfl.logger)
+func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
+	inventory, err := newInventory(object.ctx, object, "new", object.GetVersion(), object.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -78,7 +78,7 @@ func (ocfl *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorit
 	return inventory, nil
 }
 
-func (ocfl *ObjectBase) loadInventory(data []byte, folder string) (Inventory, error) {
+func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, error) {
 	anyMap := map[string]any{}
 	if err := json.Unmarshal(data, &anyMap); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
@@ -101,7 +101,7 @@ func (ocfl *ObjectBase) loadInventory(data []byte, folder string) (Inventory, er
 		// if we don't know anything use the old stuff
 		version = Version1_0
 	}
-	inventory, err := newInventory(ocfl.ctx, ocfl, folder, version, ocfl.logger)
+	inventory, err := newInventory(object.ctx, object, folder, version, object.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -110,11 +110,11 @@ func (ocfl *ObjectBase) loadInventory(data []byte, folder string) (Inventory, er
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			addValidationErrors(ocfl.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", ocfl.fs))
-			addValidationErrors(ocfl.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", ocfl.fs))
+			addValidationErrors(object.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", object.fs))
+			addValidationErrors(object.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", object.fs))
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				addValidationErrors(ocfl.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object %s", ocfl.fs))
+				addValidationErrors(object.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object %s", object.fs))
 			}
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
@@ -124,16 +124,16 @@ func (ocfl *ObjectBase) loadInventory(data []byte, folder string) (Inventory, er
 }
 
 // loadInventory loads inventory from existing Object
-func (ocfl *ObjectBase) LoadInventory(folder string) (Inventory, error) {
+func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
-	iFp, err := ocfl.fs.Open(filename)
-	if ocfl.fs.IsNotExist(err) {
+	iFp, err := object.fs.Open(filename)
+	if object.fs.IsNotExist(err) {
 		return nil, err
-		//ocfl.addValidationError(E063, "no inventory file in '%s'", ocfl.fs.String())
+		//object.addValidationError(E063, "no inventory file in '%s'", object.fs.String())
 	}
 	if err != nil {
-		return newInventory(ocfl.ctx, ocfl, folder, ocfl.version, ocfl.logger)
+		return newInventory(object.ctx, object, folder, object.version, object.logger)
 		//return nil, errors.Wrapf(err, "cannot open %s", filename)
 	}
 	// read inventory into memory
@@ -142,7 +142,7 @@ func (ocfl *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %s", filename)
 	}
-	inventory, err := ocfl.loadInventory(inventoryBytes, folder)
+	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot initiate inventory object")
 	}
@@ -150,18 +150,18 @@ func (ocfl *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 
 	// check digest for inventory
 	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
-	sidecarBytes, err := fs.ReadFile(ocfl.fs, sidecarPath)
+	sidecarBytes, err := fs.ReadFile(object.fs, sidecarPath)
 	if err != nil {
-		if ocfl.fs.IsNotExist(err) {
-			ocfl.addValidationError(E058, "sidecar %s does not exist", sidecarPath)
+		if object.fs.IsNotExist(err) {
+			object.addValidationError(E058, "sidecar %s does not exist", sidecarPath)
 		} else {
-			ocfl.addValidationError(E060, "cannot read sidecar %s: %v", sidecarPath, err.Error())
+			object.addValidationError(E060, "cannot read sidecar %s: %v", sidecarPath, err.Error())
 		}
-		//		ocfl.addValidationError(E058, "cannot read %s: %v", sidecarPath, err)
+		//		object.addValidationError(E058, "cannot read %s: %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
 		if !strings.HasSuffix(digestString, " inventory.json") {
-			ocfl.addValidationError(E061, "no suffix \" inventory.json\" in %s", sidecarPath)
+			object.addValidationError(E061, "no suffix \" inventory.json\" in %s", sidecarPath)
 		} else {
 			digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 			h, err := checksum.GetHash(digest)
@@ -173,7 +173,7 @@ func (ocfl *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 			sumBytes := h.Sum(nil)
 			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
 			if digestString != inventoryDigestString {
-				ocfl.addValidationError(E060, "%s != %s", digestString, inventoryDigestString)
+				object.addValidationError(E060, "%s != %s", digestString, inventoryDigestString)
 			}
 		}
 	}
@@ -181,54 +181,54 @@ func (ocfl *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	return inventory, inventory.Finalize()
 }
 
-func (ocfl *ObjectBase) StoreInventory() error {
-	ocfl.logger.Debug()
+func (object *ObjectBase) StoreInventory() error {
+	object.logger.Debug()
 
-	// check whether ocfl filesystem is writeable
-	if !ocfl.i.IsWriteable() {
+	// check whether object filesystem is writeable
+	if !object.i.IsWriteable() {
 		return errors.New("inventory not writeable - not updated")
 	}
 
 	// create inventory.json from inventory
 	iFileName := "inventory.json"
-	jsonBytes, err := json.MarshalIndent(ocfl.i, "", "   ")
+	jsonBytes, err := json.MarshalIndent(object.i, "", "   ")
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
 	}
-	h, err := checksum.GetHash(ocfl.i.GetDigestAlgorithm())
+	h, err := checksum.GetHash(object.i.GetDigestAlgorithm())
 	if err != nil {
-		return errors.Wrapf(err, "invalid digest algorithm %s", string(ocfl.i.GetDigestAlgorithm()))
+		return errors.Wrapf(err, "invalid digest algorithm %s", string(object.i.GetDigestAlgorithm()))
 	}
 	if _, err := h.Write(jsonBytes); err != nil {
 		return errors.Wrapf(err, "cannot create checksum of manifest")
 	}
 	checksumBytes := h.Sum(nil)
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
-	iWriter, err := ocfl.fs.Create(iFileName)
+	iWriter, err := object.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
 	if _, err := iWriter.Write(jsonBytes); err != nil {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
-	iFileName = fmt.Sprintf("%s/inventory.json", ocfl.i.GetHead())
-	iWriter, err = ocfl.fs.Create(iFileName)
+	iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
+	iWriter, err = object.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
 	if _, err := iWriter.Write(jsonBytes); err != nil {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
-	csFileName := fmt.Sprintf("inventory.json.%s", string(ocfl.i.GetDigestAlgorithm()))
-	iCSWriter, err := ocfl.fs.Create(csFileName)
+	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
+	iCSWriter, err := object.fs.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 		return errors.Wrapf(err, "cannot write to %s", csFileName)
 	}
-	csFileName = fmt.Sprintf("%s/inventory.json.%s", ocfl.i.GetHead(), string(ocfl.i.GetDigestAlgorithm()))
-	iCSWriter, err = ocfl.fs.Create(csFileName)
+	csFileName = fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
+	iCSWriter, err = object.fs.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", csFileName)
 	}
@@ -238,26 +238,26 @@ func (ocfl *ObjectBase) StoreInventory() error {
 	return nil
 }
 
-func (ocfl *ObjectBase) StoreExtensions() error {
-	ocfl.logger.Debug()
-	subfs, err := ocfl.fs.SubFS("extensions")
+func (object *ObjectBase) StoreExtensions() error {
+	object.logger.Debug()
+	subfs, err := object.fs.SubFS("extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder %s", ocfl.fs, "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder %s", object.fs, "extensions")
 	}
 
-	if err := ocfl.extensionManager.StoreConfigs(subfs); err != nil {
+	if err := object.extensionManager.StoreConfigs(subfs); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}
 	return nil
 }
-func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error {
-	ocfl.logger.Debugf("%s", id)
+func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error {
+	object.logger.Debugf("%s", id)
 
-	objectConformanceDeclaration := "ocfl_object_" + string(ocfl.version)
+	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
-	// first check whether ocfl is not empty
-	fp, err := ocfl.fs.Open(objectConformanceDeclarationFile)
+	// first check whether object is not empty
+	fp, err := object.fs.Open(objectConformanceDeclarationFile)
 	if err == nil {
 		// not empty, close it and return error
 		if err := fp.Close(); err != nil {
@@ -265,14 +265,14 @@ func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity 
 		}
 		return fmt.Errorf("cannot create object %s. %s already exists", id, objectConformanceDeclarationFile)
 	}
-	cnt, err := ocfl.fs.ReadDir(".")
+	cnt, err := object.fs.ReadDir(".")
 	if err != nil && err != fs.ErrNotExist {
 		return errors.Wrapf(err, "cannot read %s", ".")
 	}
 	if len(cnt) > 0 {
 		return fmt.Errorf("%s is not empty", ".")
 	}
-	rfp, err := ocfl.fs.Create(objectConformanceDeclarationFile)
+	rfp, err := object.fs.Create(objectConformanceDeclarationFile)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", objectConformanceDeclarationFile)
 	}
@@ -282,23 +282,23 @@ func (ocfl *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity 
 	}
 
 	for _, ext := range extensions {
-		if err := ocfl.extensionManager.Add(ext); err != nil {
+		if err := object.extensionManager.Add(ext); err != nil {
 			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
 		}
 	}
 
-	ocfl.i, err = ocfl.CreateInventory(id, digest, fixity)
+	object.i, err = object.CreateInventory(id, digest, fixity)
 	return nil
 }
 
-func (ocfl *ObjectBase) Load() (err error) {
+func (object *ObjectBase) Load() (err error) {
 	// first check whether object already exists
-	//ocfl.version, err = GetObjectVersion(ocfl.ctx, ocfl.fs)
+	//object.version, err = GetObjectVersion(object.ctx, object.fs)
 	//if err != nil {
 	//	return err
 	//}
 	// read path from extension folder...
-	exts, err := ocfl.fs.ReadDir("extensions")
+	exts, err := object.fs.ReadDir("extensions")
 	if err != nil {
 		// if directory does not exist - no problem
 		if err != fs.ErrNotExist {
@@ -308,73 +308,73 @@ func (ocfl *ObjectBase) Load() (err error) {
 	}
 	for _, extFolder := range exts {
 		if !extFolder.IsDir() {
-			ocfl.addValidationError(E067, "invalid file '%s' in extension dir", extFolder.Name())
+			object.addValidationError(E067, "invalid file '%s' in extension dir", extFolder.Name())
 			continue
 		}
 		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
-		subfs, err := ocfl.fs.SubFS(extConfig)
+		subfs, err := object.fs.SubFS(extConfig)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for %s", ocfl.fs, extConfig)
+			return errors.Wrapf(err, "cannot create subfs of %v for %s", object.fs, extConfig)
 		}
-		if ext, err := ocfl.storageRoot.CreateExtension(subfs); err != nil {
+		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-			ocfl.addValidationWarning(W013, "unknown extension in folder '%s'", extFolder.Name())
+			object.addValidationWarning(W013, "unknown extension in folder '%s'", extFolder.Name())
 		} else {
-			if err := ocfl.extensionManager.Add(ext); err != nil {
+			if err := object.extensionManager.Add(ext); err != nil {
 				return errors.Wrapf(err, "cannot add extension %s", extFolder.Name())
 			}
 		}
 	}
 	// load the inventory
-	if ocfl.i, err = ocfl.LoadInventory("."); err != nil {
+	if object.i, err = object.LoadInventory("."); err != nil {
 		return errors.Wrap(err, "cannot load inventory.json of root")
 	}
 	return nil
 }
 
-func (ocfl *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
-	return ocfl.i.GetDigestAlgorithm()
+func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
+	return object.i.GetDigestAlgorithm()
 }
-func (ocfl *ObjectBase) Close() error {
-	ocfl.logger.Debug()
-	if ocfl.i.IsWriteable() {
-		if err := ocfl.i.Clean(); err != nil {
+func (object *ObjectBase) Close() error {
+	object.logger.Debug()
+	if object.i.IsWriteable() {
+		if err := object.i.Clean(); err != nil {
 			return errors.Wrap(err, "cannot clean inventory")
 		}
-		if err := ocfl.StoreInventory(); err != nil {
+		if err := object.StoreInventory(); err != nil {
 			return errors.Wrap(err, "cannot store inventory")
 		}
-		if err := ocfl.StoreExtensions(); err != nil {
+		if err := object.StoreExtensions(); err != nil {
 			return errors.Wrap(err, "cannot store extensions")
 		}
 	}
 	return nil
 }
 
-func (ocfl *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string) error {
-	ocfl.logger.Debugf("%s / %s / %s", msg, UserName, UserAddress)
+func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string) error {
+	object.logger.Debugf("%s / %s / %s", msg, UserName, UserAddress)
 
-	if ocfl.i.IsWriteable() {
-		return errors.New("ocfl already writeable")
+	if object.i.IsWriteable() {
+		return errors.New("object already writeable")
 	}
-	if err := ocfl.i.NewVersion(msg, UserName, UserAddress); err != nil {
-		return errors.Wrap(err, "cannot create new ocfl version")
+	if err := object.i.NewVersion(msg, UserName, UserAddress); err != nil {
+		return errors.Wrap(err, "cannot create new object version")
 	}
 	return nil
 }
 
-func (ocfl *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
+func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
 		// directory not interesting
 		if info.IsDir() {
 			return nil
 		}
-		realFilename, err := ocfl.extensionManager.BuildObjectContentPath(ocfl, path)
+		realFilename, err := object.extensionManager.BuildObjectContentPath(object, path)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 		}
-		if err := ocfl.AddFile(fsys, path, realFilename, checkDuplicate); err != nil {
+		if err := object.AddFile(fsys, path, realFilename, checkDuplicate); err != nil {
 			return errors.Wrapf(err, "cannot add file %s", path)
 		}
 		return nil
@@ -385,16 +385,16 @@ func (ocfl *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 	return nil
 }
 
-func (ocfl *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
-	ocfl.logger.Debugf("adding %s -> %s", sourceFilename, internalFilename)
+func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
+	object.logger.Debugf("adding %s -> %s", sourceFilename, internalFilename)
 	// paranoia
 	internalFilename = filepath.ToSlash(internalFilename)
 
-	if !ocfl.i.IsWriteable() {
-		return errors.New("ocfl not writeable")
+	if !object.i.IsWriteable() {
+		return errors.New("object not writeable")
 	}
 
-	digestAlgorithms := ocfl.i.GetFixityDigestAlgorithm()
+	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
 	file, err := fsys.Open(sourceFilename)
 	if err != nil {
@@ -407,7 +407,7 @@ func (ocfl *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilen
 	var digest string
 	if checkDuplicate {
 		// do the checksum
-		digest, err = checksum.Checksum(file, ocfl.i.GetDigestAlgorithm())
+		digest, err = checksum.Checksum(file, object.i.GetDigestAlgorithm())
 		if err != nil {
 			return errors.Wrapf(err, "cannot create digest of %s", sourceFilename)
 		}
@@ -425,29 +425,29 @@ func (ocfl *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilen
 			}
 		}
 		// if file is already there we do nothing
-		dup, err := ocfl.i.AlreadyExists(sourceFilename, digest)
+		dup, err := object.i.AlreadyExists(sourceFilename, digest)
 		if err != nil {
 			return errors.Wrapf(err, "cannot check duplicate for %s [%s]", internalFilename, digest)
 		}
 		if dup {
-			ocfl.logger.Debugf("%s [%s] is a duplicate", internalFilename, digest)
+			object.logger.Debugf("%s [%s] is a duplicate", internalFilename, digest)
 			return nil
 		}
 		// file already ingested, but new virtual name
-		if dups := ocfl.i.GetDuplicates(digest); len(dups) > 0 {
-			if err := ocfl.i.RenameFile(sourceFilename, digest); err != nil {
+		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
+			if err := object.i.RenameFile(sourceFilename, digest); err != nil {
 				return errors.Wrapf(err, "cannot append %s to inventory as %s", sourceFilename, internalFilename)
 			}
 			return nil
 		}
 	} else {
-		if !slices.Contains(digestAlgorithms, ocfl.i.GetDigestAlgorithm()) {
-			digestAlgorithms = append(digestAlgorithms, ocfl.i.GetDigestAlgorithm())
+		if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
+			digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
 		}
 	}
 
-	targetFilename := ocfl.i.BuildRealname(internalFilename)
-	writer, err := ocfl.fs.Create(targetFilename)
+	targetFilename := object.i.BuildRealname(internalFilename)
+	writer, err := object.fs.Create(targetFilename)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", targetFilename)
 	}
@@ -458,93 +458,93 @@ func (ocfl *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilen
 		return errors.Wrapf(err, "cannot copy %s -> %s", sourceFilename, targetFilename)
 	}
 	/*
-		if digest != "" && digest != checksums[ocfl.i.GetDigestAlgorithm()] {
+		if digest != "" && digest != checksums[object.i.GetDigestAlgorithm()] {
 			return fmt.Errorf("invalid checksum %s", digest)
 		}
 	*/
 	if digest == "" {
 		var ok bool
-		digest, ok = checksums[ocfl.i.GetDigestAlgorithm()]
+		digest, ok = checksums[object.i.GetDigestAlgorithm()]
 		if !ok {
-			return errors.Errorf("digest %s not generated", ocfl.i.GetDigestAlgorithm())
+			return errors.Errorf("digest %s not generated", object.i.GetDigestAlgorithm())
 		}
 	} else {
-		checksums[ocfl.i.GetDigestAlgorithm()] = digest
+		checksums[object.i.GetDigestAlgorithm()] = digest
 	}
-	if err := ocfl.i.AddFile(sourceFilename, targetFilename, checksums); err != nil {
+	if err := object.i.AddFile(sourceFilename, targetFilename, checksums); err != nil {
 		return errors.Wrapf(err, "cannot append %s/%s to inventory", sourceFilename, internalFilename)
 	}
 	return nil
 }
 
-func (ocfl *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, digest string) error {
+func (object *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, digest string) error {
 	virtualFilename = filepath.ToSlash(virtualFilename)
-	ocfl.logger.Debugf("removing %s [%s]", virtualFilename, digest)
+	object.logger.Debugf("removing %s [%s]", virtualFilename, digest)
 
-	if !ocfl.i.IsWriteable() {
-		return errors.New("ocfl not writeable")
+	if !object.i.IsWriteable() {
+		return errors.New("object not writeable")
 	}
 
 	// if file is already there we do nothing
-	dup, err := ocfl.i.AlreadyExists(virtualFilename, digest)
+	dup, err := object.i.AlreadyExists(virtualFilename, digest)
 	if err != nil {
 		return errors.Wrapf(err, "cannot check duplicate for %s [%s]", virtualFilename, digest)
 	}
 	if !dup {
-		ocfl.logger.Debugf("%s [%s] not in archive - ignoring", virtualFilename, digest)
+		object.logger.Debugf("%s [%s] not in archive - ignoring", virtualFilename, digest)
 		return nil
 	}
-	if err := ocfl.i.DeleteFile(virtualFilename); err != nil {
+	if err := object.i.DeleteFile(virtualFilename); err != nil {
 		return errors.Wrapf(err, "cannot delete %s", virtualFilename)
 	}
 	return nil
 
 }
 
-func (ocfl *ObjectBase) GetID() string {
-	if ocfl.i == nil {
+func (object *ObjectBase) GetID() string {
+	if object.i == nil {
 		return ""
 	}
-	return ocfl.i.GetID()
+	return object.i.GetID()
 }
 
-func (ocfl *ObjectBase) GetVersion() OCFLVersion {
-	return ocfl.version
+func (object *ObjectBase) GetVersion() OCFLVersion {
+	return object.version
 }
 
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
-func (ocfl *ObjectBase) checkVersionFolder(version string) error {
-	versionEntries, err := ocfl.fs.ReadDir(version)
+func (object *ObjectBase) checkVersionFolder(version string) error {
+	versionEntries, err := object.fs.ReadDir(version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder %s", version)
 	}
 	for _, ve := range versionEntries {
 		if !ve.IsDir() {
 			if !allowedFilesRegexp.MatchString(ve.Name()) {
-				ocfl.addValidationError(E015, "extra file '%s' in version directory '%s'", ve.Name(), version)
+				object.addValidationError(E015, "extra file '%s' in version directory '%s'", ve.Name(), version)
 			}
 			// else {
 			//	if ve.GetName() != "content" {
-			//		ocfl.addValidationError(E022, "forbidden subfolder '%s' in version directory '%s'", ve.GetName(), version)
+			//		object.addValidationError(E022, "forbidden subfolder '%s' in version directory '%s'", ve.GetName(), version)
 			//	}
 		}
 	}
 	return nil
 }
 
-func (ocfl *ObjectBase) checkFilesAndVersions() error {
+func (object *ObjectBase) checkFilesAndVersions() error {
 	// create list of version content directories
 	versionContents := map[string]string{}
-	versionStrings := ocfl.i.GetVersionStrings()
+	versionStrings := object.i.GetVersionStrings()
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b string) bool {
-		return ocfl.i.VersionLessOrEqual(a, b) && a != b
+		return object.i.VersionLessOrEqual(a, b) && a != b
 	})
 
 	for _, ver := range versionStrings {
-		versionContents[ver] = ocfl.i.GetContentDir()
+		versionContents[ver] = object.i.GetContentDir()
 	}
 
 	// load object content files
@@ -554,17 +554,17 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	for ver, cont := range versionContents {
 		// load all object version content files
 		versionContent := ver + "/" + cont
-		inventoryFile := ver + "/inventory.json"
+		//inventoryFile := ver + "/inventory.json"
 		if _, ok := objectContentFiles[ver]; !ok {
 			objectContentFiles[ver] = []string{}
 		}
-		ocfl.fs.WalkDir(
+		object.fs.WalkDir(
 			ver,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
 				if d.IsDir() {
-					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+ocfl.i.GetContentDir(), path) {
-						ocfl.addValidationWarning(W002, "extra dir '%s' in version %s", path, ver)
+					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+object.i.GetContentDir(), path) {
+						object.addValidationWarning(W002, "extra dir '%s' in version %s", path, ver)
 					}
 				} else {
 					objectFilesFlat = append(objectFilesFlat, path)
@@ -572,38 +572,40 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 						objectContentFiles[ver] = append(objectContentFiles[ver], path)
 						objectContentFilesFlat = append(objectContentFilesFlat, path)
 					} else {
-						if !strings.HasPrefix(path, inventoryFile) {
-							ocfl.addValidationWarning(W002, "extra file '%s' in version %s", path, ver)
-						}
+						/*
+							if !strings.HasPrefix(path, inventoryFile) {
+								object.addValidationWarning(W002, "extra file '%s' in version %s", path, ver)
+							}
+						*/
 					}
 				}
 				return nil
 			},
 		)
 		if len(objectContentFiles[ver]) == 0 {
-			fi, err := ocfl.fs.Stat(versionContent)
+			fi, err := object.fs.Stat(versionContent)
 			if err != nil {
-				if !ocfl.fs.IsNotExist(err) {
+				if !object.fs.IsNotExist(err) {
 					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
 				}
 			} else {
 				if fi.IsDir() {
-					ocfl.addValidationWarning(W003, "empty content folder '%s'", versionContent)
+					object.addValidationWarning(W003, "empty content folder '%s'", versionContent)
 				}
 			}
 		}
 	}
 	// load all inventories
-	versionInventories, err := ocfl.getVersionInventories()
+	versionInventories, err := object.getVersionInventories()
 	if err != nil {
 		return errors.Wrap(err, "cannot get version inventories")
 	}
 
-	csDigestFiles, err := ocfl.createContentManifest()
+	csDigestFiles, err := object.createContentManifest()
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if err := ocfl.i.CheckFiles(csDigestFiles); err != nil {
+	if err := object.i.CheckFiles(csDigestFiles); err != nil {
 		return errors.Wrap(err, "cannot check file digests for object root")
 	}
 
@@ -617,28 +619,28 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 			continue
 		}
 		if contentDir != inv.GetRealContentDir() {
-			ocfl.addValidationError(E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
+			object.addValidationError(E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
 		}
 		if err := inv.CheckFiles(csDigestFiles); err != nil {
 			return errors.Wrapf(err, "cannot check file digests for version '%s'", ver)
 		}
 		digestAlg := inv.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
-		allowedDirs := []string{"content"}
-		versionEntries, err := ocfl.fs.ReadDir(ver)
+		allowedDirs := []string{inv.GetContentDir()}
+		versionEntries, err := object.fs.ReadDir(ver)
 		if err != nil {
-			ocfl.addValidationError(E010, "cannot read version folder '%s'", ver)
+			object.addValidationError(E010, "cannot read version folder '%s'", ver)
 			continue
 			//			return errors.Wrapf(err, "cannot read dir '%s'", ver)
 		}
 		for _, entry := range versionEntries {
 			if entry.IsDir() {
 				if !slices.Contains(allowedDirs, entry.Name()) {
-					ocfl.addValidationWarning(W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
+					object.addValidationWarning(W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
 				}
 			} else {
 				if !slices.Contains(allowedFiles, entry.Name()) {
-					ocfl.addValidationError(E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
+					object.addValidationError(E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
 				}
 			}
 		}
@@ -648,47 +650,56 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		v1 := versionStrings[key]
 		vi1, ok := versionInventories[v1]
 		if !ok {
-			ocfl.addValidationWarning(W010, "no inventory for version %s", versionStrings[key])
+			object.addValidationWarning(W010, "no inventory for version %s", versionStrings[key])
 			continue
 			// return errors.Errorf("no inventory for version %s", versionStrings[key])
 		}
 		v2 := versionStrings[key+1]
 		vi2, ok := versionInventories[v2]
 		if !ok {
-			ocfl.addValidationWarning(W000, "no inventory for version %s", versionStrings[key+1])
+			object.addValidationWarning(W000, "no inventory for version %s", versionStrings[key+1])
 			continue
 		}
 		if !SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
-			ocfl.addValidationError(E103, "spec in version %s (%s) greater than spec in version %s (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
+			object.addValidationError(E103, "spec in version %s (%s) greater than spec in version %s (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
 		}
 	}
 
-	id := ocfl.i.GetID()
-	digestAlg := ocfl.i.GetDigestAlgorithm()
-	versions := ocfl.i.GetVersions()
-	for ver, i := range versionInventories {
+	if len(versionStrings) > 0 {
+		lastVersion := versionStrings[len(versionStrings)-1]
+		if lastInv, ok := versionInventories[lastVersion]; ok {
+			if !lastInv.IsEqual(object.i) {
+				object.addValidationError(E064, "root inventory not equal to inventory version '%s'", lastVersion)
+			}
+		}
+	}
+
+	id := object.i.GetID()
+	digestAlg := object.i.GetDigestAlgorithm()
+	versions := object.i.GetVersions()
+	for ver, verInventory := range versionInventories {
 		// check for id consistency
-		if id != i.GetID() {
-			ocfl.addValidationError(E037, "invalid id - root inventory id %s != version %s inventory id %s", id, ver, i.GetID())
+		if id != verInventory.GetID() {
+			object.addValidationError(E037, "invalid id - root inventory id %s != version %s inventory id %s", id, ver, verInventory.GetID())
 		}
-		if i.GetHead() != "" && i.GetHead() != ver {
-			ocfl.addValidationError(E040, "wrong head %s in manifest for version '%s'", i.GetHead(), ver)
-		}
-
-		if i.GetDigestAlgorithm() != digestAlg {
-			ocfl.addValidationError(W004, "different digest algorithm '%s' in version '%s'", i.GetDigestAlgorithm(), ver)
+		if verInventory.GetHead() != "" && verInventory.GetHead() != ver {
+			object.addValidationError(E040, "wrong head %s in manifest for version '%s'", verInventory.GetHead(), ver)
 		}
 
-		for verVer, verVersion := range i.GetVersions() {
+		if verInventory.GetDigestAlgorithm() != digestAlg {
+			object.addValidationError(W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
+		}
+
+		for verVer, verVersion := range verInventory.GetVersions() {
 			testV, ok := versions[verVer]
 			if !ok {
-				ocfl.addValidationError(E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
+				object.addValidationError(E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
 			}
 			if !testV.EqualState(verVersion) {
-				ocfl.addValidationError(E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
+				object.addValidationError(E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
 			}
 			if !testV.EqualMeta(verVersion) {
-				ocfl.addValidationError(W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
+				object.addValidationError(W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
 			}
 		}
 	}
@@ -700,15 +711,15 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		manifestFiles := inventory.GetFilesFlat()
 		for _, manifestFile := range manifestFiles {
 			if !slices.Contains(objectFilesFlat, manifestFile) {
-				ocfl.addValidationError(E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
+				object.addValidationError(E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
 			}
 		}
 	}
 
-	rootManifestFiles := ocfl.i.GetFilesFlat()
+	rootManifestFiles := object.i.GetFilesFlat()
 	for _, manifestFile := range rootManifestFiles {
 		if !slices.Contains(objectFilesFlat, manifestFile) {
-			ocfl.addValidationError(E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
+			object.addValidationError(E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
 		}
 	}
 
@@ -722,7 +733,7 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 		if latestVersion == "" {
 			latestVersion = objectContentVersion
 		}
-		if ocfl.i.VersionLessOrEqual(latestVersion, objectContentVersion) {
+		if object.i.VersionLessOrEqual(latestVersion, objectContentVersion) {
 			latestVersion = objectContentVersion
 		}
 		// check version inventories
@@ -732,18 +743,18 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 				for _, objectContentVersionFile := range objectContentVersionFiles {
 					// check all inventories which are less in version
 					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
-						ocfl.addValidationError(E023, "file '%s' not in manifest version %s", objectContentVersionFile, inventoryVersion)
+						object.addValidationError(E023, "file '%s' not in manifest version %s", objectContentVersionFile, inventoryVersion)
 					}
 				}
 			}
 		}
-		rootVersion := ocfl.i.GetHead()
-		if ocfl.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
-			rootManifestFiles := ocfl.i.GetFilesFlat()
+		rootVersion := object.i.GetHead()
+		if object.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
+			rootManifestFiles := object.i.GetFilesFlat()
 			for _, objectContentVersionFile := range objectContentVersionFiles {
 				// check all inventories which are less in version
 				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
-					ocfl.addValidationError(E023, "file '%s' not in manifest version %s", objectContentVersionFile, rootVersion)
+					object.addValidationError(E023, "file '%s' not in manifest version %s", objectContentVersionFile, rootVersion)
 				}
 			}
 		}
@@ -752,28 +763,28 @@ func (ocfl *ObjectBase) checkFilesAndVersions() error {
 	return nil
 }
 
-func (ocfl *ObjectBase) Check() error {
+func (object *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
-	//ocfl.fs
-	ocfl.logger.Infof("object %s with ocfl version %s found", ocfl.GetID(), ocfl.GetVersion())
+	//object.fs
+	object.logger.Infof("object %s with object version %s found", object.GetID(), object.GetVersion())
 	// check folders
-	versions := ocfl.i.GetVersionStrings()
+	versions := object.i.GetVersionStrings()
 
 	// check for allowed files and directories
 	allowedDirs := append(versions, "logs", "extensions")
 	versionCounter := 0
-	entries, err := ocfl.fs.ReadDir(".")
+	entries, err := object.fs.ReadDir(".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read object folder")
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
-				ocfl.addValidationError(E001, "invalid directory '%s' found", entry.Name())
+				object.addValidationError(E001, "invalid directory '%s' found", entry.Name())
 				// could it be a version folder?
 				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
-					if err2 := ocfl.checkVersionFolder(entry.Name()); err2 == nil {
-						ocfl.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
+					if err2 := object.checkVersionFolder(entry.Name()); err2 == nil {
+						object.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						fmt.Println(err2)
 					}
@@ -782,7 +793,7 @@ func (ocfl *ObjectBase) Check() error {
 
 			// check version directories
 			if slices.Contains(versions, entry.Name()) {
-				err := ocfl.checkVersionFolder(entry.Name())
+				err := object.checkVersionFolder(entry.Name())
 				if err != nil {
 					return errors.WithStack(err)
 				}
@@ -790,45 +801,45 @@ func (ocfl *ObjectBase) Check() error {
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				ocfl.addValidationError(E001, "invalid file %s found", entry.Name())
+				object.addValidationError(E001, "invalid file %s found", entry.Name())
 			}
 		}
 	}
 
 	if versionCounter != len(versions) {
-		ocfl.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
+		object.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
 	}
 
-	if err := ocfl.checkFilesAndVersions(); err != nil {
+	if err := object.checkFilesAndVersions(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	dAlgs := []checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, ocfl.i.GetFixityDigestAlgorithm()...)
+	dAlgs := []checksum.DigestAlgorithm{object.i.GetDigestAlgorithm()}
+	dAlgs = append(dAlgs, object.i.GetFixityDigestAlgorithm()...)
 	return nil
 }
 
 // create checksums of all content files
-func (ocfl *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	// get all possible digest algs
-	digestAlgorithms, err := ocfl.getAllDigests()
+	digestAlgorithms, err := object.getAllDigests()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get digests")
 	}
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 	checksumWriter := checksum.NewChecksumWriter(digestAlgorithms)
-	versions := ocfl.i.GetVersionStrings()
+	versions := object.i.GetVersionStrings()
 	for _, version := range versions {
-		if err := ocfl.fs.WalkDir(
-			//fmt.Sprintf("%s/%s", version, ocfl.i.GetContentDir()),
+		if err := object.fs.WalkDir(
+			//fmt.Sprintf("%s/%s", version, object.i.GetContentDir()),
 			version,
 			func(path string, d fs.DirEntry, err error) error {
-				//ocfl.logger.Debug(path)
+				//object.logger.Debug(path)
 				if d.IsDir() {
 					return nil
 				}
-				fp, err := ocfl.fs.Open(path)
+				fp, err := object.fs.Open(path)
 				if err != nil {
 					return errors.Wrapf(err, "cannot open file '%s'", path)
 				}
@@ -848,7 +859,7 @@ func (ocfl *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]ma
 				}
 				return nil
 			}); err != nil {
-			return nil, errors.Wrapf(err, "cannot walk content dir %s", ocfl.i.GetContentDir())
+			return nil, errors.Wrapf(err, "cannot walk content dir %s", object.i.GetContentDir())
 		}
 	}
 	return result, nil
@@ -858,39 +869,39 @@ var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$"
 
 // helper functions
 
-func (ocfl *ObjectBase) getVersionInventories() (map[string]Inventory, error) {
-	if ocfl.versionInventories != nil {
-		return ocfl.versionInventories, nil
+func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) {
+	if object.versionInventories != nil {
+		return object.versionInventories, nil
 	}
 
-	versionStrings := ocfl.i.GetVersionStrings()
+	versionStrings := object.i.GetVersionStrings()
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b string) bool {
-		return ocfl.i.VersionLessOrEqual(a, b) && a != b
+		return object.i.VersionLessOrEqual(a, b) && a != b
 	})
 	versionInventories := map[string]Inventory{}
 	for _, ver := range versionStrings {
-		vi, err := ocfl.LoadInventory(ver)
+		vi, err := object.LoadInventory(ver)
 		if err != nil {
-			if ocfl.fs.IsNotExist(err) {
-				ocfl.addValidationWarning(W010, "no inventory for version %s", ver)
+			if object.fs.IsNotExist(err) {
+				object.addValidationWarning(W010, "no inventory for version %s", ver)
 				continue
 			}
 			return nil, errors.Wrapf(err, "cannot load inventory from folder '%s'", ver)
 		}
 		versionInventories[ver] = vi
 	}
-	ocfl.versionInventories = versionInventories
-	return ocfl.versionInventories, nil
+	object.versionInventories = versionInventories
+	return object.versionInventories, nil
 }
 
-func (ocfl *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
-	versionInventories, err := ocfl.getVersionInventories()
+func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
+	versionInventories, err := object.getVersionInventories()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get version inventories")
 	}
-	allDigestAlgs := []checksum.DigestAlgorithm{ocfl.i.GetDigestAlgorithm()}
+	allDigestAlgs := []checksum.DigestAlgorithm{object.i.GetDigestAlgorithm()}
 	for _, vi := range versionInventories {
 		allDigestAlgs = append(allDigestAlgs, vi.GetDigestAlgorithm())
 		for digestAlg, _ := range vi.GetFixity() {

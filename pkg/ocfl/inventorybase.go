@@ -54,6 +54,61 @@ func newInventoryBase(ctx context.Context, object Object, folder string, objectT
 	}
 	return i, nil
 }
+
+func (i *InventoryBase) isEqual(i2 *InventoryBase) bool {
+
+	if !sliceContains(i.fixityDigestAlgorithms, i2.fixityDigestAlgorithms) || len(i.fixityDigestAlgorithms) != len(i2.fixityDigestAlgorithms) {
+		return false
+	}
+	if i.Type != i2.Type {
+		return false
+	}
+	if i.Head != i2.Head {
+		return false
+	}
+	if i.ContentDirectory != i2.ContentDirectory {
+		return false
+	}
+	if (i.Manifest == nil && i2.Manifest != nil) || (i.Manifest != nil && i2.Manifest == nil) {
+		return false
+	}
+	if i.Manifest != nil {
+		if len(i.Manifest.Manifest) != len(i.Manifest.Manifest) {
+			return false
+		}
+		for key, vals := range i.Manifest.Manifest {
+			vals2, ok := i2.Manifest.Manifest[key]
+			if !ok {
+				return false
+			}
+			if !sliceContains(vals, vals2) || len(vals) != len(vals2) {
+				return false
+			}
+		}
+	}
+	if (i.Versions == nil && i2.Versions != nil) || (i.Versions != nil && i2.Versions == nil) {
+		return false
+	}
+	if i.Versions != nil {
+		if len(i.Versions.Versions) != len(i2.Versions.Versions) {
+			return false
+		}
+		for key, version := range i.Versions.Versions {
+			version2, ok := i2.Versions.Versions[key]
+			if !ok {
+				return false
+			}
+			if !version.EqualMeta(version2) {
+				return false
+			}
+			if !version.EqualState(version2) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (err error) {
 	i.Id = id
 	i.DigestAlgorithm = digest
@@ -271,11 +326,11 @@ func (i *InventoryBase) checkFixity() error {
 	for digestAlg, digestMap := range i.Fixity {
 		digests := []string{}
 		for digest, paths := range digestMap {
-			//digest = strings.ToLower(digest)
-			if slices.Contains(digests, digest) {
+			lowerDigest := strings.ToLower(digest)
+			if slices.Contains(digests, digest) || slices.Contains(digests, lowerDigest) {
 				i.addValidationError(E097, "fixity %s digest '%s' is duplicate", digestAlg, digest)
 			} else {
-				digests = append(digests, digest)
+				digests = append(digests, lowerDigest)
 			}
 			// check content paths
 			for _, path := range paths {
@@ -382,7 +437,7 @@ func (i *InventoryBase) checkVersions() error {
 					found = true
 				} else {
 					if slices.Contains(digestLowerUpper, mDigest) {
-						i.addValidationError(E050, "wrong digest case in version %s - '%s' != '%s'", ver, digest, mDigest)
+						i.addValidationError(E096, "wrong digest cE09ase in version %s - '%s' != '%s'", ver, digest, mDigest)
 						found = true
 						break
 					}
@@ -489,8 +544,11 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 		for digest, files := range fixity {
 			csFilenames, ok := csFiles[digest]
 			if !ok {
-				i.addValidationError(E093, "fixity digest '%s' for file(s) %v not found in content", digest, files)
-				continue
+				csFilenames, ok = csFiles[strings.ToLower(digest)]
+				if !ok {
+					i.addValidationError(E093, "fixity digest '%s' for file(s) %v not found in content", digest, files)
+					continue
+				}
 			}
 			for _, file := range files {
 				if !slices.Contains(csFilenames, file) {

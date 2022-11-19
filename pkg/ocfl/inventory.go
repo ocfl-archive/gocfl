@@ -11,6 +11,7 @@ import (
 
 type Inventory interface {
 	Finalize() error
+	IsEqual(i2 Inventory) bool
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	GetID() string
 	GetContentDir() string
