@@ -21,6 +21,7 @@ type StorageRootBase struct {
 	logger           *logging.Logger
 	version          OCFLVersion
 	digest           checksum.DigestAlgorithm
+	modified         bool
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
@@ -46,6 +47,13 @@ func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersi
 var errVersionMultiple = errors.New("multiple version files found")
 var errVersionNone = errors.New("no version file found")
 var errInvalidContent = errors.New("content of version declaration does not equal filename")
+
+func (osr *StorageRootBase) IsModified() bool {
+	return osr.modified
+}
+func (osr *StorageRootBase) setModified() {
+	osr.modified = true
+}
 
 func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
 	addValidationErrors(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs))

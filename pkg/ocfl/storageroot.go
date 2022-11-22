@@ -24,6 +24,8 @@ type StorageRoot interface {
 	Check() error
 	Init(version OCFLVersion, digest checksum.DigestAlgorithm, exts []Extension) error
 	Load() error
+	IsModified() bool
+	setModified()
 }
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")

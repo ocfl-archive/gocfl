@@ -17,6 +17,7 @@ type OCFLFS interface {
 	Create(name string) (io.WriteCloser, error)
 	SubFS(subfolder string) (OCFLFS, error)
 	Close() error
+	Discard() error
 	String() string
 	IsNotExist(err error) bool
 	WalkDir(root string, fn fs.WalkDirFunc) error

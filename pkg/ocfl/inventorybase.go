@@ -115,7 +115,7 @@ func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity 
 	i.fixityDigestAlgorithms = fixity
 	return nil
 }
-func (i *InventoryBase) Finalize() (err error) {
+func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	if i.Manifest == nil {
 		i.addValidationError(E041, "no manifest in inventory")
 		i.Manifest = &OCFLManifest{Manifest: map[string][]string{}}
@@ -156,8 +156,10 @@ func (i *InventoryBase) Finalize() (err error) {
 		}
 	}
 
-	if err := i.check(); err != nil {
-		return errors.WithStack(err)
+	if !inCreation {
+		if err := i.check(); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 	return nil
 }
@@ -183,7 +185,6 @@ func (i *InventoryBase) GetRealContentDir() string {
 	return i.ContentDirectory
 }
 
-func (i *InventoryBase) GetContentDirectory() string                  { return i.ContentDirectory }
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
 func (i *InventoryBase) GetFixityDigestAlgorithm() []checksum.DigestAlgorithm {
 	return i.fixityDigestAlgorithms
@@ -613,8 +614,7 @@ func (i *InventoryBase) GetFilesFlat() []string {
 }
 
 func (i *InventoryBase) BuildRealname(virtualFilename string) string {
-	//	return fmt.Sprintf("%s/%s/%s", i.GetHead(), i.GetContentDirectory(), FixFilename(filepath.ToSlash(virtualFilename)))
-	return fmt.Sprintf("%s/%s/%s", i.GetHead(), i.GetContentDirectory(), filepath.ToSlash(virtualFilename))
+	return filepath.ToSlash(filepath.Clean(filepath.Join(i.GetHead(), i.GetContentDir(), virtualFilename)))
 }
 
 func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
@@ -794,7 +794,6 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 	i.logger.Debugf("%s - update %v", virtualFilename, lastChecksum != checksum)
 	return lastChecksum != checksum, nil
 }
-
 func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 	var newState = map[string][]string{}
 	var found = false
@@ -853,16 +852,14 @@ func (i *InventoryBase) AddFile(virtualFilename string, internalFilename string,
 		return errors.Errorf("no digest for %s in checksums", i.GetDigestAlgorithm())
 	}
 	digest = strings.ToLower(digest) // paranoia
-	/*
-		dup, err := i.AlreadyExists(virtualFilename, digest)
-		if err != nil {
-			return errors.Wrapf(err, "cannot add for duplicate of %s [%s]", virtualFilename, digest)
-		}
-		if dup {
-			i.logger.Debugf("%s is a duplicate - ignoring", virtualFilename)
-			return nil
-		}
-	*/
+	dup, err := i.AlreadyExists(virtualFilename, digest)
+	if err != nil {
+		return errors.Wrapf(err, "cannot add for duplicate of %s [%s]", virtualFilename, digest)
+	}
+	if dup {
+		i.logger.Debugf("%s is a duplicate", virtualFilename)
+		// return nil
+	}
 
 	if internalFilename != "" {
 		if _, ok := i.Manifest.Manifest[digest]; !ok {
@@ -882,7 +879,10 @@ func (i *InventoryBase) AddFile(virtualFilename string, internalFilename string,
 			if _, ok := i.Fixity[alg][fixityDigest]; !ok {
 				i.Fixity[alg][fixityDigest] = []string{}
 			}
-			i.Fixity[alg][fixityDigest] = append(i.Fixity[alg][fixityDigest], internalFilename)
+			if !slices.Contains(i.Fixity[alg][fixityDigest], internalFilename) {
+				i.Fixity[alg][fixityDigest] = append(i.Fixity[alg][fixityDigest], internalFilename)
+				i.modified = true
+			}
 		}
 	}
 
@@ -897,11 +897,13 @@ func (i *InventoryBase) AddFile(virtualFilename string, internalFilename string,
 	if upd {
 		i.logger.Debugf("%s is an update - removing old version", virtualFilename)
 		i.DeleteFile(virtualFilename)
+		i.modified = true
 	}
 
-	i.Versions.Versions[i.Head].State.State[digest] = append(i.Versions.Versions[i.Head].State.State[digest], virtualFilename)
-
-	i.modified = true
+	if !dup {
+		i.Versions.Versions[i.Head].State.State[digest] = append(i.Versions.Versions[i.Head].State.State[digest], virtualFilename)
+		i.modified = true
+	}
 
 	return nil
 }

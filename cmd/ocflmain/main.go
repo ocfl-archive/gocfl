@@ -83,18 +83,18 @@ func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *lo
 	return nil
 }
 
-func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFactory, storageRootExtensions, objectExtensions []ocfl.Extension, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, logger *logging.Logger) error {
+func ingest(dest ocfl.OCFLFS, srcdir string, checkDuplicates bool, extensionFactory *ocfl.ExtensionFactory, storageRootExtensions, objectExtensions []ocfl.Extension, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, logger *logging.Logger) (bool, error) {
 
 	if srcdir == "" {
-		return errors.Errorf("invalid source dir: %s", srcdir)
+		return false, errors.Errorf("invalid source dir: %s", srcdir)
 	}
 
 	fi, err := os.Stat(srcdir)
 	if err != nil {
-		return errors.Wrapf(err, "cannot stat source dir %s", srcdir)
+		return false, errors.Wrapf(err, "cannot stat source dir %s", srcdir)
 	}
 	if !fi.IsDir() {
-		return errors.Errorf("source dir'%s'is not a directory", srcdir)
+		return false, errors.Errorf("source dir'%s'is not a directory", srcdir)
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
@@ -102,12 +102,12 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 	if dest.HasContent() {
 		storageRoot, err = ocfl.LoadStorageRoot(ctx, dest, extensionFactory, logger)
 		if err != nil {
-			return errors.Wrap(err, "cannot load new storageroot")
+			return false, errors.Wrap(err, "cannot load new storageroot")
 		}
 	} else {
 		storageRoot, err = ocfl.CreateStorageRoot(ctx, dest, VERSION, extensionFactory, storageRootExtensions, digest, logger)
 		if err != nil {
-			return errors.Wrap(err, "cannot create new storageroot")
+			return false, errors.Wrap(err, "cannot create new storageroot")
 		}
 	}
 
@@ -119,33 +119,33 @@ func ingest(dest ocfl.OCFLFS, srcdir string, extensionFactory *ocfl.ExtensionFac
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(id)
 	if err != nil {
-		return errors.Wrapf(err, "cannot check for existence of %s", id)
+		return false, errors.Wrapf(err, "cannot check for existence of %s", id)
 	}
 	if exists {
 		o, err = storageRoot.LoadObjectByID(id)
 		if err != nil {
-			return errors.Wrapf(err, "cannot load object %s", id)
+			return false, errors.Wrapf(err, "cannot load object %s", id)
 		}
 	} else {
 		o, err = storageRoot.CreateObject(id, VERSION, digest, fixity, objectExtensions)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create object %s", id)
+			return false, errors.Wrapf(err, "cannot create object %s", id)
 		}
 	}
 
-	if err := o.StartUpdate("test 42", "Jürgen Enge", "juergen.enge@unibas.ch"); err != nil {
-		return errors.Wrapf(err, "cannot start update for object %s", "test 42")
+	if err := o.StartUpdate("test 42", "Jürgen Enge", "mailto:juergen.enge@unibas.ch"); err != nil {
+		return false, errors.Wrapf(err, "cannot start update for object %s", "test 42")
 	}
 
-	if err := o.AddFolder(os.DirFS(srcdir), false); err != nil {
-		panic(err)
+	if err := o.AddFolder(os.DirFS(srcdir), checkDuplicates); err != nil {
+		return false, errors.Wrapf(err, "cannot add folder %s to %s", srcdir, "test 42")
 	}
 
 	if err := o.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close object %s", "test042")
+		return false, errors.Wrapf(err, "cannot close object %s", "test042")
 	}
 
-	return nil
+	return o.IsModified(), nil
 }
 
 var target = flag.String("target", "", "ocfl zip or folder")
@@ -158,18 +158,7 @@ var defaultExtensionFolder = flag.String("extensions", "", "folder with default 
 var sha256 = flag.Bool("sha256", false, "use sha256 as main hash algorithm")
 var sha512 = flag.Bool("sha512", false, "use sha512 as main hash algorithm")
 var fixity = flag.String("fixity", "", "comma separated list of fixity digest algorithms")
-
-type x interface {
-	print()
-}
-
-type y struct {
-	s string
-}
-
-func (_y y) print() {
-	fmt.Println(_y.s)
-}
+var checkDuplicates = flag.Bool("checkdup", false, "check for duplicate before ingest (slow)")
 
 func main() {
 
@@ -305,10 +294,12 @@ func main() {
 	} else {
 		digest = checksum.DigestSHA512
 	}
+	var modified = false
 	switch {
 	case *srcDir != "":
 
-		if err := ingest(ocfs, *srcDir, extensionFactory, storageRootExtensions, objectExtensions, digest, []checksum.DigestAlgorithm{checksum.DigestMD5, checksum.DigestBlake2b256}, logger); err != nil {
+		modified, err = ingest(ocfs, *srcDir, *checkDuplicates, extensionFactory, storageRootExtensions, objectExtensions, digest, []checksum.DigestAlgorithm{checksum.DigestMD5, checksum.DigestBlake2b256}, logger)
+		if err != nil {
 			stackTrace := ocfl.GetErrorStacktrace(err)
 			logger.Errorf("%v%+v", err, stackTrace)
 			panic(err)
@@ -328,9 +319,16 @@ func main() {
 		}
 	}
 
-	if err := ocfs.Close(); err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		panic(err)
+	if modified {
+		if err := ocfs.Close(); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+	} else {
+		if err := ocfs.Discard(); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
 	}
 	if zipWriter != nil {
 		if err := zipWriter.Close(); err != nil {
@@ -345,9 +343,16 @@ func main() {
 		}
 	}
 	if zipWriter != nil {
-		if err := os.Rename(fmt.Sprintf("%s.tmp", *target), *target); err != nil {
-			logger.Error(err)
-			panic(err)
+		if modified {
+			if err := os.Rename(fmt.Sprintf("%s.tmp", *target), *target); err != nil {
+				logger.Error(err)
+				panic(err)
+			}
+		} else {
+			if os.Remove(fmt.Sprintf("%s.tmp", *target)); err != nil {
+				logger.Error(err)
+				panic(err)
+			}
 		}
 	}
 }

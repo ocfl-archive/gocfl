@@ -21,9 +21,12 @@ type ObjectContentPath interface {
 }
 
 type ContentChange interface {
-	AddFile(object Object, source, dest string)
-	UpdateFile(object Object, source, dest string)
-	DeleteFile(object Object, dest string)
+	AddFileBefore(object Object, source, dest string) error
+	UpdateFileBefore(object Object, source, dest string) error
+	DeleteFileBefore(object Object, dest string) error
+	AddFileAfter(object Object, source, dest string) error
+	UpdateFileAfter(object Object, source, dest string) error
+	DeleteFileAfter(object Object, dest string) error
 }
 
 type FixityDigest interface {

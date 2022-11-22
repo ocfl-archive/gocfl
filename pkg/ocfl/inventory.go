@@ -10,7 +10,7 @@ import (
 )
 
 type Inventory interface {
-	Finalize() error
+	Finalize(inCreation bool) error
 	IsEqual(i2 Inventory) bool
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	GetID() string
@@ -35,7 +35,7 @@ type Inventory interface {
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	GetFixityDigestAlgorithm() []checksum.DigestAlgorithm
 	IsWriteable() bool
-	//	IsModified() bool
+	IsModified() bool
 	BuildRealname(virtualFilename string) string
 	NewVersion(msg, UserName, UserAddress string) error
 	GetDuplicates(checksum string) []string

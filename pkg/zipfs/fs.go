@@ -112,6 +112,18 @@ func (zipFS *FS) Close() error {
 	}
 	return errors.Combine(finalError...)
 }
+func (zipFS *FS) Discard() error {
+	finalError := []error{}
+	if zipFS.w != nil {
+		if err := zipFS.w.Flush(); err != nil {
+			finalError = append(finalError, err)
+		}
+		if err := zipFS.w.Close(); err != nil {
+			finalError = append(finalError, err)
+		}
+	}
+	return errors.Combine(finalError...)
+}
 
 func (zipFS *FS) Open(name string) (fs.File, error) {
 	if zipFS.isClosed() {

@@ -55,6 +55,8 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
+func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
+
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
 	addValidationErrors(object.ctx, GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID()))
 }
@@ -75,7 +77,7 @@ func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgor
 		return nil, errors.Wrap(err, "cannot initialize empty inventory")
 	}
 
-	return inventory, nil
+	return inventory, inventory.Finalize(true)
 }
 
 func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, error) {
@@ -120,7 +122,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
 	}
 
-	return inventory, inventory.Finalize()
+	return inventory, inventory.Finalize(false)
 }
 
 // loadInventory loads inventory from existing Object
@@ -178,7 +180,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 		}
 	}
 
-	return inventory, inventory.Finalize()
+	return inventory, inventory.Finalize(false)
 }
 
 func (object *ObjectBase) StoreInventory() error {
@@ -337,7 +339,8 @@ func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 }
 func (object *ObjectBase) Close() error {
 	object.logger.Debug()
-	if object.i.IsWriteable() {
+	if object.i.IsWriteable() && object.IsModified() {
+		object.storageRoot.setModified()
 		if err := object.i.Clean(); err != nil {
 			return errors.Wrap(err, "cannot clean inventory")
 		}

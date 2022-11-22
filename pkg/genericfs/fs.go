@@ -44,6 +44,10 @@ func (genericFS *FS) Close() error {
 	genericFS.logger.Debug("Close OSFS")
 	return nil
 }
+func (genericFS *FS) Discard() error {
+	genericFS.logger.Debug("Discard OSFS")
+	return nil
+}
 
 func (genericFS *FS) Open(name string) (fs.File, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")

@@ -26,6 +26,7 @@ type Object interface {
 	Check() error
 	Close() error
 	getFS() OCFLFS
+	IsModified() bool
 }
 
 func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err error) {

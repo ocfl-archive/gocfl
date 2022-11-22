@@ -46,6 +46,12 @@ func (osFS *FS) Close() error {
 	return nil
 }
 
+func (osFS *FS) Discard() error {
+	osFS.logger.Debug("Discard OSFS")
+
+	return nil
+}
+
 func (osFS *FS) Open(name string) (fs.File, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
 	fullpath := filepath.Join(osFS.folder, name)
