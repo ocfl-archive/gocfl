@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -121,6 +122,47 @@ func OpenRO(ocflPath string, logger *logging.Logger) (ocfl.OCFLFS, error) {
 	return ocfs, nil
 }
 
+func OpenRW(ocflPath string, logger *logging.Logger) (ocfl.OCFLFS, error) {
+	var ocfs ocfl.OCFLFS
+	var err error
+
+	var zipSize int64
+	var zipReader *os.File
+	var zipWriter *os.File
+
+	ocflPath = filepath.ToSlash(filepath.Clean(ocflPath))
+
+	if strings.HasSuffix(strings.ToLower(ocflPath), ".zip") {
+		stat, err := os.Stat(ocflPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.Print(errors.Wrapf(err, "%s does not exist. creating new file", ocflPath))
+			}
+		} else {
+			zipSize = stat.Size()
+			if zipReader, err = os.Open(ocflPath); err != nil {
+				return nil, errors.Wrapf(err, "cannot open zipfile %s", ocflPath)
+			}
+		}
+		tempFile := fmt.Sprintf("%s.tmp", ocflPath)
+		if zipWriter, err = os.Create(tempFile); err != nil {
+			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			panic(err)
+		}
+
+		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, ".", logger)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create zipfs")
+		}
+	} else {
+		ocfs, err = osfs.NewFSIO(ocflPath, logger)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create osfs")
+		}
+	}
+	return ocfs, nil
+}
+
 func showStatus(ctx context.Context) error {
 	status, err := ocfl.GetValidationStatus(ctx)
 	if err != nil {
@@ -128,13 +170,22 @@ func showStatus(ctx context.Context) error {
 	}
 	status.Compact()
 	context := ""
+	errs := 0
 	for _, err := range status.Errors {
+		if err.Code[0] == 'E' {
+			errs++
+		}
 		if err.Context != context {
 			fmt.Printf("\n[%s]\n", err.Context)
 			context = err.Context
 		}
 		fmt.Printf("   #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
 		//logger.Infof("ERROR: %v", err)
+	}
+	if errs > 0 {
+		fmt.Printf("\n%d errors found\n", errs)
+	} else {
+		fmt.Printf("\nno errors found\n")
 	}
 	/*
 		for _, err := range status.Warnings {

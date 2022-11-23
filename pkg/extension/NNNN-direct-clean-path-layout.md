@@ -107,7 +107,8 @@ is a list of UTF characters mentioned below.
 1. Replace all non-UTF8 characters with `replacementString`
 2. Split the string at path separator `/`
 3. For each part do the following
-   1. Replace any character from this list with its utf code in the form `=uXXXX` 
+   1. Replace `=` with `=u003D` if it is followed by `u` and four hex digits 
+   2. Replace any character from this list with its utf code in the form `=uXXXX` 
        where `XXXX` is the code: 
        `U+0000-U+001F` `U+007F` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F` 
        `U+2028` `U+2029` `U+202F` `U+205F` `U+3000` `\n` `\t` `*` `?` `:` `[` `]` `"` 
@@ -211,14 +212,16 @@ import (
 	[...]
 )
 
-var flatDirectCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000\n\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
-var flatDirectCleanRuleWhitespace = regexp.MustCompile("[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]")
-var flatDirectCleanRule_1_5 = regexp.MustCompile("[\u0000-\u001F\u007F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
-var flatDirectCleanRule_2_4_6 = regexp.MustCompile("^[\\-~\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]*(.*?)[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]*$")
-var flatDirectCleanRulePeriods = regexp.MustCompile("^\\.+$")
 
-var flatDirectCleanErrFilenameTooLong = errors.New("filename too long")
-var flatDirectCleanErrPathnameTooLong = errors.New("pathname too long")
+var directCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
+var directCleanRuleWhitespace = regexp.MustCompile("[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]")
+var directCleanRuleEqual = regexp.MustCompile("=(u[a-zA-Z0-9]{4})")
+var directCleanRule_1_5 = regexp.MustCompile("[\u0000-\u001F\u007F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
+var directCleanRule_2_4_6 = regexp.MustCompile("^[\\-~\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]*(.*?)[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]*$")
+var directCleanRulePeriods = regexp.MustCompile("^\\.+$")
+
+var directCleanErrFilenameTooLong = errors.New("filename too long")
+var directCleanErrPathnameTooLong = errors.New("pathname too long")
 
 [...]
 
@@ -227,7 +230,6 @@ func encodeUTFCode(s string) string {
 }
 
 func (sl *DirectClean) ExecutePath(fname string) (string, error) {
-
 	fname = strings.ToValidUTF8(fname, sl.ReplacementString)
 
 	names := strings.Split(fname, "/")
@@ -238,22 +240,23 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 			continue
 		}
 		if sl.UTFEncode {
-			n = flatDirectCleanRuleAll.ReplaceAllStringFunc(n, encodeUTFCode)
-			if n[0] == '~' || flatDirectCleanRulePeriods.MatchString(n) {
+			n = directCleanRuleEqual.ReplaceAllString(n, "=u003D$1")
+			n = directCleanRuleAll.ReplaceAllStringFunc(n, encodeUTFCode)
+			if n[0] == '~' || directCleanRulePeriods.MatchString(n) {
 				n = encodeUTFCode(string(n[0])) + n[1:]
 			}
 		} else {
-			n = flatDirectCleanRuleWhitespace.ReplaceAllString(n, sl.WhitespaceReplacementString)
-			n = flatDirectCleanRule_1_5.ReplaceAllString(n, sl.ReplacementString)
-			n = flatDirectCleanRule_2_4_6.ReplaceAllString(n, "$1")
-			if flatDirectCleanRulePeriods.MatchString(n) {
+			n = directCleanRuleWhitespace.ReplaceAllString(n, sl.WhitespaceReplacementString)
+			n = directCleanRule_1_5.ReplaceAllString(n, sl.ReplacementString)
+			n = directCleanRule_2_4_6.ReplaceAllString(n, "$1")
+			if directCleanRulePeriods.MatchString(n) {
 				n = sl.ReplacementString + n[1:]
 			}
 		}
 
 		lenN := len(n)
 		if lenN > sl.MaxFilenameLen {
-			return "", errors.Wrapf(flatDirectCleanErrFilenameTooLong, "filename: %s", n)
+			return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
 		}
 
 		if lenN > 0 {
@@ -264,7 +267,7 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 	fname = strings.Join(result, "/")
 
 	if len(fname) > sl.MaxPathnameLen {
-		return "", errors.Wrapf(flatDirectCleanErrPathnameTooLong, "pathname: %s", fname)
+		return "", errors.Wrapf(directCleanErrPathnameTooLong, "pathname: %s", fname)
 	}
 
 	return fname, nil

@@ -15,6 +15,7 @@ const DirectCleanDescription = "Maps OCFL object identifiers to storage paths or
 
 var directCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
 var directCleanRuleWhitespace = regexp.MustCompile("[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]")
+var directCleanRuleEqual = regexp.MustCompile("=(u[a-zA-Z0-9]{4})")
 var directCleanRule_1_5 = regexp.MustCompile("[\u0000-\u001F\u007F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
 var directCleanRule_2_4_6 = regexp.MustCompile("^[\\-~\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000]*(.*?)[\u0009\u000a-\u000d\u0020\u0085\u00a0\u1680\u2000-\u20a0\u2028\u2029\u202f\u205f\u3000]*$")
 var directCleanRulePeriods = regexp.MustCompile("^\\.+$")
@@ -129,6 +130,7 @@ func (sl *DirectClean) build(fname string) (string, error) {
 			continue
 		}
 		if sl.UTFEncode {
+			n = directCleanRuleEqual.ReplaceAllString(n, "=u003D$1")
 			n = directCleanRuleAll.ReplaceAllStringFunc(n, encodeUTFCode)
 			if n[0] == '~' || directCleanRulePeriods.MatchString(n) {
 				n = encodeUTFCode(string(n[0])) + n[1:]

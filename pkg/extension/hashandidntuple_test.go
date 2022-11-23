@@ -3,6 +3,7 @@ package extension
 import (
 	"fmt"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"testing"
 )
 
@@ -10,7 +11,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html#encapsulation-directory
 	// Example 1
 	l, err := NewStorageLayoutHashAndIdNTuple(&StorageLayoutHashAndIdNTupleConfig{
-		Config:          &Config{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
+		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestSHA256),
 		TupleSize:       3,
 		NumberOfTuples:  3,
@@ -22,7 +23,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	fmt.Printf("\nNewStorageLayoutHashAndIdNTuple(%s, %v, %v)\n", checksum.DigestSHA256, 3, 3)
 	objectID := "object-01"
 	testResult := "3c0/ff4/240/object-01"
-	rootPath, err := l.ExecuteID(objectID)
+	rootPath, err := l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -33,7 +34,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 
 	objectID = "..hor/rib:le-$id"
 	testResult = "487/326/d8c/%2e%2ehor%2frib%3ale-%24id"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -45,7 +46,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html#encapsulation-directory
 	// Example 2
 	l, err = NewStorageLayoutHashAndIdNTuple(&StorageLayoutHashAndIdNTupleConfig{
-		Config:          &Config{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
+		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestMD5),
 		TupleSize:       2,
 		NumberOfTuples:  15,
@@ -57,7 +58,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	fmt.Printf("\nNewStorageLayoutHashAndIdNTuple(%s, %v, %v)\n", checksum.DigestMD5, 2, 15)
 	objectID = "object-01"
 	testResult = "ff/75/53/44/92/48/5e/ab/b3/9f/86/35/67/28/88/object-01"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -68,7 +69,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 
 	objectID = "..hor/rib:le-$id"
 	testResult = "08/31/97/66/fb/6c/29/35/dd/17/5b/94/26/77/17/%2e%2ehor%2frib%3ale-%24id"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -80,7 +81,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html#encapsulation-directory
 	// Example 3
 	l, err = NewStorageLayoutHashAndIdNTuple(&StorageLayoutHashAndIdNTupleConfig{
-		Config:          &Config{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
+		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestSHA256),
 		TupleSize:       0,
 		NumberOfTuples:  0,
@@ -92,7 +93,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	fmt.Printf("\nNewStorageLayoutHashAndIdNTuple(%s, %v, %v)\n", checksum.DigestSHA256, 0, 0)
 	objectID = "object-01"
 	testResult = "object-01"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -103,7 +104,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 
 	objectID = "..hor/rib:le-$id"
 	testResult = "%2e%2ehor%2frib%3ale-%24id"
-	rootPath, err = l.ExecuteID(objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
