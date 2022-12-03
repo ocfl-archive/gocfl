@@ -73,7 +73,6 @@ func check(dest ocfl.OCFLFS, extensionFactory *ocfl.ExtensionFactory, logger *lo
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, dest, extensionFactory, logger)
-
 	if err != nil {
 		return errors.Wrap(err, "cannot create new storageroot")
 	}

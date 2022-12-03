@@ -276,14 +276,14 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
 	if err == errVersionNone {
-		osr.addValidationError(E003, "no version in folder %s", folder)
+		osr.addValidationError(E003, "no version in folder '%s'", folder)
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get version in %s", folder)
+		return nil, errors.Wrapf(err, "cannot get version in '%s'", folder)
 	}
 	subfs, err := osr.fs.SubFS(folder)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, folder)
+		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", osr.fs, folder)
 	}
 	object, err := newObject(osr.ctx, subfs, version, osr, osr.logger)
 	if err != nil {
@@ -291,16 +291,16 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	}
 	// load the object
 	if err := object.Load(); err != nil {
-		return nil, errors.Wrapf(err, "cannot load object from folder %s", folder)
+		return nil, errors.Wrapf(err, "cannot load object from folder '%s'", folder)
 	}
 
 	versionFloat, err := strconv.ParseFloat(string(version), 64)
 	if err != nil {
-		osr.addValidationError(E004, "invalid object version number %s", version)
+		osr.addValidationError(E004, "invalid object version number '%s'", version)
 	}
 	rootVersionFloat, err := strconv.ParseFloat(string(osr.version), 64)
 	if err != nil {
-		osr.addValidationError(E075, "invalid root version number %s", version)
+		osr.addValidationError(E075, "invalid root version number '%s'", version)
 	}
 	// TODO: check. could not find this rule in standard
 	if versionFloat > rootVersionFloat {
@@ -313,7 +313,7 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error) {
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create folder from id %s", id)
+		return nil, errors.Wrapf(err, "cannot create folder from id '%s'", id)
 	}
 	return osr.LoadObjectByFolder(folder)
 }
@@ -322,7 +322,7 @@ func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest 
 	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
 	subfs, err := osr.fs.SubFS(folder)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create sub fs of %v for %s", osr.fs, folder)
+		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fs, folder)
 	}
 
 	object, err := newObject(osr.ctx, subfs, version, osr, osr.logger)
@@ -336,7 +336,7 @@ func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest 
 	}
 
 	if id != "" && object.GetID() != id {
-		return nil, fmt.Errorf("id mismatch. %s != %s", id, object.GetID())
+		return nil, fmt.Errorf("id mismatch. '%s' != '%s'", id, object.GetID())
 	}
 
 	return object, nil
@@ -352,7 +352,7 @@ func (osr *StorageRootBase) Check() error {
 	if err := osr.CheckDirectory(); err != nil {
 		return errors.WithStack(err)
 	} else {
-		osr.logger.Infof("StorageRoot with version %s found", osr.version)
+		osr.logger.Infof("StorageRoot with version '%s' found", osr.version)
 	}
 	if err := osr.CheckObjects(); err != nil {
 		return errors.WithStack(err)
@@ -398,11 +398,12 @@ func (osr *StorageRootBase) CheckObject(objectFolder string) error {
 	fmt.Printf("object folder '%s'\n", objectFolder)
 	object, err := osr.LoadObjectByFolder(objectFolder)
 	if err != nil {
-		osr.addValidationError(E001, "invalid folder %s: %v", objectFolder, err)
-		//			return errors.Wrapf(err, "cannot load object from folder %s", objectFolder)
-	}
-	if err := object.Check(); err != nil {
-		return errors.Wrapf(err, "check of %s failed", object.GetID())
+		osr.addValidationError(E001, "invalid folder '%s': %v", objectFolder, err)
+		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
+	} else {
+		if err := object.Check(); err != nil {
+			return errors.Wrapf(err, "check of '%s' failed", object.GetID())
+		}
 	}
 	return nil
 }

@@ -2,12 +2,18 @@ package extension
 
 import (
 	"emperror.dev/errors"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"golang.org/x/exp/constraints"
+	"hash"
 	"io"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 const DirectCleanName = "NNNN-direct-clean-path-layout"
@@ -29,11 +35,30 @@ type DirectClean struct {
 
 type DirectCleanConfig struct {
 	*ocfl.ExtensionConfig
-	MaxPathnameLen              int    `json:"maxPathnameLen"`
-	MaxFilenameLen              int    `json:"maxFilenameLen"`
-	ReplacementString           string `json:"replacementString"`
-	WhitespaceReplacementString string `json:"whitespaceReplacementString"`
-	UTFEncode                   bool   `json:"utfEncode"`
+	MaxPathnameLen              int                      `json:"maxPathnameLen"`
+	MaxFilenameLen              int                      `json:"maxFilenameLen"`
+	ReplacementString           string                   `json:"replacementString"`
+	WhitespaceReplacementString string                   `json:"whitespaceReplacementString"`
+	UTFEncode                   bool                     `json:"utfEncode"`
+	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
+	FallbackFolder              string                   `json:"fallbackFolder"`
+	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
+	hash                        hash.Hash                `json:"-"`
+	hashMutex                   sync.Mutex               `json:"-"`
+}
+
+func min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max[T constraints.Ordered](a, b T) T {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func NewDirectCleanFS(fs ocfl.OCFLFS) (ocfl.Extension, error) {
@@ -60,6 +85,18 @@ func NewDirectClean(config *DirectCleanConfig) (ocfl.Extension, error) {
 	if config.MaxFilenameLen == 0 {
 		config.MaxFilenameLen = 127
 	}
+	if config.FallbackDigestAlgorithm == "" {
+		config.FallbackDigestAlgorithm = checksum.DigestSHA512
+	}
+	if config.FallbackFolder == "" {
+		config.FallbackFolder = "fallback"
+	}
+
+	var err error
+	if config.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
+		return nil, errors.Wrapf(err, "hash %s not supported", config.FallbackDigestAlgorithm)
+	}
+
 	sl := &DirectClean{DirectCleanConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.Errorf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName())
@@ -118,6 +155,52 @@ func (sl *DirectClean) BuildObjectContentPath(object ocfl.Object, id string) (st
 	return sl.build(id)
 }
 
+func (sl *DirectClean) fallback(fname string) (string, error) {
+	// internal mutex for reusing the hash object
+	sl.hashMutex.Lock()
+
+	// reset hash function
+	sl.hash.Reset()
+	// add path
+	if _, err := sl.hash.Write([]byte(fname)); err != nil {
+		sl.hashMutex.Unlock()
+		return "", errors.Wrapf(err, "cannot hash path '%s'", fname)
+	}
+	sl.hashMutex.Unlock()
+
+	// get digest and encode it
+	digestString := hex.EncodeToString(sl.hash.Sum(nil))
+
+	// check whether digest fits in filename length
+	parts := len(digestString) / sl.MaxFilenameLen
+	rest := len(digestString) % sl.MaxFilenameLen
+	if rest > 0 {
+		parts++
+	}
+	// cut the digest if it's too long for filename length
+	result := ""
+	for i := 0; i < parts; i++ {
+		result = filepath.Join(result, digestString[i*sl.MaxFilenameLen:min((i+1)*sl.MaxFilenameLen, len(digestString))])
+	}
+
+	// add all necessary subfolders
+	for i := 0; i < sl.FallbackSubFolders; i++ {
+		// paranoia, but safe
+		result = filepath.Join(string(([]rune(digestString))[sl.FallbackSubFolders-i-1]), result)
+	}
+	/*
+		result = filepath.Join(sl.FallbackFolder, result)
+		result = filepath.Clean(result)
+		result = filepath.ToSlash(result)
+		result = strings.TrimLeft(result, "/")
+	*/
+	result = strings.TrimLeft(filepath.ToSlash(filepath.Clean(filepath.Join(sl.FallbackFolder, result))), "/")
+	if len(result) > sl.MaxPathnameLen {
+		return result, errors.Errorf("result has length of %d which is more than max allowed length of %d", len(result), sl.MaxPathnameLen)
+	}
+	return result, nil
+}
+
 func (sl *DirectClean) build(fname string) (string, error) {
 
 	fname = strings.ToValidUTF8(fname, sl.ReplacementString)
@@ -146,7 +229,8 @@ func (sl *DirectClean) build(fname string) (string, error) {
 
 		lenN := len(n)
 		if lenN > sl.MaxFilenameLen {
-			return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
+			return sl.fallback(fname)
+			//return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
 		}
 
 		if lenN > 0 {
@@ -157,7 +241,8 @@ func (sl *DirectClean) build(fname string) (string, error) {
 	fname = strings.Join(result, "/")
 
 	if len(fname) > sl.MaxPathnameLen {
-		return "", errors.Wrapf(directCleanErrPathnameTooLong, "pathname: %s", fname)
+		return sl.fallback(fname)
+		//return "", errors.Wrapf(directCleanErrPathnameTooLong, "pathname: %s", fname)
 	}
 
 	return fname, nil

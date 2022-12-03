@@ -11,6 +11,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"go.ub.unibas.ch/gocfl/v2/pkg/osfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
+	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -122,7 +123,7 @@ func OpenRO(ocflPath string, logger *logging.Logger) (ocfl.OCFLFS, error) {
 	return ocfs, nil
 }
 
-func OpenRW(ocflPath string, logger *logging.Logger) (ocfl.OCFLFS, error) {
+func OpenRW(ocflPath, ocflTemp string, logger *logging.Logger) (io.Closer, io.Closer, ocfl.OCFLFS, error) {
 	var ocfs ocfl.OCFLFS
 	var err error
 
@@ -141,26 +142,25 @@ func OpenRW(ocflPath string, logger *logging.Logger) (ocfl.OCFLFS, error) {
 		} else {
 			zipSize = stat.Size()
 			if zipReader, err = os.Open(ocflPath); err != nil {
-				return nil, errors.Wrapf(err, "cannot open zipfile %s", ocflPath)
+				return nil, nil, nil, errors.Wrapf(err, "cannot open zipfile %s", ocflPath)
 			}
 		}
-		tempFile := fmt.Sprintf("%s.tmp", ocflPath)
-		if zipWriter, err = os.Create(tempFile); err != nil {
+		if zipWriter, err = os.Create(ocflTemp); err != nil {
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			panic(err)
 		}
 
 		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, ".", logger)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create zipfs")
+			return nil, nil, nil, errors.Wrapf(err, "cannot create zipfs")
 		}
 	} else {
 		ocfs, err = osfs.NewFSIO(ocflPath, logger)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create osfs")
+			return nil, nil, nil, errors.Wrapf(err, "cannot create osfs")
 		}
 	}
-	return ocfs, nil
+	return zipReader, zipWriter, ocfs, nil
 }
 
 func showStatus(ctx context.Context) error {

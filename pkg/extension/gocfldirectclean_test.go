@@ -2,6 +2,7 @@ package extension
 
 import (
 	"fmt"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"testing"
 )
@@ -15,8 +16,12 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 			WhitespaceReplacementString: " ",
 			ReplacementString:           "_",
 			UTFEncode:                   false,
+			FallbackSubFolders:          2,
+			FallbackDigestAlgorithm:     "md5",
+			FallbackFolder:              "fallback",
 		},
 	}
+	l.hash, _ = checksum.GetHash(l.FallbackDigestAlgorithm)
 	objectID := "object-01"
 	testResult := "object-01"
 	rootPath, err := l.BuildStorageRootPath(nil, objectID)
@@ -95,13 +100,17 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 		}
 	}
 
-	objectID = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
-	testResult = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
+	objectID = "abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij"
+	testResult = "fallback/0/e/0eafabb38fa7f1583d1461afe980ebdc"
 	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
-		fmt.Printf("DirectClean(%s) -> %v\n", objectID, err)
+		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
-		t.Errorf("%s -> should have error too long", objectID)
+		if rootPath != testResult {
+			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
+		} else {
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
+		}
 	}
 
 }
@@ -115,11 +124,26 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 			WhitespaceReplacementString: " ",
 			ReplacementString:           "_",
 			UTFEncode:                   true,
+			FallbackSubFolders:          2,
+			FallbackDigestAlgorithm:     "sha512",
+			FallbackFolder:              "fallback",
 		},
 	}
+	l.hash, _ = checksum.GetHash(l.FallbackDigestAlgorithm)
 	objectID := "object-01"
 	testResult := "object-01"
 	rootPath, err := l.BuildStorageRootPath(nil, objectID)
+	if err != nil {
+		t.Errorf("cannot convert %s", objectID)
+	}
+	if rootPath != testResult {
+		t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
+	}
+	fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
+
+	objectID = "object=u123a-01"
+	testResult = "object=u003Du123a-01"
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -206,13 +230,17 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 		}
 	}
 
-	objectID = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
-	testResult = "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
+	objectID = "abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij"
+	testResult = "fallback/b/8/b8acda4abac53237afa03d6bbb078e1bf46b40438bb256df79b8d9ff0e57b32a688156ad21755363ea19953c160c4dd6d4db175b71e9aa87d68937181a9f69d/9"
 	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
-		fmt.Printf("DirectClean(%s) -> %v\n", objectID, err)
+		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
-		t.Errorf("%s -> should have error too long", objectID)
+		if rootPath != testResult {
+			t.Errorf("%s -> %s != %s", objectID, rootPath, testResult)
+		} else {
+			fmt.Printf("DirectClean(%s) -> %s\n", objectID, rootPath)
+		}
 	}
 
 }

@@ -98,6 +98,9 @@ func init() {
 	initValidate()
 	rootCmd.AddCommand(validateCmd)
 
+	initInit()
+	rootCmd.AddCommand(initCmd)
+
 	initCreate()
 	rootCmd.AddCommand(createCmd)
 }

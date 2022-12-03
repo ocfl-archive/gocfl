@@ -83,6 +83,25 @@ invalid because the first object contains the second.
       **Hint:** if you want to remove (inner) whitespaces, just use the empty string
     * **Type:** string
     * **Default:** " " (U+0020)
+* **Name:** `fallbackDigestAlgorithm`
+   * **Description:** Name of the digest algorithm to use for generating fallback filenames. 
+     Restricted to Algorithms supported by OCFL
+   * **Type:** string
+   * **Default:** `md5`
+* **Name:** `fallbackDigestAlgorithm`
+    * **Description:** Name of the digest algorithm to use for generating fallback filenames.
+      Restricted to Algorithms supported by OCFL
+    * **Type:** string
+    * **Default:** `md5`
+* **Name:** `fallbackFolder`
+    * **Description:** Name of the folder, the fallback files will appear
+    * **Type:** string
+    * **Default:** `fallback`
+* **Name:** `fallbackSubdirs`
+    * **Description:** Number of sub-folder build from prefix of fallback digest.  
+      **Hint:** only needed if a large number of fallback entries is expected   
+    * **Type:** string
+    * **Default:** `0`
 
 ### Definition of terms
 * **`maxFilenameLen`/`maxPathnameLen`:**
@@ -115,9 +134,9 @@ is a list of UTF characters mentioned below.
        `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`  
    3. If part only contains periods, replace first period (`.`), with UTF Code (`U+002E`)
    4. Remove part completely, if its length is 0
-   5. Check length of part according to `maxFilenameLen`
+   5. When length of part is larger than `maxFilenameLen` use fallback function and return
 4. Join the parts with path separator `/`
-5. Check length of result according `maxPathnameLen`
+5. When length of result is larger than `maxPathnameLen` use fallback function and return
 
 ### When `utfEncode` is `false`
 
@@ -133,9 +152,18 @@ is a list of UTF characters mentioned below.
     3. Remove leading spaces, `-` and `~` / remove trailing spaces
     4. If part only contains periods, replace first period (`.`) with `replacementString`
     5. Remove part completely, if its length is 0
-    6. Check length of part according to `maxFilenameLen`
+    6. When length of part is larger than `maxFilenameLen` use fallback function and return
 4. Join the parts with path separator `/`
-5. Check length of result according `maxPathnameLen`
+5. When length of result is larger than `maxPathnameLen` use fallback function and return
+
+### Fallback function
+
+1. Create digest with `fallbackDigestAlgorithm` from initial parameter as lower case hex string
+2. When digest is longer than `maxFilenameLen` add folder separator `/` after `maxFilenameLen` (character or byte based)
+   until all parts are smaller or equal `maxFilenameLen`
+3. Prepend `fallbackSubdirs` number of digest characters as prefix folders with separator `/`
+4. Prepend `fallbackFolder` with separator `/` 
+
 
 ## Examples
 
@@ -149,8 +177,12 @@ However, if you were to do so, it would look like the following:
     "extensionName": "NNNN-direct-clean-path-layout",
     "maxFilenameLen": 127,
     "maxFilenameLen": 32000,
+    "utfEncode": false,
     "replacementString": "_",
-    "whitespaceReplacementString": " "
+    "whitespaceReplacementString": " ",
+    "fallbackDigestAlgorithm": "md5",
+    "fallbackFolder": "fallback",
+    "fallbackSubdirs": 0
 }
 ```
 
@@ -165,17 +197,21 @@ However, if you were to do so, it would look like the following:
     "maxFilenameLen": 32000,
     "utfEncode": false,
     "replacementString": "_",
-    "whitespaceReplacementString": " "
+    "whitespaceReplacementString": " ",
+    "fallbackDigestAlgorithm": "md5",
+    "fallbackFolder": "fallback",
+    "fallbackSubdirs": 2
 }
 ```
 
-| ID or Path                                | Result                                  |
-|-------------------------------------------|-----------------------------------------|
-| `..hor_rib:lé-$id`                        | `..hor_rib_lé-$id`                      |
-| `info:fedora/object-01`                   | `info_fedora/object-01`                 |
-| `~ info:fedora/-obj#ec@t-"01 `            | `info_fedora/obj_ec_t-_01`              |
-| `/test/ ~/.../blah`                       | `test/_../blah`                         |
- | `https://hdl.handle.net/XXXXX/test/bl ah` | `https_/hdl.handle.net/XXXXX/test/bl ah` |
+| ID or Path                                                                                                                                                                                                                                                                         | Result                                          |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| `..hor_rib:lé-$id`                                                                                                                                                                                                                                                                 | `..hor_rib_lé-$id`                              |
+| `info:fedora/object-01`                                                                                                                                                                                                                                                            | `info_fedora/object-01`                         |
+| `~ info:fedora/-obj#ec@t-"01 `                                                                                                                                                                                                                                                     | `info_fedora/obj_ec_t-_01`                      |
+| `/test/ ~/.../blah`                                                                                                                                                                                                                                                                | `test/_../blah`                                 |
+| `https://hdl.handle.net/XXXXX/test/bl ah`                                                                                                                                                                                                                                          | `https_/hdl.handle.net/XXXXX/test/bl ah`        |
+| `abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij` | `fallback/0/e/0eafabb38fa7f1583d1461afe980ebdc` |
 
 #### #2 `utfEncode == true`
 
@@ -186,18 +222,23 @@ However, if you were to do so, it would look like the following:
     "maxFilenameLen": 32000,
     "utfEncode": true,
     "replacementString": "_",
-    "whitespaceReplacementString": " "
+    "whitespaceReplacementString": " ",
+    "fallbackDigestAlgorithm": "sha512",
+    "fallbackFolder": "fallback",
+    "fallbackSubdirs": 2
 }
 ```
 
-| ID or Path                                | Result                                                     |
-|-------------------------------------------|------------------------------------------------------------|
-| `..hor_rib:lé-$id`                        | `..hor_rib=u003Alé-$id`                                    |
-| `info:fedora/object-01`                   | `info=u003Afedora/object-01`                               |
-| `~ info:fedora/-obj#ec@t-"01 `            | `=u007E=u0020info=u003Afedora/-obj=u0023ec=u0040t-=u002201=u0020` |
-| `/test/ ~/.../blah`                       | `test/=u0020~/=u002E../blah`                     |
-| `https://hdl.handle.net/XXXXX/test/bl ah` | `https=u003A/hdl.handle.net/XXXXX/test/bl=u0020ah`         |
-
+| ID or Path                                                                                                                                                                                                                                                                         | Result                                                                                                                                           |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `..hor_rib:lé-$id`                                                                                                                                                                                                                                                                 | `..hor_rib=u003Alé-$id`                                                                                                                          |
+| `object=u123a-01`                                                                                                                                                                                                                                                                  | `object=u003Du123a-01`                                                                                                                           |
+| `object=u13a-01`                                                                                                                                                                                                                                                                   | `object=u13a-01`                                                                                                                                 |
+| `info:fedora/object-01`                                                                                                                                                                                                                                                            | `info=u003Afedora/object-01`                                                                                                                     |
+| `~ info:fedora/-obj#ec@t-"01 `                                                                                                                                                                                                                                                     | `=u007E=u0020info=u003Afedora/-obj=u0023ec=u0040t-=u002201=u0020`                                                                                |
+| `/test/ ~/.../blah`                                                                                                                                                                                                                                                                | `test/=u0020~/=u002E../blah`                                                                                                                     |
+| `https://hdl.handle.net/XXXXX/test/bl ah`                                                                                                                                                                                                                                          | `https=u003A/hdl.handle.net/XXXXX/test/bl=u0020ah`                                                                                               |
+ | `abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij` | `fallback/b/8/b8acda4abac53237afa03d6bbb078e1bf46b40438bb256df79b8d9ff0e57b32a688156ad21755363ea19953c160c4dd6d4db175b71e9aa87d68937181a9f69d/9` |
 ### Implementation
 
 #### GO 
@@ -223,15 +264,79 @@ var directCleanRulePeriods = regexp.MustCompile("^\\.+$")
 var directCleanErrFilenameTooLong = errors.New("filename too long")
 var directCleanErrPathnameTooLong = errors.New("pathname too long")
 
+type DirectCleanConfig struct {
+    [...]
+	MaxPathnameLen              int                      `json:"maxPathnameLen"`
+	MaxFilenameLen              int                      `json:"maxFilenameLen"`
+	ReplacementString           string                   `json:"replacementString"`
+	WhitespaceReplacementString string                   `json:"whitespaceReplacementString"`
+	UTFEncode                   bool                     `json:"utfEncode"`
+	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
+	FallbackFolder              string                   `json:"fallbackFolder"`
+	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
+	hash                        hash.Hash                `json:"-"`
+	hashMutex                   sync.Mutex               `json:"-"`
+}
+
 [...]
+
 
 func encodeUTFCode(s string) string {
 	return "=u" + strings.Trim(fmt.Sprintf("%U", []rune(s)), "U+[]")
 }
 
-func (sl *DirectClean) ExecutePath(fname string) (string, error) {
+func (sl *DirectClean) fallback(fname string) (string, error) {
+	// internal mutex for reusing the hash object
+	sl.hashMutex.Lock()
+
+	// reset hash function
+	sl.hash.Reset()
+	// add path
+	if _, err := sl.hash.Write([]byte(fname)); err != nil {
+		sl.hashMutex.Unlock()
+		return "", errors.Wrapf(err, "cannot hash path '%s'", fname)
+	}
+	sl.hashMutex.Unlock()
+
+	// get digest and encode it
+	digestString := hex.EncodeToString(sl.hash.Sum(nil))
+
+	// check whether digest fits in filename length
+	parts := len(digestString) / sl.MaxFilenameLen
+	rest := len(digestString) % sl.MaxFilenameLen
+	if rest > 0 {
+		parts++
+	}
+	// cut the digest if it's too long for filename length
+	result := ""
+	for i := 0; i < parts; i++ {
+		result = filepath.Join(result, digestString[i*sl.MaxFilenameLen:min((i+1)*sl.MaxFilenameLen, len(digestString))])
+	}
+
+	// add all necessary subfolders
+	for i := 0; i < sl.FallbackSubFolders; i++ {
+		// paranoia, but safe
+		result = filepath.Join(string(([]rune(digestString))[sl.FallbackSubFolders-i-1]), result)
+	}
+	/*
+		result = filepath.Join(sl.FallbackFolder, result)
+		result = filepath.Clean(result)
+		result = filepath.ToSlash(result)
+		result = strings.TrimLeft(result, "/")
+	*/
+	result = strings.TrimLeft(filepath.ToSlash(filepath.Clean(filepath.Join(sl.FallbackFolder, result))), "/")
+	if len(result) > sl.MaxPathnameLen {
+		return result, errors.Errorf("result has length of %d which is more than max allowed length of %d", len(result), sl.MaxPathnameLen)
+	}
+	return result, nil
+}
+
+func (sl *DirectClean) BuildPath(fname string) (string, error) {
+
+	// 1. Replace all non-UTF8 characters with replacementString
 	fname = strings.ToValidUTF8(fname, sl.ReplacementString)
 
+	// 2. Split the string at path separator /
 	names := strings.Split(fname, "/")
 	result := []string{}
 
@@ -240,12 +345,14 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 			continue
 		}
 		if sl.UTFEncode {
+			// Replace `=` with `=u003D` if it is followed by `u` and four hex digits 
 			n = directCleanRuleEqual.ReplaceAllString(n, "=u003D$1")
 			n = directCleanRuleAll.ReplaceAllStringFunc(n, encodeUTFCode)
 			if n[0] == '~' || directCleanRulePeriods.MatchString(n) {
 				n = encodeUTFCode(string(n[0])) + n[1:]
 			}
 		} else {
+			// Replace any whitespace character from this list with whitespaceReplacementString: U+0009 U+000A-U+000D U+0020 U+0085 U+00A0 U+1680 U+2000-U+200F U+2028 U+2029 U+202F U+205F U+3000
 			n = directCleanRuleWhitespace.ReplaceAllString(n, sl.WhitespaceReplacementString)
 			n = directCleanRule_1_5.ReplaceAllString(n, sl.ReplacementString)
 			n = directCleanRule_2_4_6.ReplaceAllString(n, "$1")
@@ -256,7 +363,8 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 
 		lenN := len(n)
 		if lenN > sl.MaxFilenameLen {
-			return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
+			return sl.fallback(fname)
+			//return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
 		}
 
 		if lenN > 0 {
@@ -267,7 +375,8 @@ func (sl *DirectClean) ExecutePath(fname string) (string, error) {
 	fname = strings.Join(result, "/")
 
 	if len(fname) > sl.MaxPathnameLen {
-		return "", errors.Wrapf(directCleanErrPathnameTooLong, "pathname: %s", fname)
+		return sl.fallback(fname)
+		//return "", errors.Wrapf(directCleanErrPathnameTooLong, "pathname: %s", fname)
 	}
 
 	return fname, nil

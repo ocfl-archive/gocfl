@@ -12,24 +12,24 @@ import (
 	"strings"
 )
 
-var createCmd = &cobra.Command{
-	Use:     "create [path to ocfl structure]",
+var initCmd = &cobra.Command{
+	Use:     "init [path to ocfl structure]",
 	Aliases: []string{"check"},
 	Short:   "initializes an empty ocfl structure",
 	Long:    "initializes an empty ocfl structure",
-	Example: "gocfl create ./archive.zip /tmp/testdata",
-	Args:    cobra.ExactArgs(2),
-	Run:     doCreate,
+	Example: "gocfl init ./archive.zip /tmp/testdata",
+	Args:    cobra.ExactArgs(1),
+	Run:     doInit,
 }
 
-func initCreate() {
+func initInit() {
 	initCmd.PersistentFlags().StringVarP(&flagExtensionFolder, "extensions", "e", "", "folder with extension configurations")
 	initCmd.PersistentFlags().VarP(
 		enumflag.New(&flagVersion, "ocfl-version", VersionIds, enumflag.EnumCaseInsensitive),
 		"ocfl-version", "v", "ocfl version for new storage root")
 }
 
-func doCreate(cmd *cobra.Command, args []string) {
+func doInit(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 
 	fmt.Printf("creating '%s'\n", ocflPath)

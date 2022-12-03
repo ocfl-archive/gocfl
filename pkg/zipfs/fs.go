@@ -109,6 +109,7 @@ func (zipFS *FS) Close() error {
 		if err := zipFS.w.Close(); err != nil {
 			finalError = append(finalError, err)
 		}
+
 	}
 	return errors.Combine(finalError...)
 }

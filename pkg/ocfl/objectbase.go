@@ -112,14 +112,14 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			addValidationErrors(object.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", object.fs))
-			addValidationErrors(object.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object %s", object.fs))
+			addValidationErrors(object.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object '%s'", object.fs))
+			addValidationErrors(object.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object '%s'", object.fs))
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				addValidationErrors(object.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object %s", object.fs))
+				addValidationErrors(object.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object '%s'", object.fs))
 			}
 		}
-		//return nil, errors.Wrapf(err, "cannot marshal data - %s", string(data))
+		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
 	}
 
 	return inventory, inventory.Finalize(false)
@@ -136,13 +136,13 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	}
 	if err != nil {
 		return newInventory(object.ctx, object, folder, object.version, object.logger)
-		//return nil, errors.Wrapf(err, "cannot open %s", filename)
+		//return nil, errors.Wrapf(err, "cannot open '%s'", filename)
 	}
 	// read inventory into memory
 	inventoryBytes, err := io.ReadAll(iFp)
 	iFp.Close()
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read %s", filename)
+		return nil, errors.Wrapf(err, "cannot read '%s'", filename)
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {
@@ -155,27 +155,27 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	sidecarBytes, err := fs.ReadFile(object.fs, sidecarPath)
 	if err != nil {
 		if object.fs.IsNotExist(err) {
-			object.addValidationError(E058, "sidecar %s does not exist", sidecarPath)
+			object.addValidationError(E058, "sidecar '%s' does not exist", sidecarPath)
 		} else {
-			object.addValidationError(E060, "cannot read sidecar %s: %v", sidecarPath, err.Error())
+			object.addValidationError(E060, "cannot read sidecar '%s': %v", sidecarPath, err.Error())
 		}
-		//		object.addValidationError(E058, "cannot read %s: %v", sidecarPath, err)
+		//		object.addValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
 		if !strings.HasSuffix(digestString, " inventory.json") {
-			object.addValidationError(E061, "no suffix \" inventory.json\" in %s", sidecarPath)
+			object.addValidationError(E061, "no suffix \" inventory.json\" in '%s'", sidecarPath)
 		} else {
 			digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 			h, err := checksum.GetHash(digest)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - %s", string(digest)))
+				return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
 			}
 			h.Reset()
 			h.Write(inventoryBytes)
 			sumBytes := h.Sum(nil)
 			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
 			if digestString != inventoryDigestString {
-				object.addValidationError(E060, "%s != %s", digestString, inventoryDigestString)
+				object.addValidationError(E060, "'%s' != '%s'", digestString, inventoryDigestString)
 			}
 		}
 	}
@@ -199,13 +199,13 @@ func (object *ObjectBase) StoreInventory() error {
 	}
 	h, err := checksum.GetHash(object.i.GetDigestAlgorithm())
 	if err != nil {
-		return errors.Wrapf(err, "invalid digest algorithm %s", string(object.i.GetDigestAlgorithm()))
+		return errors.Wrapf(err, "invalid digest algorithm '%s'", string(object.i.GetDigestAlgorithm()))
 	}
 	if _, err := h.Write(jsonBytes); err != nil {
 		return errors.Wrapf(err, "cannot create checksum of manifest")
 	}
 	checksumBytes := h.Sum(nil)
-	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
+	checksumString := fmt.Sprintf("%x '%s'", checksumBytes, iFileName)
 	iWriter, err := object.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
@@ -224,18 +224,18 @@ func (object *ObjectBase) StoreInventory() error {
 	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
 	iCSWriter, err := object.fs.Create(csFileName)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", csFileName)
+		return errors.Wrapf(err, "cannot create '%s'", csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-		return errors.Wrapf(err, "cannot write to %s", csFileName)
+		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
 	}
 	csFileName = fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
 	iCSWriter, err = object.fs.Create(csFileName)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", csFileName)
+		return errors.Wrapf(err, "cannot create '%s'", csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-		return errors.Wrapf(err, "cannot write to %s", csFileName)
+		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
 	}
 	return nil
 }
@@ -244,7 +244,7 @@ func (object *ObjectBase) StoreExtensions() error {
 	object.logger.Debug()
 	subfs, err := object.fs.SubFS("extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder %s", object.fs, "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fs, "extensions")
 	}
 
 	if err := object.extensionManager.StoreConfigs(subfs); err != nil {
@@ -263,29 +263,29 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	if err == nil {
 		// not empty, close it and return error
 		if err := fp.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close %s", objectConformanceDeclarationFile)
+			return errors.Wrapf(err, "cannot close '%s'", objectConformanceDeclarationFile)
 		}
-		return fmt.Errorf("cannot create object %s. %s already exists", id, objectConformanceDeclarationFile)
+		return fmt.Errorf("cannot create object '%s'. '%s' already exists", id, objectConformanceDeclarationFile)
 	}
 	cnt, err := object.fs.ReadDir(".")
 	if err != nil && err != fs.ErrNotExist {
-		return errors.Wrapf(err, "cannot read %s", ".")
+		return errors.Wrapf(err, "cannot read '%s'", ".")
 	}
 	if len(cnt) > 0 {
-		return fmt.Errorf("%s is not empty", ".")
+		return fmt.Errorf("'%s' is not empty", ".")
 	}
 	rfp, err := object.fs.Create(objectConformanceDeclarationFile)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot create '%s'", objectConformanceDeclarationFile)
 	}
 	defer rfp.Close()
 	if _, err := rfp.Write([]byte(objectConformanceDeclaration + "\n")); err != nil {
-		return errors.Wrapf(err, "cannot write into %s", objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot write into '%s'", objectConformanceDeclarationFile)
 	}
 
 	for _, ext := range extensions {
 		if err := object.extensionManager.Add(ext); err != nil {
-			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
+			return errors.Wrapf(err, "cannot add extension '%s'", ext.GetName())
 		}
 	}
 
@@ -316,14 +316,14 @@ func (object *ObjectBase) Load() (err error) {
 		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
 		subfs, err := object.fs.SubFS(extConfig)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for %s", object.fs, extConfig)
+			return errors.Wrapf(err, "cannot create subfs of %v for '%s'", object.fs, extConfig)
 		}
 		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
 			object.addValidationWarning(W013, "unknown extension in folder '%s'", extFolder.Name())
 		} else {
 			if err := object.extensionManager.Add(ext); err != nil {
-				return errors.Wrapf(err, "cannot add extension %s", extFolder.Name())
+				return errors.Wrapf(err, "cannot add extension '%s'", extFolder.Name())
 			}
 		}
 	}
@@ -355,7 +355,7 @@ func (object *ObjectBase) Close() error {
 }
 
 func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string) error {
-	object.logger.Debugf("%s / %s / %s", msg, UserName, UserAddress)
+	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 
 	if object.i.IsWriteable() {
 		return errors.New("object already writeable")
@@ -378,7 +378,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 			return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 		}
 		if err := object.AddFile(fsys, path, realFilename, checkDuplicate); err != nil {
-			return errors.Wrapf(err, "cannot add file %s", path)
+			return errors.Wrapf(err, "cannot add file '%s'", path)
 		}
 		return nil
 	}); err != nil {
@@ -389,7 +389,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 }
 
 func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
-	object.logger.Debugf("adding %s -> %s", sourceFilename, internalFilename)
+	object.logger.Debugf("adding '%s' -> '%s'", sourceFilename, internalFilename)
 	// paranoia
 	internalFilename = filepath.ToSlash(internalFilename)
 
@@ -412,7 +412,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 		// do the checksum
 		digest, err = checksum.Checksum(file, object.i.GetDigestAlgorithm())
 		if err != nil {
-			return errors.Wrapf(err, "cannot create digest of %s", sourceFilename)
+			return errors.Wrapf(err, "cannot create digest of '%s'", sourceFilename)
 		}
 		// set filepointer to beginning
 		if seeker, ok := file.(io.Seeker); ok {
@@ -430,16 +430,16 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 		// if file is already there we do nothing
 		dup, err := object.i.AlreadyExists(sourceFilename, digest)
 		if err != nil {
-			return errors.Wrapf(err, "cannot check duplicate for %s [%s]", internalFilename, digest)
+			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", internalFilename, digest)
 		}
 		if dup {
-			object.logger.Debugf("%s [%s] is a duplicate", internalFilename, digest)
+			object.logger.Debugf("'%s' [%s] is a duplicate", internalFilename, digest)
 			return nil
 		}
 		// file already ingested, but new virtual name
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
 			if err := object.i.RenameFile(sourceFilename, digest); err != nil {
-				return errors.Wrapf(err, "cannot append %s to inventory as %s", sourceFilename, internalFilename)
+				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", sourceFilename, internalFilename)
 			}
 			return nil
 		}
@@ -452,37 +452,37 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 	targetFilename := object.i.BuildRealname(internalFilename)
 	writer, err := object.fs.Create(targetFilename)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", targetFilename)
+		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
 	csw := checksum.NewChecksumWriter(digestAlgorithms)
 	checksums, err := csw.Copy(writer, file)
 	if err != nil {
-		return errors.Wrapf(err, "cannot copy %s -> %s", sourceFilename, targetFilename)
+		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", sourceFilename, targetFilename)
 	}
 	/*
 		if digest != "" && digest != checksums[object.i.GetDigestAlgorithm()] {
-			return fmt.Errorf("invalid checksum %s", digest)
+			return fmt.Errorf("invalid checksum '%s'", digest)
 		}
 	*/
 	if digest == "" {
 		var ok bool
 		digest, ok = checksums[object.i.GetDigestAlgorithm()]
 		if !ok {
-			return errors.Errorf("digest %s not generated", object.i.GetDigestAlgorithm())
+			return errors.Errorf("digest '%s' not generated", object.i.GetDigestAlgorithm())
 		}
 	} else {
 		checksums[object.i.GetDigestAlgorithm()] = digest
 	}
 	if err := object.i.AddFile(sourceFilename, targetFilename, checksums); err != nil {
-		return errors.Wrapf(err, "cannot append %s/%s to inventory", sourceFilename, internalFilename)
+		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", sourceFilename, internalFilename)
 	}
 	return nil
 }
 
 func (object *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, digest string) error {
 	virtualFilename = filepath.ToSlash(virtualFilename)
-	object.logger.Debugf("removing %s [%s]", virtualFilename, digest)
+	object.logger.Debugf("removing '%s' [%s]", virtualFilename, digest)
 
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
@@ -491,14 +491,14 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, d
 	// if file is already there we do nothing
 	dup, err := object.i.AlreadyExists(virtualFilename, digest)
 	if err != nil {
-		return errors.Wrapf(err, "cannot check duplicate for %s [%s]", virtualFilename, digest)
+		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilename, digest)
 	}
 	if !dup {
-		object.logger.Debugf("%s [%s] not in archive - ignoring", virtualFilename, digest)
+		object.logger.Debugf("'%s' [%s] not in archive - ignoring", virtualFilename, digest)
 		return nil
 	}
 	if err := object.i.DeleteFile(virtualFilename); err != nil {
-		return errors.Wrapf(err, "cannot delete %s", virtualFilename)
+		return errors.Wrapf(err, "cannot delete '%s'", virtualFilename)
 	}
 	return nil
 
@@ -520,7 +520,7 @@ var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha38
 func (object *ObjectBase) checkVersionFolder(version string) error {
 	versionEntries, err := object.fs.ReadDir(version)
 	if err != nil {
-		return errors.Wrapf(err, "cannot read version folder %s", version)
+		return errors.Wrapf(err, "cannot read version folder '%s'", version)
 	}
 	for _, ve := range versionEntries {
 		if !ve.IsDir() {
@@ -567,7 +567,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				path = filepath.ToSlash(path)
 				if d.IsDir() {
 					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+object.i.GetContentDir(), path) {
-						object.addValidationWarning(W002, "extra dir '%s' in version %s", path, ver)
+						object.addValidationWarning(W002, "extra dir '%s' in version '%s'", path, ver)
 					}
 				} else {
 					objectFilesFlat = append(objectFilesFlat, path)
@@ -577,7 +577,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 					} else {
 						/*
 							if !strings.HasPrefix(path, inventoryFile) {
-								object.addValidationWarning(W002, "extra file '%s' in version %s", path, ver)
+								object.addValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
 							}
 						*/
 					}
@@ -653,18 +653,18 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		v1 := versionStrings[key]
 		vi1, ok := versionInventories[v1]
 		if !ok {
-			object.addValidationWarning(W010, "no inventory for version %s", versionStrings[key])
+			object.addValidationWarning(W010, "no inventory for version '%s'", versionStrings[key])
 			continue
-			// return errors.Errorf("no inventory for version %s", versionStrings[key])
+			// return errors.Errorf("no inventory for version '%s'", versionStrings[key])
 		}
 		v2 := versionStrings[key+1]
 		vi2, ok := versionInventories[v2]
 		if !ok {
-			object.addValidationWarning(W000, "no inventory for version %s", versionStrings[key+1])
+			object.addValidationWarning(W000, "no inventory for version '%s'", versionStrings[key+1])
 			continue
 		}
 		if !SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
-			object.addValidationError(E103, "spec in version %s (%s) greater than spec in version %s (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
+			object.addValidationError(E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
 		}
 	}
 
@@ -683,10 +683,10 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	for ver, verInventory := range versionInventories {
 		// check for id consistency
 		if id != verInventory.GetID() {
-			object.addValidationError(E037, "invalid id - root inventory id %s != version %s inventory id %s", id, ver, verInventory.GetID())
+			object.addValidationError(E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
 		}
 		if verInventory.GetHead() != "" && verInventory.GetHead() != ver {
-			object.addValidationError(E040, "wrong head %s in manifest for version '%s'", verInventory.GetHead(), ver)
+			object.addValidationError(E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
 		}
 
 		if verInventory.GetDigestAlgorithm() != digestAlg {
@@ -746,7 +746,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				for _, objectContentVersionFile := range objectContentVersionFiles {
 					// check all inventories which are less in version
 					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
-						object.addValidationError(E023, "file '%s' not in manifest version %s", objectContentVersionFile, inventoryVersion)
+						object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, inventoryVersion)
 					}
 				}
 			}
@@ -757,7 +757,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			for _, objectContentVersionFile := range objectContentVersionFiles {
 				// check all inventories which are less in version
 				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
-					object.addValidationError(E023, "file '%s' not in manifest version %s", objectContentVersionFile, rootVersion)
+					object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, rootVersion)
 				}
 			}
 		}
@@ -769,7 +769,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 func (object *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
 	//object.fs
-	object.logger.Infof("object %s with object version %s found", object.GetID(), object.GetVersion())
+	object.logger.Infof("object '%s' with object version '%s' found", object.GetID(), object.GetVersion())
 	// check folders
 	versions := object.i.GetVersionStrings()
 
@@ -804,7 +804,7 @@ func (object *ObjectBase) Check() error {
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				object.addValidationError(E001, "invalid file %s found", entry.Name())
+				object.addValidationError(E001, "invalid file '%s' found", entry.Name())
 			}
 		}
 	}
@@ -862,7 +862,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 				}
 				return nil
 			}); err != nil {
-			return nil, errors.Wrapf(err, "cannot walk content dir %s", object.i.GetContentDir())
+			return nil, errors.Wrapf(err, "cannot walk content dir '%s'", object.i.GetContentDir())
 		}
 	}
 	return result, nil
@@ -888,7 +888,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) 
 		vi, err := object.LoadInventory(ver)
 		if err != nil {
 			if object.fs.IsNotExist(err) {
-				object.addValidationWarning(W010, "no inventory for version %s", ver)
+				object.addValidationWarning(W010, "no inventory for version '%s'", ver)
 				continue
 			}
 			return nil, errors.Wrapf(err, "cannot load inventory from folder '%s'", ver)
