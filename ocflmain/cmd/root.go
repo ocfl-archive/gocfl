@@ -77,6 +77,12 @@ var persistentFlagLoglevel LogLevelFlag
 var flagDigest DigestFlag
 var flagExtensionFolder string
 var flagVersion VersionFlag
+var objectID string
+var message string
+var userName string
+var userAddress string
+var fixity string
+var digestSHA256, digestSHA512 bool
 
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",

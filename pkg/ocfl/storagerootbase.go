@@ -9,6 +9,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io/fs"
 	"path/filepath"
+	"runtime"
 	"strconv"
 )
 
@@ -56,11 +57,17 @@ func (osr *StorageRootBase) setModified() {
 }
 
 func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs))
+	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs)
+	_, file, line, _ := runtime.Caller(1)
+	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
+	addValidationErrors(osr.ctx, valError)
 }
 
 func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(osr.ctx, GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs))
+	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs)
+	_, file, line, _ := runtime.Caller(1)
+	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
+	addValidationWarnings(osr.ctx, valError)
 }
 
 func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, exts []Extension) error {
@@ -157,6 +164,8 @@ func (osr *StorageRootBase) Load() error {
 }
 
 func (osr *StorageRootBase) GetDigest() checksum.DigestAlgorithm { return osr.digest }
+
+func (osr *StorageRootBase) GetVersion() OCFLVersion { return osr.version }
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 

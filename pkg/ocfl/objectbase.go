@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -58,11 +59,17 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(object.ctx, GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID()))
+	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID())
+	_, file, line, _ := runtime.Caller(1)
+	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
+	addValidationErrors(object.ctx, valError)
 }
 
 func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(object.ctx, GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID()))
+	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID())
+	_, file, line, _ := runtime.Caller(1)
+	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
+	addValidationWarnings(object.ctx, valError)
 }
 
 func (object *ObjectBase) getFS() OCFLFS {
@@ -205,7 +212,7 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrapf(err, "cannot create checksum of manifest")
 	}
 	checksumBytes := h.Sum(nil)
-	checksumString := fmt.Sprintf("%x '%s'", checksumBytes, iFileName)
+	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 	iWriter, err := object.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
