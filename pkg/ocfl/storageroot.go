@@ -51,6 +51,17 @@ func newStorageRoot(ctx context.Context, fs OCFLFS, version OCFLVersion, extensi
 	}
 }
 
+func ValidVersion(version OCFLVersion) bool {
+	switch version {
+	case Version1_0:
+		return true
+	case Version1_1:
+		return true
+	default:
+		return false
+	}
+}
+
 func CreateStorageRoot(ctx context.Context, fs OCFLFS, version OCFLVersion, extensionFactory *ExtensionFactory, defaultExtensions []Extension, digest checksum.DigestAlgorithm, logger *logging.Logger) (StorageRoot, error) {
 	storageRoot, err := newStorageRoot(ctx, fs, version, extensionFactory, logger)
 	if err != nil {

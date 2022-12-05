@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/errors"
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/thediveo/enumflag"
+	"github.com/spf13/viper"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,18 +26,43 @@ var initCmd = &cobra.Command{
 }
 
 func initInit() {
-	initCmd.PersistentFlags().StringVarP(&flagExtensionFolder, "extensions", "e", "", "folder with extension configurations")
-	initCmd.PersistentFlags().VarP(
-		enumflag.New(&flagVersion, "ocfl-version", VersionIds, enumflag.EnumCaseInsensitive),
-		"ocfl-version", "v", "ocfl version for new storage root")
+	initCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
+	viper.BindPFlag("Init.StoragerootExtensions", initCmd.Flags().Lookup("default-storageroot-extensions"))
+
+	initCmd.Flags().String("ocfl-version", "v", "ocfl version for new storage root")
+	viper.BindPFlag("Init.OCFLVersion", initCmd.Flags().Lookup("ocfl-version"))
+
+	initCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
+	viper.BindPFlag("Init.DigestAlgorithm", initCmd.Flags().Lookup("digest"))
 }
 
 func doInit(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	persistentFlagLogfile := viper.GetString("LogFile")
+
+	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
+	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
+	}
+
+	flagStoragerootExtensionFolder := viper.GetString("Init.StoragerootExtensions")
+
+	flagVersion := viper.GetString("Init.OCFLVersion")
+	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid version '%s' for flag 'ocfl-version' or 'Init.OCFLVersion' config file entry", flagVersion))
+	}
+
+	flagInitDigest := viper.GetString("Init.DigestAlgorithm")
+	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagInitDigest)); err != nil {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagInitDigest))
+	}
 
 	fmt.Printf("creating '%s'\n", ocflPath)
 
-	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, LogLevelIds[persistentFlagLoglevel][0], LOGFORMAT)
+	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 	logger.Infof("creating '%s'", ocflPath)
 
@@ -69,7 +97,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagExtensionFolder, logger)
+	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStoragerootExtensionFolder, "", logger)
 	if err != nil {
 		logger.Errorf("cannot initialize default extensions: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -86,7 +114,7 @@ func doInit(cmd *cobra.Command, args []string) {
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	if _, err = ocfl.CreateStorageRoot(ctx, ocfs, VersionIdsVersion[flagVersion], extensionFactory, storageRootExtensions, "", logger); err != nil {
+	if _, err = ocfl.CreateStorageRoot(ctx, ocfs, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), logger); err != nil {
 		ocfs.Discard()
 		logger.Errorf("cannot create new storageroot: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

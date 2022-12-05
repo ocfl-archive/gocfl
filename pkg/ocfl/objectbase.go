@@ -396,7 +396,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 }
 
 func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
-	object.logger.Debugf("adding '%s' -> '%s'", sourceFilename, internalFilename)
+	object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
 	// paranoia
 	internalFilename = filepath.ToSlash(internalFilename)
 

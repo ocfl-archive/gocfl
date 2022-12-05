@@ -5,6 +5,7 @@ import (
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"path/filepath"
 )
@@ -27,10 +28,12 @@ var objectPath string
 
 func validate(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
-
+	persistentFlagLogfile := viper.GetString("LogFile")
+	persistentFlagLoglevel := viper.GetInt64("LogLevel")
+	loglevel := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)][0]
 	fmt.Printf("validating '%s'\n", ocflPath)
 
-	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, LogLevelIds[persistentFlagLoglevel][0], LOGFORMAT)
+	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, loglevel, LOGFORMAT)
 	defer lf.Close()
 
 	extensionFactory, err := ocfl.NewExtensionFactory(logger)

@@ -117,12 +117,16 @@ func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity 
 }
 func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	if i.Manifest == nil {
-		i.addValidationError(E041, "no manifest in inventory")
+		if !inCreation {
+			i.addValidationError(E041, "no manifest in inventory")
+		}
 		i.Manifest = &OCFLManifest{Manifest: map[string][]string{}}
 	}
 
 	if i.Versions == nil {
-		i.addValidationError(E041, "no versions in inventory")
+		if !inCreation {
+			i.addValidationError(E041, "no versions in inventory")
+		}
 		i.Versions = &OCFLVersions{Versions: map[string]*Version{}}
 	}
 

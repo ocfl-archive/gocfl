@@ -5,7 +5,8 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/data/defaultextensions"
+	defaultextensions_object "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/object"
+	defaultextensions_storageroot "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/storageroot"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"go.ub.unibas.ch/gocfl/v2/pkg/genericfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
@@ -47,36 +48,36 @@ func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory) error {
 	return nil
 }
 
-func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, defaultExtensionFolder string, logger *logging.Logger) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
-	var dExtDirFS fs.FS
-	if defaultExtensionFolder == "" {
-		dExtDirFS = defaultextensions.DefaultExtensionFS
+func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger *logging.Logger) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
+	var dStoragerootExtDirFS, dObjectExtDirFS fs.FS
+	if storageRootExtensionsFolder == "" {
+		dStoragerootExtDirFS = defaultextensions_storageroot.DefaultStoragerootExtensionFS
 	} else {
-		dExtDirFS = os.DirFS(defaultExtensionFolder)
+		dStoragerootExtDirFS = os.DirFS(storageRootExtensionsFolder)
 	}
-	ofs, err := genericfs.NewGenericFS(dExtDirFS, ".", logger)
+	osrfs, err := genericfs.NewGenericFS(dStoragerootExtDirFS, ".", logger)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot create generic fs for %v", dExtDirFS)
+		err = errors.Wrapf(err, "cannot create generic fs for %v", dStoragerootExtDirFS)
 		return
 	}
-	subFS, err := ofs.SubFS("storageroot")
+	if objectExtensionsFolder == "" {
+		dObjectExtDirFS = defaultextensions_object.DefaultObjectExtensionFS
+	} else {
+		dObjectExtDirFS = os.DirFS(objectExtensionsFolder)
+	}
+	oofs, err := genericfs.NewGenericFS(dObjectExtDirFS, ".", logger)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot create subfs'%s'for %v", "storageroot", dExtDirFS)
+		err = errors.Wrapf(err, "cannot create generic fs for %v", dObjectExtDirFS)
 		return
 	}
-	storageRootExtensions, err = extensionFactory.LoadExtensions(subFS)
+	storageRootExtensions, err = extensionFactory.LoadExtensions(osrfs)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot load extension folder %v", ofs)
+		err = errors.Wrapf(err, "cannot load extension folder %v", osrfs)
 		return
 	}
-	subFS, err = ofs.SubFS("object")
+	objectExtensions, err = extensionFactory.LoadExtensions(oofs)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot create subfs'%s'for %v", "object", dExtDirFS)
-		return
-	}
-	objectExtensions, err = extensionFactory.LoadExtensions(subFS)
-	if err != nil {
-		err = errors.Wrapf(err, "cannot load extension folder %v", ofs)
+		err = errors.Wrapf(err, "cannot load extension folder %v", oofs)
 		return
 	}
 	return

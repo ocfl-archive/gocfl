@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"emperror.dev/errors"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"os"
@@ -13,12 +15,12 @@ const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{s
 type LogLevelFlag enumflag.Flag
 
 const (
-	LOGLEVELERROR = iota
-	LOGLEVELINFO
-	LOGLEVELNOTICE
+	LOGLEVELCRITICAL LogLevelFlag = iota
+	LOGLEVELERROR
 	LOGLEVELWARNING
+	LOGLEVELNOTICE
+	LOGLEVELINFO
 	LOGLEVELDEBUG
-	LOGLEVELCRITICAL
 )
 
 var LogLevelIds = map[LogLevelFlag][]string{
@@ -72,17 +74,21 @@ var DigestIds = map[DigestFlag][]string{
 }
 
 // all possible flags of all modules go here
-var persistentFlagLogfile string
-var persistentFlagLoglevel LogLevelFlag
+var persistentFlagConfigFile string
+
+// var persistentFlagLogfile string
+var intPersistentFlagLoglevel LogLevelFlag
 var flagDigest DigestFlag
-var flagExtensionFolder string
-var flagVersion VersionFlag
-var objectID string
-var message string
-var userName string
-var userAddress string
-var fixity string
-var digestSHA256, digestSHA512 bool
+
+// var flagExtensionFolder string
+// var flagVersion VersionFlag
+var flagObjectID string
+
+// var flagMessage string
+// var flagUserName string
+// var flagUserAddress string
+// var flagFixity string
+// var flagDigestSHA256, flagDigestSHA512 bool
 
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",
@@ -91,15 +97,54 @@ var rootCmd = &cobra.Command{
                 https://go.ub.unibas.ch/gocfl`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Do Stuff Here
+		cmd.Help()
 	},
 }
 
+func initConfig() {
+	if persistentFlagConfigFile != "" {
+		// Use config file from the flag.
+		viper.SetConfigFile(persistentFlagConfigFile)
+	} else {
+		// Find home directory.
+		home, err := os.UserHomeDir()
+		cobra.CheckErr(err)
+
+		// Search config in home directory with name ".gocfl" (without extension).
+		viper.AddConfigPath(".")
+		viper.AddConfigPath(home)
+		viper.SetConfigType("toml")
+		viper.SetConfigName(".gocfl")
+	}
+
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		// fmt.Println(viper.AllSettings())
+	} else {
+		fmt.Printf("error reading config file %s: %v", viper.ConfigFileUsed(), err)
+	}
+	persistentFlagLoglevel := viper.GetInt64("LogLevel")
+	if _, ok := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)]; !ok {
+		cobra.CheckErr(errors.Errorf("invalid Loglevel ID %v", persistentFlagLoglevel))
+	}
+
+}
+
 func init() {
-	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
-	rootCmd.PersistentFlags().Var(
-		enumflag.New(&persistentFlagLoglevel, "log-level", LogLevelIds, enumflag.EnumCaseInsensitive),
-		"log-level", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
-	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
+
+	rootCmd.PersistentFlags().String("log-file", "", "log output file (default is console)")
+	viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file"))
+
+	rootCmd.PersistentFlags().String("log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
+	viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level"))
+
+	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
+	//	viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
 
 	initValidate()
 	rootCmd.AddCommand(validateCmd)

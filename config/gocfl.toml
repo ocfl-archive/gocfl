@@ -1,0 +1,22 @@
+# CRITICAL = 0
+# ERROR = 1
+# WARNING = 2
+# NOTICE = 3
+# INFO = 4
+# DEBUG = 5
+LogLevel="INFO"
+#logFile="C:/temp/gocfl.log"
+
+[Init]
+OCFLVersion="1.0"
+DigestAlgorithm="sha512"
+# StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+
+[Add]
+UserName="Jürgen Enge"
+UserAddress="mailto:juergen@info-age.net"
+Fixity="md5,sha256"
+DigestAlgorithm="sha512"
+Message="Initial commit"
+# ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+# Deduplicate=true # default false: true = check before ingest for checksum
