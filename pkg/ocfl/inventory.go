@@ -23,7 +23,7 @@ type Inventory interface {
 	DeleteFile(virtualFilename string) error
 	//Rename(oldVirtualFilename, newVirtualFilename string) error
 	AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error
-	RenameFile(dest string, digest string) error
+	CopyFile(dest string, digest string) error
 
 	//GetContentDirectory() string
 	GetVersionStrings() []string
@@ -44,6 +44,7 @@ type Inventory interface {
 	Clean() error
 
 	VersionLessOrEqual(v1, v2 string) bool
+	echoDelete(existing []string) error
 }
 
 func newInventory(ctx context.Context, object Object, folder string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {

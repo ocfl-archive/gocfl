@@ -1,3 +1,4 @@
+# --log-level
 # CRITICAL = 0
 # ERROR = 1
 # WARNING = 2
@@ -5,18 +6,36 @@
 # INFO = 4
 # DEBUG = 5
 LogLevel="INFO"
+# --log-file
 #logFile="C:/temp/gocfl.log"
 
 [Init]
-OCFLVersion="1.0"
+
+OCFLVersion="1.1" # supported versions 1.0 1.1
 DigestAlgorithm="sha512"
 # StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
 
 [Add]
+# --user-name
 UserName="Jürgen Enge"
+# --user-address
 UserAddress="mailto:juergen@info-age.net"
+# --fixity
 Fixity="md5,sha256"
 DigestAlgorithm="sha512"
+# --message
 Message="Initial commit"
+# --object-extensions
 # ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+# --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
+
+[Update]
+# --user-name
+UserName="Jürgen Enge"
+# --user-address
+UserAddress="mailto:juergen@info-age.net"
+# --echo
+Echo=true # reflect deletion in source folder
+# --no-deduplicate
+# NoDeduplicate=true

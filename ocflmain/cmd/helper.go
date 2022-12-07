@@ -7,6 +7,7 @@ import (
 	"github.com/op/go-logging"
 	defaultextensions_object "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/storageroot"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"go.ub.unibas.ch/gocfl/v2/pkg/genericfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
@@ -201,4 +202,36 @@ func showStatus(ctx context.Context) error {
 
 	*/
 	return nil
+}
+
+func addObjectByPath(storageRoot ocfl.StorageRoot, fixity []checksum.DigestAlgorithm, defaultExtensions []ocfl.Extension, checkDuplicates bool, id, userName, userAddress, message, path string, echo bool) (bool, error) {
+	var o ocfl.Object
+	exists, err := storageRoot.ObjectExists(flagObjectID)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot check for existence of %s", id)
+	}
+	if exists {
+		o, err = storageRoot.LoadObjectByID(id)
+		if err != nil {
+			return false, errors.Wrapf(err, "cannot load object %s", id)
+		}
+	} else {
+		o, err = storageRoot.CreateObject(id, storageRoot.GetVersion(), storageRoot.GetDigest(), fixity, defaultExtensions)
+		if err != nil {
+			return false, errors.Wrapf(err, "cannot create object %s", id)
+		}
+	}
+	if err := o.StartUpdate(message, userName, userAddress, echo); err != nil {
+		return false, errors.Wrapf(err, "cannot start update for object %s", id)
+	}
+
+	if err := o.AddFolder(os.DirFS(path), checkDuplicates); err != nil {
+		return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", path, id)
+	}
+
+	if err := o.Close(); err != nil {
+		return false, errors.Wrapf(err, "cannot close object '%s'", id)
+	}
+
+	return o.IsModified(), nil
 }

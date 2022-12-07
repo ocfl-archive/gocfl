@@ -17,7 +17,7 @@ type Object interface {
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
 	Load() error
-	StartUpdate(msg string, UserName string, UserAddress string) error
+	StartUpdate(msg string, UserName string, UserAddress string, echo bool) error
 	AddFolder(fsys fs.FS, checkDuplicate bool) error
 	AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error

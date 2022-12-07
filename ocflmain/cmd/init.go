@@ -20,7 +20,7 @@ var initCmd = &cobra.Command{
 	Aliases: []string{"check"},
 	Short:   "initializes an empty ocfl structure",
 	Long:    "initializes an empty ocfl structure",
-	Example: "gocfl init ./archive.zip /tmp/testdata",
+	Example: "gocfl init ./archive.zip",
 	Args:    cobra.ExactArgs(1),
 	Run:     doInit,
 }
@@ -124,9 +124,10 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger.Errorf("error closing filesystem '%s': %v", ocfs, err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	} else {
-		if err := reader.Close(); err != nil {
-			logger.Errorf("error closing reader: %v", err)
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		if reader != (*os.File)(nil) {
+			if err := reader.Close(); err != nil {
+				logger.Errorf("error closing reader: %v", err)
+			}
 		}
 		if err := writer.Close(); err != nil {
 			logger.Errorf("error closing writer: %v", err)

@@ -165,6 +165,12 @@ func (osr *StorageRootBase) Load() error {
 
 func (osr *StorageRootBase) GetDigest() checksum.DigestAlgorithm { return osr.digest }
 
+func (osr *StorageRootBase) SetDigest(digest checksum.DigestAlgorithm) {
+	if osr.digest == "" {
+		osr.digest = digest
+	}
+}
+
 func (osr *StorageRootBase) GetVersion() OCFLVersion { return osr.version }
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }

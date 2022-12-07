@@ -13,6 +13,7 @@ type OCFLVersion string
 
 type StorageRoot interface {
 	GetDigest() checksum.DigestAlgorithm
+	SetDigest(digest checksum.DigestAlgorithm)
 	GetFiles() ([]string, error)
 	GetFolders() ([]string, error)
 	GetObjectFolders() ([]string, error)

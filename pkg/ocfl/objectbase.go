@@ -33,6 +33,8 @@ type ObjectBase struct {
 	logger             *logging.Logger
 	version            OCFLVersion
 	digest             checksum.DigestAlgorithm
+	echo               bool
+	updateFiles        []string
 }
 
 // newObjectBase creates an empty ObjectBase structure
@@ -344,25 +346,45 @@ func (object *ObjectBase) Load() (err error) {
 func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 	return object.i.GetDigestAlgorithm()
 }
-func (object *ObjectBase) Close() error {
-	object.logger.Debug()
-	if object.i.IsWriteable() && object.IsModified() {
-		object.storageRoot.setModified()
-		if err := object.i.Clean(); err != nil {
-			return errors.Wrap(err, "cannot clean inventory")
-		}
-		if err := object.StoreInventory(); err != nil {
-			return errors.Wrap(err, "cannot store inventory")
-		}
-		if err := object.StoreExtensions(); err != nil {
-			return errors.Wrap(err, "cannot store extensions")
-		}
+
+func (object *ObjectBase) echoDelete() error {
+	slices.Sort(object.updateFiles)
+	object.updateFiles = slices.Compact(object.updateFiles)
+	if err := object.i.echoDelete(object.updateFiles); err != nil {
+		return errors.Wrap(err, "cannot remove deleted files from inventory")
 	}
 	return nil
 }
 
-func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string) error {
+func (object *ObjectBase) Close() error {
+	object.logger.Debug()
+	if !(object.i.IsWriteable()) {
+		return nil
+	}
+	if object.echo {
+		if err := object.echoDelete(); err != nil {
+			return errors.Wrap(err, "cannot delete files")
+		}
+	}
+	if !object.i.IsModified() {
+		return nil
+	}
+	object.storageRoot.setModified()
+	if err := object.i.Clean(); err != nil {
+		return errors.Wrap(err, "cannot clean inventory")
+	}
+	if err := object.StoreInventory(); err != nil {
+		return errors.Wrap(err, "cannot store inventory")
+	}
+	if err := object.StoreExtensions(); err != nil {
+		return errors.Wrap(err, "cannot store extensions")
+	}
+	return nil
+}
+
+func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string, echo bool) error {
 	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
+	object.echo = echo
 
 	if object.i.IsWriteable() {
 		return errors.New("object already writeable")
@@ -396,7 +418,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 }
 
 func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
-	object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
+	//object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
 	// paranoia
 	internalFilename = filepath.ToSlash(internalFilename)
 
@@ -405,6 +427,8 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 	}
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
+
+	object.updateFiles = append(object.updateFiles, sourceFilename)
 
 	file, err := fsys.Open(sourceFilename)
 	if err != nil {
@@ -440,12 +464,12 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", internalFilename, digest)
 		}
 		if dup {
-			object.logger.Debugf("'%s' [%s] is a duplicate", internalFilename, digest)
+			object.logger.Infof("[%s] ignoring '%s'", object.GetID(), sourceFilename)
 			return nil
 		}
 		// file already ingested, but new virtual name
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
-			if err := object.i.RenameFile(sourceFilename, digest); err != nil {
+			if err := object.i.CopyFile(sourceFilename, digest); err != nil {
 				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", sourceFilename, internalFilename)
 			}
 			return nil

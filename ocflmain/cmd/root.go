@@ -154,6 +154,12 @@ func init() {
 
 	initCreate()
 	rootCmd.AddCommand(createCmd)
+
+	initAdd()
+	rootCmd.AddCommand(addCmd)
+
+	initUpdate()
+	rootCmd.AddCommand(updateCmd)
 }
 
 func Execute() {

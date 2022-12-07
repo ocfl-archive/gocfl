@@ -803,12 +803,35 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 	i.logger.Debugf("'%s' - update %v", virtualFilename, lastChecksum != checksum)
 	return lastChecksum != checksum, nil
 }
+
+func (i *InventoryBase) echoDelete(existing []string) error {
+	var deleteFiles = []string{}
+	version, ok := i.Versions.Versions[i.GetHead()]
+	if !ok {
+		return errors.Errorf("cannot get version '%s'", i.Head.string)
+	}
+	for _, state := range version.State.State {
+		for _, filename := range state {
+			if _, found := slices.BinarySearch(existing, filename); !found {
+				deleteFiles = append(deleteFiles, filename)
+			}
+
+		}
+	}
+	for _, filename := range deleteFiles {
+		if err := i.DeleteFile(filename); err != nil {
+			return errors.Wrapf(err, "cannot delete '%s'", filename)
+		}
+	}
+	return nil
+}
+
 func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 	var newState = map[string][]string{}
 	var found = false
-	for key, vals := range i.Versions.Versions[i.GetHead()].State.State {
+	for key, state := range i.Versions.Versions[i.GetHead()].State.State {
 		newState[key] = []string{}
-		for _, val := range vals {
+		for _, val := range state {
 			if val == virtualFilename {
 				found = true
 			} else {
@@ -817,7 +840,10 @@ func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 		}
 	}
 	i.Versions.Versions[i.GetHead()].State.State = newState
-	i.modified = found
+	if found {
+		i.modified = found
+		i.logger.Infof("[%s] deleting '%s'", i.GetID(), virtualFilename)
+	}
 	return nil
 }
 
@@ -842,7 +868,8 @@ func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) er
 }
 */
 
-func (i *InventoryBase) RenameFile(dest string, digest string) error {
+func (i *InventoryBase) CopyFile(dest string, digest string) error {
+	i.logger.Infof("[%s] copying '%s' -> '%s'", i.GetID(), digest, dest)
 	if _, ok := i.Manifest.Manifest[digest]; !ok {
 		return errors.Errorf("cannot find file with digest '%s'", digest)
 	}
@@ -851,11 +878,12 @@ func (i *InventoryBase) RenameFile(dest string, digest string) error {
 		return nil
 	}
 	i.Versions.Versions[i.Head.string].State.State[digest] = append(i.Versions.Versions[i.Head.string].State.State[digest], dest)
+	i.modified = true
 	return nil
 }
 
 func (i *InventoryBase) AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error {
-	i.logger.Debugf("'%s' - '%s' [%s]", virtualFilename, internalFilename, checksums)
+	i.logger.Debugf("[%s] adding '%s' -> '%s' [%s]", i.GetID(), virtualFilename, internalFilename, checksums)
 	digest, ok := checksums[i.GetDigestAlgorithm()]
 	if !ok {
 		return errors.Errorf("no digest for '%s' in checksums", i.GetDigestAlgorithm())
