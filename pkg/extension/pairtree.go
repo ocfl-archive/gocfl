@@ -29,6 +29,11 @@ var convert = map[rune]rune{
 type StorageLayoutPairTree struct {
 	*StorageLayoutPairTreeConfig
 	hash hash.Hash
+	fs   ocfl.OCFLFS
+}
+
+func (sl *StorageLayoutPairTree) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
 }
 
 type StorageLayoutPairTreeConfig struct {
@@ -73,8 +78,11 @@ func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }
 func (sl *StorageLayoutPairTree) IsStoragerootExtension() bool { return true }
 func (sl *StorageLayoutPairTree) GetName() string              { return StorageLayoutPairTreeName }
 
-func (sl *StorageLayoutPairTree) WriteConfig(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("config.json")
+func (sl *StorageLayoutPairTree) WriteConfig() error {
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

@@ -16,6 +16,7 @@ type StorageLayoutFlatDirectConfig struct {
 }
 type StorageLayoutFlatDirect struct {
 	*StorageLayoutFlatDirectConfig
+	fs ocfl.OCFLFS
 }
 
 func NewStorageLayoutFlatDirectFS(fs ocfl.OCFLFS) (*StorageLayoutFlatDirect, error) {
@@ -36,16 +37,23 @@ func NewStorageLayoutFlatDirectFS(fs ocfl.OCFLFS) (*StorageLayoutFlatDirect, err
 	return NewStorageLayoutFlatDirect(config)
 }
 func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*StorageLayoutFlatDirect, error) {
-	sl := &StorageLayoutFlatDirect{config}
+	sl := &StorageLayoutFlatDirect{StorageLayoutFlatDirectConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
 	return sl, nil
 }
 
+func (sl *StorageLayoutFlatDirect) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
+}
+
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
-func (sl *StorageLayoutFlatDirect) WriteConfig(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("config.json")
+func (sl *StorageLayoutFlatDirect) WriteConfig() error {
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

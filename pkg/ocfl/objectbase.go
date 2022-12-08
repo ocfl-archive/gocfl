@@ -46,8 +46,8 @@ func newObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, s
 		storageRoot: storageroot,
 		extensionManager: &ExtensionManager{
 			extensions:        []Extension{},
-			storagerootPath:   []StoragerootPath{},
-			objectContentPath: []ObjectContentPath{},
+			storagerootPath:   []ExtensionStoragerootPath{},
+			objectContentPath: []ExtensionObjectContentPath{},
 		},
 		logger: logger,
 	}
@@ -87,6 +87,9 @@ func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgor
 	}
 
 	return inventory, inventory.Finalize(true)
+}
+func (object *ObjectBase) GetInventory() Inventory {
+	return object.i
 }
 
 func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, error) {

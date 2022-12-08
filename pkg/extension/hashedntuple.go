@@ -17,6 +17,7 @@ const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 type StorageLayoutHashedNTuple struct {
 	*StorageLayoutHashedNTupleConfig
 	hash hash.Hash
+	fs   ocfl.OCFLFS
 }
 type StorageLayoutHashedNTupleConfig struct {
 	*ocfl.ExtensionConfig
@@ -68,8 +69,15 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 
 func (sl *StorageLayoutHashedNTuple) GetName() string { return StorageLayoutHashedNTupleName }
 
-func (sl *StorageLayoutHashedNTuple) WriteConfig(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("config.json")
+func (sl *StorageLayoutHashedNTuple) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
+}
+
+func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

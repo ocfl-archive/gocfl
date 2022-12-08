@@ -45,7 +45,7 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 func (sl *PathDirect) IsObjectExtension() bool      { return false }
 func (sl *PathDirect) IsStoragerootExtension() bool { return true }
 func (sl *PathDirect) GetName() string              { return PathDirectName }
-func (sl *PathDirect) WriteConfig(fs ocfl.OCFLFS) error {
+func (sl *PathDirect) WriteConfig() error {
 	configWriter, err := fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

@@ -6,29 +6,29 @@ import (
 
 type ExtensionManager struct {
 	extensions        []Extension
-	storagerootPath   []StoragerootPath
-	objectContentPath []ObjectContentPath
-	contentChange     []ContentChange
+	storagerootPath   []ExtensionStoragerootPath
+	objectContentPath []ExtensionObjectContentPath
+	contentChange     []ExtensionContentChange
 }
 
 func NewExtensionManager() (*ExtensionManager, error) {
 	m := &ExtensionManager{
 		extensions:        []Extension{},
-		storagerootPath:   []StoragerootPath{},
-		objectContentPath: []ObjectContentPath{},
+		storagerootPath:   []ExtensionStoragerootPath{},
+		objectContentPath: []ExtensionObjectContentPath{},
 	}
 	return m, nil
 }
 
 func (manager *ExtensionManager) Add(ext Extension) error {
 	manager.extensions = append(manager.extensions, ext)
-	if srp, ok := ext.(StoragerootPath); ok {
+	if srp, ok := ext.(ExtensionStoragerootPath); ok {
 		manager.storagerootPath = append(manager.storagerootPath, srp)
 	}
-	if ocp, ok := ext.(ObjectContentPath); ok {
+	if ocp, ok := ext.(ExtensionObjectContentPath); ok {
 		manager.objectContentPath = append(manager.objectContentPath, ocp)
 	}
-	if occ, ok := ext.(ContentChange); ok {
+	if occ, ok := ext.(ExtensionContentChange); ok {
 		manager.contentChange = append(manager.contentChange, occ)
 	}
 	return nil
@@ -40,7 +40,7 @@ func (manager *ExtensionManager) StoreConfigs(fs OCFLFS) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot create subfs of %v for folder %s", fs, ext.GetName())
 		}
-		if err := ext.WriteConfig(subfs); err != nil {
+		if err := ext.WriteConfig(); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
 	}

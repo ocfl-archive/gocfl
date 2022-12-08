@@ -31,6 +31,7 @@ var directCleanErrPathnameTooLong = errors.New("pathname too long")
 
 type DirectClean struct {
 	*DirectCleanConfig
+	fs ocfl.OCFLFS
 }
 
 type DirectCleanConfig struct {
@@ -112,8 +113,15 @@ func encodeUTFCode(s string) string {
 
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
-func (sl *DirectClean) WriteConfig(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("config.json")
+func (sl *DirectClean) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
+}
+
+func (sl *DirectClean) WriteConfig() error {
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

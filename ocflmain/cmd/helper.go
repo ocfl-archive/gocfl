@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory) error {
+func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory, params map[string]map[string]string) error {
 	extensionFactory.AddCreator(extension.DirectCleanName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
 		return extension.NewDirectCleanFS(fs)
 	})
@@ -46,7 +46,23 @@ func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory) error {
 		return extension.NewStorageLayoutPairTreeFS(fs)
 	})
 
+	extensionFactory.AddCreator(extension.MetadataName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		params, ok := params[extension.MetadataName]
+		if !ok {
+			return nil, errors.Errorf("no metadata for extension '%s'", extension.MetadataName)
+		}
+		return extension.NewMetadataFS(fs, params)
+	})
+
 	return nil
+}
+
+func GetExtensionParams() map[string][]ocfl.ExtensionExternalParam {
+	var result = map[string][]ocfl.ExtensionExternalParam{}
+
+	result[extension.IndexerName] = extension.GetIndexerParams()
+
+	return result
 }
 
 func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger *logging.Logger) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {

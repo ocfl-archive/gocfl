@@ -17,6 +17,7 @@ const StorageLayoutHashAndIdNTupleDescription = "Hashed Truncated N-tuple Trees 
 type StorageLayoutHashAndIdNTuple struct {
 	*StorageLayoutHashAndIdNTupleConfig
 	hash hash.Hash
+	fs   ocfl.OCFLFS
 }
 type StorageLayoutHashAndIdNTupleConfig struct {
 	*ocfl.ExtensionConfig
@@ -68,8 +69,16 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }
-func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("config.json")
+
+func (sl *StorageLayoutHashAndIdNTuple) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
+}
+
+func (sl *StorageLayoutHashAndIdNTuple) WriteConfig() error {
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

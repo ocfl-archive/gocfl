@@ -2,25 +2,31 @@ package ocfl
 
 import "go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 
+type ExtensionExternalParam struct {
+	Param       string
+	File        string
+	Description string
+}
+
 type ExtensionConfig struct {
 	ExtensionName string `json:"extensionName"`
 }
 
 type Extension interface {
 	GetName() string
-	WriteConfig(fs OCFLFS) error
+	SetFS(fs OCFLFS)
+	WriteConfig() error
 }
-
-type StoragerootPath interface {
+type ExtensionStoragerootPath interface {
 	WriteLayout(fs OCFLFS) error
 	BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)
 }
 
-type ObjectContentPath interface {
+type ExtensionObjectContentPath interface {
 	BuildObjectContentPath(object Object, originalPath string) (string, error)
 }
 
-type ContentChange interface {
+type ExtensionContentChange interface {
 	AddFileBefore(object Object, source, dest string) error
 	UpdateFileBefore(object Object, source, dest string) error
 	DeleteFileBefore(object Object, dest string) error
@@ -29,6 +35,11 @@ type ContentChange interface {
 	DeleteFileAfter(object Object, dest string) error
 }
 
-type FixityDigest interface {
+type ExtensionObjectChange interface {
+	UpdateBefore(object Object) error
+	UpdateAfter(object Object) error
+}
+
+type ExtensionFixityDigest interface {
 	GetDigests() []checksum.DigestAlgorithm
 }

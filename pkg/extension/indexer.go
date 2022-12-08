@@ -11,11 +11,22 @@ import (
 const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
+func GetIndexerParams() []ocfl.ExtensionExternalParam {
+	return []ocfl.ExtensionExternalParam{
+		{
+			Param:       "indexer-url",
+			File:        "IndexerUrl",
+			Description: "url for indexer format recognition service",
+		},
+	}
+}
+
 type IndexerConfig struct {
 	*ocfl.ExtensionConfig
 }
 type Indexer struct {
 	*IndexerConfig
+	fs ocfl.OCFLFS
 }
 
 func NewIndexerFS(fs ocfl.OCFLFS) (*Indexer, error) {
@@ -36,7 +47,7 @@ func NewIndexerFS(fs ocfl.OCFLFS) (*Indexer, error) {
 	return NewIndexer(config)
 }
 func NewIndexer(config *IndexerConfig) (*Indexer, error) {
-	sl := &Indexer{config}
+	sl := &Indexer{IndexerConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
@@ -44,8 +55,16 @@ func NewIndexer(config *IndexerConfig) (*Indexer, error) {
 }
 
 func (sl *Indexer) GetName() string { return IndexerName }
-func (sl *Indexer) WriteConfig(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("config.json")
+
+func (sl *Indexer) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
+}
+
+func (sl *Indexer) WriteConfig() error {
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
