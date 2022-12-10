@@ -97,6 +97,13 @@ func doAdd(cmd *cobra.Command, args []string) {
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
+	extensionFlags, err := getExtensionFlags(cmd)
+	if err != nil {
+		daLogger.Errorf("cannot get extension flags: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
 	fmt.Printf("opening '%s'\n", ocflPath)
 	daLogger.Infof("opening '%s'", ocflPath)
 
@@ -118,7 +125,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err := os.Stat(ocflPath)
+	_, err = os.Stat(ocflPath)
 	if err != nil {
 		if !(os.IsNotExist(err) && strings.HasSuffix(strings.ToLower(ocflPath), ".zip")) {
 			daLogger.Errorf("cannot stat '%s': %v", ocflPath, err)
@@ -136,7 +143,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if err := initExtensionFactory(extensionFactory); err != nil {
+	if err := initExtensionFactory(extensionFactory, extensionFlags); err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return

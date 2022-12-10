@@ -89,3 +89,9 @@ func (sl *StorageLayoutFlatDirect) WriteLayout(fs ocfl.OCFLFS) error {
 func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.Extension                = &StorageLayoutFlatDirect{}
+	_ ocfl.ExtensionStoragerootPath = &StorageLayoutFlatDirect{}
+)

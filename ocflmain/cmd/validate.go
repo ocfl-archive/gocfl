@@ -31,10 +31,18 @@ func validate(cmd *cobra.Command, args []string) {
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := viper.GetInt64("LogLevel")
 	loglevel := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)][0]
-	fmt.Printf("validating '%s'\n", ocflPath)
 
 	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, loglevel, LOGFORMAT)
 	defer lf.Close()
+
+	extensionFlags, err := getExtensionFlags(cmd)
+	if err != nil {
+		logger.Errorf("cannot get extension flags: %v", err)
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
+	fmt.Printf("validating '%s'\n", ocflPath)
 
 	extensionFactory, err := ocfl.NewExtensionFactory(logger)
 	if err != nil {
@@ -42,7 +50,7 @@ func validate(cmd *cobra.Command, args []string) {
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if err := initExtensionFactory(extensionFactory); err != nil {
+	if err := initExtensionFactory(extensionFactory, extensionFlags); err != nil {
 		logger.Errorf("cannot initialize extension factory: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return

@@ -5,12 +5,14 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -20,16 +22,23 @@ const MetadataDescription = "technical metadata for all files"
 func GetMetadataParams() []ocfl.ExtensionExternalParam {
 	return []ocfl.ExtensionExternalParam{
 		{
-			Param:       "metadata-source",
-			File:        "MetadataSource",
-			Description: "url with metadata files. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
+			Functions:   []string{"add", "update", "create"},
+			Param:       "source",
+			File:        "Source",
+			Description: "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
+		},
+		{
+			Functions:   []string{"extract", "objectextension"},
+			Param:       "target",
+			File:        "Target",
+			Description: "url with metadata target folder",
 		},
 	}
 }
 
 type MetadataConfig struct {
 	*ocfl.ExtensionConfig
-	Versioned bool `json:"versioned,omitempty"`
+	Versioned bool `json:"versioned"`
 }
 type Metadata struct {
 	*MetadataConfig
@@ -60,7 +69,7 @@ func NewMetadata(config *MetadataConfig, params map[string]string) (*Metadata, e
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
 	if params != nil {
-		if urlString, ok := params["metadata-source"]; ok {
+		if urlString, ok := params["source"]; ok {
 			u, err := url.Parse(urlString)
 			if err != nil {
 				return nil, errors.Wrapf(err, "invalid url '%s'", urlString)
@@ -90,14 +99,14 @@ func (sl *Metadata) WriteConfig() error {
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
+	if err := jenc.Encode(sl.MetadataConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 
 	return nil
 }
 
-func (sl *Metadata) UpdateBefore(object ocfl.Object) error {
+func (sl *Metadata) UpdateObjectBefore(object ocfl.Object) error {
 	return nil
 }
 
@@ -114,7 +123,9 @@ func downloadFile(u string) ([]byte, error) {
 	return metadata, nil
 }
 
-func (sl *Metadata) UpdateAfter(object ocfl.Object) error {
+var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
+
+func (sl *Metadata) UpdateObjectAfter(object ocfl.Object) error {
 	var err error
 	inventory := object.GetInventory()
 	if inventory == nil {
@@ -130,52 +141,111 @@ func (sl *Metadata) UpdateAfter(object ocfl.Object) error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	var metadata []byte
+	var rc io.ReadCloser
 	switch sl.metadataSource.Scheme {
 	case "http":
 		fname := strings.Replace(sl.metadataSource.String(), "$ID", object.GetID(), -1)
-		if metadata, err = downloadFile(fname); err != nil {
-			return errors.Wrapf(err, "cannot download from '%s'", fname)
+		resp, err := http.Get(fname)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get '%s'", fname)
 		}
+		rc = resp.Body
 	case "https":
 		fname := strings.Replace(sl.metadataSource.String(), "$ID", object.GetID(), -1)
-		if metadata, err = downloadFile(fname); err != nil {
-			return errors.Wrapf(err, "cannot download from '%s'", fname)
+		resp, err := http.Get(fname)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get '%s'", fname)
 		}
+		rc = resp.Body
 	case "file":
 		fname := strings.Replace(sl.metadataSource.Path, "$ID", object.GetID(), -1)
 		fname = "/" + strings.TrimLeft(fname, "/")
-		if metadata, err = os.ReadFile(fname); err != nil {
-			return errors.Wrapf(err, "cannot ")
+		if windowsPathWithDrive.Match([]byte(fname)) {
+			fname = strings.TrimLeft(fname, "/")
+		}
+		rc, err = os.Open(fname)
+		if err != nil {
+			return errors.Wrapf(err, "cannot open '%s'", fname)
 		}
 	case "":
 		fname := strings.Replace(sl.metadataSource.Path, "$ID", object.GetID(), -1)
 		fname = "/" + strings.TrimLeft(fname, "/")
-		if metadata, err = os.ReadFile(fname); err != nil {
-			return errors.Wrapf(err, "cannot ")
+		rc, err = os.Open(fname)
+		if err != nil {
+			return errors.Wrapf(err, "cannot open '%s'", fname)
 		}
 	default:
 		return errors.Errorf("url scheme '%s' not supported", sl.metadataSource.Scheme)
 	}
-	target := fmt.Sprintf("%s/%s", inventory.GetHead(), filepath.Base(sl.metadataSource.Path))
-	w, err := sl.fs.Create(target)
+
+	//todo: clear old files
+
+	// complex writes to prevent simultaneous writes on filesystems, which do not support that
+	targetBase := filepath.Base(sl.metadataSource.Path)
+	w2, err := sl.fs.Create(targetBase)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", target)
-	}
-	defer w.Close()
-	if _, err := io.Copy(w, bytes.NewBuffer(metadata)); err != nil {
-		return errors.Wrapf(err, "cannot write data to '%s'", target)
+		return errors.Wrapf(err, "cannot create '%s'", targetBase)
 	}
 
-	target2 := filepath.Base(sl.metadataSource.Path)
-	w2, err := sl.fs.Create(target2)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", target)
+	allTargets := []io.Writer{w2}
+	var buf = bytes.NewBuffer(nil)
+	if sl.Versioned {
+		allTargets = append(allTargets, buf)
 	}
-	defer w2.Close()
-	if _, err := io.Copy(w2, bytes.NewBuffer(metadata)); err != nil {
-		return errors.Wrapf(err, "cannot write data to '%s'", target)
+	csWriter := checksum.NewChecksumWriter([]checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()})
+
+	mw := io.MultiWriter(allTargets...)
+	digests, err := csWriter.Copy(mw, rc)
+	if err != nil {
+		w2.Close()
+		return errors.Wrap(err, "cannot write data")
+	}
+	w2.Close()
+
+	digest, ok := digests[inventory.GetDigestAlgorithm()]
+	if !ok {
+		return errors.Wrapf(err, "digest '%s' not created", inventory.GetDigestAlgorithm())
+	}
+
+	targetBaseSidecar := fmt.Sprintf("%s.%s", targetBase, inventory.GetDigestAlgorithm())
+	w2Sidecar, err := sl.fs.Create(targetBaseSidecar)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create '%s'", targetBaseSidecar)
+	}
+	if _, err := io.WriteString(w2Sidecar, fmt.Sprintf("%s %s", digest, targetBase)); err != nil {
+		w2Sidecar.Close()
+		return errors.Wrapf(err, "cannot write to sidecar '%s'", targetBaseSidecar)
+	}
+	w2Sidecar.Close()
+
+	if sl.Versioned {
+		targetVersioned := fmt.Sprintf("%s/%s", inventory.GetHead(), targetBase)
+		w, err := sl.fs.Create(targetVersioned)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create '%s'", targetVersioned)
+		}
+		if _, err := io.Copy(w, buf); err != nil {
+			w.Close()
+			return errors.Wrapf(err, "cannot write data to '%s'", targetVersioned)
+		}
+		w.Close()
+		targetVersionedSidecar := fmt.Sprintf("%s.%s", targetVersioned, inventory.GetDigestAlgorithm())
+		wSidecar, err := sl.fs.Create(targetVersionedSidecar)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create '%s'", targetVersionedSidecar)
+		}
+		if _, err := io.WriteString(wSidecar, fmt.Sprintf("%s %s", digest, targetVersioned)); err != nil {
+			wSidecar.Close()
+			return errors.Wrapf(err, "cannot write to sidecar '%s'", targetVersionedSidecar)
+		}
+		wSidecar.Close()
 	}
 
 	return nil
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.Extension             = &Metadata{}
+	_ ocfl.ExtensionObjectChange = &Metadata{}
+)

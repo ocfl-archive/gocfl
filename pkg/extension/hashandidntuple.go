@@ -154,3 +154,9 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteLayout(fs ocfl.OCFLFS) error {
 	}
 	return nil
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.Extension                = &StorageLayoutHashAndIdNTuple{}
+	_ ocfl.ExtensionStoragerootPath = &StorageLayoutHashAndIdNTuple{}
+)

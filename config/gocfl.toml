@@ -29,6 +29,8 @@ Message="Initial commit"
 # ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
+[Add.ext.NNNN-metadata]
+#Source="C:/temp/$ID.json"
 
 [Update]
 # --user-name
@@ -39,3 +41,10 @@ UserAddress="mailto:juergen@info-age.net"
 Echo=true # reflect deletion in source folder
 # --no-deduplicate
 # NoDeduplicate=true
+
+[Update.ext.NNNN-metadata]
+#Source="C:/temp/$ID.json"
+
+[Create]
+[Create.ext.NNNN-metadata]
+#Source="C:/temp/$ID.json"

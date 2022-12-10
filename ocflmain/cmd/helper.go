@@ -47,11 +47,11 @@ func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory, params map[st
 	})
 
 	extensionFactory.AddCreator(extension.MetadataName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
-		params, ok := params[extension.MetadataName]
+		ps, ok := params[extension.MetadataName]
 		if !ok {
-			return nil, errors.Errorf("no metadata for extension '%s'", extension.MetadataName)
+			return nil, errors.Errorf("no flags or config entries for extension '%s'", extension.MetadataName)
 		}
-		return extension.NewMetadataFS(fs, params)
+		return extension.NewMetadataFS(fs, ps)
 	})
 
 	return nil
@@ -61,6 +61,7 @@ func GetExtensionParams() map[string][]ocfl.ExtensionExternalParam {
 	var result = map[string][]ocfl.ExtensionExternalParam{}
 
 	result[extension.IndexerName] = extension.GetIndexerParams()
+	result[extension.MetadataName] = extension.GetMetadataParams()
 
 	return result
 }

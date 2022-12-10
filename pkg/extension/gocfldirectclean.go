@@ -255,3 +255,10 @@ func (sl *DirectClean) build(fname string) (string, error) {
 
 	return fname, nil
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.Extension                  = &DirectClean{}
+	_ ocfl.ExtensionStoragerootPath   = &DirectClean{}
+	_ ocfl.ExtensionObjectContentPath = &DirectClean{}
+)

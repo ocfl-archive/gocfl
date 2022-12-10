@@ -12,6 +12,7 @@ const PathDirectName = "NNNN-direct-path-layout"
 
 type PathDirectConfig struct {
 	*Config
+	fs ocfl.OCFLFS
 }
 
 type PathDirect struct {
@@ -42,11 +43,33 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 	}
 	return sl, nil
 }
-func (sl *PathDirect) IsObjectExtension() bool      { return false }
-func (sl *PathDirect) IsStoragerootExtension() bool { return true }
-func (sl *PathDirect) GetName() string              { return PathDirectName }
+
+func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFS) {
+	sl.fs = fs
+}
+func (sl *PathDirect) GetName() string { return PathDirectName }
+func (sl *PathDirect) WriteLayout(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("ocfl_layout.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open ocfl_layout.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(struct {
+		Extension   string `json:"extension"`
+		Description string `json:"description"`
+	}{
+		Extension:   StorageLayoutFlatDirectName,
+		Description: StorageLayoutFlatDirectDescription,
+	}); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
+
 func (sl *PathDirect) WriteConfig() error {
-	configWriter, err := fs.Create("config.json")
+	configWriter, err := sl.fs.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -62,6 +85,13 @@ func (sl *PathDirect) WriteConfig() error {
 func (sl *PathDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
-func (sl *PathDirect) BuildObjectContentPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *PathDirect) BuildObjectContentPath(object ocfl.Object, id string) (string, error) {
 	return id, nil
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.Extension                  = &PathDirect{}
+	_ ocfl.ExtensionStoragerootPath   = &PathDirect{}
+	_ ocfl.ExtensionObjectContentPath = &PathDirect{}
+)

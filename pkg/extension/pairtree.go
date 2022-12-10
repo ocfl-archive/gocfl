@@ -32,6 +32,26 @@ type StorageLayoutPairTree struct {
 	fs   ocfl.OCFLFS
 }
 
+func (sl *StorageLayoutPairTree) WriteLayout(fs ocfl.OCFLFS) error {
+	configWriter, err := fs.Create("ocfl_layout.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open ocfl_layout.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(struct {
+		Extension   string `json:"extension"`
+		Description string `json:"description"`
+	}{
+		Extension:   StorageLayoutFlatDirectName,
+		Description: StorageLayoutFlatDirectDescription,
+	}); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
+
 func (sl *StorageLayoutPairTree) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }
@@ -146,3 +166,9 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 	}
 	return string(result)
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.Extension                = &StorageLayoutPairTree{}
+	_ ocfl.ExtensionStoragerootPath = &StorageLayoutPairTree{}
+)

@@ -9,6 +9,7 @@ type ExtensionManager struct {
 	storagerootPath   []ExtensionStoragerootPath
 	objectContentPath []ExtensionObjectContentPath
 	contentChange     []ExtensionContentChange
+	objectChange      []ExtensionObjectChange
 }
 
 func NewExtensionManager() (*ExtensionManager, error) {
@@ -16,12 +17,14 @@ func NewExtensionManager() (*ExtensionManager, error) {
 		extensions:        []Extension{},
 		storagerootPath:   []ExtensionStoragerootPath{},
 		objectContentPath: []ExtensionObjectContentPath{},
+		objectChange:      []ExtensionObjectChange{},
 	}
 	return m, nil
 }
 
 func (manager *ExtensionManager) Add(ext Extension) error {
 	manager.extensions = append(manager.extensions, ext)
+
 	if srp, ok := ext.(ExtensionStoragerootPath); ok {
 		manager.storagerootPath = append(manager.storagerootPath, srp)
 	}
@@ -31,15 +34,14 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	if occ, ok := ext.(ExtensionContentChange); ok {
 		manager.contentChange = append(manager.contentChange, occ)
 	}
+	if occ, ok := ext.(ExtensionObjectChange); ok {
+		manager.objectChange = append(manager.objectChange, occ)
+	}
 	return nil
 }
 
-func (manager *ExtensionManager) StoreConfigs(fs OCFLFS) error {
+func (manager *ExtensionManager) StoreConfigs() error {
 	for _, ext := range manager.extensions {
-		subfs, err := fs.SubFS(ext.GetName())
-		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for folder %s", fs, ext.GetName())
-		}
 		if err := ext.WriteConfig(); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
@@ -147,4 +149,36 @@ func (manager *ExtensionManager) DeleteFileAfter(object Object, dest string) err
 		}
 	}
 	return errors.Combine(errs...)
+}
+
+// ObjectChange
+func (manager *ExtensionManager) UpdateObjectBefore(object Object) error {
+	var errs = []error{}
+	for _, ocp := range manager.objectChange {
+		if err := ocp.UpdateObjectBefore(object); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+	return errors.Combine(errs...)
+}
+func (manager *ExtensionManager) UpdateObjectAfter(object Object) error {
+	var errs = []error{}
+	for _, ocp := range manager.objectChange {
+		if err := ocp.UpdateObjectAfter(object); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+	return errors.Combine(errs...)
+}
+
+func (manager *ExtensionManager) SetFS(subfs OCFLFS) {
+	for _, ext := range manager.extensions {
+		extFS, err := subfs.SubFS(ext.GetName())
+		if err != nil {
+			panic(err)
+		}
+		ext.SetFS(extFS)
+	}
 }

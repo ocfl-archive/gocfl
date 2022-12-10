@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"golang.org/x/exp/slices"
 	"os"
 )
 
@@ -132,7 +133,55 @@ func initConfig() {
 
 }
 
+func setExtensionFlags(commands ...*cobra.Command) {
+	extensionParams := GetExtensionParams()
+	for _, command := range commands {
+		for ext, params := range extensionParams {
+			for _, param := range params {
+				if !slices.Contains(param.Functions, command.Name()) {
+					continue
+				}
+				flagName := fmt.Sprintf("ext-%s-%s", ext, param.Param)
+				if command.Flags().Lookup(flagName) == nil {
+					command.Flags().String(flagName, param.Default, param.Description)
+					if param.File != "" {
+						cfgName := fmt.Sprintf("%s.ext.%s.%s", command.Name(), ext, param.File)
+						viper.BindPFlag(cfgName, command.Flags().Lookup(flagName))
+					}
+				}
+			}
+		}
+	}
+}
+
+func getExtensionFlags(command *cobra.Command) (map[string]map[string]string, error) {
+	var err error
+	var result = map[string]map[string]string{}
+	extensionParams := GetExtensionParams()
+	for ext, params := range extensionParams {
+		for _, param := range params {
+			if !slices.Contains(param.Functions, command.Name()) {
+				continue
+			}
+			flagName := fmt.Sprintf("ext-%s-%s", ext, param.Param)
+			if _, ok := result[ext]; !ok {
+				result[ext] = map[string]string{}
+			}
+			if param.File != "" {
+				cfgName := fmt.Sprintf("%s.ext.%s.%s", command.Name(), ext, param.File)
+				result[ext][param.Param] = viper.GetString(cfgName)
+			} else {
+				if result[ext][param.Param], err = command.Flags().GetString(flagName); err != nil {
+					return nil, errors.Wrapf(err, "cannot get flag '%s'", flagName)
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
 func init() {
+
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
@@ -147,19 +196,12 @@ func init() {
 	//	viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
 
 	initValidate()
-	rootCmd.AddCommand(validateCmd)
-
 	initInit()
-	rootCmd.AddCommand(initCmd)
-
 	initCreate()
-	rootCmd.AddCommand(createCmd)
-
 	initAdd()
-	rootCmd.AddCommand(addCmd)
-
 	initUpdate()
-	rootCmd.AddCommand(updateCmd)
+	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd)
+	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd)
 }
 
 func Execute() {

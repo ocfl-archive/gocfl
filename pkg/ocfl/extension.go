@@ -3,9 +3,11 @@ package ocfl
 import "go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 
 type ExtensionExternalParam struct {
+	Functions   []string
 	Param       string
 	File        string
 	Description string
+	Default     string
 }
 
 type ExtensionConfig struct {
@@ -36,8 +38,8 @@ type ExtensionContentChange interface {
 }
 
 type ExtensionObjectChange interface {
-	UpdateBefore(object Object) error
-	UpdateAfter(object Object) error
+	UpdateObjectBefore(object Object) error
+	UpdateObjectAfter(object Object) error
 }
 
 type ExtensionFixityDigest interface {

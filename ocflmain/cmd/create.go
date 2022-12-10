@@ -113,11 +113,18 @@ func doCreate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("required flag(s) %s not set", strings.Join(notSet, ", ")))
 	}
 
-	fmt.Printf("creating '%s'\n", ocflPath)
-
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 	daLogger.Infof("creating '%s'", ocflPath)
+
+	extensionFlags, err := getExtensionFlags(cmd)
+	if err != nil {
+		daLogger.Errorf("cannot get extension flags: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
+	fmt.Printf("creating '%s'\n", ocflPath)
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
 	for _, alg := range strings.Split(flagFixity, ",") {
@@ -163,7 +170,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if err := initExtensionFactory(extensionFactory); err != nil {
+	if err := initExtensionFactory(extensionFactory, extensionFlags); err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return

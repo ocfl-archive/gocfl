@@ -254,12 +254,8 @@ func (object *ObjectBase) StoreInventory() error {
 
 func (object *ObjectBase) StoreExtensions() error {
 	object.logger.Debug()
-	subfs, err := object.fs.SubFS("extensions")
-	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fs, "extensions")
-	}
 
-	if err := object.extensionManager.StoreConfigs(subfs); err != nil {
+	if err := object.extensionManager.StoreConfigs(); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}
 	return nil
@@ -379,6 +375,10 @@ func (object *ObjectBase) Close() error {
 	if err := object.StoreInventory(); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
 	}
+	if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
+	}
+
 	if err := object.StoreExtensions(); err != nil {
 		return errors.Wrap(err, "cannot store extensions")
 	}
@@ -389,11 +389,20 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	object.echo = echo
 
+	subfs, err := object.fs.SubFS("extensions")
+	if err != nil {
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fs, "extensions")
+	}
+	object.extensionManager.SetFS(subfs)
+
 	if object.i.IsWriteable() {
 		return errors.New("object already writeable")
 	}
 	if err := object.i.NewVersion(msg, UserName, UserAddress); err != nil {
 		return errors.Wrap(err, "cannot create new object version")
+	}
+	if err := object.extensionManager.UpdateObjectBefore(object); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
 	return nil
 }

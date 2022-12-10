@@ -66,6 +66,13 @@ func doInit(cmd *cobra.Command, args []string) {
 	defer lf.Close()
 	logger.Infof("creating '%s'", ocflPath)
 
+	extensionFlags, err := getExtensionFlags(cmd)
+	if err != nil {
+		logger.Errorf("cannot get extension flags: %v", err)
+		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
 	finfo, err := os.Stat(ocflPath)
 	if err != nil {
 		if !(os.IsNotExist(err) && strings.HasSuffix(strings.ToLower(ocflPath), ".zip")) {
@@ -92,7 +99,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if err := initExtensionFactory(extensionFactory); err != nil {
+	if err := initExtensionFactory(extensionFactory, extensionFlags); err != nil {
 		logger.Errorf("cannot initialize extension factory: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
