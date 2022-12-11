@@ -169,10 +169,10 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 }
 
 func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.getFS(), i.GetID()))
+	addValidationErrors(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.GetFS(), i.GetID()))
 }
 func (i *InventoryBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	addValidationWarnings(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.getFS(), i.GetID()))
+	addValidationWarnings(i.ctx, GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.GetFS(), i.GetID()))
 }
 func (i *InventoryBase) GetID() string          { return i.Id }
 func (i *InventoryBase) GetHead() string        { return i.Head.string }

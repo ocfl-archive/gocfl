@@ -2,27 +2,59 @@ package ocfl
 
 import (
 	"emperror.dev/errors"
+	"encoding/json"
+	"fmt"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"golang.org/x/exp/slices"
 )
 
+const ExtensionManagerName = "NNNN-gocfl-extension-manager"
+const ExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
+
 type ExtensionManager struct {
-	extensions        []Extension
-	storagerootPath   []ExtensionStoragerootPath
-	objectContentPath []ExtensionObjectContentPath
-	contentChange     []ExtensionContentChange
-	objectChange      []ExtensionObjectChange
+	*ExtensionManagerConfig
+	extensions         []Extension
+	storagerootPath    []ExtensionStoragerootPath
+	objectContentPath  []ExtensionObjectContentPath
+	objectExternalPath []ExtensionObjectExternalPath
+	contentChange      []ExtensionContentChange
+	objectChange       []ExtensionObjectChange
+	fixityDigest       []ExtensionFixityDigest
+	fs                 OCFLFS
+}
+
+type ExtensionManagerConfig struct {
+	*ExtensionConfig
+	Sort      map[string][]string   `json:"sort"`
+	Exclusion map[string][][]string `json:"exclusion"`
 }
 
 func NewExtensionManager() (*ExtensionManager, error) {
 	m := &ExtensionManager{
+		ExtensionManagerConfig: &ExtensionManagerConfig{
+			ExtensionConfig: &ExtensionConfig{ExtensionName: ExtensionManagerName},
+			Sort:            map[string][]string{},
+			Exclusion:       map[string][][]string{},
+		},
 		extensions:        []Extension{},
 		storagerootPath:   []ExtensionStoragerootPath{},
 		objectContentPath: []ExtensionObjectContentPath{},
 		objectChange:      []ExtensionObjectChange{},
+		fixityDigest:      []ExtensionFixityDigest{},
 	}
 	return m, nil
 }
 
 func (manager *ExtensionManager) Add(ext Extension) error {
+	// set extensionmanager config...
+	if ext.GetName() == ExtensionManagerName {
+		dummy, ok := ext.(*InitialDummy)
+		if !ok {
+			return errors.Errorf("extension '%s' not of type *InitialDummy", ext)
+		}
+		manager.ExtensionManagerConfig = dummy.ExtensionManagerConfig
+		return nil
+	}
 	manager.extensions = append(manager.extensions, ext)
 
 	if srp, ok := ext.(ExtensionStoragerootPath); ok {
@@ -37,14 +69,148 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	if occ, ok := ext.(ExtensionObjectChange); ok {
 		manager.objectChange = append(manager.objectChange, occ)
 	}
+	if occ, ok := ext.(ExtensionFixityDigest); ok {
+		manager.fixityDigest = append(manager.fixityDigest, occ)
+	}
+	if occ, ok := ext.(ExtensionObjectExternalPath); ok {
+		manager.objectExternalPath = append(manager.objectExternalPath, occ)
+	}
 	return nil
 }
 
-func (manager *ExtensionManager) StoreConfigs() error {
+func (manager *ExtensionManager) SetFS(subfs OCFLFS) {
+	for _, ext := range manager.extensions {
+		extFS, err := subfs.SubFS(ext.GetName())
+		if err != nil {
+			panic(err)
+		}
+		ext.SetFS(extFS)
+	}
+	var err error
+	manager.fs, err = subfs.SubFS("initial")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func sortExtensions(list []Extension, sortName []string) {
+	sortFunc := func(aExt, bExt Extension) bool {
+		aName := aExt.GetName()
+		bName := bExt.GetName()
+		var aNum, bNum int
+		for num, name := range sortName {
+			if name == aName {
+				aNum = num
+			}
+			if name == bName {
+				bNum = num
+			}
+		}
+		return aNum < bNum
+	}
+	slices.SortFunc(list, sortFunc)
+}
+
+func excludeExtensions(list []Extension, exclusionSort []string) []Extension {
+	sortFunc := func(aExt, bExt Extension) bool {
+		aName := aExt.GetName()
+		bName := bExt.GetName()
+		var aNum, bNum int
+		for num, name := range exclusionSort {
+			if name == aName {
+				aNum = num
+			}
+			if name == bName {
+				bNum = num
+			}
+		}
+		return aNum < bNum
+	}
+	// first sort list
+	slices.SortFunc(list, sortFunc)
+
+	// find out, which have to be deleted
+	var first = true
+	var remove = []int{}
+	for num, entry := range list {
+		ext, ok := entry.(Extension)
+		if !ok {
+			panic(fmt.Sprintf("%v not an Extension", entry))
+		}
+		if slices.Contains(exclusionSort, ext.GetName()) {
+			if first {
+				first = false
+				continue
+			}
+			remove = append(remove, num)
+		}
+	}
+
+	// delete the remove-list from back
+	// todo: check garbage collector behaviour
+	for i := len(remove) - 1; i >= 0; i-- {
+		list = slices.Delete(list, remove[i], remove[i]+1)
+	}
+	return list
+}
+
+func (manager *ExtensionManager) organize(list []Extension, name string) []Extension {
+	if len(list) == 0 {
+		return list
+	}
+	if excludes, ok := manager.Exclusion[name]; ok {
+		for _, exclude := range excludes {
+			list = excludeExtensions(list, exclude)
+		}
+	}
+	if sort, ok := manager.Sort[name]; ok {
+		sortExtensions(list, sort)
+	}
+	return list
+}
+
+func (manager *ExtensionManager) Finalize() {
+	var extList = []Extension{}
+	for _, e := range manager.storagerootPath {
+		extList = append(extList, e.(Extension))
+	}
+	extList = manager.organize(extList, "StoragerootPath")
+	manager.storagerootPath = []ExtensionStoragerootPath{}
+	for _, e := range extList {
+		manager.storagerootPath = append(manager.storagerootPath, e.(ExtensionStoragerootPath))
+	}
+
+	extList = []Extension{}
+	for _, e := range manager.objectContentPath {
+		extList = append(extList, e.(Extension))
+	}
+	extList = manager.organize(extList, "ObjectContentPath")
+	manager.objectContentPath = []ExtensionObjectContentPath{}
+	for _, e := range extList {
+		manager.objectContentPath = append(manager.objectContentPath, e.(ExtensionObjectContentPath))
+	}
+}
+
+// Extension
+func (manager *ExtensionManager) GetName() string {
+	return ExtensionManagerName
+}
+func (manager *ExtensionManager) WriteConfig() error {
 	for _, ext := range manager.extensions {
 		if err := ext.WriteConfig(); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
+	}
+
+	configWriter, err := manager.fs.Create("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(manager.ExtensionManagerConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 }
@@ -61,32 +227,75 @@ func (manager *ExtensionManager) StoreRootLayout(fs OCFLFS) error {
 func (manager *ExtensionManager) BuildStoragerootPath(storageroot StorageRoot, id string) (string, error) {
 	var errs = []error{}
 	for _, srp := range manager.storagerootPath {
-		p, err := srp.BuildStorageRootPath(storageroot, id)
+		p, err := srp.BuildStoragerootPath(storageroot, id)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 		if p != "" {
-			return p, errors.Combine(errs...)
+			id = p
 		}
 	}
 	return id, errors.Combine(errs...)
 }
+func (manager *ExtensionManager) WriteLayout(fs OCFLFS) error {
+	if len(manager.storagerootPath) == 0 {
+		return nil
+	}
+	if len(manager.storagerootPath) == 1 {
+		return manager.storagerootPath[0].WriteLayout(fs)
+	}
+	configWriter, err := fs.Create("ocfl_layout.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open ocfl_layout.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(struct {
+		Extension   string `json:"extension"`
+		Description string `json:"description"`
+	}{
+		Extension:   ExtensionManagerName,
+		Description: ExtensionManagerDescription,
+	}); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
+	return nil
+}
 
 // ObjectContentPath
-func (manager *ExtensionManager) BuildObjectContentPath(object Object, path string) (string, error) {
+func (manager *ExtensionManager) BuildObjectContentPath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
-		p, err := ocp.BuildObjectContentPath(object, path)
+		p, err := ocp.BuildObjectContentPath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 		if p != "" {
-			return p, errors.Combine(errs...)
+			originalPath = p
+			//return p, errors.Combine(errs...)
 		}
 	}
-	return path, errors.Combine(errs...)
+	return originalPath, errors.Combine(errs...)
+}
+
+// ObjectExternalPath
+func (manager *ExtensionManager) BuildObjectExternalPath(object Object, originalPath string, area string) (string, error) {
+	var errs = []error{}
+	for _, ocp := range manager.objectExternalPath {
+		p, err := ocp.BuildObjectExternalPath(object, originalPath, area)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if p != "" {
+			originalPath = p
+			//return p, errors.Combine(errs...)
+		}
+	}
+	return originalPath, errors.Combine(errs...)
 }
 
 // ContentChange
@@ -173,12 +382,22 @@ func (manager *ExtensionManager) UpdateObjectAfter(object Object) error {
 	return errors.Combine(errs...)
 }
 
-func (manager *ExtensionManager) SetFS(subfs OCFLFS) {
-	for _, ext := range manager.extensions {
-		extFS, err := subfs.SubFS(ext.GetName())
-		if err != nil {
-			panic(err)
-		}
-		ext.SetFS(extFS)
+// FixityDigests
+func (manager *ExtensionManager) GetFixityDigests() []checksum.DigestAlgorithm {
+	var digests = []checksum.DigestAlgorithm{}
+	for _, ext := range manager.fixityDigest {
+		digests = append(digests, ext.GetFixityDigests()...)
 	}
+	return digests
 }
+
+// check interface satisfaction
+var (
+	_ Extension                   = &ExtensionManager{}
+	_ ExtensionStoragerootPath    = &ExtensionManager{}
+	_ ExtensionObjectContentPath  = &ExtensionManager{}
+	_ ExtensionObjectExternalPath = &ExtensionManager{}
+	_ ExtensionContentChange      = &ExtensionManager{}
+	_ ExtensionObjectChange       = &ExtensionManager{}
+	_ ExtensionFixityDigest       = &ExtensionManager{}
+)

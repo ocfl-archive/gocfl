@@ -31,7 +31,9 @@ var directCleanErrPathnameTooLong = errors.New("pathname too long")
 
 type DirectClean struct {
 	*DirectCleanConfig
-	fs ocfl.OCFLFS
+	fs        ocfl.OCFLFS
+	hash      hash.Hash  `json:"-"`
+	hashMutex sync.Mutex `json:"-"`
 }
 
 type DirectCleanConfig struct {
@@ -44,8 +46,6 @@ type DirectCleanConfig struct {
 	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
 	FallbackFolder              string                   `json:"fallbackFolder"`
 	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
-	hash                        hash.Hash                `json:"-"`
-	hashMutex                   sync.Mutex               `json:"-"`
 }
 
 func min[T constraints.Ordered](a, b T) T {
@@ -93,15 +93,16 @@ func NewDirectClean(config *DirectCleanConfig) (ocfl.Extension, error) {
 		config.FallbackFolder = "fallback"
 	}
 
-	var err error
-	if config.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
-		return nil, errors.Wrapf(err, "hash %s not supported", config.FallbackDigestAlgorithm)
-	}
-
 	sl := &DirectClean{DirectCleanConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.Errorf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName())
 	}
+
+	var err error
+	if sl.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
+		return nil, errors.Wrapf(err, "hash %s not supported", config.FallbackDigestAlgorithm)
+	}
+
 	return sl, nil
 }
 
@@ -155,12 +156,12 @@ func (sl *DirectClean) WriteLayout(fs ocfl.OCFLFS) error {
 }
 
 // interface
-func (sl *DirectClean) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *DirectClean) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectContentPath(object ocfl.Object, id string) (string, error) {
-	return sl.build(id)
+func (sl *DirectClean) BuildObjectContentPath(object ocfl.Object, originalPath string, area string) (string, error) {
+	return sl.build(originalPath)
 }
 
 func (sl *DirectClean) fallback(fname string) (string, error) {

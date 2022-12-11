@@ -12,6 +12,7 @@ import (
 	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ var createCmd = &cobra.Command{
 	Long: "initializes an empty ocfl structure and adds contents of a directory subtree to it\n" +
 		"This command is a combination of init and add",
 	Example: "gocfl create ./archive.zip /tmp/testdata --sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'",
-	Args:    cobra.ExactArgs(2),
+	Args:    cobra.MinimumNArgs(2),
 	Run:     doCreate,
 }
 
@@ -62,10 +63,20 @@ func initCreate() {
 	viper.BindPFlag("Add.Deduplicate", createCmd.Flags().Lookup("deduplicate"))
 }
 
+var areaPathRegexp = regexp.MustCompile("^([a-z]+):(.+)$")
+
 func doCreate(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
+	var areaPaths = map[string]string{}
+	for i := 2; i < len(args); i++ {
+		matches := areaPathRegexp.FindStringSubmatch(args[i])
+		if matches == nil {
+			continue
+		}
+		areaPaths[matches[1]] = matches[2]
+	}
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
@@ -200,7 +211,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err = addObjectByPath(storageRoot, fixityAlgs, objectExtensions, flagDeduplicate, flagObjectID, flagUserName, flagUserAddress, flagMessage, srcPath, false)
+	_, err = addObjectByPath(storageRoot, fixityAlgs, objectExtensions, flagDeduplicate, flagObjectID, flagUserName, flagUserAddress, flagMessage, srcPath, areaPaths, false)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", ocfs, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

@@ -1,0 +1,17 @@
+{
+  "extensionName": "NNNN-gocfl-extension-manager",
+  "sort": {
+    "ObjectContentPath": [
+      "NNNN-direct-clean-path-layout",
+      "NNNN-content-subpath"
+    ]
+  },
+  "exclusion": {
+    "ObjectContentPath": [
+      [
+        "NNNN-direct-clean-path-layout",
+        "NNNN-direct-path-layout"
+     ]
+    ]
+  }
+}

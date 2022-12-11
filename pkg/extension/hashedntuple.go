@@ -90,7 +90,7 @@ func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashedNTuple) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
 		return "", errors.Wrapf(err, "cannot hash %s", id)

@@ -7,6 +7,7 @@ replace go.ub.unibas.ch/gocfl/v2 => ./
 require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.0
+	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
 	github.com/je4/utils/v2 v2.0.7-0.20221205154750-6b88ba5d32b5
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/spf13/cobra v1.6.1

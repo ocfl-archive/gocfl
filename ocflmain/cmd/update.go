@@ -172,17 +172,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err = addObjectByPath(
-		storageRoot,
-		fixityAlgs,
-		objectExtensions,
-		!flagNoDeduplicate,
-		flagObjectID,
-		flagUserName,
-		flagUserAddress,
-		flagMessage,
-		srcPath,
-		flagEcho)
+	_, err = addObjectByPath(storageRoot, fixityAlgs, objectExtensions, !flagNoDeduplicate, flagObjectID, flagUserName, flagUserAddress, flagMessage, srcPath, nil, flagEcho)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", ocfs, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

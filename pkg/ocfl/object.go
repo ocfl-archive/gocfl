@@ -19,14 +19,15 @@ type Object interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string, echo bool) error
-	AddFolder(fsys fs.FS, checkDuplicate bool) error
-	AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error
+	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
+	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string) error
+	AddReader(r io.ReadCloser, internalFilename string, area string) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
 	Check() error
 	Close() error
-	getFS() OCFLFS
+	GetFS() OCFLFS
 	IsModified() bool
 }
 

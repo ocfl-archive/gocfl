@@ -70,7 +70,7 @@ func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, form
 	addValidationWarnings(osr.ctx, valError)
 }
 
-func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, exts []Extension) error {
+func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, extensions []Extension) error {
 	var err error
 	osr.logger.Debug()
 
@@ -97,15 +97,16 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		return errors.Wrapf(err, "cannot write into %s", rootConformanceDeclarationFile)
 	}
 
-	for _, ext := range exts {
+	for _, ext := range extensions {
 		if err := osr.extensionManager.Add(ext); err != nil {
 			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
 		}
 	}
+	osr.extensionManager.Finalize()
 	subfs, err := osr.fs.SubFS("extensions")
 	if err == nil {
 		osr.extensionManager.SetFS(subfs)
-		if err := osr.extensionManager.StoreConfigs(); err != nil {
+		if err := osr.extensionManager.WriteConfig(); err != nil {
 			return errors.Wrap(err, "cannot store extension configs")
 		}
 	}

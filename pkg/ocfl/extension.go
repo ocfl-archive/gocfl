@@ -21,11 +21,15 @@ type Extension interface {
 }
 type ExtensionStoragerootPath interface {
 	WriteLayout(fs OCFLFS) error
-	BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)
+	BuildStoragerootPath(storageRoot StorageRoot, id string) (string, error)
 }
 
 type ExtensionObjectContentPath interface {
-	BuildObjectContentPath(object Object, originalPath string) (string, error)
+	BuildObjectContentPath(object Object, originalPath string, area string) (string, error)
+}
+
+type ExtensionObjectExternalPath interface {
+	BuildObjectExternalPath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionContentChange interface {
@@ -43,5 +47,5 @@ type ExtensionObjectChange interface {
 }
 
 type ExtensionFixityDigest interface {
-	GetDigests() []checksum.DigestAlgorithm
+	GetFixityDigests() []checksum.DigestAlgorithm
 }

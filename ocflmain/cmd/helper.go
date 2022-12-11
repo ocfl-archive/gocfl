@@ -46,6 +46,14 @@ func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory, params map[st
 		return extension.NewStorageLayoutPairTreeFS(fs)
 	})
 
+	extensionFactory.AddCreator(ocfl.ExtensionManagerName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return ocfl.NewInitialDummyFS(fs)
+	})
+
+	extensionFactory.AddCreator(extension.ContentSubPathName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		return extension.NewContentSubPathFS(fs)
+	})
+
 	extensionFactory.AddCreator(extension.MetadataName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
 		ps, ok := params[extension.MetadataName]
 		if !ok {
@@ -221,7 +229,7 @@ func showStatus(ctx context.Context) error {
 	return nil
 }
 
-func addObjectByPath(storageRoot ocfl.StorageRoot, fixity []checksum.DigestAlgorithm, defaultExtensions []ocfl.Extension, checkDuplicates bool, id, userName, userAddress, message, path string, echo bool) (bool, error) {
+func addObjectByPath(storageRoot ocfl.StorageRoot, fixity []checksum.DigestAlgorithm, defaultExtensions []ocfl.Extension, checkDuplicates bool, id, userName, userAddress, message, path string, areaPaths map[string]string, echo bool) (bool, error) {
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
@@ -242,8 +250,15 @@ func addObjectByPath(storageRoot ocfl.StorageRoot, fixity []checksum.DigestAlgor
 		return false, errors.Wrapf(err, "cannot start update for object %s", id)
 	}
 
-	if err := o.AddFolder(os.DirFS(path), checkDuplicates); err != nil {
+	if err := o.AddFolder(os.DirFS(path), checkDuplicates, "content"); err != nil {
 		return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", path, id)
+	}
+	if areaPaths != nil {
+		for area, aPath := range areaPaths {
+			if err := o.AddFolder(os.DirFS(aPath), checkDuplicates, area); err != nil {
+				return false, errors.Wrapf(err, "cannot add area '%s' folder '%s' to '%s'", area, aPath, id)
+			}
+		}
 	}
 
 	if err := o.Close(); err != nil {

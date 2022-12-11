@@ -86,7 +86,7 @@ func (sl *StorageLayoutFlatDirect) WriteLayout(fs ocfl.OCFLFS) error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutFlatDirect) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 

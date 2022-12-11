@@ -115,7 +115,7 @@ func (sl *StorageLayoutPairTree) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutPairTree) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))

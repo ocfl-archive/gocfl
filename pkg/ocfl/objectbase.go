@@ -74,7 +74,7 @@ func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format
 	addValidationWarnings(object.ctx, valError)
 }
 
-func (object *ObjectBase) getFS() OCFLFS {
+func (object *ObjectBase) GetFS() OCFLFS {
 	return object.fs
 }
 func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
@@ -255,7 +255,7 @@ func (object *ObjectBase) StoreInventory() error {
 func (object *ObjectBase) StoreExtensions() error {
 	object.logger.Debug()
 
-	if err := object.extensionManager.StoreConfigs(); err != nil {
+	if err := object.extensionManager.WriteConfig(); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}
 	return nil
@@ -296,6 +296,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 			return errors.Wrapf(err, "cannot add extension '%s'", ext.GetName())
 		}
 	}
+	object.extensionManager.Finalize()
 
 	object.i, err = object.CreateInventory(id, digest, fixity)
 	return nil
@@ -407,18 +408,20 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 	return nil
 }
 
-func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
+func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool, area string) error {
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
 		// directory not interesting
 		if info.IsDir() {
 			return nil
 		}
-		realFilename, err := object.extensionManager.BuildObjectContentPath(object, path)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
-		}
-		if err := object.AddFile(fsys, path, realFilename, checkDuplicate); err != nil {
+		/*
+			realFilename, err := object.extensionManager.BuildObjectContentPath(object, path, area)
+			if err != nil {
+				return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
+			}
+		*/
+		if err := object.AddFile(fsys, path, checkDuplicate, area); err != nil {
 			return errors.Wrapf(err, "cannot add file '%s'", path)
 		}
 		return nil
@@ -429,33 +432,86 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool) error {
 	return nil
 }
 
-func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFilename string, checkDuplicate bool) error {
+func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, area string) error {
+
+	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
+
+	object.updateFiles = append(object.updateFiles, internalFilename)
+
+	// file could be replaced by another file
+	defer r.Close()
+
+	var digest string
+	if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
+		digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
+	}
+
+	targetFilename := object.i.BuildRealname(internalFilename)
+	writer, err := object.fs.Create(targetFilename)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
+	}
+	defer writer.Close()
+	csw := checksum.NewChecksumWriter(digestAlgorithms)
+	checksums, err := csw.Copy(writer, r)
+	if err != nil {
+		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", internalFilename, targetFilename)
+	}
+	/*
+		if digest != "" && digest != checksums[object.i.GetDigestAlgorithm()] {
+			return fmt.Errorf("invalid checksum '%s'", digest)
+		}
+	*/
+	if digest == "" {
+		var ok bool
+		digest, ok = checksums[object.i.GetDigestAlgorithm()]
+		if !ok {
+			return errors.Errorf("digest '%s' not generated", object.i.GetDigestAlgorithm())
+		}
+	} else {
+		checksums[object.i.GetDigestAlgorithm()] = digest
+	}
+	if err := object.i.AddFile(internalFilename, targetFilename, checksums); err != nil {
+		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", internalFilename, internalFilename)
+	}
+	return nil
+}
+
+func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, area string) error {
 	//object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
 	// paranoia
-	internalFilename = filepath.ToSlash(internalFilename)
+	path = filepath.ToSlash(path)
 
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
+	internalFilename, err := object.extensionManager.BuildObjectContentPath(object, path, area)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
+	}
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
-	object.updateFiles = append(object.updateFiles, sourceFilename)
+	object.updateFiles = append(object.updateFiles, internalFilename)
 
-	file, err := fsys.Open(sourceFilename)
+	file, err := fsys.Open(path)
 	if err != nil {
-		return errors.Wrapf(err, "cannot open file '%s'", sourceFilename)
+		return errors.Wrapf(err, "cannot open file '%s'", path)
 	}
 	// file could be replaced by another file
 	defer func() {
 		file.Close()
 	}()
 	var digest string
+	newPath, err := object.extensionManager.BuildObjectExternalPath(object, path, area)
+	if err != nil {
+		return errors.Wrapf(err, "cannot map external path '%s'", path)
+	}
 	if checkDuplicate {
 		// do the checksum
 		digest, err = checksum.Checksum(file, object.i.GetDigestAlgorithm())
 		if err != nil {
-			return errors.Wrapf(err, "cannot create digest of '%s'", sourceFilename)
+			return errors.Wrapf(err, "cannot create digest of '%s'", path)
 		}
 		// set filepointer to beginning
 		if seeker, ok := file.(io.Seeker); ok {
@@ -465,24 +521,24 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 			}
 		} else {
 			// otherwise reopen it
-			file, err = fsys.Open(sourceFilename)
+			file, err = fsys.Open(path)
 			if err != nil {
-				return errors.Wrapf(err, "cannot open file '%s'", sourceFilename)
+				return errors.Wrapf(err, "cannot open file '%s'", path)
 			}
 		}
 		// if file is already there we do nothing
-		dup, err := object.i.AlreadyExists(sourceFilename, digest)
+		dup, err := object.i.AlreadyExists(newPath, digest)
 		if err != nil {
 			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", internalFilename, digest)
 		}
 		if dup {
-			object.logger.Infof("[%s] ignoring '%s'", object.GetID(), sourceFilename)
+			object.logger.Infof("[%s] ignoring '%s'", object.GetID(), newPath)
 			return nil
 		}
 		// file already ingested, but new virtual name
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
-			if err := object.i.CopyFile(sourceFilename, digest); err != nil {
-				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", sourceFilename, internalFilename)
+			if err := object.i.CopyFile(newPath, digest); err != nil {
+				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, internalFilename)
 			}
 			return nil
 		}
@@ -501,7 +557,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 	csw := checksum.NewChecksumWriter(digestAlgorithms)
 	checksums, err := csw.Copy(writer, file)
 	if err != nil {
-		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", sourceFilename, targetFilename)
+		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
 	}
 	/*
 		if digest != "" && digest != checksums[object.i.GetDigestAlgorithm()] {
@@ -517,8 +573,8 @@ func (object *ObjectBase) AddFile(fsys fs.FS, sourceFilename string, internalFil
 	} else {
 		checksums[object.i.GetDigestAlgorithm()] = digest
 	}
-	if err := object.i.AddFile(sourceFilename, targetFilename, checksums); err != nil {
-		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", sourceFilename, internalFilename)
+	if err := object.i.AddFile(newPath, targetFilename, checksums); err != nil {
+		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", path, internalFilename)
 	}
 	return nil
 }
