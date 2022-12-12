@@ -27,7 +27,7 @@ var initCmd = &cobra.Command{
 
 func initInit() {
 	initCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
-	viper.BindPFlag("Init.StoragerootExtensions", initCmd.Flags().Lookup("default-storageroot-extensions"))
+	viper.BindPFlag("Init.StorageRootExtensions", initCmd.Flags().Lookup("default-storageroot-extensions"))
 
 	initCmd.Flags().String("ocfl-version", "v", "ocfl version for new storage root")
 	viper.BindPFlag("Init.OCFLVersion", initCmd.Flags().Lookup("ocfl-version"))
@@ -46,7 +46,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
-	flagStoragerootExtensionFolder := viper.GetString("Init.StoragerootExtensions")
+	flagStorageRootExtensionFolder := viper.GetString("Init.StorageRootExtensions")
 
 	flagVersion := viper.GetString("Init.OCFLVersion")
 	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
@@ -104,7 +104,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStoragerootExtensionFolder, "", logger)
+	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, "", logger)
 	if err != nil {
 		logger.Errorf("cannot initialize default extensions: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

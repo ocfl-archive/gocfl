@@ -19,9 +19,9 @@ type Extension interface {
 	SetFS(fs OCFLFS)
 	WriteConfig() error
 }
-type ExtensionStoragerootPath interface {
+type ExtensionStorageRootPath interface {
 	WriteLayout(fs OCFLFS) error
-	BuildStoragerootPath(storageRoot StorageRoot, id string) (string, error)
+	BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)
 }
 
 type ExtensionObjectContentPath interface {

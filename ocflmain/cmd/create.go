@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -29,7 +28,7 @@ var createCmd = &cobra.Command{
 
 func initCreate() {
 	createCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
-	viper.BindPFlag("Init.StoragerootExtensions", createCmd.Flags().Lookup("default-storageroot-extensions"))
+	viper.BindPFlag("Init.StorageRootExtensions", createCmd.Flags().Lookup("default-storageroot-extensions"))
 
 	createCmd.Flags().String("ocfl-version", "v", "ocfl version for new storage root")
 	viper.BindPFlag("Init.OCFLVersion", createCmd.Flags().Lookup("ocfl-version"))
@@ -63,12 +62,15 @@ func initCreate() {
 	viper.BindPFlag("Add.Deduplicate", createCmd.Flags().Lookup("deduplicate"))
 }
 
-var areaPathRegexp = regexp.MustCompile("^([a-z]+):(.+)$")
-
 func doCreate(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
+	area := "content"
+	if matches := areaPathRegexp.FindStringSubmatch(srcPath); matches != nil {
+		area = matches[1]
+		srcPath = matches[2]
+	}
 	var areaPaths = map[string]string{}
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
@@ -97,7 +99,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if flagMessage == "" {
 		notSet = append(notSet, "message")
 	}
-	flagStoragerootExtensionFolder := viper.GetString("Init.StoragerootExtensions")
+	flagStorageRootExtensionFolder := viper.GetString("Init.StorageRootExtensions")
 	flagObjectExtensionFolder := viper.GetString("Add.ObjectExtensions")
 	flagDeduplicate := viper.GetBool("Add.Deduplicate")
 
@@ -186,7 +188,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, flagStoragerootExtensionFolder, flagObjectExtensionFolder, daLogger)
+	storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, flagObjectExtensionFolder, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -211,7 +213,19 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err = addObjectByPath(storageRoot, fixityAlgs, objectExtensions, flagDeduplicate, flagObjectID, flagUserName, flagUserAddress, flagMessage, srcPath, areaPaths, false)
+	_, err = addObjectByPath(
+		storageRoot,
+		fixityAlgs,
+		objectExtensions,
+		flagDeduplicate,
+		flagObjectID,
+		flagUserName,
+		flagUserAddress,
+		flagMessage,
+		srcPath,
+		area,
+		areaPaths,
+		false)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", ocfs, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

@@ -25,7 +25,7 @@ type FS struct {
 	dstWriter  io.Writer
 	r          *zip.Reader
 	w          *zip.Writer
-	newFiles   *[]string
+	noCopy     []string
 	logger     *logging.Logger
 	pathPrefix string
 	closed     *bool
@@ -36,7 +36,7 @@ func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, pathPrefix string, l
 	var err error
 	var isClosed bool
 	zfs := &FS{
-		newFiles:   &[]string{},
+		noCopy:     []string{},
 		srcReader:  src,
 		dstWriter:  dst,
 		pathPrefix: filepath.ToSlash(filepath.Clean(pathPrefix)),
@@ -76,7 +76,7 @@ func (zipFS *FS) Close() error {
 		// check whether there's a new version of the file
 		for _, zipItem := range zipFS.r.File {
 			found := false
-			for _, added := range *zipFS.newFiles {
+			for _, added := range zipFS.noCopy {
 				if added == zipItem.Name {
 					found = true
 					zipFS.logger.Debugf("overwriting %s", added)
@@ -139,7 +139,7 @@ func (zipFS *FS) Open(name string) (fs.File, error) {
 	name = filepath.ToSlash(name)
 	zipFS.logger.Debugf("%s", name)
 	// check whether file is newly created
-	for _, newItem := range *zipFS.newFiles {
+	for _, newItem := range zipFS.noCopy {
 		if newItem == name {
 			return nil, fs.ErrInvalid // new files cannot be opened
 		}
@@ -171,8 +171,14 @@ func (zipFS *FS) Create(name string) (io.WriteCloser, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create file %s", name)
 	}
-	*zipFS.newFiles = append(*zipFS.newFiles, name)
+	zipFS.noCopy = append(zipFS.noCopy, name)
 	return &nopCloserWriter{wc}, nil
+}
+
+func (zipFS *FS) Delete(name string) error {
+	filename := filepath.ToSlash(filepath.Join(zipFS.pathPrefix, name))
+	zipFS.noCopy = append(zipFS.noCopy, filename)
+	return nil
 }
 
 func (zipFS *FS) HasContent() bool {
@@ -306,7 +312,7 @@ func (zipFS *FS) Stat(path string) (fs.FileInfo, error) {
 	zipFS.logger.Debugf("%s", name)
 
 	// check whether file is newly created
-	for _, newItem := range *zipFS.newFiles {
+	for _, newItem := range zipFS.noCopy {
 		if newItem == name {
 			return nil, fs.ErrInvalid // new files cannot be opened
 		}
@@ -350,9 +356,14 @@ func (zipFS *FS) SubFS(path string) (ocfl.OCFLFS, error) {
 		dstWriter:  zipFS.dstWriter,
 		r:          zipFS.r,
 		w:          zipFS.w,
-		newFiles:   zipFS.newFiles,
+		noCopy:     zipFS.noCopy,
 		logger:     zipFS.logger,
 		closed:     zipFS.closed,
 		pathPrefix: name,
 	}, nil
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.OCFLFS = &FS{}
+)

@@ -95,7 +95,7 @@ func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayo
 }
 
 func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }
-func (sl *StorageLayoutPairTree) IsStoragerootExtension() bool { return true }
+func (sl *StorageLayoutPairTree) IsStorageRootExtension() bool { return true }
 func (sl *StorageLayoutPairTree) GetName() string              { return StorageLayoutPairTreeName }
 
 func (sl *StorageLayoutPairTree) WriteConfig() error {
@@ -115,7 +115,7 @@ func (sl *StorageLayoutPairTree) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))
@@ -170,5 +170,5 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 // check interface satisfaction
 var (
 	_ ocfl.Extension                = &StorageLayoutPairTree{}
-	_ ocfl.ExtensionStoragerootPath = &StorageLayoutPairTree{}
+	_ ocfl.ExtensionStorageRootPath = &StorageLayoutPairTree{}
 )

@@ -64,6 +64,10 @@ func (genericFS *FS) Create(name string) (io.WriteCloser, error) {
 	return nil, errors.Wrap(fs.ErrPermission, "read only filesystem")
 }
 
+func (genericFS *FS) Delete(name string) error {
+	return errors.Wrap(fs.ErrPermission, "read only filesystem")
+}
+
 func (genericFS *FS) HasContent() bool {
 	dirEntries, err := genericFS.ReadDir(".")
 	if err != nil {
@@ -147,3 +151,8 @@ func (genericFS *FS) SubFS(name string) (ocfl.OCFLFS, error) {
 	}
 	return NewGenericFS(genericFS.fs, filepath.ToSlash(filepath.Join(genericFS.folder, name)), genericFS.logger)
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.OCFLFS = &FS{}
+)

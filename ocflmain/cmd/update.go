@@ -21,7 +21,7 @@ var updateCmd = &cobra.Command{
 	Short:   "update object in existing ocfl structure",
 	Long:    "opens an existing ocfl structure and updates an object. if an object with the given id does not exist, an error is produced",
 	Example: "gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'",
-	Args:    cobra.ExactArgs(2),
+	Args:    cobra.MinimumNArgs(2),
 	Run:     doUpdate,
 }
 
@@ -52,6 +52,19 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
+	area := "content"
+	if matches := areaPathRegexp.FindStringSubmatch(srcPath); matches != nil {
+		area = matches[1]
+		srcPath = matches[2]
+	}
+	var areaPaths = map[string]string{}
+	for i := 2; i < len(args); i++ {
+		matches := areaPathRegexp.FindStringSubmatch(args[i])
+		if matches == nil {
+			continue
+		}
+		areaPaths[matches[1]] = matches[2]
+	}
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
@@ -172,7 +185,19 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err = addObjectByPath(storageRoot, fixityAlgs, objectExtensions, !flagNoDeduplicate, flagObjectID, flagUserName, flagUserAddress, flagMessage, srcPath, nil, flagEcho)
+	_, err = addObjectByPath(
+		storageRoot,
+		fixityAlgs,
+		objectExtensions,
+		!flagNoDeduplicate,
+		flagObjectID,
+		flagUserName,
+		flagUserAddress,
+		flagMessage,
+		srcPath,
+		area,
+		areaPaths,
+		flagEcho)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", ocfs, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

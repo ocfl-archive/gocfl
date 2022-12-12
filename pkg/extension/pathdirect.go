@@ -82,7 +82,7 @@ func (sl *PathDirect) WriteConfig() error {
 	return nil
 }
 
-func (sl *PathDirect) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *PathDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 func (sl *PathDirect) BuildObjectContentPath(object ocfl.Object, originalPath string, area string) (string, error) {
@@ -92,6 +92,6 @@ func (sl *PathDirect) BuildObjectContentPath(object ocfl.Object, originalPath st
 // check interface satisfaction
 var (
 	_ ocfl.Extension                  = &PathDirect{}
-	_ ocfl.ExtensionStoragerootPath   = &PathDirect{}
+	_ ocfl.ExtensionStorageRootPath   = &PathDirect{}
 	_ ocfl.ExtensionObjectContentPath = &PathDirect{}
 )

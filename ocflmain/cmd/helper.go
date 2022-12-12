@@ -54,12 +54,12 @@ func initExtensionFactory(extensionFactory *ocfl.ExtensionFactory, params map[st
 		return extension.NewContentSubPathFS(fs)
 	})
 
-	extensionFactory.AddCreator(extension.MetadataName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
-		ps, ok := params[extension.MetadataName]
+	extensionFactory.AddCreator(extension.MetaFileName, func(fs ocfl.OCFLFS) (ocfl.Extension, error) {
+		ps, ok := params[extension.MetaFileName]
 		if !ok {
-			return nil, errors.Errorf("no flags or config entries for extension '%s'", extension.MetadataName)
+			return nil, errors.Errorf("no flags or config entries for extension '%s'", extension.MetaFileName)
 		}
-		return extension.NewMetadataFS(fs, ps)
+		return extension.NewMetaFileFS(fs, ps)
 	})
 
 	return nil
@@ -69,21 +69,21 @@ func GetExtensionParams() map[string][]ocfl.ExtensionExternalParam {
 	var result = map[string][]ocfl.ExtensionExternalParam{}
 
 	result[extension.IndexerName] = extension.GetIndexerParams()
-	result[extension.MetadataName] = extension.GetMetadataParams()
+	result[extension.MetaFileName] = extension.GetMetaFileParams()
 
 	return result
 }
 
 func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger *logging.Logger) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
-	var dStoragerootExtDirFS, dObjectExtDirFS fs.FS
+	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
-		dStoragerootExtDirFS = defaultextensions_storageroot.DefaultStoragerootExtensionFS
+		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
 	} else {
-		dStoragerootExtDirFS = os.DirFS(storageRootExtensionsFolder)
+		dStorageRootExtDirFS = os.DirFS(storageRootExtensionsFolder)
 	}
-	osrfs, err := genericfs.NewGenericFS(dStoragerootExtDirFS, ".", logger)
+	osrfs, err := genericfs.NewGenericFS(dStorageRootExtDirFS, ".", logger)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot create generic fs for %v", dStoragerootExtDirFS)
+		err = errors.Wrapf(err, "cannot create generic fs for %v", dStorageRootExtDirFS)
 		return
 	}
 	if objectExtensionsFolder == "" {
@@ -229,7 +229,14 @@ func showStatus(ctx context.Context) error {
 	return nil
 }
 
-func addObjectByPath(storageRoot ocfl.StorageRoot, fixity []checksum.DigestAlgorithm, defaultExtensions []ocfl.Extension, checkDuplicates bool, id, userName, userAddress, message, path string, areaPaths map[string]string, echo bool) (bool, error) {
+func addObjectByPath(
+	storageRoot ocfl.StorageRoot,
+	fixity []checksum.DigestAlgorithm,
+	defaultExtensions []ocfl.Extension,
+	checkDuplicates bool,
+	id, userName, userAddress, message, path, area string,
+	areaPaths map[string]string,
+	echo bool) (bool, error) {
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
@@ -250,13 +257,33 @@ func addObjectByPath(storageRoot ocfl.StorageRoot, fixity []checksum.DigestAlgor
 		return false, errors.Wrapf(err, "cannot start update for object %s", id)
 	}
 
-	if err := o.AddFolder(os.DirFS(path), checkDuplicates, "content"); err != nil {
-		return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", path, id)
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot stat '%s'", path)
+	}
+	if fi.IsDir() {
+		if err := o.AddFolder(os.DirFS(path), checkDuplicates, area); err != nil {
+			return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", path, id)
+		}
+	} else {
+		if err := o.AddFile(os.DirFS(filepath.Dir(path)), filepath.Base(path), checkDuplicates, area); err != nil {
+			return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", path, id)
+		}
 	}
 	if areaPaths != nil {
-		for area, aPath := range areaPaths {
-			if err := o.AddFolder(os.DirFS(aPath), checkDuplicates, area); err != nil {
-				return false, errors.Wrapf(err, "cannot add area '%s' folder '%s' to '%s'", area, aPath, id)
+		for a, aPath := range areaPaths {
+			fi, err = os.Stat(aPath)
+			if err != nil {
+				return false, errors.Wrapf(err, "cannot stat '%s'", path)
+			}
+			if fi.IsDir() {
+				if err := o.AddFolder(os.DirFS(aPath), checkDuplicates, a); err != nil {
+					return false, errors.Wrapf(err, "cannot add area '%s' folder '%s' to '%s'", a, aPath, id)
+				}
+			} else {
+				if err := o.AddFile(os.DirFS(filepath.Dir(aPath)), filepath.Base(aPath), checkDuplicates, a); err != nil {
+					return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", aPath, id)
+				}
 			}
 		}
 	}

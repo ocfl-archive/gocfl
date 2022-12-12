@@ -35,18 +35,19 @@ type ObjectBase struct {
 	digest             checksum.DigestAlgorithm
 	echo               bool
 	updateFiles        []string
+	area               string
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, storageroot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:         ctx,
 		fs:          fs,
 		version:     defaultVersion,
-		storageRoot: storageroot,
+		storageRoot: storageRoot,
 		extensionManager: &ExtensionManager{
 			extensions:        []Extension{},
-			storagerootPath:   []ExtensionStoragerootPath{},
+			storageRootPath:   []ExtensionStorageRootPath{},
 			objectContentPath: []ExtensionObjectContentPath{},
 		},
 		logger: logger,
@@ -350,6 +351,13 @@ func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 func (object *ObjectBase) echoDelete() error {
 	slices.Sort(object.updateFiles)
 	object.updateFiles = slices.Compact(object.updateFiles)
+	/*
+		todo: identify areas
+		basePath, err := object.extensionManager.BuildObjectExternalPath(object, ".", object.area)
+		if err != nil {
+
+		}
+	*/
 	if err := object.i.echoDelete(object.updateFiles); err != nil {
 		return errors.Wrap(err, "cannot remove deleted files from inventory")
 	}
@@ -357,10 +365,15 @@ func (object *ObjectBase) echoDelete() error {
 }
 
 func (object *ObjectBase) Close() error {
-	object.logger.Debug()
+	object.logger.Debug(fmt.Sprintf("Closing object '%s'", object.GetID()))
 	if !(object.i.IsWriteable()) {
 		return nil
 	}
+
+	if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
+	}
+
 	if object.echo {
 		if err := object.echoDelete(); err != nil {
 			return errors.Wrap(err, "cannot delete files")
@@ -376,10 +389,6 @@ func (object *ObjectBase) Close() error {
 	if err := object.StoreInventory(); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
 	}
-	if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
-		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
-	}
-
 	if err := object.StoreExtensions(); err != nil {
 		return errors.Wrap(err, "cannot store extensions")
 	}
@@ -405,6 +414,22 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 	if err := object.extensionManager.UpdateObjectBefore(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
+	return nil
+}
+
+func (object *ObjectBase) BeginArea(area string) {
+	object.area = area
+	object.updateFiles = []string{}
+}
+
+func (object *ObjectBase) EndArea() error {
+	if object.echo {
+		if err := object.echoDelete(); err != nil {
+			return errors.Wrap(err, "cannot remove files")
+		}
+	}
+	object.updateFiles = []string{}
+	object.area = ""
 	return nil
 }
 

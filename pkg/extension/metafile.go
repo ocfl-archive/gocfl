@@ -16,10 +16,10 @@ import (
 	"strings"
 )
 
-const MetadataName = "NNNN-metadata"
-const MetadataDescription = "technical metadata for all files"
+const MetaFileName = "NNNN-metafile"
+const MetaFileDescription = "adds a file in extension folder"
 
-func GetMetadataParams() []ocfl.ExtensionExternalParam {
+func GetMetaFileParams() []ocfl.ExtensionExternalParam {
 	return []ocfl.ExtensionExternalParam{
 		{
 			Functions:   []string{"add", "update", "create"},
@@ -36,17 +36,17 @@ func GetMetadataParams() []ocfl.ExtensionExternalParam {
 	}
 }
 
-type MetadataConfig struct {
+type MetaFileConfig struct {
 	*ocfl.ExtensionConfig
 	Versioned bool `json:"versioned"`
 }
-type Metadata struct {
-	*MetadataConfig
+type MetaFile struct {
+	*MetaFileConfig
 	metadataSource *url.URL
 	fs             ocfl.OCFLFS
 }
 
-func NewMetadataFS(fs ocfl.OCFLFS, params map[string]string) (*Metadata, error) {
+func NewMetaFileFS(fs ocfl.OCFLFS, params map[string]string) (*MetaFile, error) {
 	fp, err := fs.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -57,14 +57,14 @@ func NewMetadataFS(fs ocfl.OCFLFS, params map[string]string) (*Metadata, error) 
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
 
-	var config = &MetadataConfig{}
+	var config = &MetaFileConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	return NewMetadata(config, params)
+	return NewMetaFile(config, params)
 }
-func NewMetadata(config *MetadataConfig, params map[string]string) (*Metadata, error) {
-	sl := &Metadata{MetadataConfig: config}
+func NewMetaFile(config *MetaFileConfig, params map[string]string) (*MetaFile, error) {
+	sl := &MetaFile{MetaFileConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
@@ -78,17 +78,17 @@ func NewMetadata(config *MetadataConfig, params map[string]string) (*Metadata, e
 		}
 	}
 	if sl.metadataSource == nil {
-		return nil, errors.Errorf("no metadata-source for extension '%s'", MetadataName)
+		return nil, errors.Errorf("no metadata-source for extension '%s'", MetaFileName)
 	}
 	return sl, nil
 }
 
-func (sl *Metadata) SetFS(fs ocfl.OCFLFS) {
+func (sl *MetaFile) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }
 
-func (sl *Metadata) GetName() string { return MetadataName }
-func (sl *Metadata) WriteConfig() error {
+func (sl *MetaFile) GetName() string { return MetaFileName }
+func (sl *MetaFile) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
@@ -99,14 +99,14 @@ func (sl *Metadata) WriteConfig() error {
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.MetadataConfig); err != nil {
+	if err := jenc.Encode(sl.MetaFileConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 
 	return nil
 }
 
-func (sl *Metadata) UpdateObjectBefore(object ocfl.Object) error {
+func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 	return nil
 }
 
@@ -125,7 +125,7 @@ func downloadFile(u string) ([]byte, error) {
 
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
-func (sl *Metadata) UpdateObjectAfter(object ocfl.Object) error {
+func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	var err error
 	inventory := object.GetInventory()
 	if inventory == nil {
@@ -178,7 +178,21 @@ func (sl *Metadata) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.Errorf("url scheme '%s' not supported", sl.metadataSource.Scheme)
 	}
 
-	//todo: clear old files
+	entries, err := sl.fs.ReadDir(".")
+	if err != nil {
+		return errors.Wrapf(err, "cannot read directory of '%s'", sl.fs)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if entry.Name() == "config.json" {
+			continue
+		}
+		if err := sl.fs.Delete(entry.Name()); err != nil {
+			return errors.Wrapf(err, "cannot delete '%s' from '%s'", entry.Name(), sl.fs)
+		}
+	}
 
 	// complex writes to prevent simultaneous writes on filesystems, which do not support that
 	targetBase := filepath.Base(sl.metadataSource.Path)
@@ -246,6 +260,6 @@ func (sl *Metadata) UpdateObjectAfter(object ocfl.Object) error {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension             = &Metadata{}
-	_ ocfl.ExtensionObjectChange = &Metadata{}
+	_ ocfl.Extension             = &MetaFile{}
+	_ ocfl.ExtensionObjectChange = &MetaFile{}
 )

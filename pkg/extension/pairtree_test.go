@@ -24,7 +24,7 @@ func TestPairtreeIDEncode(t *testing.T) {
 
 	sourceID := "ark:/13030/xt12t3"
 	testResult := "ar/k+/=1/30/30/=x/t1/2t/3"
-	dest, _ := ptsl.BuildStoragerootPath(nil, sourceID)
+	dest, _ := ptsl.BuildStorageRootPath(nil, sourceID)
 	if dest != testResult {
 		t.Errorf("IDEncode(%s) => %s != %s", sourceID, dest, testResult)
 	} else {
@@ -44,7 +44,7 @@ func TestPairtreeIDEncode(t *testing.T) {
 
 	sourceID = "what-the-*@?#!^!?"
 	testResult = "wh/at/-t/he/-^/2a/@^/3f/#!/^5/e!/^3/f"
-	dest, _ = ptsl.BuildStoragerootPath(nil, sourceID)
+	dest, _ = ptsl.BuildStorageRootPath(nil, sourceID)
 	if dest != testResult {
 		t.Errorf("IDEncode(%s) => %s != %s", sourceID, dest, testResult)
 	} else {

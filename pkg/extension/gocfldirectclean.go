@@ -156,7 +156,7 @@ func (sl *DirectClean) WriteLayout(fs ocfl.OCFLFS) error {
 }
 
 // interface
-func (sl *DirectClean) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *DirectClean) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return sl.build(id)
 }
 
@@ -260,6 +260,6 @@ func (sl *DirectClean) build(fname string) (string, error) {
 // check interface satisfaction
 var (
 	_ ocfl.Extension                  = &DirectClean{}
-	_ ocfl.ExtensionStoragerootPath   = &DirectClean{}
+	_ ocfl.ExtensionStorageRootPath   = &DirectClean{}
 	_ ocfl.ExtensionObjectContentPath = &DirectClean{}
 )

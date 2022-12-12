@@ -14,7 +14,7 @@ const ExtensionManagerDescription = "initial extension for sorted exclusion and 
 type ExtensionManager struct {
 	*ExtensionManagerConfig
 	extensions         []Extension
-	storagerootPath    []ExtensionStoragerootPath
+	storageRootPath    []ExtensionStorageRootPath
 	objectContentPath  []ExtensionObjectContentPath
 	objectExternalPath []ExtensionObjectExternalPath
 	contentChange      []ExtensionContentChange
@@ -37,7 +37,7 @@ func NewExtensionManager() (*ExtensionManager, error) {
 			Exclusion:       map[string][][]string{},
 		},
 		extensions:        []Extension{},
-		storagerootPath:   []ExtensionStoragerootPath{},
+		storageRootPath:   []ExtensionStorageRootPath{},
 		objectContentPath: []ExtensionObjectContentPath{},
 		objectChange:      []ExtensionObjectChange{},
 		fixityDigest:      []ExtensionFixityDigest{},
@@ -57,8 +57,8 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	}
 	manager.extensions = append(manager.extensions, ext)
 
-	if srp, ok := ext.(ExtensionStoragerootPath); ok {
-		manager.storagerootPath = append(manager.storagerootPath, srp)
+	if srp, ok := ext.(ExtensionStorageRootPath); ok {
+		manager.storageRootPath = append(manager.storageRootPath, srp)
 	}
 	if ocp, ok := ext.(ExtensionObjectContentPath); ok {
 		manager.objectContentPath = append(manager.objectContentPath, ocp)
@@ -171,13 +171,13 @@ func (manager *ExtensionManager) organize(list []Extension, name string) []Exten
 
 func (manager *ExtensionManager) Finalize() {
 	var extList = []Extension{}
-	for _, e := range manager.storagerootPath {
+	for _, e := range manager.storageRootPath {
 		extList = append(extList, e.(Extension))
 	}
-	extList = manager.organize(extList, "StoragerootPath")
-	manager.storagerootPath = []ExtensionStoragerootPath{}
+	extList = manager.organize(extList, "StorageRootPath")
+	manager.storageRootPath = []ExtensionStorageRootPath{}
 	for _, e := range extList {
-		manager.storagerootPath = append(manager.storagerootPath, e.(ExtensionStoragerootPath))
+		manager.storageRootPath = append(manager.storageRootPath, e.(ExtensionStorageRootPath))
 	}
 
 	extList = []Extension{}
@@ -215,19 +215,19 @@ func (manager *ExtensionManager) WriteConfig() error {
 	return nil
 }
 
-// StoragerootPath
+// StorageRootPath
 func (manager *ExtensionManager) StoreRootLayout(fs OCFLFS) error {
-	for _, ext := range manager.storagerootPath {
+	for _, ext := range manager.storageRootPath {
 		if err := ext.WriteLayout(fs); err != nil {
 			return errors.Wrapf(err, "cannot store '%v'", ext)
 		}
 	}
 	return nil
 }
-func (manager *ExtensionManager) BuildStoragerootPath(storageroot StorageRoot, id string) (string, error) {
+func (manager *ExtensionManager) BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error) {
 	var errs = []error{}
-	for _, srp := range manager.storagerootPath {
-		p, err := srp.BuildStoragerootPath(storageroot, id)
+	for _, srp := range manager.storageRootPath {
+		p, err := srp.BuildStorageRootPath(storageRoot, id)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -239,11 +239,11 @@ func (manager *ExtensionManager) BuildStoragerootPath(storageroot StorageRoot, i
 	return id, errors.Combine(errs...)
 }
 func (manager *ExtensionManager) WriteLayout(fs OCFLFS) error {
-	if len(manager.storagerootPath) == 0 {
+	if len(manager.storageRootPath) == 0 {
 		return nil
 	}
-	if len(manager.storagerootPath) == 1 {
-		return manager.storagerootPath[0].WriteLayout(fs)
+	if len(manager.storageRootPath) == 1 {
+		return manager.storageRootPath[0].WriteLayout(fs)
 	}
 	configWriter, err := fs.Create("ocfl_layout.json")
 	if err != nil {
@@ -388,13 +388,15 @@ func (manager *ExtensionManager) GetFixityDigests() []checksum.DigestAlgorithm {
 	for _, ext := range manager.fixityDigest {
 		digests = append(digests, ext.GetFixityDigests()...)
 	}
+	slices.Sort(digests)
+	digests = slices.Compact(digests)
 	return digests
 }
 
 // check interface satisfaction
 var (
 	_ Extension                   = &ExtensionManager{}
-	_ ExtensionStoragerootPath    = &ExtensionManager{}
+	_ ExtensionStorageRootPath    = &ExtensionManager{}
 	_ ExtensionObjectContentPath  = &ExtensionManager{}
 	_ ExtensionObjectExternalPath = &ExtensionManager{}
 	_ ExtensionContentChange      = &ExtensionManager{}

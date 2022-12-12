@@ -112,7 +112,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) BuildStoragerootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
@@ -158,5 +158,5 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteLayout(fs ocfl.OCFLFS) error {
 // check interface satisfaction
 var (
 	_ ocfl.Extension                = &StorageLayoutHashAndIdNTuple{}
-	_ ocfl.ExtensionStoragerootPath = &StorageLayoutHashAndIdNTuple{}
+	_ ocfl.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
 )

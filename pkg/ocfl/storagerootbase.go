@@ -232,7 +232,7 @@ func (osr *StorageRootBase) GetFolders() ([]string, error) {
 //
 
 func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
-	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
+	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot build storage path for id %s", id)
 	}
@@ -328,7 +328,7 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 }
 
 func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error) {
-	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
+	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create folder from id '%s'", id)
 	}
@@ -336,7 +336,7 @@ func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error)
 }
 
 func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error) {
-	folder, err := osr.extensionManager.BuildStoragerootPath(osr, id)
+	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := osr.fs.SubFS(folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fs, folder)

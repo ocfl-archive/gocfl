@@ -9,6 +9,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"golang.org/x/exp/slices"
 	"os"
+	"regexp"
 )
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
@@ -90,6 +91,8 @@ var flagObjectID string
 // var flagUserAddress string
 // var flagFixity string
 // var flagDigestSHA256, flagDigestSHA512 bool
+
+var areaPathRegexp = regexp.MustCompile("^([a-z]+):([^/].*)$")
 
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",

@@ -20,6 +20,11 @@ type FS struct {
 	//fs     fs.FS
 }
 
+func (osFS *FS) Delete(name string) error {
+	filename := filepath.ToSlash(filepath.Join(osFS.folder, name))
+	return os.Remove(filename)
+}
+
 func NewFSIO(folder string, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	folder = strings.Trim(filepath.ToSlash(filepath.Clean(folder)), "/")
@@ -167,3 +172,8 @@ func (osFS *FS) SubFS(name string) (ocfl.OCFLFS, error) {
 	}
 	return NewFSIO(filepath.Join(osFS.folder, name), osFS.logger)
 }
+
+// check interface satisfaction
+var (
+	_ ocfl.OCFLFS = &FS{}
+)

@@ -9,7 +9,7 @@ import (
 
 func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	l := DirectClean{
-		&DirectCleanConfig{
+		DirectCleanConfig: &DirectCleanConfig{
 			ExtensionConfig:             &ocfl.ExtensionConfig{ExtensionName: DirectCleanName},
 			MaxPathnameLen:              32000,
 			MaxFilenameLen:              127,
@@ -24,7 +24,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	l.hash, _ = checksum.GetHash(l.FallbackDigestAlgorithm)
 	objectID := "object-01"
 	testResult := "object-01"
-	rootPath, err := l.BuildStoragerootPath(nil, objectID)
+	rootPath, err := l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -35,7 +35,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 	objectID = "..hor_rib:lé-$id"
 	testResult = "..hor_rib_lé-$id"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -50,7 +50,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	// Example 2
 	objectID = "info:fedora/object-01"
 	testResult = "info_fedora/object-01"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -63,7 +63,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 	objectID = "~ info:fedora/-obj#ec@t-\"01 "
 	testResult = "info_fedora/obj_ec_t-_01"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -76,7 +76,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 	objectID = "/test/ ~/.../blah"
 	testResult = "test/_../blah"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -89,7 +89,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 	objectID = "https://hdl.handle.net/XXXXX/test/bl ah"
 	testResult = "https_/hdl.handle.net/XXXXX/test/bl ah"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -102,7 +102,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 	objectID = "abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij"
 	testResult = "fallback/0/e/0eafabb38fa7f1583d1461afe980ebdc"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -117,7 +117,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 
 func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	l := DirectClean{
-		&DirectCleanConfig{
+		DirectCleanConfig: &DirectCleanConfig{
 			ExtensionConfig:             &ocfl.ExtensionConfig{ExtensionName: DirectCleanName},
 			MaxPathnameLen:              32000,
 			MaxFilenameLen:              127,
@@ -132,7 +132,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	l.hash, _ = checksum.GetHash(l.FallbackDigestAlgorithm)
 	objectID := "object-01"
 	testResult := "object-01"
-	rootPath, err := l.BuildStoragerootPath(nil, objectID)
+	rootPath, err := l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -143,7 +143,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "object=u123a-01"
 	testResult = "object=u003Du123a-01"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -154,7 +154,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "object=u123a-01"
 	testResult = "object=u003Du123a-01"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s", objectID)
 	}
@@ -165,7 +165,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "..hor_rib:lé-$id"
 	testResult = "..hor_rib=u003Alé-$id"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -180,7 +180,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	// Example 2
 	objectID = "info:fedora/object-01"
 	testResult = "info=u003Afedora/object-01"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -193,7 +193,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "~ info:fedora/-obj#ec@t-\"01 "
 	testResult = "=u007E=u0020info=u003Afedora/-obj=u0023ec=u0040t-=u002201=u0020"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -206,7 +206,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "/test/ ~/.../blah"
 	testResult = "test/=u0020~/=u002E../blah"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -219,7 +219,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "https://hdl.handle.net/XXXXX/test/bl ah"
 	testResult = "https=u003A/hdl.handle.net/XXXXX/test/bl=u0020ah"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {
@@ -232,7 +232,7 @@ func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 
 	objectID = "abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij"
 	testResult = "fallback/b/8/b8acda4abac53237afa03d6bbb078e1bf46b40438bb256df79b8d9ff0e57b32a688156ad21755363ea19953c160c4dd6d4db175b71e9aa87d68937181a9f69d/9"
-	rootPath, err = l.BuildStoragerootPath(nil, objectID)
+	rootPath, err = l.BuildStorageRootPath(nil, objectID)
 	if err != nil {
 		t.Errorf("cannot convert %s - %v", objectID, err)
 	} else {

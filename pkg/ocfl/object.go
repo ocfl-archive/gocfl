@@ -19,6 +19,8 @@ type Object interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string, echo bool) error
+	BeginArea(area string)
+	EndArea() error
 	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
 	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string) error
 	AddReader(r io.ReadCloser, internalFilename string, area string) error
@@ -64,7 +66,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 	return version, nil
 }
 
-func newObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, storageroot StorageRoot, logger *logging.Logger) (Object, error) {
+func newObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)
@@ -74,13 +76,13 @@ func newObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, storageroo
 	}
 	switch version {
 	case Version1_1:
-		o, err := newObjectV1_1(ctx, fsys, storageroot, logger)
+		o, err := newObjectV1_1(ctx, fsys, storageRoot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	default:
-		o, err := newObjectV1_0(ctx, fsys, storageroot, logger)
+		o, err := newObjectV1_0(ctx, fsys, storageRoot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
