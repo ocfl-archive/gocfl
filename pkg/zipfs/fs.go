@@ -21,27 +21,25 @@ type nopCloserWriter struct {
 func (*nopCloserWriter) Close() error { return nil }
 
 type FS struct {
-	srcReader  io.ReaderAt
-	dstWriter  io.Writer
-	r          *zip.Reader
-	w          *zip.Writer
-	noCopy     []string
-	logger     *logging.Logger
-	pathPrefix string
-	closed     *bool
+	srcReader io.ReaderAt
+	dstWriter io.Writer
+	r         *zip.Reader
+	w         *zip.Writer
+	noCopy    []string
+	logger    *logging.Logger
+	closed    *bool
 }
 
-func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, pathPrefix string, logger *logging.Logger) (*FS, error) {
+func NewFS(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	var err error
 	var isClosed bool
 	zfs := &FS{
-		noCopy:     []string{},
-		srcReader:  src,
-		dstWriter:  dst,
-		pathPrefix: filepath.ToSlash(filepath.Clean(pathPrefix)),
-		logger:     logger,
-		closed:     &isClosed,
+		noCopy:    []string{},
+		srcReader: src,
+		dstWriter: dst,
+		logger:    logger,
+		closed:    &isClosed,
 	}
 	if src != nil && src != (*os.File)(nil) {
 		if zfs.r, err = zip.NewReader(src, srcSize); err != nil {
@@ -55,7 +53,7 @@ func NewFSIO(src io.ReaderAt, srcSize int64, dst io.Writer, pathPrefix string, l
 }
 
 func (zipFS *FS) String() string {
-	return fmt.Sprintf("zipfs://%s", zipFS.pathPrefix)
+	return fmt.Sprintf("zipfs://")
 }
 
 func (zipFS *FS) isClosed() bool {
@@ -131,7 +129,7 @@ func (zipFS *FS) Open(name string) (fs.File, error) {
 		return nil, errors.New("zipFS closed")
 	}
 
-	name = filepath.ToSlash(filepath.Clean(filepath.Join(zipFS.pathPrefix, name)))
+	name = filepath.ToSlash(filepath.Clean(name))
 	//name = strings.TrimPrefix(name, "./")
 	if zipFS.r == nil {
 		return nil, fs.ErrNotExist
@@ -165,7 +163,7 @@ func (zipFS *FS) Create(name string) (io.WriteCloser, error) {
 	if zipFS.isClosed() {
 		return nil, errors.New("zipFS closed")
 	}
-	name = filepath.ToSlash(filepath.Clean(filepath.Join(zipFS.pathPrefix, name)))
+	name = filepath.ToSlash(filepath.Clean(name))
 	zipFS.logger.Debugf("%s", name)
 	wc, err := zipFS.w.Create(name)
 	if err != nil {
@@ -176,7 +174,7 @@ func (zipFS *FS) Create(name string) (io.WriteCloser, error) {
 }
 
 func (zipFS *FS) Delete(name string) error {
-	filename := filepath.ToSlash(filepath.Join(zipFS.pathPrefix, name))
+	filename := filepath.ToSlash(filepath.Clean(name))
 	zipFS.noCopy = append(zipFS.noCopy, filename)
 	return nil
 }
@@ -194,7 +192,7 @@ func (zipFS *FS) ReadDir(path string) ([]fs.DirEntry, error) {
 		return nil, errors.New("zipFS closed")
 	}
 
-	name := filepath.ToSlash(filepath.Clean(filepath.Join(zipFS.pathPrefix, path)))
+	name := filepath.ToSlash(filepath.Clean(path))
 	zipFS.logger.Debugf("%s", name)
 	if zipFS.r == nil {
 		return []fs.DirEntry{}, nil
@@ -274,7 +272,7 @@ func (zipFS *FS) WalkDir(path string, fn fs.WalkDirFunc) error {
 		return errors.New("zipFS closed")
 	}
 	path = filepath.ToSlash(filepath.Clean(path))
-	name := filepath.ToSlash(filepath.Join(zipFS.pathPrefix, path))
+	name := path
 	lr := len(name) + 1
 	for _, file := range zipFS.r.File {
 		if !strings.HasPrefix(file.Name, name) {
@@ -308,7 +306,7 @@ func (zipFS *FS) Stat(path string) (fs.FileInfo, error) {
 		return nil, errors.New("zipFS closed")
 	}
 
-	name := filepath.ToSlash(filepath.Clean(filepath.Join(zipFS.pathPrefix, path)))
+	name := filepath.ToSlash(filepath.Clean(path))
 	zipFS.logger.Debugf("%s", name)
 
 	// check whether file is newly created
@@ -334,33 +332,7 @@ func (zipFS *FS) Stat(path string) (fs.FileInfo, error) {
 }
 
 func (zipFS *FS) SubFS(path string) (ocfl.OCFLFS, error) {
-	name := filepath.ToSlash(filepath.Clean(filepath.Join(zipFS.pathPrefix, path)))
-	if name == "." {
-		name = ""
-	}
-	if name == "" {
-		return zipFS, nil
-	}
-	/*
-		fi, err := zipFS.Stat(path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot stat '%s'", path)
-		}
-		if !fi.IsDir() {
-			return nil, errors.Errorf("%s not a folder", path)
-		}
-
-	*/
-	return &FS{
-		srcReader:  zipFS.srcReader,
-		dstWriter:  zipFS.dstWriter,
-		r:          zipFS.r,
-		w:          zipFS.w,
-		noCopy:     zipFS.noCopy,
-		logger:     zipFS.logger,
-		closed:     zipFS.closed,
-		pathPrefix: name,
-	}, nil
+	return NewSubFS(zipFS, path)
 }
 
 // check interface satisfaction

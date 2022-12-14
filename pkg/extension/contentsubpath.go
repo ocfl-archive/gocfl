@@ -91,27 +91,25 @@ func (sl *ContentSubPath) BuildObjectContentPath(object ocfl.Object, originalPat
 }
 
 func (sl *ContentSubPath) UpdateObjectBefore(object ocfl.Object) error {
+
+	return nil
+}
+func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	readme := doc.NewMarkDown()
 	readme.WriteTitle("Description of folders", doc.LevelTitle).
 		WriteLines(2)
-	t := doc.NewTable(len(sl.Paths), 2)
-	t.SetTitle(0, "Folder")
-	t.SetTitle(1, "Description")
 	var row int
 	for _, entry := range sl.Paths {
-		t.SetContent(row, 0, entry.Path)
-		t.SetContent(row, 1, entry.Description)
+		readme.WriteTitle(entry.Path, doc.LevelNormal)
+		readme.Write(entry.Description)
+		readme.Write("\n\n")
 		row++
 	}
-	readme.WriteTable(t)
 
 	buf := bytes.NewBuffer([]byte(readme.String()))
 	if err := object.AddReader(io.NopCloser(buf), "README.md", ""); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
-	return nil
-}
-func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 

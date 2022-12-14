@@ -137,7 +137,7 @@ func OpenRO(ocflPath string, logger *logging.Logger) (ocfl.OCFLFS, error) {
 				return nil, errors.Wrapf(err, "cannot open zipfile %s", zipFile)
 			}
 		}
-		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, ".", logger)
+		ocfs, err = zipfs.NewFS(zipReader, zipSize, zipWriter, logger)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create zipfs")
 		}
@@ -177,7 +177,7 @@ func OpenRW(ocflPath, ocflTemp string, logger *logging.Logger) (io.Closer, io.Cl
 			panic(err)
 		}
 
-		ocfs, err = zipfs.NewFSIO(zipReader, zipSize, zipWriter, ".", logger)
+		ocfs, err = zipfs.NewFS(zipReader, zipSize, zipWriter, logger)
 		if err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "cannot create zipfs")
 		}

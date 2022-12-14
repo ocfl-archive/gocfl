@@ -804,7 +804,7 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 	return lastChecksum != checksum, nil
 }
 
-func (i *InventoryBase) echoDelete(existing []string) error {
+func (i *InventoryBase) echoDelete(existing []string, pathPrefix string) error {
 	var deleteFiles = []string{}
 	version, ok := i.Versions.Versions[i.GetHead()]
 	if !ok {
@@ -812,6 +812,9 @@ func (i *InventoryBase) echoDelete(existing []string) error {
 	}
 	for _, state := range version.State.State {
 		for _, filename := range state {
+			if !strings.HasPrefix(filename, pathPrefix) {
+				continue
+			}
 			if _, found := slices.BinarySearch(existing, filename); !found {
 				deleteFiles = append(deleteFiles, filename)
 			}

@@ -44,7 +44,7 @@ type Inventory interface {
 	Clean() error
 
 	VersionLessOrEqual(v1, v2 string) bool
-	echoDelete(existing []string) error
+	echoDelete(existing []string, pathprefix string) error
 }
 
 func newInventory(ctx context.Context, object Object, folder string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {

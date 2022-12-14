@@ -351,14 +351,11 @@ func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 func (object *ObjectBase) echoDelete() error {
 	slices.Sort(object.updateFiles)
 	object.updateFiles = slices.Compact(object.updateFiles)
-	/*
-		todo: identify areas
-		basePath, err := object.extensionManager.BuildObjectExternalPath(object, ".", object.area)
-		if err != nil {
-
-		}
-	*/
-	if err := object.i.echoDelete(object.updateFiles); err != nil {
+	basePath, err := object.extensionManager.BuildObjectExternalPath(object, ".", object.area)
+	if err != nil {
+		return errors.Wrap(err, "cannot build external path for '.'")
+	}
+	if err := object.i.echoDelete(object.updateFiles, basePath); err != nil {
 		return errors.Wrap(err, "cannot remove deleted files from inventory")
 	}
 	return nil
