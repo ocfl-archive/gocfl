@@ -157,26 +157,29 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	finfo, err := os.Stat(ocflPath)
-	if err != nil {
-		if !(os.IsNotExist(err) && strings.HasSuffix(strings.ToLower(ocflPath), ".zip")) {
-			daLogger.Errorf("cannot stat '%s': %v", ocflPath, err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
-		}
+	if strings.HasPrefix(strings.ToLower(ocflPath), "s3://") {
+		// todo: do some tests
 	} else {
-		if strings.HasSuffix(strings.ToLower(ocflPath), ".zip") {
-			daLogger.Errorf("path '%s' already exists", ocflPath)
-			fmt.Printf("path '%s' already exists\n", ocflPath)
-			return
-		}
-		if !finfo.IsDir() {
-			daLogger.Errorf("'%s' is not a directory", ocflPath)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
+		finfo, err := os.Stat(ocflPath)
+		if err != nil {
+			if !(os.IsNotExist(err) && strings.HasSuffix(strings.ToLower(ocflPath), ".zip")) {
+				daLogger.Errorf("cannot stat '%s': %v", ocflPath, err)
+				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				return
+			}
+		} else {
+			if strings.HasSuffix(strings.ToLower(ocflPath), ".zip") {
+				daLogger.Errorf("path '%s' already exists", ocflPath)
+				fmt.Printf("path '%s' already exists\n", ocflPath)
+				return
+			}
+			if !finfo.IsDir() {
+				daLogger.Errorf("'%s' is not a directory", ocflPath)
+				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				return
+			}
 		}
 	}
-
 	extensionFactory, err := ocfl.NewExtensionFactory(daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot instantiate extension factory: %v", err)

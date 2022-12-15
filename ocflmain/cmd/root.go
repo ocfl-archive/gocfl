@@ -195,6 +195,15 @@ func init() {
 	rootCmd.PersistentFlags().String("log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
 	viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level"))
 
+	rootCmd.PersistentFlags().String("s3-endpoint", "", "Endpoint for S3 Buckets")
+	viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint"))
+
+	rootCmd.PersistentFlags().String("s3-access-key-id", "", "Access Key ID for S3 Buckets")
+	viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id"))
+
+	rootCmd.PersistentFlags().String("s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
+	viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key"))
+
 	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
 	//	viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
 

@@ -11,12 +11,12 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"path/filepath"
 )
 
 type FS struct {
 	client   *minio.Client
 	bucket   string
-	ctx      context.Context
 	region   string
 	endpoint string
 }
@@ -24,7 +24,6 @@ type FS struct {
 func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL bool) (*FS, error) {
 	var err error
 	fs := &FS{
-		ctx:      context.Background(),
 		client:   nil,
 		bucket:   bucket,
 		region:   region,
@@ -41,7 +40,8 @@ func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL
 }
 
 func (s3fs *FS) Open(name string) (fs.File, error) {
-	object, err := s3fs.client.GetObject(s3fs.ctx, s3fs.bucket, name, minio.GetObjectOptions{})
+	ctx := context.Background()
+	object, err := s3fs.client.GetObject(ctx, s3fs.bucket, name, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open '%s/%s/%s'", s3fs.client.EndpointURL(), s3fs.bucket, name)
 	}
@@ -51,8 +51,9 @@ func (s3fs *FS) Open(name string) (fs.File, error) {
 }
 
 func (s3fs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
+	ctx := context.Background()
 	result := []fs.DirEntry{}
-	for objectInfo := range s3fs.client.ListObjects(s3fs.ctx, s3fs.bucket, minio.ListObjectsOptions{}) {
+	for objectInfo := range s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{}) {
 		result = append(result, DirEntry{
 			&FileInfo{&objectInfo},
 		})
@@ -61,9 +62,10 @@ func (s3fs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 }
 
 func (s3fs *FS) Create(name string) (io.WriteCloser, error) {
+	ctx := context.Background()
 	wc := NewWriteCloser()
 	go func() {
-		uploadInfo, err := s3fs.client.PutObject(s3fs.ctx, s3fs.bucket, name, wc.pr, -1, minio.PutObjectOptions{})
+		uploadInfo, err := s3fs.client.PutObject(ctx, s3fs.bucket, name, wc.pr, -1, minio.PutObjectOptions{})
 		wc.c <- UploadInfo{
 			uploadInfo: uploadInfo,
 			err:        err,
@@ -73,15 +75,19 @@ func (s3fs *FS) Create(name string) (io.WriteCloser, error) {
 }
 
 func (s3fs *FS) Delete(name string) error {
-	if err := s3fs.client.RemoveObject(s3fs.ctx, s3fs.bucket, name, minio.RemoveObjectOptions{}); err != nil {
+	ctx := context.Background()
+	if err := s3fs.client.RemoveObject(ctx, s3fs.bucket, name, minio.RemoveObjectOptions{}); err != nil {
 		return errors.Wrapf(err, "cannot remove '%s'", name)
 	}
 	return nil
 }
 
 func (s3fs *FS) SubFS(subfolder string) (ocfl.OCFLFS, error) {
-	//TODO implement me
-	panic("implement me")
+	subFS := &SubFS{
+		FS:         s3fs,
+		pathPrefix: filepath.ToSlash(filepath.Clean(subfolder)),
+	}
+	return subFS, nil
 }
 
 func (s3fs *FS) Close() error {
@@ -113,7 +119,8 @@ func (s3fs *FS) IsNotExist(err error) bool {
 }
 
 func (s3fs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
-	for objectInfo := range s3fs.client.ListObjects(s3fs.ctx, s3fs.bucket, minio.ListObjectsOptions{
+	ctx := context.Background()
+	for objectInfo := range s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{
 		Prefix:    root,
 		Recursive: true,
 	}) {
@@ -125,13 +132,20 @@ func (s3fs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
 }
 
 func (s3fs *FS) Stat(name string) (fs.FileInfo, error) {
-	//TODO implement me
-	panic("implement me")
+	ctx := context.Background()
+	objectInfo, err := s3fs.client.StatObject(ctx, s3fs.bucket, name, minio.StatObjectOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot stat '%s'", name)
+	}
+	return &FileInfo{&objectInfo}, nil
 }
 
 func (s3fs *FS) HasContent() bool {
-	//TODO implement me
-	panic("implement me")
+	ctx, cancel := context.WithCancel(context.Background())
+	chanObjectInfo := s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{})
+	_, ok := <-chanObjectInfo
+	cancel()
+	return ok
 }
 
 var (

@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"github.com/spf13/viper"
 	defaultextensions_object "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/storageroot"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
@@ -12,6 +13,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/genericfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"go.ub.unibas.ch/gocfl/v2/pkg/osfs"
+	"go.ub.unibas.ch/gocfl/v2/pkg/s3fs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/zipfs"
 	"io"
 	"io/fs"
@@ -182,9 +184,33 @@ func OpenRW(ocflPath, ocflTemp string, logger *logging.Logger) (io.Closer, io.Cl
 			return nil, nil, nil, errors.Wrapf(err, "cannot create zipfs")
 		}
 	} else {
-		ocfs, err = osfs.NewFSIO(ocflPath, logger)
-		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "cannot create osfs")
+		if strings.HasPrefix(strings.ToLower(ocflPath), "s3://") {
+			parts := strings.Split(strings.TrimRight(ocflPath, "/ "), "/")
+			if len(parts) == 0 {
+				return nil, nil, nil, errors.Wrapf(err, "invalid s3 path '%s'", ocflPath)
+			}
+			bucket := parts[0]
+			subpath := strings.TrimSpace(strings.Join(parts[:len(parts)-1], "/"))
+			endpoint := viper.GetString("S3Endpoint")
+			accessKeyID := viper.GetString("S3AccessKeyID")
+			secretAccessKey := viper.GetString("S3SecretAccessKey")
+			ocfs1, err := s3fs.NewFS(endpoint, accessKeyID, secretAccessKey, bucket, "", true)
+			if err != nil {
+				return nil, nil, nil, errors.Wrapf(err, "cannot create access to s3 service")
+			}
+			if len(subpath) == 0 {
+				ocfs = ocfs1
+			} else {
+				ocfs, err = ocfs1.SubFS(subpath)
+				if err != nil {
+					return nil, nil, nil, errors.Wrapf(err, "cannot create subpath '%s' of '%s'", subpath, ocfs)
+				}
+			}
+		} else {
+			ocfs, err = osfs.NewFSIO(ocflPath, logger)
+			if err != nil {
+				return nil, nil, nil, errors.Wrapf(err, "cannot create osfs")
+			}
 		}
 	}
 	return zipReader, zipWriter, ocfs, nil
