@@ -112,7 +112,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	}
 
 	tempFile := fmt.Sprintf("%s.tmp", ocflPath)
-	reader, writer, ocfs, err := OpenRW(ocflPath, tempFile, logger)
+	reader, writer, ocfs, tempActive, err := OpenRW(ocflPath, tempFile, logger)
 	if err != nil {
 		logger.Errorf("cannot create target filesystem: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -140,8 +140,10 @@ func doInit(cmd *cobra.Command, args []string) {
 			logger.Errorf("error closing writer: %v", err)
 			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		}
-		if err := os.Rename(tempFile, ocflPath); err != nil {
-			logger.Errorf("cannot rename '%s' -> '%s': %v", tempFile, ocflPath, err)
+		if tempActive {
+			if err := os.Rename(tempFile, ocflPath); err != nil {
+				logger.Errorf("cannot rename '%s' -> '%s': %v", tempFile, ocflPath, err)
+			}
 		}
 	}
 

@@ -157,7 +157,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if strings.HasPrefix(strings.ToLower(ocflPath), "s3://") {
+	if strings.HasPrefix(strings.ToLower(ocflPath), "bucket:") {
 		// todo: do some tests
 	} else {
 		finfo, err := os.Stat(ocflPath)
@@ -199,7 +199,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	tempFile := fmt.Sprintf("%s.tmp", ocflPath)
-	reader, writer, ocfs, err := OpenRW(ocflPath, tempFile, daLogger)
+	reader, writer, ocfs, tempActive, err := OpenRW(ocflPath, tempFile, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create target filesystem: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -244,12 +244,17 @@ func doCreate(cmd *cobra.Command, args []string) {
 				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			}
 		}
-		if err := writer.Close(); err != nil {
-			daLogger.Errorf("error closing writer: %v", err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		if reader != nil && reader != (*os.File)(nil) {
+			if err := writer.Close(); err != nil {
+				daLogger.Errorf("error closing writer: %v", err)
+				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			}
 		}
-		if err := os.Rename(tempFile, ocflPath); err != nil {
-			daLogger.Errorf("cannot rename '%s' -> '%s': %v", tempFile, ocflPath, err)
+
+		if tempActive {
+			if err := os.Rename(tempFile, ocflPath); err != nil {
+				daLogger.Errorf("cannot rename '%s' -> '%s': %v", tempFile, ocflPath, err)
+			}
 		}
 	}
 

@@ -92,9 +92,12 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", rootConformanceDeclarationFile)
 	}
-	defer rcd.Close()
 	if _, err := rcd.Write([]byte(rootConformanceDeclaration + "\n")); err != nil {
-		return errors.Wrapf(err, "cannot write into %s", rootConformanceDeclarationFile)
+		rcd.Close()
+		return errors.Wrapf(err, "cannot write into '%s'", rootConformanceDeclarationFile)
+	}
+	if err := rcd.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close '%s'", rootConformanceDeclarationFile)
 	}
 
 	for _, ext := range extensions {

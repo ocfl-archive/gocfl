@@ -11,7 +11,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"path/filepath"
+	"strings"
 )
 
 type FS struct {
@@ -41,9 +41,19 @@ func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL
 
 func (s3fs *FS) Open(name string) (fs.File, error) {
 	ctx := context.Background()
+	name = strings.TrimLeft(name, "./")
 	object, err := s3fs.client.GetObject(ctx, s3fs.bucket, name, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open '%s/%s/%s'", s3fs.client.EndpointURL(), s3fs.bucket, name)
+	}
+	objectInfo, err := object.Stat()
+	if err != nil {
+		object.Close()
+		return nil, errors.Wrapf(err, "cannot stat open object '%s'", name)
+	}
+	if objectInfo.Err != nil {
+		object.Close()
+		return nil, errors.Wrapf(objectInfo.Err, "error in objectInfo of '%s'", name)
 	}
 	return &File{
 		object,
@@ -53,9 +63,19 @@ func (s3fs *FS) Open(name string) (fs.File, error) {
 func (s3fs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
 	ctx := context.Background()
 	result := []fs.DirEntry{}
-	for objectInfo := range s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{}) {
+	if len(name) > 0 {
+		name = strings.TrimRight(name, "/") + "/"
+	}
+	if name == "./" {
+		name = ""
+	}
+	for objectInfo := range s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{Prefix: name}) {
+		if objectInfo.Err != nil {
+			return nil, errors.Wrapf(objectInfo.Err, "cannot read '%s'", name)
+		}
+		oiHelper := objectInfo
 		result = append(result, DirEntry{
-			&FileInfo{&objectInfo},
+			&FileInfo{&oiHelper},
 		})
 	}
 	return result, nil
@@ -83,11 +103,7 @@ func (s3fs *FS) Delete(name string) error {
 }
 
 func (s3fs *FS) SubFS(subfolder string) (ocfl.OCFLFS, error) {
-	subFS := &SubFS{
-		FS:         s3fs,
-		pathPrefix: filepath.ToSlash(filepath.Clean(subfolder)),
-	}
-	return subFS, nil
+	return NewSubFS(s3fs, subfolder)
 }
 
 func (s3fs *FS) Close() error {
@@ -119,6 +135,7 @@ func (s3fs *FS) IsNotExist(err error) bool {
 }
 
 func (s3fs *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
+	root = strings.TrimRight(root, "/") + "/"
 	ctx := context.Background()
 	for objectInfo := range s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{
 		Prefix:    root,
@@ -135,17 +152,31 @@ func (s3fs *FS) Stat(name string) (fs.FileInfo, error) {
 	ctx := context.Background()
 	objectInfo, err := s3fs.client.StatObject(ctx, s3fs.bucket, name, minio.StatObjectOptions{})
 	if err != nil {
+		if s3fs.IsNotExist(err) {
+			if s3fs.hasContent(name) {
+				return &DummyDir{name: name}, nil
+			}
+		}
 		return nil, errors.Wrapf(err, "cannot stat '%s'", name)
 	}
 	return &FileInfo{&objectInfo}, nil
 }
 
-func (s3fs *FS) HasContent() bool {
+func (s3fs *FS) hasContent(prefix string) bool {
 	ctx, cancel := context.WithCancel(context.Background())
-	chanObjectInfo := s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{})
-	_, ok := <-chanObjectInfo
+	chanObjectInfo := s3fs.client.ListObjects(ctx, s3fs.bucket, minio.ListObjectsOptions{Prefix: prefix})
+	objectInfo, ok := <-chanObjectInfo
+	if ok {
+		if objectInfo.Err != nil {
+			return true
+		}
+	}
 	cancel()
 	return ok
+}
+
+func (s3fs *FS) HasContent() bool {
+	return s3fs.hasContent("")
 }
 
 var (

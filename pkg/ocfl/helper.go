@@ -131,11 +131,15 @@ func getVersion(ctx context.Context, fs OCFLFS, folder, prefix string) (version 
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot open %s/%s", prefix, file.Name())
 			}
-			defer r.Close()
 			cnt, err := io.ReadAll(r)
 			if err != nil {
+				r.Close()
 				return "", errors.Wrapf(err, "cannot read %s/%s", prefix, file.Name())
 			}
+			if err := r.Close(); err != nil {
+				return "", errors.Wrapf(err, "cannot close '%s/%s'", prefix, file.Name())
+			}
+
 			t := fmt.Sprintf("%s%s", prefix, version)
 			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
 				return version, errInvalidContent

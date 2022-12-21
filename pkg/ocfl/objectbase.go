@@ -221,18 +221,27 @@ func (object *ObjectBase) StoreInventory() error {
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 	iWriter, err := object.fs.Create(iFileName)
 	if err != nil {
+		iWriter.Close()
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
 	if _, err := iWriter.Write(jsonBytes); err != nil {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
+	if err := iWriter.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close '%s'", iFileName)
+	}
+
 	iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
 	iWriter, err = object.fs.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
 	if _, err := iWriter.Write(jsonBytes); err != nil {
+		iWriter.Close()
 		return errors.Wrap(err, "cannot write to inventory.json")
+	}
+	if err := iWriter.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close '%s'", iFileName)
 	}
 	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
 	iCSWriter, err := object.fs.Create(csFileName)
@@ -240,7 +249,11 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrapf(err, "cannot create '%s'", csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
+		iCSWriter.Close()
 		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
+	}
+	if err := iCSWriter.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close '%s'", csFileName)
 	}
 	csFileName = fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
 	iCSWriter, err = object.fs.Create(csFileName)
@@ -248,7 +261,11 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrapf(err, "cannot create '%s'", csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
+		iCSWriter.Close()
 		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
+	}
+	if err := iCSWriter.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close '%s'", csFileName)
 	}
 	return nil
 }
@@ -287,9 +304,12 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", objectConformanceDeclarationFile)
 	}
-	defer rfp.Close()
 	if _, err := rfp.Write([]byte(objectConformanceDeclaration + "\n")); err != nil {
+		rfp.Close()
 		return errors.Wrapf(err, "cannot write into '%s'", objectConformanceDeclarationFile)
+	}
+	if err := rfp.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close '%s'", objectConformanceDeclarationFile)
 	}
 
 	for _, ext := range extensions {

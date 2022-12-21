@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/errors"
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"golang.org/x/exp/slices"
 	"path/filepath"
+	"strings"
 )
 
 var validateCmd = &cobra.Command{
@@ -29,10 +32,13 @@ var objectPath string
 func validate(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	persistentFlagLogfile := viper.GetString("LogFile")
-	persistentFlagLoglevel := viper.GetInt64("LogLevel")
-	loglevel := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)][0]
+	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
+	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
+	}
 
-	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, loglevel, LOGFORMAT)
+	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
 	extensionFlags, err := getExtensionFlags(cmd)

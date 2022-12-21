@@ -19,7 +19,7 @@ type WriteCloser struct {
 
 func (wc *WriteCloser) Close() error {
 	errs := []error{}
-	errs = append(errs, wc.pr.Close())
+	//errs = append(errs, wc.pr.Close())
 	errs = append(errs, wc.PipeWriter.Close())
 	uploadInfo := <-wc.c
 	errs = append(errs, uploadInfo.err)

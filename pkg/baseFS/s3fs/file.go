@@ -15,7 +15,7 @@ func (s3f *File) Read(bytes []byte) (int, error) {
 }
 
 func (s3f *File) Close() error {
-	return s3f.Close()
+	return s3f.Object.Close()
 }
 
 func (s3f *File) Stat() (fs.FileInfo, error) {

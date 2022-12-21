@@ -1,7 +1,7 @@
 # OCFL Community Extension NNNN: Direct Clean Path Layout
 
 * **Extension Name:** NNNN-direct-clean-path-layout
-* **Authors:** Jürgen Enge, Basel
+* **Authors:** Jürgen Enge (Basel)
 * **Minimum OCFL Version:** 1.0
 * **OCFL Community Extensions Version:** 1.0
 * **Obsoletes:** n/a
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This extension can be used to either as a storage layout extension that maps OCFL 
+This extension can be used to either as a storage layout extension that maps OCFL
 object identifiers to storage paths or as an object extension that maps logical paths to content paths.
 This is done by replacing or removing "dangerous characters" from names.
 
@@ -17,8 +17,8 @@ This functionality is based on David A. Wheeler's essay "Fixing Unix/Linux/POSIX
 
 ### Usage Scenario
 
-This extension is intended to be used when you want the internal OCFL layout to match 
-the logical structure of the stored objects as closely as possible, while also 
+This extension is intended to be used when you want the internal OCFL layout to match
+the logical structure of the stored objects as closely as possible, while also
 ensuring all file and directory names do not include problematic characters.
 
 One example could be complete filesystems, which come from estates, and are not
@@ -27,26 +27,26 @@ under control of the archivists.
 ### Caveat
 
 #### Projection
-This extension does  provide injective (one-to-one) projections only if 
+This extension provides injective (one-to-one) projections only if
 `encodeUTF == true`.  
-If you don't want to use the verbose UTF-Code replacements (`encodeUTF == false`), first check your source to make sure, that there's no chance of 
-different names to be mapped on one target. This happens on whitespace replacement as well as on 
-the removal of leading `-`, `~` and ` ` (blank) or trailing ` ` (blank)
-Software which generates the OCFL 
-structure should raise an error in this case. 
-##### Example
+If you don't want to use the verbose UTF-Code replacements (`encodeUTF == false`), first check your source to make sure, that there's no chance of
+different names to be mapped on one target. This happens on whitespace replacement as well as on
+the removal of leading `-`, `~` and ` ` (blank) or trailing ` ` (blank)
+Software which generates the OCFL
+structure should raise an error in this case.
+##### Example names, that would map to the same target
 * `~file` => `file`
 * `-file` => `file`
-* ` file` => `file`
+* ` file` => `file`
 * `file` => `file`
-* `file ` => `file`
+* `file ` => `file`
 
 #### Object Identifiers
-When using this extension as a storage layout, you must ensure that none of your 
-object identifiers are prefixes of other identifiers. For example, 
-`https://hdl.handle.net/XXXXX/test` and `https://hdl.handle.net/XXXXX/test/blah`. 
-This is a problem because it would result in the storage paths 
-`https/hdl.handle.net/XXXXX/test` and `https/hdl.handle.net/XXXXX/test/blah`, which is 
+When using this extension as a storage layout, you must ensure that none of your
+object identifiers are prefixes of other identifiers. For example,
+`https://hdl.handle.net/XXXXX/test` and `https://hdl.handle.net/XXXXX/test/blah`.
+This is a problem because it would result in the storage paths
+`https/hdl.handle.net/XXXXX/test` and `https/hdl.handle.net/XXXXX/test/blah`, which is
 invalid because the first object contains the second.
 
 
@@ -55,39 +55,34 @@ invalid because the first object contains the second.
 ### Summary
 
 * **Name:** `encodeUTF`
-    * **Description:** Decides whether "dangerous" characters will be replaced by a 
-      defined replacement string or it's utf code (e.g. `=u0020` for blank char) 
+    * **Description:** Decides whether "dangerous" characters will be replaced by a
+      defined replacement string or it's utf code (e.g. `=u0020` for blank char)
     * **Type:** bool
     * **Default:** false
 * **Name:** `maxFilenameLen`
-   * **Description:** Determines the maximum number of characters within parts of the full pathname separated by `/` (files or folders).   
-     A result with more characters will raise an error.  
+    * **Description:** Determines the maximum number of characters within parts of the full pathname separated by `/` (files or folders).   
+      A result with more characters will raise an error.
     * **Type:** number
-   * **Constraints:** An integer greater than 0
-   * **Default:** 127
+    * **Constraints:** An integer greater than 0
+    * **Default:** 127
 * **Name:** `maxPathnameLen`
     * **Description:** Determines the maximum number of result characters.
-      A result with more characters will raise an error.  
+      A result with more characters will raise an error.
     * **Type:** number
     * **Constraints:** An integer greater than 0
     * **Default:** 32000
 * **Name:** `replacementString`
-  * **Description:** String that is used to replace non-whitespace characters 
-    which need replacement.  
-    If `encodeUTF == true` only used for replacement of non-UTF8 characters.
-  * **Type:** string
-  * **Default:** "_"
+    * **Description:** String that is used to replace non-whitespace characters
+      which need replacement.  
+      If `encodeUTF == true` only used for replacement of non-UTF8 characters.
+    * **Type:** string
+    * **Default:** "_"
 * **Name:** `whitespaceReplacementString`
     * **Description:** String that is used to replace [whitespaces](https://en.wikipedia.org/wiki/Template:Whitespace_(Unicode)).  
       Only used if `encodeUTF == false`.  
       **Hint:** if you want to remove (inner) whitespaces, just use the empty string
     * **Type:** string
     * **Default:** " " (U+0020)
-* **Name:** `fallbackDigestAlgorithm`
-   * **Description:** Name of the digest algorithm to use for generating fallback filenames. 
-     Restricted to Algorithms supported by OCFL
-   * **Type:** string
-   * **Default:** `md5`
 * **Name:** `fallbackDigestAlgorithm`
     * **Description:** Name of the digest algorithm to use for generating fallback filenames.
       Restricted to Algorithms supported by OCFL
@@ -99,7 +94,7 @@ invalid because the first object contains the second.
     * **Default:** `fallback`
 * **Name:** `fallbackSubdirs`
     * **Description:** Number of sub-folder build from prefix of fallback digest.  
-      **Hint:** only needed if a large number of fallback entries is expected   
+      **Hint:** only needed if a large number of fallback entries is expected
     * **Type:** string
     * **Default:** `0`
 
@@ -107,17 +102,17 @@ invalid because the first object contains the second.
 * **`maxFilenameLen`/`maxPathnameLen`:**
   Several filesystems (e.g. Ext2/3/4) have byte restrictions on filename length.
   When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quad of the character length.
-  For filesystems which are using UTF8 character sets, the length of a name in bytes 
+  For filesystems which are using UTF8 character sets, the length of a name in bytes
   can be calculated only by building the UTF8 string and count the byte length afterwards.
 
   **Hint:** UTF8 has always less or equal bytes than UTF32 which means, that
   assuming UTF32 instead of UTF8 for length calculation is safe, but would give you
   only 63 characters on 255 byte restrictions.
-  
+
 ## Procedure
 
 The following is an outline to the steps for mapping an identifier/filepath.
-    
+
 [UTF Replacement Character List](#utf-replacement-character-list)
 is a list of UTF characters mentioned below.
 
@@ -126,15 +121,15 @@ is a list of UTF characters mentioned below.
 1. Replace all non-UTF8 characters with `replacementString`
 2. Split the string at path separator `/`
 3. For each part do the following
-   1. Replace `=` with `=u003D` if it is followed by `u` and four hex digits 
-   2. Replace any character from this list with its utf code in the form `=uXXXX` 
-       where `XXXX` is the code: 
-       `U+0000-U+001F` `U+007F` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F` 
-       `U+2028` `U+2029` `U+202F` `U+205F` `U+3000` `\n` `\t` `*` `?` `:` `[` `]` `"` 
-       `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`  
-   3. If part only contains periods, replace first period (`.`), with UTF Code (`U+002E`)
-   4. Remove part completely, if its length is 0
-   5. When length of part is larger than `maxFilenameLen` use fallback function and return
+    1. Replace `=` with `=u003D` if it is followed by `u` and four hex digits
+    2. Replace any character from this list with its utf code in the form `=uXXXX`
+       where `XXXX` is the code:
+       `U+0000-U+001F` `U+007F` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F`
+       `U+2028` `U+2029` `U+202F` `U+205F` `U+3000` `\n` `\t` `*` `?` `:` `[` `]` `"`
+       `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`
+    3. If part only contains periods, replace first period (`.`), with UTF Code (`U+002E`)
+    4. Remove part completely, if its length is 0
+    5. When length of part is larger than `maxFilenameLen` use fallback function and return
 4. Join the parts with path separator `/`
 5. When length of result is larger than `maxPathnameLen` use fallback function and return
 
@@ -143,10 +138,10 @@ is a list of UTF characters mentioned below.
 1. Replace all non-UTF8 characters with `replacementString`
 2. Split the string at path separator `/`
 3. For each part do the following
-    1. Replace any whitespace character from this list with `whitespaceReplacementString`: 
+    1. Replace any whitespace character from this list with `whitespaceReplacementString`:
        `U+0009` `U+000A-U+000D` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F`
        `U+2028` `U+2029` `U+202F` `U+205F` `U+3000`
-    2. Replace any character from this list with `replacementString`: 
+    2. Replace any character from this list with `replacementString`:
        `U+0000-U+001F` `U+007f` `*` `?` `:` `[` `]` `"`
        `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`
     3. Remove leading spaces, `-` and `~` / remove trailing spaces
@@ -162,7 +157,7 @@ is a list of UTF characters mentioned below.
 2. When digest is longer than `maxFilenameLen` add folder separator `/` after `maxFilenameLen` (character or byte based)
    until all parts are smaller or equal `maxFilenameLen`
 3. Prepend `fallbackSubdirs` number of digest characters as prefix folders with separator `/`
-4. Prepend `fallbackFolder` with separator `/` 
+4. Prepend `fallbackFolder` with separator `/`
 
 
 ## Examples
@@ -186,7 +181,7 @@ However, if you were to do so, it would look like the following:
 }
 ```
 
-### Mappings 
+### Mappings
 
 #### #1 `utfEncode == false`
 
@@ -238,10 +233,10 @@ However, if you were to do so, it would look like the following:
 | `~ info:fedora/-obj#ec@t-"01 `                                                                                                                                                                                                                                                     | `=u007E=u0020info=u003Afedora/-obj=u0023ec=u0040t-=u002201=u0020`                                                                                |
 | `/test/ ~/.../blah`                                                                                                                                                                                                                                                                | `test/=u0020~/=u002E../blah`                                                                                                                     |
 | `https://hdl.handle.net/XXXXX/test/bl ah`                                                                                                                                                                                                                                          | `https=u003A/hdl.handle.net/XXXXX/test/bl=u0020ah`                                                                                               |
- | `abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij` | `fallback/b/8/b8acda4abac53237afa03d6bbb078e1bf46b40438bb256df79b8d9ff0e57b32a688156ad21755363ea19953c160c4dd6d4db175b71e9aa87d68937181a9f69d/9` |
+| `abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij` | `fallback/b/8/b8acda4abac53237afa03d6bbb078e1bf46b40438bb256df79b8d9ff0e57b32a688156ad21755363ea19953c160c4dd6d4db175b71e9aa87d68937181a9f69d/9` |
 ### Implementation
 
-#### GO 
+#### GO
 
 ```go
 package cleanpath
@@ -426,8 +421,8 @@ func (sl *DirectClean) BuildPath(fname string) (string, error) {
 | U+001F | 31       | 37        | Unit Separator                 | US                        |
 | U+0020 | 32       | 40        | Space                          |                           |
 | U+007F | 127      | 177       | Delete                         | DEL                       |
-| U+0085 | 133      | 0302 0205 | Next Line                      | NEL                       |
-| U+00A0 | 160      | 0302 0240 | &nbsp;                         | Non-breaking space        |
+| U+0085 | 133      | 0302 0205 | Next Line                      | NEL                       |
+| U+00A0 | 160      | 0302 0240 | &nbsp;                         | Non-breaking space        |
 | U+1680 | 5760     | 13200     |                                | OGHAM SPACE MARK          |
 | U+2000 | 8192     | 20000     |                                | EN QUAD                   |
 | U+2001 | 8193     | 20001     |                                | EM QUAD                   |

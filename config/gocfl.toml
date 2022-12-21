@@ -11,7 +11,7 @@ LogLevel="INFO"
 
 S3AccessKeyID="012c9e0ed7e3171e1112"
 #S3SecretAccessKey=""
-S3Endpoint="https://os.zhdk.cloud.switch.ch/"
+S3Endpoint="s3-zh.os.switch.ch"
 
 [Init]
 
