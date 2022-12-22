@@ -93,13 +93,8 @@ func doInit(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	extensionFactory, err := ocfl.NewExtensionFactory(logger)
+	extensionFactory, err := initExtensionFactory(logger, extensionFlags)
 	if err != nil {
-		logger.Errorf("cannot instantiate extension factory: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-	if err := initExtensionFactory(extensionFactory, extensionFlags); err != nil {
 		logger.Errorf("cannot initialize extension factory: %v", err)
 		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return

@@ -106,7 +106,7 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		}
 	}
 	osr.extensionManager.Finalize()
-	subfs, err := osr.fs.SubFS("extensions")
+	subfs, err := osr.fs.SubFSRW("extensions")
 	if err == nil {
 		osr.extensionManager.SetFS(subfs)
 		if err := osr.extensionManager.WriteConfig(); err != nil {
@@ -180,7 +180,7 @@ func (osr *StorageRootBase) GetVersion() OCFLVersion { return osr.version }
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
-func (osr *StorageRootBase) CreateExtension(fs OCFLFS) (Extension, error) {
+func (osr *StorageRootBase) CreateExtension(fs OCFLFSRead) (Extension, error) {
 	return osr.extensionFactory.Create(fs)
 }
 
@@ -301,7 +301,7 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in '%s'", folder)
 	}
-	subfs, err := osr.fs.SubFS(folder)
+	subfs, err := osr.fs.SubFSRW(folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", osr.fs, folder)
 	}
@@ -340,7 +340,7 @@ func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error)
 
 func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error) {
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
-	subfs, err := osr.fs.SubFS(folder)
+	subfs, err := osr.fs.SubFSRW(folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fs, folder)
 	}

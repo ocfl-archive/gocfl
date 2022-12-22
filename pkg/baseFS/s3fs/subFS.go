@@ -26,6 +26,11 @@ func (s3SubFS *SubFS) String() string {
 	return fmt.Sprintf("%s/%s", s3SubFS.FS.String(), s3SubFS.pathPrefix)
 }
 
+func (s3SubFS *SubFS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
+	name = filepath.ToSlash(filepath.Join(s3SubFS.pathPrefix, filepath.Clean(name)))
+	return s3SubFS.FS.OpenSeeker(name)
+}
+
 func (s3SubFS *SubFS) Open(name string) (fs.File, error) {
 	name = filepath.ToSlash(filepath.Join(s3SubFS.pathPrefix, filepath.Clean(name)))
 	return s3SubFS.FS.Open(name)
@@ -58,7 +63,7 @@ func (s3SubFS *SubFS) Stat(path string) (fs.FileInfo, error) {
 	return s3SubFS.FS.Stat(path)
 }
 
-func (s3SubFS *SubFS) SubFS(path string) (ocfl.OCFLFS, error) {
+func (s3SubFS *SubFS) SubFSRW(path string) (ocfl.OCFLFS, error) {
 	name := filepath.ToSlash(filepath.Join(s3SubFS.pathPrefix, filepath.Clean(path)))
 	if name == "." {
 		name = ""
@@ -66,19 +71,19 @@ func (s3SubFS *SubFS) SubFS(path string) (ocfl.OCFLFS, error) {
 	if name == "" {
 		return s3SubFS, nil
 	}
-	/*
-		fi, err := zipFS.Stat(path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot stat '%s'", path)
-		}
-		if !fi.IsDir() {
-			return nil, errors.Errorf("%s not a folder", path)
-		}
-
-	*/
-	return NewSubFS(s3SubFS.FS, name)
+	return s3SubFS.FS.SubFSRW(name)
 }
 
+func (s3SubFS *SubFS) SubFS(path string) (ocfl.OCFLFSRead, error) {
+	name := filepath.ToSlash(filepath.Join(s3SubFS.pathPrefix, filepath.Clean(path)))
+	if name == "." {
+		name = ""
+	}
+	if name == "" {
+		return s3SubFS, nil
+	}
+	return s3SubFS.FS.SubFS(name)
+}
 func (s3SubFS *SubFS) HasContent() bool {
 	return s3SubFS.FS.hasContent(s3SubFS.pathPrefix)
 }

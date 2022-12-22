@@ -2,6 +2,7 @@ package zipfs
 
 import (
 	"emperror.dev/errors"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
 )
@@ -11,7 +12,20 @@ type File struct {
 	r io.ReadCloser
 }
 
-func NewFile(info *FileInfo) (*File, error) {
+type readCloser2ReadSeekStat struct {
+	*FileInfo
+	io.ReadCloser
+}
+
+func (rc2rss *readCloser2ReadSeekStat) Stat() (fs.FileInfo, error) {
+	return rc2rss.FileInfo, nil
+}
+
+func (rc2rss *readCloser2ReadSeekStat) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("seek not implemented")
+}
+
+func NewFile(info *FileInfo) (ocfl.FileSeeker, error) {
 	var err error
 
 	f := &File{
@@ -20,7 +34,10 @@ func NewFile(info *FileInfo) (*File, error) {
 	if f.r, err = info.zf.Open(); err != nil {
 		return nil, errors.Wrapf(err, "cannot open zip item %s", info.Name())
 	}
-	return f, nil
+	return &readCloser2ReadSeekStat{
+		FileInfo:   info,
+		ReadCloser: f,
+	}, nil
 }
 
 func (f *File) Stat() (fs.FileInfo, error) { return f.FileInfo, nil }

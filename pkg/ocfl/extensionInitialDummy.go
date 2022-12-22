@@ -11,8 +11,8 @@ type InitialDummy struct {
 	*ExtensionManagerConfig
 }
 
-func NewInitialDummyFS(fs OCFLFS) (Extension, error) {
-	fp, err := fs.Open("config.json")
+func NewInitialDummyFS(fsys OCFLFSRead) (Extension, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

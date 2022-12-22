@@ -11,17 +11,31 @@ import (
 	"io/fs"
 )
 
-// Filesystem abstraction for OCFL access
-type OCFLFS interface {
-	fs.ReadDirFS
-	Create(name string) (io.WriteCloser, error)
-	Delete(name string) error
-	SubFS(subfolder string) (OCFLFS, error)
-	Close() error
-	Discard() error
+type FileSeeker interface {
+	io.Seeker
+	fs.File
+	//Stat() (fs.FileInfo, error)
+}
+
+type OCFLFSRead interface {
 	String() string
+	OpenSeeker(name string) (FileSeeker, error)
+	Open(name string) (fs.File, error)
+	Stat(name string) (fs.FileInfo, error)
+	ReadFile(name string) ([]byte, error)
+	Close() error
 	IsNotExist(err error) bool
 	WalkDir(root string, fn fs.WalkDirFunc) error
-	Stat(name string) (fs.FileInfo, error)
+	ReadDir(name string) ([]fs.DirEntry, error)
 	HasContent() bool
+	SubFS(subfolder string) (OCFLFSRead, error)
+}
+
+// Filesystem abstraction for OCFL access
+type OCFLFS interface {
+	OCFLFSRead
+	Create(name string) (io.WriteCloser, error)
+	Delete(name string) error
+	Discard() error
+	SubFSRW(subfolder string) (OCFLFS, error)
 }

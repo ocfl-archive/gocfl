@@ -2,6 +2,7 @@ package zipfs
 
 import (
 	"archive/zip"
+	"bytes"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -28,9 +29,10 @@ type FS struct {
 	noCopy    []string
 	logger    *logging.Logger
 	closed    *bool
+	close     func() error
 }
 
-func NewFS(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logger) (*FS, error) {
+func NewFS(src io.ReaderAt, srcSize int64, dst io.Writer, close func() error, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	var err error
 	var isClosed bool
@@ -40,6 +42,7 @@ func NewFS(src io.ReaderAt, srcSize int64, dst io.Writer, logger *logging.Logger
 		dstWriter: dst,
 		logger:    logger,
 		closed:    &isClosed,
+		close:     close,
 	}
 	if src != nil && src != (*os.File)(nil) {
 		if zfs.r, err = zip.NewReader(src, srcSize); err != nil {
@@ -66,7 +69,8 @@ func (zipFS *FS) IsNotExist(err error) bool {
 
 func (zipFS *FS) Close() error {
 	if zipFS.isClosed() {
-		return errors.New("zipFS closed")
+		return nil
+		//return errors.New("zipFS closed")
 	}
 	zipFS.logger.Debug("Close ZipFS")
 	// check whether we have to copy all stuff
@@ -109,6 +113,7 @@ func (zipFS *FS) Close() error {
 		}
 
 	}
+	finalError = append(finalError, zipFS.close())
 	return errors.Combine(finalError...)
 }
 func (zipFS *FS) Discard() error {
@@ -124,7 +129,7 @@ func (zipFS *FS) Discard() error {
 	return errors.Combine(finalError...)
 }
 
-func (zipFS *FS) Open(name string) (fs.File, error) {
+func (zipFS *FS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
 	if zipFS.isClosed() {
 		return nil, errors.New("zipFS closed")
 	}
@@ -157,6 +162,23 @@ func (zipFS *FS) Open(name string) (fs.File, error) {
 	}
 	zipFS.logger.Debugf("%s not found", name)
 	return nil, fs.ErrNotExist
+}
+
+func (zipFS *FS) Open(name string) (fs.File, error) {
+	return zipFS.OpenSeeker(name)
+}
+
+func (zipFS *FS) ReadFile(name string) ([]byte, error) {
+	fp, err := zipFS.Open(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open '%s'", name)
+	}
+	defer fp.Close()
+	data := bytes.NewBuffer(nil)
+	if _, err := io.Copy(data, fp); err != nil {
+		return nil, errors.Wrapf(err, "cannot read '%s'", name)
+	}
+	return data.Bytes(), nil
 }
 
 func (zipFS *FS) Create(name string) (io.WriteCloser, error) {
@@ -331,8 +353,11 @@ func (zipFS *FS) Stat(path string) (fs.FileInfo, error) {
 	return nil, fs.ErrNotExist
 }
 
-func (zipFS *FS) SubFS(path string) (ocfl.OCFLFS, error) {
+func (zipFS *FS) SubFSRW(path string) (ocfl.OCFLFS, error) {
 	return NewSubFS(zipFS, path)
+}
+func (zipFS *FS) SubFS(path string) (ocfl.OCFLFSRead, error) {
+	return zipFS.SubFSRW(path)
 }
 
 // check interface satisfaction

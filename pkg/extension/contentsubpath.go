@@ -28,8 +28,8 @@ type ContentSubPath struct {
 	fs ocfl.OCFLFS
 }
 
-func NewContentSubPathFS(fs ocfl.OCFLFS) (*ContentSubPath, error) {
-	fp, err := fs.Open("config.json")
+func NewContentSubPathFS(fsys ocfl.OCFLFSRead) (*ContentSubPath, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

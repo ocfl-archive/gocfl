@@ -80,14 +80,14 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 
 func (manager *ExtensionManager) SetFS(subfs OCFLFS) {
 	for _, ext := range manager.extensions {
-		extFS, err := subfs.SubFS(ext.GetName())
+		extFS, err := subfs.SubFSRW(ext.GetName())
 		if err != nil {
 			panic(err)
 		}
 		ext.SetFS(extFS)
 	}
 	var err error
-	manager.fs, err = subfs.SubFS("initial")
+	manager.fs, err = subfs.SubFSRW("initial")
 	if err != nil {
 		panic(err)
 	}

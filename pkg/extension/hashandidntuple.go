@@ -26,8 +26,8 @@ type StorageLayoutHashAndIdNTupleConfig struct {
 	NumberOfTuples  int    `json:"numberOfTuples"`
 }
 
-func NewStorageLayoutHashAndIdNTupleFS(fs ocfl.OCFLFS) (*StorageLayoutHashAndIdNTuple, error) {
-	fp, err := fs.Open("config.json")
+func NewStorageLayoutHashAndIdNTupleFS(fsys ocfl.OCFLFSRead) (*StorageLayoutHashAndIdNTuple, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

@@ -7,7 +7,6 @@ import (
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"io"
-	"io/fs"
 )
 
 type Object interface {
@@ -21,8 +20,8 @@ type Object interface {
 	StartUpdate(msg string, UserName string, UserAddress string, echo bool) error
 	BeginArea(area string)
 	EndArea() error
-	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
-	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string) error
+	AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error
+	AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string) error
 	AddReader(r io.ReadCloser, internalFilename string, area string) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
@@ -48,7 +47,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 				return "", errVersionMultiple
 			}
 			version = OCFLVersion(matches[1])
-			cnt, err := fs.ReadFile(ofs, file.Name())
+			cnt, err := ofs.ReadFile(file.Name())
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot read %s", file.Name())
 			}

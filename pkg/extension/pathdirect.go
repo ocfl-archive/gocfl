@@ -19,8 +19,8 @@ type PathDirect struct {
 	*PathDirectConfig
 }
 
-func NewPathDirectFS(fs ocfl.OCFLFS) (ocfl.Extension, error) {
-	fp, err := fs.Open("config.json")
+func NewPathDirectFS(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

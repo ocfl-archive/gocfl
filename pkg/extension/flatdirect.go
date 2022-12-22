@@ -19,8 +19,8 @@ type StorageLayoutFlatDirect struct {
 	fs ocfl.OCFLFS
 }
 
-func NewStorageLayoutFlatDirectFS(fs ocfl.OCFLFS) (*StorageLayoutFlatDirect, error) {
-	fp, err := fs.Open("config.json")
+func NewStorageLayoutFlatDirectFS(fsys ocfl.OCFLFSRead) (*StorageLayoutFlatDirect, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

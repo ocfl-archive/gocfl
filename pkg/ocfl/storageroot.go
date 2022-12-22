@@ -21,7 +21,7 @@ type StorageRoot interface {
 	LoadObjectByFolder(folder string) (Object, error)
 	LoadObjectByID(id string) (Object, error)
 	CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error)
-	CreateExtension(fs OCFLFS) (Extension, error)
+	CreateExtension(fs OCFLFSRead) (Extension, error)
 	Check() error
 	CheckObject(objectFolder string) error
 	Init(version OCFLVersion, digest checksum.DigestAlgorithm, exts []Extension) error

@@ -165,7 +165,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 
 	// check digest for inventory
 	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
-	sidecarBytes, err := fs.ReadFile(object.fs, sidecarPath)
+	sidecarBytes, err := object.fs.ReadFile(sidecarPath)
 	if err != nil {
 		if object.fs.IsNotExist(err) {
 			object.addValidationError(E058, "sidecar '%s' does not exist", sidecarPath)
@@ -416,7 +416,7 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	object.echo = echo
 
-	subfs, err := object.fs.SubFS("extensions")
+	subfs, err := object.fs.SubFSRW("extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fs, "extensions")
 	}
@@ -450,8 +450,8 @@ func (object *ObjectBase) EndArea() error {
 	return nil
 }
 
-func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool, area string) error {
-	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
+func (object *ObjectBase) AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error {
+	if err := fsys.WalkDir(".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
 		// directory not interesting
 		if info.IsDir() {
@@ -519,7 +519,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, ar
 	return nil
 }
 
-func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, area string) error {
+func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string) error {
 	//object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
 	// paranoia
 	path = filepath.ToSlash(path)

@@ -27,8 +27,8 @@ type StorageLayoutHashedNTupleConfig struct {
 	ShortObjectRoot bool   `json:"shortObjectRoot"`
 }
 
-func NewStorageLayoutHashedNTupleFS(fs ocfl.OCFLFS) (*StorageLayoutHashedNTuple, error) {
-	fp, err := fs.Open("config.json")
+func NewStorageLayoutHashedNTupleFS(fsys ocfl.OCFLFSRead) (*StorageLayoutHashedNTuple, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

@@ -25,6 +25,11 @@ func (zipSubFS *SubFS) String() string {
 	return fmt.Sprintf("zipfs://%s", zipSubFS.pathPrefix)
 }
 
+func (zipSubFS *SubFS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
+	name = filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(name)))
+	return zipSubFS.FS.OpenSeeker(name)
+}
+
 func (zipSubFS *SubFS) Open(name string) (fs.File, error) {
 	name = filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(name)))
 	return zipSubFS.FS.Open(name)
@@ -55,7 +60,7 @@ func (zipSubFS *SubFS) Stat(path string) (fs.FileInfo, error) {
 	return zipSubFS.FS.Stat(path)
 }
 
-func (zipSubFS *SubFS) SubFS(path string) (ocfl.OCFLFS, error) {
+func (zipSubFS *SubFS) SubFSRW(path string) (ocfl.OCFLFS, error) {
 	name := filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(path)))
 	if name == "." {
 		name = ""
@@ -63,17 +68,18 @@ func (zipSubFS *SubFS) SubFS(path string) (ocfl.OCFLFS, error) {
 	if name == "" {
 		return zipSubFS, nil
 	}
-	/*
-		fi, err := zipFS.Stat(path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot stat '%s'", path)
-		}
-		if !fi.IsDir() {
-			return nil, errors.Errorf("%s not a folder", path)
-		}
+	return zipSubFS.FS.SubFSRW(name)
+}
 
-	*/
-	return NewSubFS(zipSubFS.FS, name)
+func (zipSubFS *SubFS) SubFS(path string) (ocfl.OCFLFSRead, error) {
+	name := filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(path)))
+	if name == "." {
+		name = ""
+	}
+	if name == "" {
+		return zipSubFS, nil
+	}
+	return zipSubFS.FS.SubFS(path)
 }
 
 // check interface satisfaction

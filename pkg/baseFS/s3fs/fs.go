@@ -1,6 +1,7 @@
 package s3fs
 
 import (
+	"bytes"
 	"context"
 	"emperror.dev/errors"
 	"fmt"
@@ -39,7 +40,7 @@ func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL
 	return fs, nil
 }
 
-func (s3fs *FS) Open(name string) (fs.File, error) {
+func (s3fs *FS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
 	ctx := context.Background()
 	name = strings.TrimLeft(name, "./")
 	object, err := s3fs.client.GetObject(ctx, s3fs.bucket, name, minio.GetObjectOptions{})
@@ -58,6 +59,23 @@ func (s3fs *FS) Open(name string) (fs.File, error) {
 	return &File{
 		object,
 	}, nil
+}
+
+func (s3fs *FS) Open(name string) (fs.File, error) {
+	return s3fs.OpenSeeker(name)
+}
+
+func (s3fs *FS) ReadFile(name string) ([]byte, error) {
+	fp, err := s3fs.Open(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open '%s'", name)
+	}
+	defer fp.Close()
+	data := bytes.NewBuffer(nil)
+	if _, err := io.Copy(data, fp); err != nil {
+		return nil, errors.Wrapf(err, "cannot read '%s'", name)
+	}
+	return data.Bytes(), nil
 }
 
 func (s3fs *FS) ReadDir(name string) ([]fs.DirEntry, error) {
@@ -102,8 +120,12 @@ func (s3fs *FS) Delete(name string) error {
 	return nil
 }
 
-func (s3fs *FS) SubFS(subfolder string) (ocfl.OCFLFS, error) {
+func (s3fs *FS) SubFSRW(subfolder string) (ocfl.OCFLFS, error) {
 	return NewSubFS(s3fs, subfolder)
+}
+
+func (s3fs *FS) SubFS(subfolder string) (ocfl.OCFLFSRead, error) {
+	return s3fs.SubFSRW(subfolder)
 }
 
 func (s3fs *FS) Close() error {

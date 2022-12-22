@@ -64,8 +64,8 @@ type StorageLayoutPairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewStorageLayoutPairTreeFS(fs ocfl.OCFLFS) (*StorageLayoutPairTree, error) {
-	fp, err := fs.Open("config.json")
+func NewStorageLayoutPairTreeFS(fsys ocfl.OCFLFSRead) (*StorageLayoutPairTree, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

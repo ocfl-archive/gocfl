@@ -62,8 +62,8 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectCleanFS(fs ocfl.OCFLFS) (ocfl.Extension, error) {
-	fp, err := fs.Open("config.json")
+func NewDirectCleanFS(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}

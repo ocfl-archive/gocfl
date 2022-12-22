@@ -1,13 +1,14 @@
 package ocfl
 
 import (
+	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
 	"github.com/op/go-logging"
-	"io/fs"
+	"io"
 )
 
-type creatorFunc func(fs OCFLFS) (Extension, error)
+type creatorFunc func(fs OCFLFSRead) (Extension, error)
 
 type ExtensionFactory struct {
 	creators           map[string]creatorFunc
@@ -36,15 +37,18 @@ func (f *ExtensionFactory) AddObjectDefaultExtension(ext Extension) {
 	f.defaultObject = append(f.defaultObject, ext)
 }
 
-func (f *ExtensionFactory) Create(fsys OCFLFS) (Extension, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
+func (f *ExtensionFactory) Create(fsys OCFLFSRead) (Extension, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read config.json")
+		return nil, errors.Wrapf(err, "cannot open config.json")
 	}
-	return f.create(fsys, data)
+	defer fp.Close()
+	data := bytes.NewBuffer(nil)
+	io.Copy(data, fp)
+	return f.create(fsys, data.Bytes())
 }
 
-func (f *ExtensionFactory) create(fsys OCFLFS, data []byte) (Extension, error) {
+func (f *ExtensionFactory) create(fsys OCFLFSRead, data []byte) (Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -68,7 +72,7 @@ func (f *ExtensionFactory) create(fsys OCFLFS, data []byte) (Extension, error) {
 	return ext, nil
 }
 
-func (f *ExtensionFactory) CreateExtensions(fsys OCFLFS) ([]Extension, error) {
+func (f *ExtensionFactory) CreateExtensions(fsys OCFLFSRead) ([]Extension, error) {
 	files, err := fsys.ReadDir(".")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folder storageroot")
@@ -92,7 +96,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys OCFLFS) ([]Extension, error) {
 	return result, nil
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys OCFLFS) ([]Extension, error) {
+func (f *ExtensionFactory) LoadExtensions(fsys OCFLFSRead) ([]Extension, error) {
 	extensions, err := f.CreateExtensions(fsys)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")

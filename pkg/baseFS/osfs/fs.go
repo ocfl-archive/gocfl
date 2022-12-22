@@ -1,6 +1,7 @@
 package osfs
 
 import (
+	"bytes"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
@@ -25,7 +26,7 @@ func (osFS *FS) Delete(name string) error {
 	return os.Remove(filename)
 }
 
-func NewFSIO(folder string, logger *logging.Logger) (*FS, error) {
+func NewFS(folder string, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	folder = strings.Trim(filepath.ToSlash(filepath.Clean(folder)), "/")
 	osfs := &FS{
@@ -46,8 +47,7 @@ func (osFS *FS) IsNotExist(err error) bool {
 }
 
 func (osFS *FS) Close() error {
-	osFS.logger.Debug("Close OSFS")
-
+	osFS.logger.Debug("Close OSFS ('%s')", osFS.folder)
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (osFS *FS) Discard() error {
 	return nil
 }
 
-func (osFS *FS) Open(name string) (fs.File, error) {
+func (osFS *FS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
 	name = strings.TrimPrefix(filepath.ToSlash(filepath.Clean(name)), "./")
 	fullpath := filepath.Join(osFS.folder, name)
 	osFS.logger.Debugf("opening %s", fullpath)
@@ -66,6 +66,23 @@ func (osFS *FS) Open(name string) (fs.File, error) {
 		return nil, errors.Wrapf(err, "cannot open %s", fullpath)
 	}
 	return file, nil
+}
+
+func (osFS *FS) Open(name string) (fs.File, error) {
+	return osFS.OpenSeeker(name)
+}
+
+func (osFS *FS) ReadFile(name string) ([]byte, error) {
+	fp, err := osFS.Open(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open '%s'", name)
+	}
+	defer fp.Close()
+	data := bytes.NewBuffer(nil)
+	if _, err := io.Copy(data, fp); err != nil {
+		return nil, errors.Wrapf(err, "cannot read '%s'", name)
+	}
+	return data.Bytes(), nil
 }
 
 func (osFS *FS) Create(name string) (io.WriteCloser, error) {
@@ -163,14 +180,18 @@ func (osFS *FS) Stat(name string) (fs.FileInfo, error) {
 	return fi, nil
 }
 
-func (osFS *FS) SubFS(name string) (ocfl.OCFLFS, error) {
-	if name == "." {
-		name = ""
-	}
-	if name == "" {
+func (osFS *FS) SubFS(name string) (ocfl.OCFLFSRead, error) {
+	if name == "" || name == "." || name == "./" {
 		return osFS, nil
 	}
-	return NewFSIO(filepath.Join(osFS.folder, name), osFS.logger)
+	return NewFS(filepath.Join(osFS.folder, name), osFS.logger)
+}
+
+func (osFS *FS) SubFSRW(name string) (ocfl.OCFLFS, error) {
+	if name == "" || name == "." || name == "./" {
+		return osFS, nil
+	}
+	return NewFS(filepath.Join(osFS.folder, name), osFS.logger)
 }
 
 // check interface satisfaction

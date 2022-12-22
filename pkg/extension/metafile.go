@@ -46,8 +46,8 @@ type MetaFile struct {
 	fs             ocfl.OCFLFS
 }
 
-func NewMetaFileFS(fs ocfl.OCFLFS, params map[string]string) (*MetaFile, error) {
-	fp, err := fs.Open("config.json")
+func NewMetaFileFS(fsys ocfl.OCFLFSRead, params map[string]string) (*MetaFile, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}
