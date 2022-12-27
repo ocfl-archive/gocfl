@@ -16,12 +16,8 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/extension"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
-	"io"
 	"io/fs"
-	"log"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 func initExtensionFactory(logger *logging.Logger, params map[string]map[string]string) (*ocfl.ExtensionFactory, error) {
@@ -123,11 +119,17 @@ func initializeFSFactory(logger *logging.Logger) (*baseFS.Factory, error) {
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
 
+	zipFS, err := zipfs.NewBaseFS(logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
+	}
+	fsFactory.Add(zipFS)
+
 	// do S3 FS base instance
 	endpoint := viper.GetString("S3Endpoint")
 	accessKeyID := viper.GetString("S3AccessKeyID")
 	secretAccessKey := viper.GetString("S3SecretAccessKey")
-	s3FS, err := s3fs.NewBaseFS(endpoint, accessKeyID, secretAccessKey, "", true)
+	s3FS, err := s3fs.NewBaseFS(endpoint, accessKeyID, secretAccessKey, "", true, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create s3 base filesystem factory")
 	}
@@ -139,163 +141,7 @@ func initializeFSFactory(logger *logging.Logger) (*baseFS.Factory, error) {
 	}
 	fsFactory.Add(osFS)
 
-	zipFS, err := zipfs.NewBaseFS(logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
-	}
-	fsFactory.Add(zipFS)
-
 	return fsFactory, nil
-}
-
-func OpenRO(ocflPath string, logger *logging.Logger) (ocfl.OCFLFSRead, error) {
-	var ocfs ocfl.OCFLFSRead
-	var err error
-
-	var zipSize int64
-	var zipReader *os.File
-	var zipWriter *os.File
-
-	var zipFile string
-	//var objectPath string
-	if strings.HasSuffix(strings.ToLower(ocflPath), ".zip") {
-		zipFile = ocflPath
-	} else {
-		if pos := strings.Index(ocflPath, ".zip/"); pos != -1 {
-			zipFile = (ocflPath)[0 : pos+4]
-			//objectPath = (*target)[pos+4:]
-		}
-	}
-	if zipFile != "" {
-		stat, err := os.Stat(zipFile)
-		if err != nil {
-			log.Print(errors.Wrapf(err, "%s does not exist. creating new file", zipFile))
-		} else {
-			zipSize = stat.Size()
-			if zipReader, err = os.Open(zipFile); err != nil {
-				return nil, errors.Wrapf(err, "cannot open zipfile %s", zipFile)
-			}
-		}
-		ocfs, err = zipfs.NewFS(zipReader, zipSize, zipWriter, func() error {
-			errs := []error{}
-			if zipReader != nil {
-				errs = append(errs, zipReader.Close())
-			}
-			if zipWriter != nil {
-				errs = append(errs, zipWriter.Close())
-			}
-			return errors.Combine(errs...)
-		}, logger)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create zipfs")
-		}
-	} else {
-		if strings.HasPrefix(strings.ToLower(ocflPath), "bucket:") {
-			parts := strings.Split(strings.TrimRight(ocflPath[len("bucket:"):], "/ "), "/")
-			if len(parts) == 0 {
-				return nil, errors.Wrapf(err, "invalid s3 path '%s'", ocflPath)
-			}
-			bucket := parts[0]
-			subpath := strings.TrimSpace(strings.Join(parts[:len(parts)-1], "/"))
-			endpoint := viper.GetString("S3Endpoint")
-			accessKeyID := viper.GetString("S3AccessKeyID")
-			secretAccessKey := viper.GetString("S3SecretAccessKey")
-			ocfs1, err := s3fs.NewFS(endpoint, accessKeyID, secretAccessKey, bucket, "", true)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create access to s3 service")
-			}
-			if len(subpath) == 0 {
-				ocfs = ocfs1
-			} else {
-				ocfs, err = ocfs1.SubFS(subpath)
-				if err != nil {
-					return nil, errors.Wrapf(err, "cannot create subpath '%s' of '%s'", subpath, ocfs)
-				}
-			}
-		} else {
-			ocfs, err = osfs.NewFS(ocflPath, logger)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create osfs")
-			}
-		}
-	}
-	return ocfs, nil
-}
-
-func OpenRW(ocflPath, ocflTemp string, logger *logging.Logger) (io.Closer, io.Closer, ocfl.OCFLFS, bool, error) {
-	var ocfs ocfl.OCFLFS
-	var err error
-
-	var zipSize int64
-	var zipReader *os.File
-	var zipWriter *os.File
-	var tempActive bool
-
-	ocflPath = filepath.ToSlash(filepath.Clean(ocflPath))
-
-	if strings.HasSuffix(strings.ToLower(ocflPath), ".zip") {
-		stat, err := os.Stat(ocflPath)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.Print(errors.Wrapf(err, "%s does not exist. creating new file", ocflPath))
-			}
-		} else {
-			zipSize = stat.Size()
-			if zipReader, err = os.Open(ocflPath); err != nil {
-				return nil, nil, nil, false, errors.Wrapf(err, "cannot open zipfile %s", ocflPath)
-			}
-		}
-		if zipWriter, err = os.Create(ocflTemp); err != nil {
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			panic(err)
-		}
-
-		ocfs, err = zipfs.NewFS(zipReader, zipSize, zipWriter, func() error {
-			errs := []error{}
-			if zipReader != nil {
-				errs = append(errs, zipReader.Close())
-			}
-			if zipWriter != nil {
-				errs = append(errs, zipWriter.Close())
-			}
-			return errors.Combine(errs...)
-		},
-			logger)
-		if err != nil {
-			return nil, nil, nil, false, errors.Wrapf(err, "cannot create zipfs")
-		}
-		tempActive = true
-	} else {
-		if strings.HasPrefix(strings.ToLower(ocflPath), "bucket:") {
-			parts := strings.Split(strings.TrimRight(ocflPath[len("bucket:"):], "/ "), "/")
-			if len(parts) == 0 {
-				return nil, nil, nil, false, errors.Wrapf(err, "invalid s3 path '%s'", ocflPath)
-			}
-			bucket := parts[0]
-			subpath := strings.TrimSpace(strings.Join(parts[:len(parts)-1], "/"))
-			endpoint := viper.GetString("S3Endpoint")
-			accessKeyID := viper.GetString("S3AccessKeyID")
-			secretAccessKey := viper.GetString("S3SecretAccessKey")
-			ocfs1, err := s3fs.NewFS(endpoint, accessKeyID, secretAccessKey, bucket, "", true)
-			if err != nil {
-				return nil, nil, nil, false, errors.Wrapf(err, "cannot create access to s3 service")
-			}
-			if len(subpath) == 0 {
-				ocfs = ocfs1
-			} else {
-				ocfs, err = ocfs1.SubFSRW(subpath)
-				if err != nil {
-					return nil, nil, nil, false, errors.Wrapf(err, "cannot create subpath '%s' of '%s'", subpath, ocfs)
-				}
-			}
-		} else {
-			ocfs, err = osfs.NewFS(ocflPath, logger)
-			if err != nil {
-				return nil, nil, nil, false, errors.Wrapf(err, "cannot create osfs")
-			}
-		}
-	}
-	return zipReader, zipWriter, ocfs, tempActive, nil
 }
 
 func showStatus(ctx context.Context) error {

@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -22,7 +24,13 @@ func NewBaseFS(logger *logging.Logger) (baseFS.FS, error) {
 func (b *BaseFS) SetFSFactory(factory *baseFS.Factory) {
 }
 
-func (*BaseFS) Valid(path string) bool {
+var winPathRegexp = regexp.MustCompile("^[A-Za-z]:/[^:]*$")
+
+func (*BaseFS) valid(path string) bool {
+	path = filepath.ToSlash(path)
+	if winPathRegexp.MatchString(path) {
+		return true
+	}
 	if u, err := url.Parse(path); err == nil {
 		return u.Scheme == "file"
 	}
@@ -30,15 +38,39 @@ func (*BaseFS) Valid(path string) bool {
 	return true
 }
 
-func (f *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
-	return NewFS(path, f.logger)
+func (b *BaseFS) Rename(src, dest string) error {
+	if !b.valid(src) {
+		return baseFS.ErrPathNotSupported
+	}
+	if !b.valid(dest) {
+		return baseFS.ErrPathNotSupported
+	}
+	fs, err := b.GetFSRW("/")
+	if err != nil {
+		return errors.Wrap(err, "cannot get fs for '/'")
+	}
+	defer fs.Close()
+	return fs.Rename(src, dest)
 }
 
-func (f *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
-	return NewFS(path, f.logger)
+func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
+	return NewFS(path, b.logger)
+}
+
+func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
+	return NewFS(path, b.logger)
 }
 
 func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
 	if strings.HasPrefix(strings.ToLower(path), "file://") {
 		path = path[len("file://"):]
 	}
@@ -50,6 +82,9 @@ func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
 }
 
 func (b *BaseFS) Create(path string) (io.WriteCloser, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
 	if strings.HasPrefix(strings.ToLower(path), "file://") {
 		path = path[len("file://"):]
 	}
@@ -58,6 +93,16 @@ func (b *BaseFS) Create(path string) (io.WriteCloser, error) {
 		return nil, errors.Wrapf(err, "cannot create '%s'", path)
 	}
 	return fp, nil
+}
+
+func (b *BaseFS) Delete(path string) error {
+	if !b.valid(path) {
+		return baseFS.ErrPathNotSupported
+	}
+	if strings.HasPrefix(strings.ToLower(path), "file://") {
+		path = path[len("file://"):]
+	}
+	return errors.Wrapf(os.Remove(path), "cannot delete '%s'", path)
 }
 
 var (

@@ -7,13 +7,20 @@ import (
 	"io/fs"
 )
 
+var ErrPathNotSupported error = errors.New("path not supported")
+
+func ErrNotSupported(err error) bool {
+	return err == ErrPathNotSupported
+}
+
 type FS interface {
 	SetFSFactory(factory *Factory)
-	Valid(path string) bool
 	GetFSRW(path string) (ocfl.OCFLFS, error)
 	GetFS(path string) (ocfl.OCFLFSRead, error)
 	Open(path string) (ReadSeekCloserStat, error)
 	Create(path string) (io.WriteCloser, error)
+	Delete(path string) error
+	Rename(src, dest string) error
 }
 
 type GenericWriteCloser struct {

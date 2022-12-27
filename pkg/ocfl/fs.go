@@ -17,6 +17,11 @@ type FileSeeker interface {
 	//Stat() (fs.FileInfo, error)
 }
 
+type CloserAt interface {
+	io.ReaderAt
+	io.Closer
+}
+
 type OCFLFSRead interface {
 	String() string
 	OpenSeeker(name string) (FileSeeker, error)
@@ -38,4 +43,5 @@ type OCFLFS interface {
 	Delete(name string) error
 	Discard() error
 	SubFSRW(subfolder string) (OCFLFS, error)
+	Rename(src, dest string) error
 }

@@ -53,8 +53,9 @@ func (s3SubFS *SubFS) ReadDir(path string) ([]fs.DirEntry, error) {
 
 func (s3SubFS *SubFS) WalkDir(path string, fn fs.WalkDirFunc) error {
 	path = filepath.ToSlash(filepath.Join(s3SubFS.pathPrefix, filepath.Clean(path)))
+	prefix := s3SubFS.pathPrefix + "/"
 	return s3SubFS.FS.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		return fn(strings.TrimLeft(path, s3SubFS.pathPrefix), d, err)
+		return fn(strings.TrimLeft(path, prefix), d, err)
 	})
 }
 

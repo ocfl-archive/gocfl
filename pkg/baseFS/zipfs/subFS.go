@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"strings"
 )
 
 type SubFS struct {
@@ -35,6 +36,11 @@ func (zipSubFS *SubFS) Open(name string) (fs.File, error) {
 	return zipSubFS.FS.Open(name)
 }
 
+func (zipSubFS *SubFS) ReadFile(name string) ([]byte, error) {
+	name = filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(name)))
+	return zipSubFS.FS.ReadFile(name)
+}
+
 func (zipSubFS *SubFS) Create(name string) (io.WriteCloser, error) {
 	name = filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(name)))
 	return zipSubFS.FS.Create(name)
@@ -52,7 +58,10 @@ func (zipSubFS *SubFS) ReadDir(path string) ([]fs.DirEntry, error) {
 
 func (zipSubFS *SubFS) WalkDir(path string, fn fs.WalkDirFunc) error {
 	path = filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(path)))
-	return zipSubFS.FS.WalkDir(path, fn)
+	prefix := zipSubFS.pathPrefix + "/"
+	return zipSubFS.FS.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		return fn(strings.TrimLeft(path, prefix), d, err)
+	})
 }
 
 func (zipSubFS *SubFS) Stat(path string) (fs.FileInfo, error) {

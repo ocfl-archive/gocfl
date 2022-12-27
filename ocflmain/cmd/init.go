@@ -10,7 +10,6 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"golang.org/x/exp/slices"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -62,84 +61,58 @@ func doInit(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("creating '%s'\n", ocflPath)
 
-	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
-	logger.Infof("creating '%s'", ocflPath)
+	daLogger.Infof("creating '%s'", ocflPath)
 
 	extensionFlags, err := getExtensionFlags(cmd)
 	if err != nil {
-		logger.Errorf("cannot get extension flags: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot get extension flags: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	finfo, err := os.Stat(ocflPath)
-	if err != nil {
-		if !(os.IsNotExist(err) && strings.HasSuffix(strings.ToLower(ocflPath), ".zip")) {
-			logger.Errorf("cannot stat '%s': %v", ocflPath, err)
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
-		}
-	} else {
-		if strings.HasSuffix(strings.ToLower(ocflPath), ".zip") {
-			logger.Errorf("path '%s' already exists", ocflPath)
-			fmt.Printf("path '%s' already exists\n", ocflPath)
-			return
-		}
-		if !finfo.IsDir() {
-			logger.Errorf("'%s' is not a directory", ocflPath)
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
-		}
-	}
+	fmt.Printf("creating '%s'\n", ocflPath)
 
-	extensionFactory, err := initExtensionFactory(logger, extensionFlags)
+	fsFactory, err := initializeFSFactory(daLogger)
 	if err != nil {
-		logger.Errorf("cannot initialize extension factory: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, "", logger)
-	if err != nil {
-		logger.Errorf("cannot initialize default extensions: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot create filesystem factory: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	tempFile := fmt.Sprintf("%s.tmp", ocflPath)
-	reader, writer, ocfs, tempActive, err := OpenRW(ocflPath, tempFile, logger)
+	destFS, err := fsFactory.GetFSRW(ocflPath)
 	if err != nil {
-		logger.Errorf("cannot create target filesystem: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	extensionFactory, err := initExtensionFactory(daLogger, extensionFlags)
+	if err != nil {
+		daLogger.Errorf("cannot initialize extension factory: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, "", daLogger)
+	if err != nil {
+		daLogger.Errorf("cannot initialize default extensions: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	if _, err = ocfl.CreateStorageRoot(ctx, ocfs, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), logger); err != nil {
-		ocfs.Discard()
-		logger.Errorf("cannot create new storageroot: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+	if _, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), daLogger); err != nil {
+		destFS.Discard()
+		daLogger.Errorf("cannot create new storageroot: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if err := ocfs.Close(); err != nil {
-		logger.Errorf("error closing filesystem '%s': %v", ocfs, err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-	} else {
-		if reader != (*os.File)(nil) {
-			if err := reader.Close(); err != nil {
-				logger.Errorf("error closing reader: %v", err)
-			}
-		}
-		if err := writer.Close(); err != nil {
-			logger.Errorf("error closing writer: %v", err)
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		}
-		if tempActive {
-			if err := os.Rename(tempFile, ocflPath); err != nil {
-				logger.Errorf("cannot rename '%s' -> '%s': %v", tempFile, ocflPath, err)
-			}
-		}
+
+	if err := destFS.Close(); err != nil {
+		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
 	}
 
 }

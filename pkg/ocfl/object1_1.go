@@ -12,7 +12,7 @@ type ObjectV1_1 struct {
 	*ObjectBase
 }
 
-func newObjectV1_1(ctx context.Context, fs OCFLFS, storageRoot StorageRoot, logger *logging.Logger) (*ObjectV1_1, error) {
+func newObjectV1_1(ctx context.Context, fs OCFLFSRead, storageRoot StorageRoot, logger *logging.Logger) (*ObjectV1_1, error) {
 	ob, err := newObjectBase(ctx, fs, Version1_1, storageRoot, logger)
 	if err != nil {
 		return nil, errors.WithStack(err)

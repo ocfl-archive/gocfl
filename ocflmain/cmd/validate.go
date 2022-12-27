@@ -38,62 +38,57 @@ func validate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
-	logger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
 	extensionFlags, err := getExtensionFlags(cmd)
 	if err != nil {
-		logger.Errorf("cannot get extension flags: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot get extension flags: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	fmt.Printf("validating '%s'\n", ocflPath)
 
-	extensionFactory, err := ocfl.NewExtensionFactory(logger)
+	extensionFactory, err := initExtensionFactory(daLogger, extensionFlags)
 	if err != nil {
-		logger.Errorf("cannot instantiate extension factory: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot initialize extension factory: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if err := initExtensionFactory(extensionFactory, extensionFlags); err != nil {
-		logger.Errorf("cannot initialize extension factory: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-	/*
-		storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, flagExtensionFolder, logger)
-		if err != nil {
-			logger.Errorf("cannot initialize default extensions: %v", err)
-			return
-		}
-	*/
 
-	ocfs, err := OpenRO(ocflPath, logger)
+	fsFactory, err := initializeFSFactory(daLogger)
 	if err != nil {
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot create filesystem factory: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
+	destFS, err := fsFactory.GetFS(ocflPath)
+	if err != nil {
+		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocfs, extensionFactory, logger)
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
-		logger.Errorf("cannot load storageroot: %v", err)
-		logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Errorf("cannot load storageroot: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	if objectPath == "" {
 		if err := storageRoot.Check(); err != nil {
-			logger.Errorf("ocfl not valid: %v", err)
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Errorf("ocfl not valid: %v", err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			return
 		}
 	} else {
 		if err := storageRoot.CheckObject(objectPath); err != nil {
-			logger.Errorf("ocfl object '%s' not valid: %v", objectPath, err)
-			logger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Errorf("ocfl object '%s' not valid: %v", objectPath, err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			return
 		}
 	}

@@ -41,6 +41,14 @@ func (osFS *FS) String() string {
 	return fmt.Sprintf("file://%s", osFS.folder)
 }
 
+func (osFS *FS) Rename(src, dest string) error {
+	src = strings.Trim(filepath.ToSlash(filepath.Clean(src)), "/")
+	src = filepath.Join(osFS.folder, src)
+	dest = strings.Trim(filepath.ToSlash(filepath.Clean(dest)), "/")
+	dest = filepath.Join(osFS.folder, dest)
+	return errors.Wrapf(os.Rename(src, dest), "cannot rename '%s' --> '%s'", src, dest)
+}
+
 func (osFS *FS) IsNotExist(err error) bool {
 	err = errors.Cause(err)
 	return os.IsNotExist(err) || err == syscall.ENOENT
@@ -160,11 +168,14 @@ func (osFS *FS) WalkDir(root string, fn fs.WalkDirFunc) error {
 				return nil
 			}
 		*/
-		if len(path) <= lb {
+		if len(path) < lb {
 			return errors.Errorf("path '%s' not a subpath of '%s'", path, basepath)
 		}
-		path = path[lb+1:]
-		return fn(filepath.ToSlash(path), d, err)
+		path = path[lb:]
+		if path == "" {
+			return nil
+		}
+		return fn(strings.TrimLeft(filepath.ToSlash(path), "/"), d, err)
 	})
 }
 

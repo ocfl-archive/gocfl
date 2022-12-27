@@ -15,7 +15,8 @@ import (
 
 type StorageRootBase struct {
 	ctx              context.Context
-	fs               OCFLFS
+	fsRO             OCFLFSRead
+	fsRW             OCFLFS
 	extensionFactory *ExtensionFactory
 	extensionManager *ExtensionManager
 	changed          bool
@@ -28,15 +29,18 @@ type StorageRootBase struct {
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootBase, error) {
+func NewStorageRootBase(ctx context.Context, fs OCFLFSRead, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:              ctx,
-		fs:               fs,
+		fsRO:             fs,
 		extensionFactory: extensionFactory,
 		version:          defaultVersion,
 		//		digest:           digest,
 		logger: logger,
+	}
+	if rwFS, ok := fs.(OCFLFS); ok {
+		ocfl.fsRW = rwFS
 	}
 	ocfl.extensionManager, err = NewExtensionManager()
 	if err != nil {
@@ -57,38 +61,41 @@ func (osr *StorageRootBase) setModified() {
 }
 
 func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs)
+	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fsRO)
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationErrors(osr.ctx, valError)
 }
 
 func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fs)
+	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fsRO)
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationWarnings(osr.ctx, valError)
 }
 
 func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, extensions []Extension) error {
+	if osr.fsRW == nil {
+		return errors.New("filesystem is read only")
+	}
 	var err error
 	osr.logger.Debug()
 
 	osr.version = version
 	osr.digest = digest
 
-	entities, err := osr.fs.ReadDir(".")
+	entities, err := osr.fsRO.ReadDir(".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read storage root directory")
 	}
 	if len(entities) > 0 {
 		osr.addValidationError(E069, "storage root not empty")
-		return errors.Wrapf(GetValidationError(version, E069), "storage root %v not empty", osr.fs)
+		return errors.Wrapf(GetValidationError(version, E069), "storage root %v not empty", osr.fsRW)
 	}
 
 	rootConformanceDeclaration := "ocfl_" + string(osr.version)
 	rootConformanceDeclarationFile := "0=" + rootConformanceDeclaration
-	rcd, err := osr.fs.Create(rootConformanceDeclarationFile)
+	rcd, err := osr.fsRW.Create(rootConformanceDeclarationFile)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", rootConformanceDeclarationFile)
 	}
@@ -106,14 +113,14 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		}
 	}
 	osr.extensionManager.Finalize()
-	subfs, err := osr.fs.SubFSRW("extensions")
+	subfs, err := osr.fsRW.SubFSRW("extensions")
 	if err == nil {
 		osr.extensionManager.SetFS(subfs)
 		if err := osr.extensionManager.WriteConfig(); err != nil {
 			return errors.Wrap(err, "cannot store extension configs")
 		}
 	}
-	if err := osr.extensionManager.StoreRootLayout(osr.fs); err != nil {
+	if err := osr.extensionManager.StoreRootLayout(osr.fsRW); err != nil {
 		return errors.Wrap(err, "cannot store ocfl layout")
 	}
 
@@ -124,7 +131,7 @@ func (osr *StorageRootBase) Load() error {
 	var err error
 	osr.logger.Debug()
 
-	osr.version, err = getVersion(osr.ctx, osr.fs, ".", "ocfl_")
+	osr.version, err = getVersion(osr.ctx, osr.fsRO, ".", "ocfl_")
 	if err != nil {
 		switch err {
 		case errVersionNone:
@@ -141,7 +148,7 @@ func (osr *StorageRootBase) Load() error {
 		osr.version = Version1_0
 	}
 	// read storage layout from extension folder...
-	exts, err := osr.fs.ReadDir("extensions")
+	exts, err := osr.fsRO.ReadDir("extensions")
 	if err != nil {
 		// if directory does not exist - no problem
 		if err != fs.ErrNotExist {
@@ -151,9 +158,9 @@ func (osr *StorageRootBase) Load() error {
 	}
 	for _, extFolder := range exts {
 		extFolder := fmt.Sprintf("extensions/%s", extFolder.Name())
-		subfs, err := osr.fs.SubFS(extFolder)
+		subfs, err := osr.fsRO.SubFS(extFolder)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fs, extFolder)
+			return errors.Wrapf(err, "cannot create subfs of %v for %s", osr.fsRO, extFolder)
 		}
 
 		if ext, err := osr.extensionFactory.Create(subfs); err != nil {
@@ -185,12 +192,15 @@ func (osr *StorageRootBase) CreateExtension(fs OCFLFSRead) (Extension, error) {
 }
 
 func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error {
+	if osr.fsRW == nil {
+		return errors.New("filesystem is read only")
+	}
 	extConfig := fmt.Sprintf("extensions/%s/config.json", name)
 	cfgJson, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return errors.Wrapf(err, "cannot marshal extension %s config [%v]", name, config)
 	}
-	w, err := osr.fs.Create(extConfig)
+	w, err := osr.fsRW.Create(extConfig)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create file %s", extConfig)
 	}
@@ -201,7 +211,7 @@ func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error 
 }
 
 func (osr *StorageRootBase) GetFiles() ([]string, error) {
-	dirs, err := osr.fs.ReadDir("")
+	dirs, err := osr.fsRO.ReadDir("")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folders of storage root")
 	}
@@ -216,7 +226,7 @@ func (osr *StorageRootBase) GetFiles() ([]string, error) {
 }
 
 func (osr *StorageRootBase) GetFolders() ([]string, error) {
-	dirs, err := osr.fs.ReadDir("")
+	dirs, err := osr.fsRO.ReadDir("")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folders of storage root")
 	}
@@ -239,9 +249,9 @@ func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot build storage path for id %s", id)
 	}
-	subFS, err := osr.fs.SubFS(folder)
+	subFS, err := osr.fsRO.SubFS(folder)
 	if err != nil {
-		return false, errors.Wrapf(err, "cannot create subfs %s of %v", folder, osr.fs)
+		return false, errors.Wrapf(err, "cannot create subfs %s of %v", folder, osr.fsRO)
 	}
 	return subFS.HasContent(), nil
 }
@@ -250,7 +260,7 @@ func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 	var recurse func(base string) ([]string, error)
 	recurse = func(base string) ([]string, error) {
-		des, err := osr.fs.ReadDir(base)
+		des, err := osr.fsRO.ReadDir(base)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot read content of %s", base)
 		}
@@ -294,16 +304,16 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 }
 
 func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
-	version, err := getVersion(osr.ctx, osr.fs, folder, "ocfl_object_")
+	version, err := getVersion(osr.ctx, osr.fsRO, folder, "ocfl_object_")
 	if err == errVersionNone {
 		osr.addValidationError(E003, "no version in folder '%s'", folder)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in '%s'", folder)
 	}
-	subfs, err := osr.fs.SubFSRW(folder)
+	subfs, err := osr.fsRO.SubFS(folder)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", osr.fs, folder)
+		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", osr.fsRO, folder)
 	}
 	object, err := newObject(osr.ctx, subfs, version, osr, osr.logger)
 	if err != nil {
@@ -339,10 +349,13 @@ func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error)
 }
 
 func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error) {
+	if osr.fsRW == nil {
+		return nil, errors.New("filesystem is read only")
+	}
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
-	subfs, err := osr.fs.SubFSRW(folder)
+	subfs, err := osr.fsRW.SubFSRW(folder)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fs, folder)
+		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fsRW, folder)
 	}
 
 	object, err := newObject(osr.ctx, subfs, version, osr, osr.logger)
@@ -383,7 +396,7 @@ func (osr *StorageRootBase) Check() error {
 
 func (osr *StorageRootBase) CheckDirectory() (err error) {
 	// An OCFL Storage Root must contain a Root Conformance Declaration identifying it as such.
-	files, err := osr.fs.ReadDir(".")
+	files, err := osr.fsRO.ReadDir(".")
 	if err != nil {
 		return errors.Wrap(err, "cannot get files")
 	}

@@ -5,7 +5,7 @@
 # NOTICE = 3
 # INFO = 4
 # DEBUG = 5
-LogLevel="INFO"
+LogLevel="DEBUG"
 # --log-file
 #logFile="C:/temp/gocfl.log"
 

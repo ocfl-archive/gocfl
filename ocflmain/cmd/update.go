@@ -116,18 +116,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_, err = os.Stat(ocflPath)
-	if err != nil {
-		if !(os.IsNotExist(err) && strings.HasSuffix(strings.ToLower(ocflPath), ".zip")) {
-			daLogger.Errorf("cannot stat '%s': %v", ocflPath, err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
-		}
-		daLogger.Errorf("path '%s' does not exist", ocflPath)
-		fmt.Printf("path '%s' does not exists\n", ocflPath)
-		return
-	}
-
 	extensionFactory, err := initExtensionFactory(daLogger, extensionFlags)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)

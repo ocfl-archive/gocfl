@@ -22,55 +22,38 @@ func (b *BaseFS) SetFSFactory(factory *baseFS.Factory) {
 	b.factory = factory
 }
 
-func (b *BaseFS) Valid(path string) bool {
+func (b *BaseFS) valid(path string) bool {
 	return strings.HasSuffix(strings.ToLower(path), ".zip")
 }
 
-type readSeekerToReaderAt struct {
-	readSeeker io.ReadSeeker
+type readSeekCloserToCloserAt struct {
+	readSeeker io.ReadSeekCloser
 }
 
-func (stra *readSeekerToReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
+func (stra *readSeekCloserToCloserAt) ReadAt(p []byte, off int64) (n int, err error) {
 	if _, err := stra.readSeeker.Seek(off, io.SeekStart); err != nil {
 		return 0, errors.Wrapf(err, "cannot seek to offset %v", off)
 	}
 	return stra.readSeeker.Read(p)
 }
 
+func (stra *readSeekCloserToCloserAt) Close() error {
+	return errors.Wrap(stra.readSeeker.Close(), "cannot close")
+}
+
+func (b *BaseFS) Rename(src, dest string) error {
+	return baseFS.ErrPathNotSupported
+}
+
+func (b *BaseFS) Delete(path string) error {
+	return baseFS.ErrPathNotSupported
+}
+
 func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
-	fp, err := b.factory.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open '%s'", path)
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
 	}
-	zipReader, ok := fp.(baseFS.ReadSeekCloserStat)
-	if !ok {
-		return nil, errors.Errorf("no FileSeeker for '%s'", path)
-	}
-	fi, err := zipReader.Stat()
-	if err != nil {
-		zipReader.Close()
-		return nil, errors.Wrapf(err, "cannot stat '%s'", path)
-	}
-	zipReaderAt, ok := zipReader.(io.ReaderAt)
-	if !ok {
-		zipReaderAt = &readSeekerToReaderAt{readSeeker: zipReader}
-	}
-	var zipWriter io.WriteCloser
-	pathTemp := path + ".tmp"
-	zipWriter, err = b.factory.Create(pathTemp)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
-	}
-	ocfs, err := NewFS(zipReaderAt, fi.Size(), zipWriter, func() error {
-		errs := []error{}
-		if zipReader != nil {
-			errs = append(errs, zipReader.Close())
-		}
-		if zipWriter != nil {
-			errs = append(errs, zipWriter.Close())
-		}
-		return errors.Combine(errs...)
-	}, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}
@@ -78,30 +61,10 @@ func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
 }
 
 func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
-	fp, err := b.factory.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open '%s'", path)
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
 	}
-	zipReader, ok := fp.(baseFS.ReadSeekCloserStat)
-	if !ok {
-		return nil, errors.Errorf("no FileSeeker for '%s'", path)
-	}
-	fi, err := zipReader.Stat()
-	if err != nil {
-		zipReader.Close()
-		return nil, errors.Wrapf(err, "cannot stat '%s'", path)
-	}
-	zipReaderAt, ok := zipReader.(io.ReaderAt)
-	if !ok {
-		zipReaderAt = &readSeekerToReaderAt{readSeeker: zipReader}
-	}
-	ocfs, err := NewFS(zipReaderAt, fi.Size(), nil, func() error {
-		errs := []error{}
-		if zipReader != nil {
-			errs = append(errs, zipReader.Close())
-		}
-		return errors.Combine(errs...)
-	}, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}
@@ -109,11 +72,11 @@ func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 }
 
 func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
-	return nil, errors.New("cannot open file inside ZIP")
+	return nil, baseFS.ErrPathNotSupported
 }
 
 func (b *BaseFS) Create(path string) (io.WriteCloser, error) {
-	return nil, errors.New("cannot create file inside ZIP")
+	return nil, baseFS.ErrPathNotSupported
 }
 
 var (

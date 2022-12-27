@@ -6,6 +6,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
@@ -15,6 +16,10 @@ import (
 	"strings"
 )
 
+func IsErrNotExist(err error) bool {
+	return errors.Cause(err) == fs.ErrNotExist
+}
+
 type nopCloserWriter struct {
 	io.Writer
 }
@@ -22,35 +27,72 @@ type nopCloserWriter struct {
 func (*nopCloserWriter) Close() error { return nil }
 
 type FS struct {
-	srcReader io.ReaderAt
-	dstWriter io.Writer
-	r         *zip.Reader
-	w         *zip.Writer
-	noCopy    []string
-	logger    *logging.Logger
-	closed    *bool
-	close     func() error
+	path, temp string
+	factory    *baseFS.Factory
+	srcReader  ocfl.CloserAt
+	dstWriter  io.WriteCloser
+	r          *zip.Reader
+	w          *zip.Writer
+	noCopy     []string
+	logger     *logging.Logger
+	closed     *bool
 }
 
-func NewFS(src io.ReaderAt, srcSize int64, dst io.Writer, close func() error, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
-	var err error
-	var isClosed bool
+	pathTemp := path + ".tmp"
+	fp, err := factory.Open(path)
+	if err != nil {
+		if IsErrNotExist(err) {
+			pathTemp = path
+		} else {
+			return nil, errors.Wrapf(err, "cannot open '%s'", path)
+		}
+	}
+	var zipReader baseFS.ReadSeekCloserStat
+	var zipReaderAt ocfl.CloserAt
+	var fileSize int64
+	var ok bool
+	if fp != nil {
+		zipReader, ok = fp.(baseFS.ReadSeekCloserStat)
+		if !ok {
+			return nil, errors.Errorf("no FileSeeker for '%s'", path)
+		}
+		fi, err := zipReader.Stat()
+		if err != nil {
+			zipReader.Close()
+			return nil, errors.Wrapf(err, "cannot stat '%s'", path)
+		}
+		fileSize = fi.Size()
+		zipReaderAt, ok = zipReader.(ocfl.CloserAt)
+		if !ok {
+			zipReaderAt = &readSeekCloserToCloserAt{readSeeker: zipReader}
+		}
+	}
+	var zipWriter io.WriteCloser
+	zipWriter, err = factory.Create(pathTemp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
+	}
+
+	isClosed := false
 	zfs := &FS{
 		noCopy:    []string{},
-		srcReader: src,
-		dstWriter: dst,
+		srcReader: zipReaderAt,
+		dstWriter: zipWriter,
 		logger:    logger,
 		closed:    &isClosed,
-		close:     close,
+		path:      path,
+		temp:      pathTemp,
+		factory:   factory,
 	}
-	if src != nil && src != (*os.File)(nil) {
-		if zfs.r, err = zip.NewReader(src, srcSize); err != nil {
+	if (zipWriter != nil && zipWriter != (*os.File)(nil)) && (zipReaderAt != nil && zipReaderAt != (*os.File)(nil)) {
+		if zfs.r, err = zip.NewReader(zipReaderAt, fileSize); err != nil {
 			return nil, errors.Wrap(err, "cannot create zip reader")
 		}
 	}
-	if dst != nil && dst != (*os.File)(nil) {
-		zfs.w = zip.NewWriter(dst)
+	if zipWriter != nil && zipWriter != (*os.File)(nil) {
+		zfs.w = zip.NewWriter(zipWriter)
 	}
 	return zfs, nil
 }
@@ -111,11 +153,33 @@ func (zipFS *FS) Close() error {
 		if err := zipFS.w.Close(); err != nil {
 			finalError = append(finalError, err)
 		}
-
 	}
-	finalError = append(finalError, zipFS.close())
-	return errors.Combine(finalError...)
+	/*
+		if err := zipFS.Close(); err != nil {
+			finalError = append(finalError, err)
+		}
+	*/
+	if zipFS.srcReader != nil {
+		if err := zipFS.srcReader.Close(); err != nil {
+			finalError = append(finalError, err)
+		}
+	}
+	if zipFS.dstWriter != nil {
+		if err := zipFS.dstWriter.Close(); err != nil {
+			finalError = append(finalError, err)
+		}
+	}
+	if len(finalError) > 0 {
+		return errors.Combine(finalError...)
+	}
+	if zipFS.temp != zipFS.path {
+		if err := zipFS.factory.Rename(zipFS.temp, zipFS.path); err != nil {
+			return errors.Wrap(err, "cannot rename on close")
+		}
+	}
+	return nil
 }
+
 func (zipFS *FS) Discard() error {
 	finalError := []error{}
 	if zipFS.w != nil {
@@ -351,6 +415,35 @@ func (zipFS *FS) Stat(path string) (fs.FileInfo, error) {
 		}
 	}
 	return nil, fs.ErrNotExist
+}
+
+func (zipFS *FS) Rename(src, dest string) error {
+	_, err := zipFS.Stat(dest)
+	if err != nil {
+		if !zipFS.IsNotExist(err) {
+			return errors.Wrapf(err, "cannot stat '%s'", dest)
+		}
+	} else {
+		if err := zipFS.Delete(dest); err != nil {
+			return errors.Wrapf(err, "cannot delete '%s'", dest)
+		}
+	}
+	// now, dest should not exist...
+
+	srcFP, err := zipFS.Open(src)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open '%s'", src)
+	}
+	defer srcFP.Close()
+	destFP, err := zipFS.Create(dest)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create '%s'", dest)
+	}
+	defer destFP.Close()
+	if _, err := io.Copy(destFP, srcFP); err != nil {
+		return errors.Wrapf(err, "cannot copy '%s' --> '%s'", src, dest)
+	}
+	return nil
 }
 
 func (zipFS *FS) SubFSRW(path string) (ocfl.OCFLFS, error) {

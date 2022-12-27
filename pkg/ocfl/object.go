@@ -28,11 +28,12 @@ type Object interface {
 	GetVersion() OCFLVersion
 	Check() error
 	Close() error
-	GetFS() OCFLFS
+	GetFS() OCFLFSRead
+	GetFSRW() OCFLFS
 	IsModified() bool
 }
 
-func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err error) {
+func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion, err error) {
 	files, err := ofs.ReadDir(".")
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get files")
@@ -65,7 +66,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFS) (version OCFLVersion, err
 	return version, nil
 }
 
-func newObject(ctx context.Context, fsys OCFLFS, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
+func newObject(ctx context.Context, fsys OCFLFSRead, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)

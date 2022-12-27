@@ -2,6 +2,8 @@ package s3fs
 
 import (
 	"emperror.dev/errors"
+	"fmt"
+	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
@@ -11,15 +13,17 @@ import (
 type BaseFS struct {
 	endpoint, accessKeyID, secretAccessKey, region string
 	useSSL                                         bool
+	logger                                         *logging.Logger
 }
 
-func NewBaseFS(endpoint, accessKeyID, secretAccessKey, region string, useSSL bool) (baseFS.FS, error) {
+func NewBaseFS(endpoint, accessKeyID, secretAccessKey, region string, useSSL bool, logger *logging.Logger) (baseFS.FS, error) {
 	bFS := &BaseFS{
 		endpoint:        endpoint,
 		accessKeyID:     accessKeyID,
 		secretAccessKey: secretAccessKey,
 		region:          region,
 		useSSL:          useSSL,
+		logger:          logger,
 	}
 	return bFS, nil
 }
@@ -27,11 +31,15 @@ func NewBaseFS(endpoint, accessKeyID, secretAccessKey, region string, useSSL boo
 func (b *BaseFS) SetFSFactory(factory *baseFS.Factory) {
 }
 
-func (b BaseFS) Valid(path string) bool {
+func (b BaseFS) valid(path string) bool {
 	return strings.HasPrefix(path, "bucket:")
 }
 
 func (b BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
+
 	if !strings.HasPrefix(path, "bucket:") {
 		return nil, errors.Errorf("invalid path '%s' (no bucket scheme)", path)
 	}
@@ -39,7 +47,7 @@ func (b BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
 	if len(parts) == 0 {
 		return nil, errors.Errorf("invalid path '%s' (no bucket name)", path)
 	}
-	f, err := NewFS(b.endpoint, b.accessKeyID, b.secretAccessKey, parts[0], b.region, b.useSSL)
+	f, err := NewFS(b.endpoint, b.accessKeyID, b.secretAccessKey, parts[0], b.region, b.useSSL, b.logger)
 	if err != nil {
 		return nil, errors.Errorf("cannot instantiate S3FS for '%s'", path)
 	}
@@ -50,6 +58,10 @@ func (b BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
 }
 
 func (b BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
+
 	if !strings.HasPrefix(path, "bucket:") {
 		return nil, errors.Errorf("invalid path '%s' (no bucket scheme)", path)
 	}
@@ -57,7 +69,7 @@ func (b BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	if len(parts) == 0 {
 		return nil, errors.Errorf("invalid path '%s' (no bucket name)", path)
 	}
-	f, err := NewFS(b.endpoint, b.accessKeyID, b.secretAccessKey, parts[0], b.region, b.useSSL)
+	f, err := NewFS(b.endpoint, b.accessKeyID, b.secretAccessKey, parts[0], b.region, b.useSSL, b.logger)
 	if err != nil {
 		return nil, errors.Errorf("cannot instantiate S3FS for '%s'", path)
 	}
@@ -68,6 +80,10 @@ func (b BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 }
 
 func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
+	}
+
 	if !strings.HasPrefix(path, "bucket:") {
 		return nil, errors.Errorf("invalid path '%s' (no bucket scheme)", path)
 	}
@@ -75,7 +91,7 @@ func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
 	if len(parts) < 2 {
 		return nil, errors.Errorf("invalid path '%s' (no bucket name)", path)
 	}
-	fsys, err := b.GetFS(path)
+	fsys, err := b.GetFS(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")))
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get filesystem")
 	}
@@ -94,14 +110,14 @@ func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
 }
 
 func (b *BaseFS) Create(path string) (io.WriteCloser, error) {
-	if !strings.HasPrefix(path, "bucket:") {
-		return nil, errors.Errorf("invalid path '%s' (no bucket scheme)", path)
+	if !b.valid(path) {
+		return nil, baseFS.ErrPathNotSupported
 	}
 	parts := strings.Split(path[len("bucket:"):], "/")
 	if len(parts) < 2 {
 		return nil, errors.Errorf("invalid path '%s' (no bucket name)", path)
 	}
-	fsys, err := b.GetFSRW(path)
+	fsys, err := b.GetFSRW(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")))
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get filesystem")
 	}
@@ -113,6 +129,28 @@ func (b *BaseFS) Create(path string) (io.WriteCloser, error) {
 	return baseFS.NewGenericWriteCloser(fp, func() error {
 		return fsys.Close()
 	})
+}
+
+func (b *BaseFS) Rename(src, dest string) error {
+	// s3 does not support rename functionality...
+	return baseFS.ErrPathNotSupported
+}
+
+func (b *BaseFS) Delete(path string) error {
+	if !b.valid(path) {
+		return baseFS.ErrPathNotSupported
+	}
+	parts := strings.Split(path[len("bucket:"):], "/")
+	if len(parts) < 2 {
+		return errors.Errorf("invalid path '%s' (no bucket name)", path)
+	}
+	fsys, err := b.GetFSRW(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")))
+	if err != nil {
+		return errors.Wrap(err, "cannot get filesystem")
+	}
+	defer fsys.Close()
+	fname := strings.Join(parts[1:], "/")
+	return errors.Wrapf(fsys.Delete(fname), "cannot delete '%s'", path)
 }
 
 var (

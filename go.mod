@@ -9,9 +9,11 @@ require (
 	emperror.dev/errors v0.8.0
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
 	github.com/je4/utils/v2 v2.0.7-0.20221205154750-6b88ba5d32b5
+	github.com/minio/minio-go/v7 v7.0.45
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.10.0
+	github.com/superbrothers/httpdebugger v0.0.0-20170129141753-1cecd8d615dd
 	github.com/thediveo/enumflag v0.10.1
 	golang.org/x/crypto v0.3.0
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
@@ -28,7 +30,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.1.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.45 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

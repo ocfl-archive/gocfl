@@ -33,7 +33,7 @@ type StorageRoot interface {
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
-func newStorageRoot(ctx context.Context, fs OCFLFS, version OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+func newStorageRoot(ctx context.Context, fs OCFLFSRead, version OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
 	switch version {
 	case Version1_0:
 		sr, err := NewStorageRootV1_0(ctx, fs, extensionFactory, logger)
@@ -76,17 +76,37 @@ func CreateStorageRoot(ctx context.Context, fs OCFLFS, version OCFLVersion, exte
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, fs OCFLFS, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+func LoadStorageRoot(ctx context.Context, fs OCFLFSRead, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
 	version, err := getVersion(ctx, fs, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
 	}
 	if version == "" {
-		cnt, err := fs.ReadDir(".")
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot read storage root directory")
+		if fs.HasContent() {
+			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fs)
+			addValidationErrors(ctx, err)
+			//			return nil, err
 		}
-		if len(cnt) > 0 {
+		version = Version1_1
+	}
+	storageRoot, err := newStorageRoot(ctx, fs, version, extensionFactory, logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot instantiate storage root")
+	}
+
+	if err := storageRoot.Load(); err != nil {
+		return nil, errors.Wrap(err, "cannot load storage root")
+	}
+	return storageRoot, nil
+}
+
+func LoadStorageRootRO(ctx context.Context, fs OCFLFSRead, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+	version, err := getVersion(ctx, fs, ".", "ocfl_")
+	if err != nil && err != errVersionNone {
+		return nil, errors.WithStack(err)
+	}
+	if version == "" {
+		if fs.HasContent() {
 			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fs)
 			addValidationErrors(ctx, err)
 			//			return nil, err

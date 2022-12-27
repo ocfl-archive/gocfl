@@ -25,7 +25,8 @@ type ObjectBase struct {
 	storageRoot        StorageRoot
 	extensionManager   *ExtensionManager
 	ctx                context.Context
-	fs                 OCFLFS
+	fsRW               OCFLFS
+	fsRO               OCFLFSRead
 	i                  Inventory
 	versionFolders     []string
 	versionInventories map[string]Inventory
@@ -39,10 +40,10 @@ type ObjectBase struct {
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fs OCFLFSRead, defaultVersion OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:         ctx,
-		fs:          fs,
+		fsRO:        fs,
 		version:     defaultVersion,
 		storageRoot: storageRoot,
 		extensionManager: &ExtensionManager{
@@ -51,6 +52,9 @@ func newObjectBase(ctx context.Context, fs OCFLFS, defaultVersion OCFLVersion, s
 			objectContentPath: []ExtensionObjectContentPath{},
 		},
 		logger: logger,
+	}
+	if rwFS, ok := fs.(OCFLFS); ok {
+		ocfl.fsRW = rwFS
 	}
 	return ocfl, nil
 }
@@ -62,21 +66,25 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID())
+	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fsRO, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationErrors(object.ctx, valError)
 }
 
 func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fs, object.GetID())
+	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fsRO, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationWarnings(object.ctx, valError)
 }
 
-func (object *ObjectBase) GetFS() OCFLFS {
-	return object.fs
+func (object *ObjectBase) GetFS() OCFLFSRead {
+	return object.fsRO
+}
+
+func (object *ObjectBase) GetFSRW() OCFLFS {
+	return object.fsRW
 }
 func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
 	inventory, err := newInventory(object.ctx, object, "new", object.GetVersion(), object.logger)
@@ -125,11 +133,11 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			addValidationErrors(object.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object '%s'", object.fs))
-			addValidationErrors(object.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object '%s'", object.fs))
+			addValidationErrors(object.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object '%s'", object.fsRO))
+			addValidationErrors(object.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object '%s'", object.fsRO))
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				addValidationErrors(object.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object '%s'", object.fs))
+				addValidationErrors(object.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object '%s'", object.fsRO))
 			}
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
@@ -142,8 +150,8 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
-	iFp, err := object.fs.Open(filename)
-	if object.fs.IsNotExist(err) {
+	iFp, err := object.fsRO.Open(filename)
+	if object.fsRO.IsNotExist(err) {
 		return nil, err
 		//object.addValidationError(E063, "no inventory file in '%s'", object.fs.String())
 	}
@@ -165,9 +173,9 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 
 	// check digest for inventory
 	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
-	sidecarBytes, err := object.fs.ReadFile(sidecarPath)
+	sidecarBytes, err := object.fsRO.ReadFile(sidecarPath)
 	if err != nil {
-		if object.fs.IsNotExist(err) {
+		if object.fsRO.IsNotExist(err) {
 			object.addValidationError(E058, "sidecar '%s' does not exist", sidecarPath)
 		} else {
 			object.addValidationError(E060, "cannot read sidecar '%s': %v", sidecarPath, err.Error())
@@ -197,6 +205,9 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 }
 
 func (object *ObjectBase) StoreInventory() error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 	object.logger.Debug()
 
 	// check whether object filesystem is writeable
@@ -219,7 +230,7 @@ func (object *ObjectBase) StoreInventory() error {
 	}
 	checksumBytes := h.Sum(nil)
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
-	iWriter, err := object.fs.Create(iFileName)
+	iWriter, err := object.fsRW.Create(iFileName)
 	if err != nil {
 		iWriter.Close()
 		return errors.Wrap(err, "cannot create inventory.json")
@@ -232,7 +243,7 @@ func (object *ObjectBase) StoreInventory() error {
 	}
 
 	iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
-	iWriter, err = object.fs.Create(iFileName)
+	iWriter, err = object.fsRW.Create(iFileName)
 	if err != nil {
 		return errors.Wrap(err, "cannot create inventory.json")
 	}
@@ -244,7 +255,7 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrapf(err, "cannot close '%s'", iFileName)
 	}
 	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
-	iCSWriter, err := object.fs.Create(csFileName)
+	iCSWriter, err := object.fsRW.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", csFileName)
 	}
@@ -256,7 +267,7 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrapf(err, "cannot close '%s'", csFileName)
 	}
 	csFileName = fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
-	iCSWriter, err = object.fs.Create(csFileName)
+	iCSWriter, err = object.fsRW.Create(csFileName)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", csFileName)
 	}
@@ -271,6 +282,9 @@ func (object *ObjectBase) StoreInventory() error {
 }
 
 func (object *ObjectBase) StoreExtensions() error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 	object.logger.Debug()
 
 	if err := object.extensionManager.WriteConfig(); err != nil {
@@ -279,13 +293,16 @@ func (object *ObjectBase) StoreExtensions() error {
 	return nil
 }
 func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 	object.logger.Debugf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
 	// first check whether object is not empty
-	fp, err := object.fs.Open(objectConformanceDeclarationFile)
+	fp, err := object.fsRO.Open(objectConformanceDeclarationFile)
 	if err == nil {
 		// not empty, close it and return error
 		if err := fp.Close(); err != nil {
@@ -293,14 +310,14 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 		}
 		return fmt.Errorf("cannot create object '%s'. '%s' already exists", id, objectConformanceDeclarationFile)
 	}
-	cnt, err := object.fs.ReadDir(".")
+	cnt, err := object.fsRO.ReadDir(".")
 	if err != nil && err != fs.ErrNotExist {
 		return errors.Wrapf(err, "cannot read '%s'", ".")
 	}
 	if len(cnt) > 0 {
 		return fmt.Errorf("'%s' is not empty", ".")
 	}
-	rfp, err := object.fs.Create(objectConformanceDeclarationFile)
+	rfp, err := object.fsRW.Create(objectConformanceDeclarationFile)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", objectConformanceDeclarationFile)
 	}
@@ -330,7 +347,7 @@ func (object *ObjectBase) Load() (err error) {
 	//	return err
 	//}
 	// read path from extension folder...
-	exts, err := object.fs.ReadDir("extensions")
+	exts, err := object.fsRO.ReadDir("extensions")
 	if err != nil {
 		// if directory does not exist - no problem
 		if err != fs.ErrNotExist {
@@ -344,9 +361,9 @@ func (object *ObjectBase) Load() (err error) {
 			continue
 		}
 		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
-		subfs, err := object.fs.SubFS(extConfig)
+		subfs, err := object.fsRO.SubFS(extConfig)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for '%s'", object.fs, extConfig)
+			return errors.Wrapf(err, "cannot create subfs of %v for '%s'", object.fsRO, extConfig)
 		}
 		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
@@ -413,12 +430,15 @@ func (object *ObjectBase) Close() error {
 }
 
 func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string, echo bool) error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	object.echo = echo
 
-	subfs, err := object.fs.SubFSRW("extensions")
+	subfs, err := object.fsRW.SubFSRW("extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fs, "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsRW, "extensions")
 	}
 	object.extensionManager.SetFS(subfs)
 
@@ -475,6 +495,9 @@ func (object *ObjectBase) AddFolder(fsys OCFLFSRead, checkDuplicate bool, area s
 }
 
 func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, area string) error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
@@ -489,7 +512,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, ar
 	}
 
 	targetFilename := object.i.BuildRealname(internalFilename)
-	writer, err := object.fs.Create(targetFilename)
+	writer, err := object.fsRW.Create(targetFilename)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
@@ -520,6 +543,9 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, ar
 }
 
 func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string) error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 	//object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
 	// paranoia
 	path = filepath.ToSlash(path)
@@ -591,7 +617,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	}
 
 	targetFilename := object.i.BuildRealname(internalFilename)
-	writer, err := object.fs.Create(targetFilename)
+	writer, err := object.fsRW.Create(targetFilename)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
@@ -622,6 +648,9 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 }
 
 func (object *ObjectBase) DeleteFile(virtualFilename string, reader io.Reader, digest string) error {
+	if object.fsRW == nil {
+		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+	}
 	virtualFilename = filepath.ToSlash(virtualFilename)
 	object.logger.Debugf("removing '%s' [%s]", virtualFilename, digest)
 
@@ -659,7 +688,7 @@ func (object *ObjectBase) GetVersion() OCFLVersion {
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
 func (object *ObjectBase) checkVersionFolder(version string) error {
-	versionEntries, err := object.fs.ReadDir(version)
+	versionEntries, err := object.fsRO.ReadDir(version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
 	}
@@ -702,7 +731,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		if _, ok := objectContentFiles[ver]; !ok {
 			objectContentFiles[ver] = []string{}
 		}
-		object.fs.WalkDir(
+		object.fsRO.WalkDir(
 			ver,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
@@ -727,9 +756,9 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			},
 		)
 		if len(objectContentFiles[ver]) == 0 {
-			fi, err := object.fs.Stat(versionContent)
+			fi, err := object.fsRO.Stat(versionContent)
 			if err != nil {
-				if !object.fs.IsNotExist(err) {
+				if !object.fsRO.IsNotExist(err) {
 					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
 				}
 			} else {
@@ -771,7 +800,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		digestAlg := inv.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
 		allowedDirs := []string{inv.GetContentDir()}
-		versionEntries, err := object.fs.ReadDir(ver)
+		versionEntries, err := object.fsRO.ReadDir(ver)
 		if err != nil {
 			object.addValidationError(E010, "cannot read version folder '%s'", ver)
 			continue
@@ -917,7 +946,7 @@ func (object *ObjectBase) Check() error {
 	// check for allowed files and directories
 	allowedDirs := append(versions, "logs", "extensions")
 	versionCounter := 0
-	entries, err := object.fs.ReadDir(".")
+	entries, err := object.fsRO.ReadDir(".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read object folder")
 	}
@@ -975,7 +1004,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	checksumWriter := checksum.NewChecksumWriter(digestAlgorithms)
 	versions := object.i.GetVersionStrings()
 	for _, version := range versions {
-		if err := object.fs.WalkDir(
+		if err := object.fsRO.WalkDir(
 			//fmt.Sprintf("%s/%s", version, object.i.GetContentDir()),
 			version,
 			func(path string, d fs.DirEntry, err error) error {
@@ -983,7 +1012,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 				if d.IsDir() {
 					return nil
 				}
-				fp, err := object.fs.Open(path)
+				fp, err := object.fsRO.Open(path)
 				if err != nil {
 					return errors.Wrapf(err, "cannot open file '%s'", path)
 				}
@@ -1028,7 +1057,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) 
 	for _, ver := range versionStrings {
 		vi, err := object.LoadInventory(ver)
 		if err != nil {
-			if object.fs.IsNotExist(err) {
+			if object.fsRO.IsNotExist(err) {
 				object.addValidationWarning(W010, "no inventory for version '%s'", ver)
 				continue
 			}

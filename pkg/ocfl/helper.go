@@ -107,7 +107,7 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
-func getVersion(ctx context.Context, fs OCFLFS, folder, prefix string) (version OCFLVersion, err error) {
+func getVersion(ctx context.Context, fs OCFLFSRead, folder, prefix string) (version OCFLVersion, err error) {
 	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)
 	if err != nil {
