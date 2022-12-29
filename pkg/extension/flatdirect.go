@@ -44,6 +44,11 @@ func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*Storage
 	return sl, nil
 }
 
+func (sl *StorageLayoutFlatDirect) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.StorageLayoutFlatDirectConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *StorageLayoutFlatDirect) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }

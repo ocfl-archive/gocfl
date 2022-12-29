@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"golang.org/x/exp/slices"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 type StorageRootBase struct {
@@ -449,6 +452,58 @@ func (osr *StorageRootBase) CheckObjects() error {
 	for _, objectFolder := range objectFolders {
 		if err := osr.CheckObject(objectFolder); err != nil {
 			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
+func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo []StatInfo) error {
+	fmt.Fprintf(w, "Storage Root\n")
+	fmt.Fprintf(w, "OCFL Version: %s\n", osr.GetVersion())
+	if path == "" && id == "" {
+		objectFolders, err := osr.GetObjectFolders()
+		if err != nil {
+			return errors.Wrap(err, "cannot get object folders")
+		}
+		fmt.Fprintf(w, "Object Folders: %s\n", strings.Join(objectFolders, ", "))
+		data, err := json.MarshalIndent(osr.extensionManager.ExtensionManagerConfig, "", "  ")
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal ExtensionManagerconfig")
+		}
+		if slices.Contains(statInfo, StatExtensionConfigs) || len(statInfo) == 0 {
+			fmt.Fprintf(w, "Initial Extension:\n---\n%s\n---\n", string(data))
+			fmt.Fprintf(w, "Extension Configurations:\n")
+			for _, ext := range osr.extensionManager.extensions {
+				fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString())
+			}
+		}
+		if slices.Contains(statInfo, StatObjects) || len(statInfo) == 0 {
+			for _, oFolder := range objectFolders {
+				o, err := osr.LoadObjectByFolder(oFolder)
+				if err != nil {
+					return errors.Wrapf(err, "cannot open object in folder '%s'", oFolder)
+				}
+				fmt.Fprintf(w, "Object: %s\n", oFolder)
+				if err := o.Stat(w, statInfo); err != nil {
+					return errors.Wrapf(err, "cannot show stats for object in folder '%s'", oFolder)
+				}
+			}
+		}
+	} else {
+		var o Object
+		var err error
+		if path != "" {
+			o, err = osr.LoadObjectByFolder(path)
+		} else {
+			o, err = osr.LoadObjectByID(id)
+		}
+		if err != nil {
+			fmt.Fprintf(w, "cannot load object '%s%s': %v\n", path, id, err)
+			return errors.Wrapf(err, "cannot load object '%s%s'", path, id)
+		}
+		fmt.Fprintf(w, "Object: %s%s\n", path, id)
+		if err := o.Stat(w, statInfo); err != nil {
+			return errors.Wrapf(err, "cannot show stats for object '%s%s'", path, id)
 		}
 	}
 	return nil

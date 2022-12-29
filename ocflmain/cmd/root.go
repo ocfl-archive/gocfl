@@ -86,6 +86,8 @@ var flagDigest DigestFlag
 // var flagVersion VersionFlag
 var flagObjectID string
 
+var flagStatInfo = []string{}
+
 // var flagMessage string
 // var flagUserName string
 // var flagUserAddress string
@@ -212,8 +214,9 @@ func init() {
 	initCreate()
 	initAdd()
 	initUpdate()
-	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd)
-	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd)
+	initStat()
+	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd)
+	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd)
 }
 
 func Execute() {

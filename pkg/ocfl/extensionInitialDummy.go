@@ -40,6 +40,11 @@ func (dummy *InitialDummy) GetName() string {
 	return ExtensionManagerName
 }
 
+func (dummy *InitialDummy) GetConfigString() string {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (dummy *InitialDummy) WriteConfig() error {
 	panic("never call me")
 }

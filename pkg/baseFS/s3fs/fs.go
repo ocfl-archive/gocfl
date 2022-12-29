@@ -37,7 +37,7 @@ func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL
 	fs.client, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
-		Transport: NewDebuggingRoundTripper(
+		/* Transport: NewDebuggingRoundTripper(
 			&http.Transport{},
 			logger,
 			JustURL,
@@ -46,7 +46,7 @@ func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL
 			RequestHeaders,
 			ResponseStatus,
 			// ResponseHeaders,
-		),
+		) ,*/
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create s3 client instance")

@@ -18,6 +18,7 @@ type Extension interface {
 	GetName() string
 	SetFS(fs OCFLFS)
 	WriteConfig() error
+	GetConfigString() string
 }
 type ExtensionStorageRootPath interface {
 	WriteLayout(fs OCFLFS) error

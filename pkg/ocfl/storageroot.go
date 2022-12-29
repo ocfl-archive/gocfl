@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"io"
 	"regexp"
 )
 
@@ -29,6 +30,7 @@ type StorageRoot interface {
 	IsModified() bool
 	setModified()
 	GetVersion() OCFLVersion
+	Stat(w io.Writer, path string, id string, statInfo []StatInfo) error
 }
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
@@ -123,3 +125,8 @@ func LoadStorageRootRO(ctx context.Context, fs OCFLFSRead, extensionFactory *Ext
 	}
 	return storageRoot, nil
 }
+
+var (
+	_ StorageRoot = &StorageRootV1_0{}
+	_ StorageRoot = &StorageRootV1_1{}
+)

@@ -114,6 +114,11 @@ func encodeUTFCode(s string) string {
 
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
+func (sl *DirectClean) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.DirectCleanConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *DirectClean) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }

@@ -70,6 +70,11 @@ func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }
 
+func (sl *StorageLayoutHashAndIdNTuple) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.StorageLayoutHashAndIdNTupleConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *StorageLayoutHashAndIdNTuple) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }

@@ -31,6 +31,7 @@ type Object interface {
 	GetFS() OCFLFSRead
 	GetFSRW() OCFLFS
 	IsModified() bool
+	Stat(w io.Writer, statInfo []StatInfo) error
 }
 
 func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion, err error) {

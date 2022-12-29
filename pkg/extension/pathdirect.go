@@ -48,6 +48,12 @@ func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }
 func (sl *PathDirect) GetName() string { return PathDirectName }
+
+func (sl *PathDirect) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.PathDirectConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *PathDirect) WriteLayout(fs ocfl.OCFLFS) error {
 	configWriter, err := fs.Create("ocfl_layout.json")
 	if err != nil {

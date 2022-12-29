@@ -60,6 +60,12 @@ func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFS) {
 }
 
 func (sl *ContentSubPath) GetName() string { return ContentSubPathName }
+
+func (sl *ContentSubPath) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.ContentSubPathConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *ContentSubPath) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")

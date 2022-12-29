@@ -23,6 +23,11 @@ type ExtensionManager struct {
 	fs                 OCFLFS
 }
 
+func (manager *ExtensionManager) GetConfigString() string {
+	str, _ := json.MarshalIndent(manager.ExtensionManagerConfig, "", "  ")
+	return string(str)
+}
+
 type ExtensionManagerConfig struct {
 	*ExtensionConfig
 	Sort      map[string][]string   `json:"sort"`

@@ -98,6 +98,11 @@ func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }
 func (sl *StorageLayoutPairTree) IsStorageRootExtension() bool { return true }
 func (sl *StorageLayoutPairTree) GetName() string              { return StorageLayoutPairTreeName }
 
+func (sl *StorageLayoutPairTree) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.StorageLayoutPairTreeConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *StorageLayoutPairTree) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")

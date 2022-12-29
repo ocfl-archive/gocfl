@@ -21,7 +21,7 @@ var addCmd = &cobra.Command{
 	Short:   "adds new object to existing ocfl structure",
 	Long:    "opens an existing ocfl structure and adds a new object. if an object with the given id already exists, an error is produced",
 	Example: "gocfl add ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'",
-	Args:    cobra.ExactArgs(2),
+	Args:    cobra.MinimumNArgs(2),
 	Run:     doAdd,
 }
 
@@ -58,6 +58,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
+	area := "content"
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
@@ -145,6 +146,20 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	var areaPaths = map[string]ocfl.OCFLFSRead{}
+	for i := 2; i < len(args); i++ {
+		matches := areaPathRegexp.FindStringSubmatch(args[i])
+		if matches == nil {
+			continue
+		}
+		areaPaths[matches[1]], err = fsFactory.GetFS(matches[2])
+		if err != nil {
+			daLogger.Errorf("cannot get filesystem for '%s': %v", args[i], err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
+	}
+
 	extensionFactory, err := initExtensionFactory(daLogger, extensionFlags)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
@@ -184,12 +199,24 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if exists {
-		fmt.Printf("Object '%s' already exists, exiting", flagObjectID)
+	if !exists {
+		fmt.Printf("Object '%s' does not exist, exiting", flagObjectID)
 		return
 	}
 
-	_, err = addObjectByPath(storageRoot, fixityAlgs, objectExtensions, flagDeduplicate, flagObjectID, flagUserName, flagUserAddress, flagMessage, sourceFS, "", nil, false)
+	_, err = addObjectByPath(
+		storageRoot,
+		fixityAlgs,
+		objectExtensions,
+		flagDeduplicate,
+		flagObjectID,
+		flagUserName,
+		flagUserAddress,
+		flagMessage,
+		sourceFS,
+		area,
+		areaPaths,
+		false)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

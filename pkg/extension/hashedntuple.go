@@ -69,6 +69,11 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 
 func (sl *StorageLayoutHashedNTuple) GetName() string { return StorageLayoutHashedNTupleName }
 
+func (sl *StorageLayoutHashedNTuple) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.StorageLayoutHashedNTupleConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *StorageLayoutHashedNTuple) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }

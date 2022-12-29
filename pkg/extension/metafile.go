@@ -88,6 +88,12 @@ func (sl *MetaFile) SetFS(fs ocfl.OCFLFS) {
 }
 
 func (sl *MetaFile) GetName() string { return MetaFileName }
+
+func (sl *MetaFile) GetConfigString() string {
+	str, _ := json.MarshalIndent(sl.MetaFileConfig, "", "  ")
+	return string(str)
+}
+
 func (sl *MetaFile) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")

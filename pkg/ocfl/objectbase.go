@@ -79,6 +79,49 @@ func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format
 	addValidationWarnings(object.ctx, valError)
 }
 
+func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
+	fmt.Fprintf(w, "[%s] Digest: %s\n", object.GetID(), object.GetDigestAlgorithm())
+	i := object.GetInventory()
+	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
+	m := i.GetManifest()
+	if slices.Contains(statInfo, StatObjectVersions) || len(statInfo) == 0 {
+		for vString, version := range i.GetVersions() {
+			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)
+			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), version.User.User.Name.string, version.User.User.Address.string)
+			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), version.Created.String())
+			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), version.Message.string)
+			if slices.Contains(statInfo, StatObjectVersionState) || len(statInfo) == 0 {
+				state := version.State.State
+				for cs, sList := range state {
+					for _, s := range sList {
+						fmt.Fprintf(w, "[%s]        %s\n", object.GetID(), s)
+						if slices.Contains(statInfo, StatObjectManifest) || len(statInfo) == 0 {
+							ms, ok := m[cs]
+							if ok {
+								for _, m := range ms {
+									fmt.Fprintf(w, "[%s]           %s\n", object.GetID(), m)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if slices.Contains(statInfo, StatObjectExtensionConfigs) || len(statInfo) == 0 {
+		data, err := json.MarshalIndent(object.extensionManager.ExtensionManagerConfig, "", "  ")
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
+		}
+		fmt.Fprintf(w, "[%s] Initial Extension:\n---\n%s\n---\n", object.GetID(), string(data))
+		fmt.Fprintf(w, "[%s] Extension Configurations:\n", object.GetID())
+		for _, ext := range object.extensionManager.extensions {
+			fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString())
+		}
+	}
+	return nil
+}
+
 func (object *ObjectBase) GetFS() OCFLFSRead {
 	return object.fsRO
 }
@@ -176,15 +219,15 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	sidecarBytes, err := object.fsRO.ReadFile(sidecarPath)
 	if err != nil {
 		if object.fsRO.IsNotExist(err) {
-			object.addValidationError(E058, "sidecar '%s' does not exist", sidecarPath)
+			object.addValidationError(E058, "sidecar '%s/%s' does not exist", object.fsRO, sidecarPath)
 		} else {
-			object.addValidationError(E060, "cannot read sidecar '%s': %v", sidecarPath, err.Error())
+			object.addValidationError(E060, "cannot read sidecar '%s/%s': %v", object.fsRO, sidecarPath, err.Error())
 		}
 		//		object.addValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
 		if !strings.HasSuffix(digestString, " inventory.json") {
-			object.addValidationError(E061, "no suffix \" inventory.json\" in '%s'", sidecarPath)
+			object.addValidationError(E061, "no suffix \" inventory.json\" in '%s/%s'", object.fsRO, sidecarPath)
 		} else {
 			digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 			h, err := checksum.GetHash(digest)
@@ -200,7 +243,6 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 			}
 		}
 	}
-
 	return inventory, inventory.Finalize(false)
 }
 
@@ -239,7 +281,7 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
 	if err := iWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", iFileName)
+		return errors.Wrapf(err, "cannot close '%s/%s'", object.fsRW, iFileName)
 	}
 
 	iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
@@ -252,31 +294,31 @@ func (object *ObjectBase) StoreInventory() error {
 		return errors.Wrap(err, "cannot write to inventory.json")
 	}
 	if err := iWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", iFileName)
+		return errors.Wrapf(err, "cannot close '%s/%s'", object.fsRW, iFileName)
 	}
 	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
 	iCSWriter, err := object.fsRW.Create(csFileName)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", csFileName)
+		return errors.Wrapf(err, "cannot create '%s/%s'", object.fsRW, csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 		iCSWriter.Close()
-		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
+		return errors.Wrapf(err, "cannot write to '%s/%s'", object.fsRW, csFileName)
 	}
 	if err := iCSWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", csFileName)
+		return errors.Wrapf(err, "cannot close '%s/%s'", object.fsRW, csFileName)
 	}
 	csFileName = fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
 	iCSWriter, err = object.fsRW.Create(csFileName)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", csFileName)
+		return errors.Wrapf(err, "cannot create '%s/%s'", object.fsRW, csFileName)
 	}
 	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 		iCSWriter.Close()
 		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
 	}
 	if err := iCSWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", csFileName)
+		return errors.Wrapf(err, "cannot close '%s/%s'", object.fsRW, csFileName)
 	}
 	return nil
 }
@@ -292,6 +334,7 @@ func (object *ObjectBase) StoreExtensions() error {
 	}
 	return nil
 }
+
 func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error {
 	if object.fsRW == nil {
 		return errors.Errorf("read only filesystem '%s'", object.fsRO)
@@ -308,25 +351,25 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 		if err := fp.Close(); err != nil {
 			return errors.Wrapf(err, "cannot close '%s'", objectConformanceDeclarationFile)
 		}
-		return fmt.Errorf("cannot create object '%s'. '%s' already exists", id, objectConformanceDeclarationFile)
+		return fmt.Errorf("cannot create object '%s'. '%s/%s' already exists", id, object.fsRO, objectConformanceDeclarationFile)
 	}
 	cnt, err := object.fsRO.ReadDir(".")
 	if err != nil && err != fs.ErrNotExist {
-		return errors.Wrapf(err, "cannot read '%s'", ".")
+		return errors.Wrapf(err, "cannot read '%s/%s'", object.fsRO, ".")
 	}
 	if len(cnt) > 0 {
-		return fmt.Errorf("'%s' is not empty", ".")
+		return fmt.Errorf("'%s/%s' is not empty", ".", object.fsRO)
 	}
 	rfp, err := object.fsRW.Create(objectConformanceDeclarationFile)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot create '%s/%s'", object.fsRW, objectConformanceDeclarationFile)
 	}
 	if _, err := rfp.Write([]byte(objectConformanceDeclaration + "\n")); err != nil {
 		rfp.Close()
-		return errors.Wrapf(err, "cannot write into '%s'", objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot write into '%s/%s'", object.fsRW, objectConformanceDeclarationFile)
 	}
 	if err := rfp.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", objectConformanceDeclarationFile)
+		return errors.Wrapf(err, "cannot close '%s/%s'", object.fsRW, objectConformanceDeclarationFile)
 	}
 
 	for _, ext := range extensions {
@@ -351,13 +394,13 @@ func (object *ObjectBase) Load() (err error) {
 	if err != nil {
 		// if directory does not exist - no problem
 		if err != fs.ErrNotExist {
-			return errors.Wrap(err, "cannot read extensions folder")
+			return errors.Wrapf(err, "cannot read extensions folder %s/%s", object.fsRO, "extensions")
 		}
 		exts = []fs.DirEntry{}
 	}
 	for _, extFolder := range exts {
 		if !extFolder.IsDir() {
-			object.addValidationError(E067, "invalid file '%s' in extension dir", extFolder.Name())
+			object.addValidationError(E067, "invalid file '%s/%s' in extension dir", object.fsRO, extFolder.Name())
 			continue
 		}
 		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
@@ -367,7 +410,7 @@ func (object *ObjectBase) Load() (err error) {
 		}
 		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-			object.addValidationWarning(W013, "unknown extension in folder '%s'", extFolder.Name())
+			object.addValidationWarning(W013, "unknown extension in folder '%s'", subfs)
 		} else {
 			if err := object.extensionManager.Add(ext); err != nil {
 				return errors.Wrapf(err, "cannot add extension '%s'", extFolder.Name())
