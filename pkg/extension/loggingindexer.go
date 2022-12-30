@@ -3,6 +3,7 @@ package extension
 import (
 	"emperror.dev/errors"
 	"fmt"
+	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"net/url"
 )
@@ -16,6 +17,26 @@ type LoggingIndexerConfig struct {
 type LoggingIndexer struct {
 	*LoggingIndexerConfig
 	metadata map[string]any
+}
+
+func (li *LoggingIndexer) SetFS(fs ocfl.OCFLFS) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (li *LoggingIndexer) SetParams(params map[string]string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (li *LoggingIndexer) WriteConfig() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (li *LoggingIndexer) GetConfigString() string {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewLoggingIndexer(config *LoggingIndexerConfig) (*LoggingIndexer, error) {
@@ -51,7 +72,7 @@ func (li *LoggingIndexer) WriteLog(logfile io.Writer) error {
 	return nil
 
 }
-func (li *LoggingIndexer) WriteConfig(config io.Writer) error {
-	return nil
 
-}
+var (
+	_ ocfl.Extension = &LoggingIndexer{}
+)

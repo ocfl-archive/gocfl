@@ -103,6 +103,10 @@ func (sl *StorageLayoutPairTree) GetConfigString() string {
 	return string(str)
 }
 
+func (sl *StorageLayoutPairTree) SetParams(params map[string]string) error {
+	return nil
+}
+
 func (sl *StorageLayoutPairTree) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")

@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
-	"golang.org/x/exp/slices"
 	"os"
 	"regexp"
 )
@@ -102,7 +101,6 @@ var rootCmd = &cobra.Command{
 	Long: `A fast and reliable OCFL creator and validator created by University Library Basel.
                 https://go.ub.unibas.ch/gocfl`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
 		cmd.Help()
 	},
 }
@@ -140,49 +138,23 @@ func initConfig() {
 
 func setExtensionFlags(commands ...*cobra.Command) {
 	extensionParams := GetExtensionParams()
-	for _, command := range commands {
-		for ext, params := range extensionParams {
-			for _, param := range params {
-				if !slices.Contains(param.Functions, command.Name()) {
-					continue
-				}
-				flagName := fmt.Sprintf("ext-%s-%s", ext, param.Param)
-				if command.Flags().Lookup(flagName) == nil {
-					command.Flags().String(flagName, param.Default, param.Description)
-					if param.File != "" {
-						cfgName := fmt.Sprintf("%s.ext.%s.%s", command.Name(), ext, param.File)
-						viper.BindPFlag(cfgName, command.Flags().Lookup(flagName))
-					}
-				}
-			}
+	for _, cmd := range commands {
+		for _, param := range extensionParams {
+			param.SetParam(cmd)
 		}
 	}
 }
 
-func getExtensionFlags(command *cobra.Command) (map[string]map[string]string, error) {
-	var err error
-	var result = map[string]map[string]string{}
+func getExtensionFlags(command *cobra.Command) map[string]string {
+	var result = map[string]string{}
 	extensionParams := GetExtensionParams()
-	for ext, params := range extensionParams {
-		for _, param := range params {
-			if !slices.Contains(param.Functions, command.Name()) {
-				continue
-			}
-			flagName := fmt.Sprintf("ext-%s-%s", ext, param.Param)
-			if _, ok := result[ext]; !ok {
-				result[ext] = map[string]string{}
-			}
-			if param.File != "" {
-				cfgName := fmt.Sprintf("%s.ext.%s.%s", command.Name(), ext, param.File)
-				result[ext][param.Param] = viper.GetString(cfgName)
-			} else {
-				if result[ext][param.Param], err = command.Flags().GetString(flagName); err != nil {
-					return nil, errors.Wrapf(err, "cannot get flag '%s'", flagName)
-				}
-			}
+	for _, param := range extensionParams {
+		name, value := param.GetParam(command)
+		if name != "" {
+			result[name] = value
 		}
 	}
-	return result, nil
+	return result
 }
 
 func init() {
@@ -215,8 +187,10 @@ func init() {
 	initAdd()
 	initUpdate()
 	initStat()
-	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd)
-	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd)
+	initExtract()
+
+	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd)
+	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd)
 }
 
 func Execute() {

@@ -9,6 +9,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"path/filepath"
+	"strings"
 )
 
 const ContentSubPathName = "NNNN-content-subpath"
@@ -25,7 +26,20 @@ type ContentSubPathConfig struct {
 }
 type ContentSubPath struct {
 	*ContentSubPathConfig
-	fs ocfl.OCFLFS
+	fs   ocfl.OCFLFS
+	area string
+}
+
+func GetContentSubPathParams() []ocfl.ExtensionExternalParam {
+	return []ocfl.ExtensionExternalParam{
+		{
+			ExtensionName: ContentSubPathName,
+			Functions:     []string{"extract"},
+			Param:         "area",
+			File:          "area",
+			Description:   "subpath for extraction (default: 'content'). 'all' for complete extraction",
+		},
+	}
 }
 
 func NewContentSubPathFS(fsys ocfl.OCFLFSRead) (*ContentSubPath, error) {
@@ -57,6 +71,15 @@ func NewContentSubPath(config *ContentSubPathConfig) (*ContentSubPath, error) {
 
 func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
+}
+
+func (sl *ContentSubPath) SetParams(params map[string]string) error {
+	name := fmt.Sprintf("ext-%s-%s", ContentSubPathName, "area")
+	sl.area, _ = params[name]
+	if sl.area == "" {
+		sl.area = "content"
+	}
+	return nil
 }
 
 func (sl *ContentSubPath) GetName() string { return ContentSubPathName }
@@ -131,10 +154,27 @@ func (sl *ContentSubPath) BuildObjectExternalPath(object ocfl.Object, originalPa
 	return path, nil
 }
 
+func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string) (string, error) {
+	if sl.area == "full" {
+		return originalPath, nil
+	}
+	subpath, ok := sl.Paths[sl.area]
+	if !ok {
+		return "", errors.Errorf("invalid area '%s'", sl.area)
+	}
+	originalPath = strings.TrimLeft(originalPath, "/")
+	if !strings.HasPrefix(originalPath, subpath.Path) {
+		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, sl.area)
+	}
+	originalPath = strings.TrimLeft(strings.TrimPrefix(originalPath, subpath.Path), "/")
+	return originalPath, nil
+}
+
 // check interface satisfaction
 var (
 	_ ocfl.Extension                   = &ContentSubPath{}
 	_ ocfl.ExtensionObjectContentPath  = &ContentSubPath{}
 	_ ocfl.ExtensionObjectChange       = &ContentSubPath{}
 	_ ocfl.ExtensionObjectExternalPath = &ContentSubPath{}
+	_ ocfl.ExtensionObjectExtractPath  = &ContentSubPath{}
 )

@@ -14,13 +14,15 @@ type ExtensionFactory struct {
 	creators           map[string]creatorFunc
 	defaultStorageRoot []Extension
 	defaultObject      []Extension
+	extensionParams    map[string]string
 	logger             *logging.Logger
 }
 
-func NewExtensionFactory(logger *logging.Logger) (*ExtensionFactory, error) {
+func NewExtensionFactory(params map[string]string, logger *logging.Logger) (*ExtensionFactory, error) {
 	m := &ExtensionFactory{
-		creators: map[string]creatorFunc{},
-		logger:   logger,
+		creators:        map[string]creatorFunc{},
+		extensionParams: params,
+		logger:          logger,
 	}
 	return m, nil
 }
@@ -68,6 +70,9 @@ func (f *ExtensionFactory) create(fsys OCFLFSRead, data []byte) (Extension, erro
 	ext, err := creator(fsys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot initialize extension '%s'", name)
+	}
+	if err := ext.SetParams(f.extensionParams); err != nil {
+		return nil, errors.Wrapf(err, "cannot set params for extension '%s'", ext.GetName())
 	}
 	return ext, nil
 }

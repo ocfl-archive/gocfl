@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/op/go-logging"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	defaultextensions_object "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/storageroot"
@@ -20,8 +21,8 @@ import (
 	"os"
 )
 
-func initExtensionFactory(logger *logging.Logger, params map[string]map[string]string) (*ocfl.ExtensionFactory, error) {
-	extensionFactory, err := ocfl.NewExtensionFactory(logger)
+func initExtensionFactory(extensionParams map[string]string, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate extension factory")
 	}
@@ -59,22 +60,31 @@ func initExtensionFactory(logger *logging.Logger, params map[string]map[string]s
 	})
 
 	extensionFactory.AddCreator(extension.MetaFileName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
-		ps, ok := params[extension.MetaFileName]
-		if !ok {
-			return nil, errors.Errorf("no flags or config entries for extension '%s'", extension.MetaFileName)
-		}
-		return extension.NewMetaFileFS(fsys, ps)
+		return extension.NewMetaFileFS(fsys)
 	})
 
 	return extensionFactory, nil
 }
 
-func GetExtensionParams() map[string][]ocfl.ExtensionExternalParam {
-	var result = map[string][]ocfl.ExtensionExternalParam{}
+func GetExtensionParams() []ocfl.ExtensionExternalParam {
+	var result = []ocfl.ExtensionExternalParam{}
 
-	result[extension.IndexerName] = extension.GetIndexerParams()
-	result[extension.MetaFileName] = extension.GetMetaFileParams()
+	result = append(result, extension.GetIndexerParams()...)
+	result = append(result, extension.GetMetaFileParams()...)
+	result = append(result, extension.GetContentSubPathParams()...)
 
+	return result
+}
+
+func GetExtensionParamValues(cmd *cobra.Command) map[string]string {
+	var result = map[string]string{}
+	extParams := GetExtensionParams()
+	for _, param := range extParams {
+		name, value := param.GetParam(cmd)
+		if name != "" {
+			result[name] = value
+		}
+	}
 	return result
 }
 

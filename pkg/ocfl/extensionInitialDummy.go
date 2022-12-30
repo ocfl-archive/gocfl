@@ -40,6 +40,10 @@ func (dummy *InitialDummy) GetName() string {
 	return ExtensionManagerName
 }
 
+func (dummy *InitialDummy) SetParams(params map[string]string) error {
+	return nil
+}
+
 func (dummy *InitialDummy) GetConfigString() string {
 	//TODO implement me
 	panic("implement me")
@@ -52,3 +56,7 @@ func (dummy *InitialDummy) WriteConfig() error {
 func (dummy *InitialDummy) SetFS(fs OCFLFS) {
 	panic("never call me")
 }
+
+var (
+	_ Extension = &InitialDummy{}
+)

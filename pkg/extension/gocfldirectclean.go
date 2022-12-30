@@ -123,6 +123,10 @@ func (sl *DirectClean) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }
 
+func (sl *DirectClean) SetParams(params map[string]string) error {
+	return nil
+}
+
 func (sl *DirectClean) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")

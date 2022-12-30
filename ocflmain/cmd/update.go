@@ -88,13 +88,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
-	extensionFlags, err := getExtensionFlags(cmd)
-	if err != nil {
-		daLogger.Errorf("cannot get extension flags: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-
 	fmt.Printf("opening '%s'\n", ocflPath)
 	daLogger.Infof("opening '%s'", ocflPath)
 
@@ -116,7 +109,8 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	extensionFactory, err := initExtensionFactory(daLogger, extensionFlags)
+	extensionParams := GetExtensionParamValues(cmd)
+	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

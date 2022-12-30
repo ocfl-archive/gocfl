@@ -14,9 +14,10 @@ const IndexerDescription = "technical metadata for all files"
 func GetIndexerParams() []ocfl.ExtensionExternalParam {
 	return []ocfl.ExtensionExternalParam{
 		{
-			Param:       "indexer-url",
-			File:        "IndexerUrl",
-			Description: "url for indexer format recognition service",
+			ExtensionName: IndexerName,
+			Param:         "indexer-url",
+			File:          "IndexerUrl",
+			Description:   "url for indexer format recognition service",
 		},
 	}
 }
@@ -27,6 +28,11 @@ type IndexerConfig struct {
 type Indexer struct {
 	*IndexerConfig
 	fs ocfl.OCFLFS
+}
+
+func (sl *Indexer) GetConfigString() string {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewIndexerFS(fs ocfl.OCFLFS) (*Indexer, error) {
@@ -58,6 +64,10 @@ func (sl *Indexer) GetName() string { return IndexerName }
 
 func (sl *Indexer) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
+}
+
+func (sl *Indexer) SetParams(params map[string]string) error {
+	return nil
 }
 
 func (sl *Indexer) WriteConfig() error {
@@ -97,3 +107,7 @@ func (sl *Indexer) DeleteFileAfter(object ocfl.Object, dest string) error {
 	// nothing to do
 	return nil
 }
+
+var (
+	_ ocfl.Extension = &Indexer{}
+)

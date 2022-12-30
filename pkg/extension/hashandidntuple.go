@@ -19,6 +19,7 @@ type StorageLayoutHashAndIdNTuple struct {
 	hash hash.Hash
 	fs   ocfl.OCFLFS
 }
+
 type StorageLayoutHashAndIdNTupleConfig struct {
 	*ocfl.ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
@@ -77,6 +78,10 @@ func (sl *StorageLayoutHashAndIdNTuple) GetConfigString() string {
 
 func (sl *StorageLayoutHashAndIdNTuple) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
+}
+
+func (sl *StorageLayoutHashAndIdNTuple) SetParams(params map[string]string) error {
+	return nil
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) WriteConfig() error {

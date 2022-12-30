@@ -47,6 +47,11 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }
+
+func (sl *PathDirect) SetParams(params map[string]string) error {
+	return nil
+}
+
 func (sl *PathDirect) GetName() string { return PathDirectName }
 
 func (sl *PathDirect) GetConfigString() string {

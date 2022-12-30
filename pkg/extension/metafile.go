@@ -22,16 +22,18 @@ const MetaFileDescription = "adds a file in extension folder"
 func GetMetaFileParams() []ocfl.ExtensionExternalParam {
 	return []ocfl.ExtensionExternalParam{
 		{
-			Functions:   []string{"add", "update", "create"},
-			Param:       "source",
-			File:        "Source",
-			Description: "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
+			ExtensionName: MetaFileName,
+			Functions:     []string{"add", "update", "create"},
+			Param:         "source",
+			File:          "Source",
+			Description:   "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
 		},
 		{
-			Functions:   []string{"extract", "objectextension"},
-			Param:       "target",
-			File:        "Target",
-			Description: "url with metadata target folder",
+			ExtensionName: MetaFileName,
+			Functions:     []string{"extract", "objectextension"},
+			Param:         "target",
+			File:          "Target",
+			Description:   "url with metadata target folder",
 		},
 	}
 }
@@ -46,7 +48,7 @@ type MetaFile struct {
 	fs             ocfl.OCFLFS
 }
 
-func NewMetaFileFS(fsys ocfl.OCFLFSRead, params map[string]string) (*MetaFile, error) {
+func NewMetaFileFS(fsys ocfl.OCFLFSRead) (*MetaFile, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -61,26 +63,31 @@ func NewMetaFileFS(fsys ocfl.OCFLFSRead, params map[string]string) (*MetaFile, e
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	return NewMetaFile(config, params)
+	return NewMetaFile(config)
 }
-func NewMetaFile(config *MetaFileConfig, params map[string]string) (*MetaFile, error) {
+func NewMetaFile(config *MetaFileConfig) (*MetaFile, error) {
 	sl := &MetaFile{MetaFileConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-	if params != nil {
-		if urlString, ok := params["source"]; ok {
-			u, err := url.Parse(urlString)
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid url '%s'", urlString)
-			}
-			sl.metadataSource = u
-		}
 	}
 	if sl.metadataSource == nil {
 		return nil, errors.Errorf("no metadata-source for extension '%s'", MetaFileName)
 	}
 	return sl, nil
+}
+
+func (sl *MetaFile) SetParams(params map[string]string) error {
+	if params != nil {
+		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")
+		if urlString, ok := params[name]; ok {
+			u, err := url.Parse(urlString)
+			if err != nil {
+				return errors.Wrapf(err, "invalid url parameter '%s' - '%s'", name, urlString)
+			}
+			sl.metadataSource = u
+		}
+	}
+	return nil
 }
 
 func (sl *MetaFile) SetFS(fs ocfl.OCFLFS) {

@@ -65,13 +65,6 @@ func doInit(cmd *cobra.Command, args []string) {
 	defer lf.Close()
 	daLogger.Infof("creating '%s'", ocflPath)
 
-	extensionFlags, err := getExtensionFlags(cmd)
-	if err != nil {
-		daLogger.Errorf("cannot get extension flags: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-
 	fmt.Printf("creating '%s'\n", ocflPath)
 
 	fsFactory, err := initializeFSFactory(daLogger)
@@ -87,7 +80,9 @@ func doInit(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	extensionFactory, err := initExtensionFactory(daLogger, extensionFlags)
+
+	extensionParams := GetExtensionParamValues(cmd)
+	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

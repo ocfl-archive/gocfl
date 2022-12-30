@@ -53,6 +53,10 @@ func (sl *StorageLayoutFlatDirect) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }
 
+func (sl *StorageLayoutFlatDirect) SetParams(params map[string]string) error {
+	return nil
+}
+
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
 func (sl *StorageLayoutFlatDirect) WriteConfig() error {
 	if sl.fs == nil {
