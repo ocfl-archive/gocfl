@@ -25,6 +25,8 @@ type Inventory interface {
 	AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	CopyFile(dest string, digest string) error
 
+	IterateExternalFiles(version string, fn func(internal, external, digest string) error) error
+
 	//GetContentDirectory() string
 	GetVersionStrings() []string
 	GetVersions() map[string]*Version

@@ -1,7 +1,6 @@
 package ocfl
 
 import (
-	"emperror.dev/errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -85,7 +84,7 @@ type ExtensionObjectContentPath interface {
 	BuildObjectContentPath(object Object, originalPath string, area string) (string, error)
 }
 
-var ExtensionObjectExtractPathWrongAreaError = errors.New("invalid area")
+var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
 
 type ExtensionObjectExtractPath interface {
 	Extension
@@ -94,7 +93,7 @@ type ExtensionObjectExtractPath interface {
 
 type ExtensionObjectExternalPath interface {
 	Extension
-	BuildObjectExternalPath(object Object, originalPath string, area string) (string, error)
+	BuildObjectExternalPath(object Object, originalPath string) (string, error)
 }
 
 type ExtensionContentChange interface {

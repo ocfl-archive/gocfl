@@ -508,3 +508,46 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 	}
 	return nil
 }
+
+func (osr *StorageRootBase) Extract(fs OCFLFS, path, id, version string, withManifest bool) error {
+	if version == "" {
+		version = "latest"
+	}
+	if path == "" && id == "" {
+		osr.logger.Debugf("Extracting storage root with all objects version '%s'", version)
+		objectFolders, err := osr.GetObjectFolders()
+		if err != nil {
+			return errors.Wrap(err, "cannot get object folders")
+		}
+		for _, oFolder := range objectFolders {
+			o, err := osr.LoadObjectByFolder(oFolder)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open object in folder '%s'", oFolder)
+			}
+			subFS, err := fs.SubFSRW(oFolder)
+			if err != nil {
+				return errors.Wrapf(err, "cannot create subfolder '%s' of '%s'", oFolder, fs.String())
+			}
+			if err := o.Extract(subFS, version, withManifest); err != nil {
+				return errors.Wrapf(err, "cannot extract object in folder '%s'", oFolder)
+			}
+		}
+	} else {
+		osr.logger.Debugf("Extracting object '%s%s' with version '%s'", path, id, version)
+		var o Object
+		var err error
+		if path != "" {
+			o, err = osr.LoadObjectByFolder(path)
+		} else {
+			o, err = osr.LoadObjectByID(id)
+		}
+		if err != nil {
+			return errors.Wrapf(err, "cannot load object '%s%s'", path, id)
+		}
+		if err := o.Extract(fs, version, withManifest); err != nil {
+			return errors.Wrapf(err, "cannot extract object '%s%s'", path, id)
+		}
+	}
+	osr.logger.Debugf("extraction done")
+	return nil
+}

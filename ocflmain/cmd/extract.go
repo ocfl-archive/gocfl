@@ -25,7 +25,14 @@ var extractCmd = &cobra.Command{
 
 func initExtract() {
 	extractCmd.Flags().StringP("object-path", "p", "", "object path to show statistics for")
+
 	extractCmd.Flags().StringP("object-id", "i", "", "object id to show statistics for")
+
+	extractCmd.Flags().Bool("with-manifest", false, "generate manifest file in object extraction folder")
+	viper.BindPFlag("Extract.Manifest", extractCmd.Flags().Lookup("with-manifest"))
+
+	extractCmd.Flags().String("version", "latest", "version to extract")
+	viper.BindPFlag("Extract.Version", extractCmd.Flags().Lookup("version"))
 }
 
 func doExtract(cmd *cobra.Command, args []string) {
@@ -38,6 +45,12 @@ func doExtract(cmd *cobra.Command, args []string) {
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
+	}
+
+	withManifest := viper.GetBool("Extract.Manifest")
+	version := viper.GetString("Extract.Version")
+	if version == "" {
+		version = "latest"
 	}
 
 	oPath, _ := cmd.Flags().GetString("object-path")
@@ -99,5 +112,11 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var _ = storageRoot
+	if err := storageRoot.Extract(destFS, oPath, oID, version, withManifest); err != nil {
+		fmt.Printf("cannot extract storage root: %v\n", err)
+		daLogger.Errorf("cannot extract storage root: %v\n", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	fmt.Printf("extraction done without errors\n")
 }

@@ -211,6 +211,32 @@ func (i *InventoryBase) GetVersions() map[string]*Version {
 	return versions
 }
 
+func (i *InventoryBase) IterateExternalFiles(version string, fn func(internal, external, digest string) error) error {
+	if version == "latest" {
+		version = i.GetHead()
+	}
+	ver, err := i.Versions.GetVersion(version)
+	if err != nil {
+		return errors.Errorf("invalid version '%s'", version)
+	}
+	for digest, externalNames := range ver.State.State {
+		internalNames, ok := i.Manifest.Manifest[digest]
+		if !ok {
+			return errors.Errorf("no manifest for [%s]%s", digest, externalNames[0])
+		}
+		if len(internalNames) == 0 {
+			return errors.Errorf("invalid manifest for digest [%s]", digest)
+		}
+		internalName := internalNames[0]
+		for _, externalName := range externalNames {
+			if err := errors.WithStack(fn(internalName, externalName, digest)); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+	}
+	return nil
+}
+
 func (i *InventoryBase) VersionLessOrEqual(v1, v2 string) bool {
 	v1Int, ok := i.versionValue[v1]
 	if !ok {

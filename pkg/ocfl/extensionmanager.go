@@ -284,10 +284,10 @@ func (manager *ExtensionManager) BuildObjectContentPath(object Object, originalP
 }
 
 // ObjectExternalPath
-func (manager *ExtensionManager) BuildObjectExternalPath(object Object, originalPath string, area string) (string, error) {
+func (manager *ExtensionManager) BuildObjectExternalPath(object Object, originalPath string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectExternalPath {
-		p, err := ocp.BuildObjectExternalPath(object, originalPath, area)
+		p, err := ocp.BuildObjectExternalPath(object, originalPath)
 		if err != nil {
 			errs = append(errs, err)
 			continue

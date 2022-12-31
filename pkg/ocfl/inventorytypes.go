@@ -209,6 +209,14 @@ type OCFLVersions struct {
 	err      error
 }
 
+func (v *OCFLVersions) GetVersion(version string) (*Version, error) {
+	ver, ok := v.Versions[version]
+	if !ok {
+		return nil, errors.Errorf("invalid version '%s'", version)
+	}
+	return ver, nil
+}
+
 func (v *OCFLVersions) UnmarshalJSON(data []byte) error {
 	v.Versions = map[string]*Version{}
 	if err := json.Unmarshal(data, &v.Versions); err != nil {

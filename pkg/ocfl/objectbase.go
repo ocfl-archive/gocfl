@@ -431,7 +431,7 @@ func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 func (object *ObjectBase) echoDelete() error {
 	slices.Sort(object.updateFiles)
 	object.updateFiles = slices.Compact(object.updateFiles)
-	basePath, err := object.extensionManager.BuildObjectExternalPath(object, ".", object.area)
+	basePath, err := object.extensionManager.BuildObjectExternalPath(object, ".")
 	if err != nil {
 		return errors.Wrap(err, "cannot build external path for '.'")
 	}
@@ -614,7 +614,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		file.Close()
 	}()
 	var digest string
-	newPath, err := object.extensionManager.BuildObjectExternalPath(object, path, area)
+	newPath, err := object.extensionManager.BuildObjectExternalPath(object, path)
 	if err != nil {
 		return errors.Wrapf(err, "cannot map external path '%s'", path)
 	}
@@ -1127,4 +1127,67 @@ func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	slices.Sort(allDigestAlgs)
 	allDigestAlgs = slices.Compact(allDigestAlgs)
 	return allDigestAlgs, nil
+}
+
+func (object *ObjectBase) Extract(fs OCFLFS, version string, withManifest bool) error {
+	var manifest strings.Builder
+	var err error
+	var digestAlg = object.i.GetDigestAlgorithm()
+	if err := object.i.IterateExternalFiles(version, func(internal, external, digest string) error {
+		external, err = object.extensionManager.BuildObjectExternalPath(object, external)
+		if err != nil {
+			errCause := errors.Cause(err)
+			if errCause == ExtensionObjectExtractPathWrongAreaError {
+				return nil
+			}
+			return errors.Wrapf(err, "cannot map path '%s'", external)
+		}
+		if err := func() error {
+			src, err := object.fsRO.Open(internal)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open '%s/%s'", object.fsRO.String(), internal)
+			}
+			defer src.Close()
+			target, err := fs.Create(external)
+			if err != nil {
+				return errors.Wrapf(err, "cannot create '%s/%s'", fs.String(), external)
+			}
+			defer target.Close()
+			csWriter := checksum.NewChecksumWriter([]checksum.DigestAlgorithm{digestAlg})
+			object.logger.Debugf("writing '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
+			copyDigests, err := csWriter.Copy(target, src)
+			if err != nil {
+				return errors.Wrapf(err, "error copying '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
+			}
+			copyDigest, ok := copyDigests[digestAlg]
+			if !ok {
+				return errors.Errorf("no digest '%s' generatied", digestAlg)
+			}
+			if copyDigest != digest {
+				return errors.Errorf("invalid digest for '%s' - [%s] != [%s]", internal, copyDigests, digest)
+			}
+			return nil
+		}(); err != nil {
+			return err
+		}
+		if withManifest {
+			manifest.WriteString(fmt.Sprintf("%s %s\n", digest, external))
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "cannot iterate external files")
+	}
+	if withManifest {
+		manifestName := fmt.Sprintf("manifest.%s", digestAlg)
+		fp, err := fs.Create(manifestName)
+		if err != nil {
+			return errors.Wrapf(err, "cannot crate manifest file %s/%s", fs.String(), manifestName)
+		}
+		if _, err := io.WriteString(fp, manifest.String()); err != nil {
+			return errors.Wrapf(err, "cannot write manifest file %s/%s", fs.String(), manifestName)
+		}
+		defer fp.Close()
+	}
+	object.logger.Debugf("object '%s' extracted", object.GetID())
+	return nil
 }
