@@ -7,6 +7,7 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/exp/maps"
 	"hash"
 )
 
@@ -57,6 +58,8 @@ var hashFunc = map[DigestAlgorithm]func() hash.Hash{
 		return h
 	},
 }
+
+var DigestsNames = maps.Keys(hashFunc)
 
 func GetHash(csType DigestAlgorithm) (hash.Hash, error) {
 	f, ok := hashFunc[csType]

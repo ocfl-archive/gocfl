@@ -242,6 +242,7 @@ func (s3FS *FS) hasContent(prefix string) bool {
 	objectInfo, ok := <-chanObjectInfo
 	if ok {
 		if objectInfo.Err != nil {
+			cancel()
 			return true
 		}
 	}

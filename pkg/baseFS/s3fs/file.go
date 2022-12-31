@@ -21,7 +21,7 @@ func (s3f *File) Close() error {
 func (s3f *File) Stat() (fs.FileInfo, error) {
 	oInfo, err := s3f.Object.Stat()
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot stat '%s'", s3f.Object)
+		return nil, errors.Wrapf(err, "cannot stat '%v'", s3f.Object)
 	}
 	return FileInfo{
 		&oInfo,

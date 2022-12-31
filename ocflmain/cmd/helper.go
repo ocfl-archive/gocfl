@@ -10,7 +10,7 @@ import (
 	defaultextensions_object "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "go.ub.unibas.ch/gocfl/v2/data/defaultextensions/storageroot"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
-	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS/genericfs"
+	genericfs "go.ub.unibas.ch/gocfl/v2/pkg/baseFS/genericFS"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS/osfs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS/s3fs"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS/zipfs"

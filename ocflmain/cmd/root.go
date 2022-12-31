@@ -97,9 +97,10 @@ var areaPathRegexp = regexp.MustCompile("^([a-z]+):([^/].*)$")
 
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",
-	Short: "gocfl is a fast ocfl creator/validator with focus on zip containers",
-	Long: `A fast and reliable OCFL creator and validator created by University Library Basel.
-                https://go.ub.unibas.ch/gocfl`,
+	Short: "gocfl is a fast ocfl creator/extractor/validator with focus on zip containers",
+	Long: `A fast and reliable OCFL creator, extractor and validator.
+                https://go.ub.unibas.ch/gocfl
+                Jürgen Enge (University Library Basel, juergen@info-age.net)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
@@ -127,7 +128,7 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 		// fmt.Println(viper.AllSettings())
 	} else {
-		fmt.Printf("error reading config file %s: %v", viper.ConfigFileUsed(), err)
+		fmt.Printf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
 	}
 	persistentFlagLoglevel := viper.GetInt64("LogLevel")
 	if _, ok := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)]; !ok {

@@ -8,15 +8,19 @@
 LogLevel="DEBUG"
 # --log-file
 #logFile="C:/temp/gocfl.log"
-
+# --s3-access-key-id
 S3AccessKeyID="012c9e0ed7e3171e1112"
+# --s3-secret-access-key
 #S3SecretAccessKey=""
+# --s3-endpoint
 S3Endpoint="s3-zh.os.switch.ch"
 
 [Init]
-
+# --ocfl-version
 OCFLVersion="1.1" # supported versions 1.0 1.1
+# --digest
 DigestAlgorithm="sha512"
+# --default-storageroot-extensions
 # StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
 
 [Add]
@@ -26,6 +30,7 @@ UserName="Jürgen Enge"
 UserAddress="mailto:juergen@info-age.net"
 # --fixity
 Fixity="md5,sha256"
+# --digest
 DigestAlgorithm="sha512"
 # --message
 Message="Initial commit"
@@ -33,7 +38,8 @@ Message="Initial commit"
 # ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
-[Add.ext.NNNN-metadata]
+[Add.ext.NNNN-metafile]
+# --ext-NNNN-metafile-source
 #Source="C:/temp/$ID.json"
 
 [Update]
@@ -51,6 +57,7 @@ Echo=true # reflect deletion in source folder
 
 [Create]
 [Create.ext.NNNN-metadata]
+# --ext-NNNN-metafile-source
 #Source="C:/temp/$ID.json"
 
 [Stat]

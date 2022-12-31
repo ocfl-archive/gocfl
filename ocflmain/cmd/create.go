@@ -20,7 +20,7 @@ var createCmd = &cobra.Command{
 	Short:   "creates a new ocfl structure with initial content of one object",
 	Long: "initializes an empty ocfl structure and adds contents of a directory subtree to it\n" +
 		"This command is a combination of init and add",
-	Example: "gocfl create ./archive.zip /tmp/testdata --sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'",
+	Example: "gocfl create ./archive.zip /tmp/testdata --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'",
 	Args:    cobra.MinimumNArgs(2),
 	Run:     doCreate,
 }
@@ -29,7 +29,7 @@ func initCreate() {
 	createCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
 	viper.BindPFlag("Init.StorageRootExtensions", createCmd.Flags().Lookup("default-storageroot-extensions"))
 
-	createCmd.Flags().String("ocfl-version", "v", "ocfl version for new storage root")
+	createCmd.Flags().String("ocfl-version", "1.1", "ocfl version for new storage root")
 	viper.BindPFlag("Init.OCFLVersion", createCmd.Flags().Lookup("ocfl-version"))
 
 	createCmd.Flags().StringVarP(&flagObjectID, "object-id", "i", "", "object id to update (required)")
@@ -50,7 +50,7 @@ func initCreate() {
 	//	createCmd.MarkFlagRequired("user-address")
 	viper.BindPFlag("Add.UserAddress", createCmd.Flags().Lookup("user-address"))
 
-	createCmd.Flags().StringP("fixity", "f", "", "comma separated list of digest algorithms for fixity")
+	createCmd.Flags().StringP("fixity", "f", "", fmt.Sprintf("comma separated list of digest algorithms for fixity %v", checksum.DigestsNames))
 	viper.BindPFlag("Add.Fixity", createCmd.Flags().Lookup("fixity"))
 
 	createCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
