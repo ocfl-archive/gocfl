@@ -1,92 +1,216 @@
-# Go OCFL
+# Go OCFL Implementation
 
-OCFL Library
+This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
+and focuses on creation, update, validation and extraction of ocfl StorageRoots and Objects.
 
-## Getting started
+## Functionality
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- [x] Supports local filesystems
+- [x] Supports S3 Cloud Storage (via [MinIO Client SDK](https://github.com/minio/minio-go))
+- [ ] SFTP Storage
+- [ ] Google Cloud Storage
+- [x] storage root in ZIP files (native)
+- [x] Supports mixing of source and target storage systems
+- [x] Non blocking validation (does not stop on validation errors)
+- [x] Support for OCFL v1.0 and v1.1
+- [ ] Documentation for API
+- [x] Digest Algorithms for Manifest: SHA512, SHA256
+- [x] Fixity Algorithms: SHA1, SHA256, SHA512, BLAKE2b-160, BLAKE2b-256, BLAKE2b-384, BLAKE2b-512, MD5
+- [x] Concurrent checksum generation on ingest/extract (multi-threaded)
+- [x] minimized I/O (data is read and written only once on Object creation)#
+- [x] update strategy echo (incl. deletions) and contribute
+- [x] deduplication (needs double read of all content files, switchable)
+- [x] nearly full coverage of validation errors and warnings
+- [x] content information
+- [x] extraction with version selection
+- [Community Extensions](https://github.com/OCFL/extensions) 
+  - [ ] 0001-digest-algorithms
+  - [x] 0002-flat-direct-storage-layout
+  - [x] 0003-hash-and-id-n-tuple-storage-layout
+  - [x] 0004-hashed-n-tuple-storage-layout
+  - [ ] 0005-mutable-head
+  - [ ] 0006-flat-omit-prefix-storage-layout
+  - [ ] 0007-n-tuple-omit-prefix-storage-layout
+  - [ ] 0008-schema-registry
+- Local Extensions
+  - [x] [NNNN-pairtree-storage-layout](https://pythonhosted.org/Pairtree/pairtree.pairtree_client.PairtreeStorageClient-class.html) 
+  - [x] NNNN-direct-clean-path-layout
+  - [x] NNNN-content-subpath (integration of non-payload files in content)
+  - [x] NNNN-metafile (integration of one file into extension folder)
+  - [ ] NNNN-indexer (technical metadata indexing) 
+  - [x] NNNN-gocfl-extension-manager (initial extension for sorted exclusion and sorted execution)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## Command Line Interface
 
 ```
-cd existing_repo
-git remote add origin https://go.ub.unibas.ch/gocfl.git
-git branch -M main
-git push -uf origin main
+An OCFL creator, extractor and validator.
+      https://go.ub.unibas.ch/gocfl
+      Jürgen Enge (University Library Basel, juergen@info-age.net)
+
+Usage:
+gocfl [flags]
+gocfl [command]
+
+Available Commands:
+add         adds new object to existing ocfl structure
+completion  Generate the autocompletion script for the specified shell
+create      creates a new ocfl structure with initial content of one object
+extract     extract version of ocfl content
+help        Help about any command
+init        initializes an empty ocfl structure
+stat        statistics of an ocfl structure
+update      update object in existing ocfl structure
+validate    validates an ocfl structure
+
+Flags:
+      --config string                 config file (default is $HOME/.gocfl.toml)
+  -h, --help                          help for gocfl
+      --log-file string               log output file (default is console)
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --s3-access-key-id string       Access Key ID for S3 Buckets
+      --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-secret-access-key string   Secret Access Key for S3 Buckets
+
+Use "gocfl [command] --help" for more information about a command.
 ```
 
-## Integrate with your tools
+### create
+equals to storage root initialisation and addition auf one object (init/add).
+Mainly used for storage root's with only one object (i.e. in zip files)
 
-- [ ] [Set up project integrations](https://go.ub.unibas.ch/gocfl/-/settings/integrations)
+```
+Usage:
+  gocfl create [path to ocfl structure] [flags]
 
-## Collaborate with your team
+Examples:
+gocfl create ./archive.zip /tmp/testdata --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+Flags:
+      --deduplicate                             set flag to force deduplication (slower)
+      --default-object-extensions string        folder with initial extension configurations for new OCFL objects
+      --default-storageroot-extensions string   folder with initial extension configurations for new OCFL Storage Root
+  -d, --digest string                           digest to use for ocfl checksum
+      --ext-NNNN-metafile-source string         url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
+  -f, --fixity string                           comma separated list of digest algorithms for fixity [blake2b-512 md5 sha1 sha256 sha512 blake2b-160 blake2b-256 blake2b-384]
+  -h, --help                                    help for create
+  -m, --message string                          message for new object version (required)
+  -i, --object-id string                        object id to update (required)
+      --ocfl-version string                     ocfl version for new storage root (default "1.1")
+  -a, --user-address string                     user address for new object version (required)
+  -u, --user-name string                        user name for new object version (required)
 
-## Test and Deploy
+Global Flags:
+      --config string                 config file (default is $HOME/.gocfl.toml)
+      --log-file string               log output file (default is console)
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --s3-access-key-id string       Access Key ID for S3 Buckets
+      --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-secret-access-key string   Secret Access Key for S3 Buckets
+```
 
-Use the built-in continuous integration in GitLab.
+### stat
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+```
+Usage:
+  gocfl stat [path to ocfl structure] [flags]
 
-***
+Aliases:
+  stat, info
 
-# Editing this README
+Examples:
+gocfl stat ./archive.zip
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Flags:
+  -h, --help                    help for stat
+  -i, --object-id string        object id to show statistics for
+  -p, --object-path string      object path to show statistics for
+      --stat-info stringArray   info field to show. multiple use [ObjectFolders,ExtensionConfigs,Objects,ObjectVersions,ObjectVersionState,ObjectManifest,ObjectExtensionConfigs]
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Global Flags:
+      --config string                 config file (default is $HOME/.gocfl.toml)
+      --log-file string               log output file (default is console)
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --s3-access-key-id string       Access Key ID for S3 Buckets
+      --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-secret-access-key string   Secret Access Key for S3 Buckets
+```
 
-## Name
-Choose a self-explaining name for your project.
+### update
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+```
+Usage:
+  gocfl update [path to ocfl structure] [flags]
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Examples:
+gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Flags:
+      --echo                              set flag to update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'
+      --ext-NNNN-metafile-source string   url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
+  -h, --help                              help for update
+  -m, --message string                    message for new object version (required)
+      --no-deduplicate                    set flag to disable deduplication (faster)
+  -i, --object-id string                  object id to update (required)
+  -a, --user-address string               user address for new object version (required)
+  -u, --user-name string                  user name for new object version (required)
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Global Flags:
+      --config string                 config file (default is $HOME/.gocfl.toml)
+      --log-file string               log output file (default is console)
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --s3-access-key-id string       Access Key ID for S3 Buckets
+      --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-secret-access-key string   Secret Access Key for S3 Buckets
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### extract
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```
+Usage:
+  gocfl extract [path to ocfl structure] [path to target folder] [flags]
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Examples:
+gocfl extract ./archive.zip /tmp/archive
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Flags:
+      --ext-NNNN-content-subpath-area string   subpath for extraction (default: 'content'). 'all' for complete extraction
+      --ext-NNNN-metafile-target string        url with metadata target folder
+  -h, --help                                   help for extract
+  -i, --object-id string                       object id to show statistics for
+  -p, --object-path string                     object path to show statistics for
+      --version string                         version to extract (default "latest")
+      --with-manifest                          generate manifest file in object extraction folder
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Global Flags:
+      --config string                 config file (default is $HOME/.gocfl.toml)
+      --log-file string               log output file (default is console)
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --s3-access-key-id string       Access Key ID for S3 Buckets
+      --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-secret-access-key string   Secret Access Key for S3 Buckets
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+### validate
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```
+Usage:
+  gocfl validate [path to ocfl structure] [flags]
 
-## License
-For open source projects, say how it is licensed.
+Aliases:
+  validate, check
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Examples:
+gocfl validate ./archive.zip
+
+Flags:
+  -h, --help                 help for validate
+  -o, --object-path string   validate only the selected object in storage root
+
+Global Flags:
+      --config string                 config file (default is $HOME/.gocfl.toml)
+      --log-file string               log output file (default is console)
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --s3-access-key-id string       Access Key ID for S3 Buckets
+      --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-secret-access-key string   Secret Access Key for S3 Buckets
+```
