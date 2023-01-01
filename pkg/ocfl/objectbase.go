@@ -560,7 +560,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, ar
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
-	csw := checksum.NewChecksumWriter(digestAlgorithms)
+	csw := checksum.NewChecksumCopy(digestAlgorithms)
 	checksums, err := csw.Copy(writer, r)
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", internalFilename, targetFilename)
@@ -665,7 +665,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
-	csw := checksum.NewChecksumWriter(digestAlgorithms)
+	csw := checksum.NewChecksumCopy(digestAlgorithms)
 	checksums, err := csw.Copy(writer, file)
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
@@ -1044,7 +1044,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	}
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
-	checksumWriter := checksum.NewChecksumWriter(digestAlgorithms)
+	checksumWriter := checksum.NewChecksumCopy(digestAlgorithms)
 	versions := object.i.GetVersionStrings()
 	for _, version := range versions {
 		if err := object.fsRO.WalkDir(
@@ -1153,7 +1153,7 @@ func (object *ObjectBase) Extract(fs OCFLFS, version string, withManifest bool) 
 				return errors.Wrapf(err, "cannot create '%s/%s'", fs.String(), external)
 			}
 			defer target.Close()
-			csWriter := checksum.NewChecksumWriter([]checksum.DigestAlgorithm{digestAlg})
+			csWriter := checksum.NewChecksumCopy([]checksum.DigestAlgorithm{digestAlg})
 			object.logger.Debugf("writing '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
 			copyDigests, err := csWriter.Copy(target, src)
 			if err != nil {

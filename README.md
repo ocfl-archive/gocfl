@@ -3,6 +3,26 @@
 This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
 and focuses on creation, update, validation and extraction of ocfl StorageRoots and Objects.
 
+## Why
+There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
+which already exists. 
+
+### Container & I/O Performance
+
+Serialization of an OCFL Storage Root into a container format like ZIP should be possible 
+without much overhead on disk I/O. Therefor generation of an OCFL Container should be possible 
+with one Read and one Write Task. Including checksums and compression (ZIP). Without deduplication
+this library supports this functionality. 
+
+### Extensions
+
+Extensions described in the OCFL Standard are quite open in their functionality and can 
+belong to [Storage Root](https://ocfl.io/1.1/spec/#storage-root-extensions) or 
+[Object](https://ocfl.io/1.1/spec/#object-extensions). Since there's no specification of 
+a generic extension api, it's hard to integrate specific extension hooks into other 
+libraries. This library identifies 7 different hooks for extensions till now. 
+
+
 ## Functionality
 
 - [x] Supports local filesystems
@@ -17,7 +37,7 @@ and focuses on creation, update, validation and extraction of ocfl StorageRoots 
 - [x] Digest Algorithms for Manifest: SHA512, SHA256
 - [x] Fixity Algorithms: SHA1, SHA256, SHA512, BLAKE2b-160, BLAKE2b-256, BLAKE2b-384, BLAKE2b-512, MD5
 - [x] Concurrent checksum generation on ingest/extract (multi-threaded)
-- [x] minimized I/O (data is read and written only once on Object creation)#
+- [x] minimized I/O (data is read and written only once on Object creation)
 - [x] update strategy echo (incl. deletions) and contribute
 - [x] deduplication (needs double read of all content files, switchable)
 - [x] nearly full coverage of validation errors and warnings
@@ -74,143 +94,3 @@ Flags:
 Use "gocfl [command] --help" for more information about a command.
 ```
 
-### create
-equals to storage root initialisation and addition auf one object (init/add).
-Mainly used for storage root's with only one object (i.e. in zip files)
-
-```
-Usage:
-  gocfl create [path to ocfl structure] [flags]
-
-Examples:
-gocfl create ./archive.zip /tmp/testdata --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
-
-Flags:
-      --deduplicate                             set flag to force deduplication (slower)
-      --default-object-extensions string        folder with initial extension configurations for new OCFL objects
-      --default-storageroot-extensions string   folder with initial extension configurations for new OCFL Storage Root
-  -d, --digest string                           digest to use for ocfl checksum
-      --ext-NNNN-metafile-source string         url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
-  -f, --fixity string                           comma separated list of digest algorithms for fixity [blake2b-512 md5 sha1 sha256 sha512 blake2b-160 blake2b-256 blake2b-384]
-  -h, --help                                    help for create
-  -m, --message string                          message for new object version (required)
-  -i, --object-id string                        object id to update (required)
-      --ocfl-version string                     ocfl version for new storage root (default "1.1")
-  -a, --user-address string                     user address for new object version (required)
-  -u, --user-name string                        user name for new object version (required)
-
-Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
-      --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
-      --s3-access-key-id string       Access Key ID for S3 Buckets
-      --s3-endpoint string            Endpoint for S3 Buckets
-      --s3-secret-access-key string   Secret Access Key for S3 Buckets
-```
-
-### stat
-
-```
-Usage:
-  gocfl stat [path to ocfl structure] [flags]
-
-Aliases:
-  stat, info
-
-Examples:
-gocfl stat ./archive.zip
-
-Flags:
-  -h, --help                    help for stat
-  -i, --object-id string        object id to show statistics for
-  -p, --object-path string      object path to show statistics for
-      --stat-info stringArray   info field to show. multiple use [ObjectFolders,ExtensionConfigs,Objects,ObjectVersions,ObjectVersionState,ObjectManifest,ObjectExtensionConfigs]
-
-Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
-      --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
-      --s3-access-key-id string       Access Key ID for S3 Buckets
-      --s3-endpoint string            Endpoint for S3 Buckets
-      --s3-secret-access-key string   Secret Access Key for S3 Buckets
-```
-
-### update
-
-```
-Usage:
-  gocfl update [path to ocfl structure] [flags]
-
-Examples:
-gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
-
-Flags:
-      --echo                              set flag to update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'
-      --ext-NNNN-metafile-source string   url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
-  -h, --help                              help for update
-  -m, --message string                    message for new object version (required)
-      --no-deduplicate                    set flag to disable deduplication (faster)
-  -i, --object-id string                  object id to update (required)
-  -a, --user-address string               user address for new object version (required)
-  -u, --user-name string                  user name for new object version (required)
-
-Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
-      --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
-      --s3-access-key-id string       Access Key ID for S3 Buckets
-      --s3-endpoint string            Endpoint for S3 Buckets
-      --s3-secret-access-key string   Secret Access Key for S3 Buckets
-```
-
-### extract
-
-```
-Usage:
-  gocfl extract [path to ocfl structure] [path to target folder] [flags]
-
-Examples:
-gocfl extract ./archive.zip /tmp/archive
-
-Flags:
-      --ext-NNNN-content-subpath-area string   subpath for extraction (default: 'content'). 'all' for complete extraction
-      --ext-NNNN-metafile-target string        url with metadata target folder
-  -h, --help                                   help for extract
-  -i, --object-id string                       object id to show statistics for
-  -p, --object-path string                     object path to show statistics for
-      --version string                         version to extract (default "latest")
-      --with-manifest                          generate manifest file in object extraction folder
-
-Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
-      --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
-      --s3-access-key-id string       Access Key ID for S3 Buckets
-      --s3-endpoint string            Endpoint for S3 Buckets
-      --s3-secret-access-key string   Secret Access Key for S3 Buckets
-```
-
-### validate
-
-```
-Usage:
-  gocfl validate [path to ocfl structure] [flags]
-
-Aliases:
-  validate, check
-
-Examples:
-gocfl validate ./archive.zip
-
-Flags:
-  -h, --help                 help for validate
-  -o, --object-path string   validate only the selected object in storage root
-
-Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
-      --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
-      --s3-access-key-id string       Access Key ID for S3 Buckets
-      --s3-endpoint string            Endpoint for S3 Buckets
-      --s3-secret-access-key string   Secret Access Key for S3 Buckets
-```

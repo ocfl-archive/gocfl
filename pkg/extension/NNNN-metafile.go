@@ -219,7 +219,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	if sl.Versioned {
 		allTargets = append(allTargets, buf)
 	}
-	csWriter := checksum.NewChecksumWriter([]checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()})
+	csWriter := checksum.NewChecksumCopy([]checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()})
 
 	mw := io.MultiWriter(allTargets...)
 	digests, err := csWriter.Copy(mw, rc)
