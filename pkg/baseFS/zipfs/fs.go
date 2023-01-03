@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
@@ -27,18 +28,19 @@ type nopCloserWriter struct {
 func (*nopCloserWriter) Close() error { return nil }
 
 type FS struct {
-	path, temp string
-	factory    *baseFS.Factory
-	srcReader  ocfl.CloserAt
-	dstWriter  io.WriteCloser
-	r          *zip.Reader
-	w          *zip.Writer
-	noCopy     []string
-	logger     *logging.Logger
-	closed     *bool
+	path, temp     string
+	factory        *baseFS.Factory
+	srcReader      ocfl.CloserAt
+	dstWriter      io.WriteCloser
+	r              *zip.Reader
+	w              *zip.Writer
+	noCopy         []string
+	logger         *logging.Logger
+	closed         *bool
+	checksumWriter *checksum.ChecksumWriter
 }
 
-func NewFS(path string, factory *baseFS.Factory, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	pathTemp := path + ".tmp"
 	fp, err := factory.Open(path)
@@ -92,7 +94,12 @@ func NewFS(path string, factory *baseFS.Factory, logger *logging.Logger) (*FS, e
 		}
 	}
 	if zipWriter != nil && zipWriter != (*os.File)(nil) {
-		zfs.w = zip.NewWriter(zipWriter)
+		if len(digestAlgorithms) > 0 {
+			zfs.checksumWriter = checksum.NewChecksumWriter(digestAlgorithms, zipWriter)
+			zfs.w = zip.NewWriter(zfs.checksumWriter)
+		} else {
+			zfs.w = zip.NewWriter(zipWriter)
+		}
 	}
 	return zfs, nil
 }
@@ -147,11 +154,37 @@ func (zipFS *FS) Close() error {
 	}
 	finalError := []error{}
 	if zipFS.w != nil {
+		var hasErr bool
 		if err := zipFS.w.Flush(); err != nil {
 			finalError = append(finalError, err)
+			hasErr = true
 		}
 		if err := zipFS.w.Close(); err != nil {
 			finalError = append(finalError, err)
+			hasErr = true
+		}
+		if zipFS.checksumWriter != nil {
+			if err := zipFS.checksumWriter.Close(); err != nil {
+				finalError = append(finalError, err)
+			} else {
+				// only, if we have closed the zip file correctly
+				if !hasErr {
+					for digestAlg, digest := range zipFS.checksumWriter.GetChecksums() {
+						manifestName := fmt.Sprintf("%s.%s", zipFS.path, digestAlg)
+						fp, err := zipFS.factory.Create(manifestName)
+						if err != nil {
+							finalError = append(finalError, errors.Wrapf(err, "cannot create %s", manifestName))
+							continue
+						}
+						if _, err := fp.Write([]byte(fmt.Sprintf("%s %s\n", filepath.Base(zipFS.path), digest))); err != nil {
+							finalError = append(finalError, errors.Wrapf(err, "cannot write %s", manifestName))
+						}
+						if err := fp.Close(); err != nil {
+							finalError = append(finalError, errors.Wrapf(err, "cannot close %s", manifestName))
+						}
+					}
+				}
+			}
 		}
 	}
 	/*

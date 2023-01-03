@@ -41,6 +41,9 @@ func initUpdate() {
 	//	updateCmd.MarkFlagRequired("user-address")
 	viper.BindPFlag("Add.UserAddress", updateCmd.Flags().Lookup("user-address"))
 
+	updateCmd.Flags().StringP("digest", "d", "", "digest to use for zip file checksum")
+	viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest"))
+
 	updateCmd.Flags().Bool("no-deduplicate", false, "set flag to disable deduplication (faster)")
 	viper.BindPFlag("Update.NoDeduplicate", updateCmd.Flags().Lookup("no-deduplicate"))
 
@@ -79,6 +82,13 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 	flagNoDeduplicate := viper.GetBool("Update.NoDeduplicate")
 	flagEcho := viper.GetBool("Update.Echo")
+
+	flagAddDigest := viper.GetString("Update.DigestAlgorithm")
+	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagAddDigest)); err != nil {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Add.DigestAlgorithm' config file entry", flagAddDigest))
+	}
+	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
 
 	if len(notSet) > 0 {
 		cmd.Help()
@@ -123,7 +133,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

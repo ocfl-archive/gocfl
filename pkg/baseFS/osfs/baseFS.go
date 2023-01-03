@@ -6,6 +6,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -76,6 +77,9 @@ func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
 	}
 	fp, err := os.Open(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fs.ErrNotExist
+		}
 		return nil, errors.Wrapf(err, "cannot open '%s'", path)
 	}
 	return fp, nil

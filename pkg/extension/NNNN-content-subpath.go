@@ -30,8 +30,8 @@ type ContentSubPath struct {
 	area string
 }
 
-func GetContentSubPathParams() []ocfl.ExtensionExternalParam {
-	return []ocfl.ExtensionExternalParam{
+func GetContentSubPathParams() []*ocfl.ExtensionExternalParam {
+	return []*ocfl.ExtensionExternalParam{
 		{
 			ExtensionName: ContentSubPathName,
 			Functions:     []string{"extract"},
@@ -150,12 +150,16 @@ func (sl *ContentSubPath) BuildObjectExternalPath(object ocfl.Object, originalPa
 	if !ok {
 		return "", errors.Errorf("invalid area '%s'", sl.area)
 	}
-	prefixPath := subpath.Path + "/"
-	if !strings.HasPrefix(originalPath, prefixPath) {
-		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "invalid area '%s' for '%s'", sl.area, originalPath)
-	}
-	path := strings.TrimPrefix(originalPath, prefixPath)
+	path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
 	return path, nil
+	/*
+		prefixPath := subpath.Path + "/"
+		if !strings.HasPrefix(originalPath, prefixPath) {
+			return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "invalid area '%s' for '%s'", sl.area, originalPath)
+		}
+		path := strings.TrimPrefix(originalPath, prefixPath)
+		return path, nil
+	*/
 }
 
 func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string) (string, error) {

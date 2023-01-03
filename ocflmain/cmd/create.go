@@ -105,6 +105,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Add.DigestAlgorithm' config file entry", flagAddDigest))
 	}
+	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
 
 	flagVersion := viper.GetString("Init.OCFLVersion")
 	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
@@ -138,7 +139,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
-	fsFactory, err := initializeFSFactory(daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

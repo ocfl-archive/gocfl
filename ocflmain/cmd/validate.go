@@ -7,6 +7,7 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"golang.org/x/exp/slices"
 	"path/filepath"
@@ -51,7 +52,7 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(daLogger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

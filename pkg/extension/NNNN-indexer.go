@@ -11,8 +11,8 @@ import (
 const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
-func GetIndexerParams() []ocfl.ExtensionExternalParam {
-	return []ocfl.ExtensionExternalParam{
+func GetIndexerParams() []*ocfl.ExtensionExternalParam {
+	return []*ocfl.ExtensionExternalParam{
 		{
 			ExtensionName: IndexerName,
 			Param:         "indexer-url",

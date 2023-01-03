@@ -24,7 +24,7 @@ func (eep *ExtensionExternalParam) SetParam(cmd *cobra.Command) {
 	name := eep.GetCobraName()
 	cmd.Flags().String(name, eep.Default, eep.Description)
 	if eep.File != "" {
-		viper.BindPFlag(eep.GetViperName(cmd.Name()), cmd.Flags().Lookup("name"))
+		viper.BindPFlag(eep.GetViperName(cmd.Name()), cmd.Flags().Lookup(name))
 	}
 }
 

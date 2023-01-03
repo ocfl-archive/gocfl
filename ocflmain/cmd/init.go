@@ -58,6 +58,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagInitDigest))
 	}
+	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagInitDigest)}
 
 	fmt.Printf("creating '%s'\n", ocflPath)
 
@@ -67,7 +68,7 @@ func doInit(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("creating '%s'\n", ocflPath)
 
-	fsFactory, err := initializeFSFactory(daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

@@ -82,12 +82,14 @@ func doAdd(cmd *cobra.Command, args []string) {
 	flagObjectExtensionFolder := viper.GetString("Add.ObjectExtensions")
 	flagDeduplicate := viper.GetBool("Add.Deduplicate")
 
+	var zipAlgs = []checksum.DigestAlgorithm{}
 	flagAddDigest := viper.GetString("Add.DigestAlgorithm")
 	if flagAddDigest != "" {
 		if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagAddDigest)); err != nil {
 			cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Add.DigestAlgorithm' config file entry", flagAddDigest))
 		}
+		zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
 	}
 
 	if len(notSet) > 0 {
@@ -119,7 +121,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

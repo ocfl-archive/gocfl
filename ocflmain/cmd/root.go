@@ -79,7 +79,8 @@ var persistentFlagConfigFile string
 
 // var persistentFlagLogfile string
 var intPersistentFlagLoglevel LogLevelFlag
-var flagDigest DigestFlag
+
+//var flagDigest DigestFlag
 
 // var flagExtensionFolder string
 // var flagVersion VersionFlag

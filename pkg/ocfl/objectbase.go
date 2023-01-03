@@ -560,8 +560,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, ar
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
-	csw := checksum.NewChecksumCopy(digestAlgorithms)
-	checksums, err := csw.Copy(writer, r)
+	checksums, err := checksum.Copy(writer, r, digestAlgorithms)
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", internalFilename, targetFilename)
 	}
@@ -665,8 +664,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
-	csw := checksum.NewChecksumCopy(digestAlgorithms)
-	checksums, err := csw.Copy(writer, file)
+	checksums, err := checksum.Copy(writer, file, digestAlgorithms)
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
 	}
@@ -1044,7 +1042,6 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	}
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
-	checksumWriter := checksum.NewChecksumCopy(digestAlgorithms)
 	versions := object.i.GetVersionStrings()
 	for _, version := range versions {
 		if err := object.fsRO.WalkDir(
@@ -1060,7 +1057,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 					return errors.Wrapf(err, "cannot open file '%s'", path)
 				}
 				defer fp.Close()
-				css, err := checksumWriter.Copy(&checksum.NullWriter{}, fp)
+				css, err := checksum.Copy(&checksum.NullWriter{}, fp, digestAlgorithms)
 				if err != nil {
 					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", path)
 				}
@@ -1153,9 +1150,8 @@ func (object *ObjectBase) Extract(fs OCFLFS, version string, withManifest bool) 
 				return errors.Wrapf(err, "cannot create '%s/%s'", fs.String(), external)
 			}
 			defer target.Close()
-			csWriter := checksum.NewChecksumCopy([]checksum.DigestAlgorithm{digestAlg})
 			object.logger.Debugf("writing '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
-			copyDigests, err := csWriter.Copy(target, src)
+			copyDigests, err := checksum.Copy(target, src, []checksum.DigestAlgorithm{digestAlg})
 			if err != nil {
 				return errors.Wrapf(err, "error copying '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
 			}

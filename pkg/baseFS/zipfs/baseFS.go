@@ -4,18 +4,20 @@ import (
 	"emperror.dev/errors"
 	"github.com/op/go-logging"
 	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
+	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"strings"
 )
 
 type BaseFS struct {
-	factory *baseFS.Factory
-	logger  *logging.Logger
+	factory          *baseFS.Factory
+	logger           *logging.Logger
+	digestAlgorithms []checksum.DigestAlgorithm
 }
 
-func NewBaseFS(logger *logging.Logger) (baseFS.FS, error) {
-	return &BaseFS{logger: logger}, nil
+func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, logger *logging.Logger) (baseFS.FS, error) {
+	return &BaseFS{digestAlgorithms: digestAlgorithms, logger: logger}, nil
 }
 
 func (b *BaseFS) SetFSFactory(factory *baseFS.Factory) {
@@ -53,7 +55,7 @@ func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}
@@ -64,7 +66,7 @@ func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}

@@ -19,8 +19,8 @@ import (
 const MetaFileName = "NNNN-metafile"
 const MetaFileDescription = "adds a file in extension folder"
 
-func GetMetaFileParams() []ocfl.ExtensionExternalParam {
-	return []ocfl.ExtensionExternalParam{
+func GetMetaFileParams() []*ocfl.ExtensionExternalParam {
+	return []*ocfl.ExtensionExternalParam{
 		{
 			ExtensionName: MetaFileName,
 			Functions:     []string{"add", "update", "create"},
@@ -70,9 +70,11 @@ func NewMetaFile(config *MetaFileConfig) (*MetaFile, error) {
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
-	if sl.metadataSource == nil {
-		return nil, errors.Errorf("no metadata-source for extension '%s'", MetaFileName)
-	}
+	/*
+		if sl.metadataSource == nil {
+			return nil, errors.Errorf("no metadata-source for extension '%s'", MetaFileName)
+		}
+	*/
 	return sl, nil
 }
 
@@ -219,10 +221,9 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	if sl.Versioned {
 		allTargets = append(allTargets, buf)
 	}
-	csWriter := checksum.NewChecksumCopy([]checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()})
 
 	mw := io.MultiWriter(allTargets...)
-	digests, err := csWriter.Copy(mw, rc)
+	digests, err := checksum.Copy(mw, rc, []checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()})
 	if err != nil {
 		w2.Close()
 		return errors.Wrap(err, "cannot write data")
