@@ -40,32 +40,37 @@ func NewChecksumWriter(checksums []DigestAlgorithm, writer ...io.Writer) *Checks
 }
 
 func (c *ChecksumWriter) start(writers ...io.Writer) {
-	// all destinations
-	dst := io.MultiWriter(writers...)
 
 	// create the map of all ChecksumCopy-pipes and start async process
 	for _, csType := range c.checksums {
 		rw := rwStruct{}
 		rw.reader, rw.writer = io.Pipe()
 		c.rws[csType] = rw
-		go func() {
-			c.doChecksum(rw.reader, csType, c.done)
-		}()
+		go c.doChecksum(rw.reader, csType, c.done)
 	}
 
-	// target pipe
-	rw := rwStruct{}
-	rw.reader, rw.writer = io.Pipe()
-	c.rws["_"] = rw
-	go func() {
-		defer func() { c.done <- true }()
-		_, err := io.Copy(dst, rw.reader)
-		if err != nil {
-			c.setError(errors.Wrap(err, "cannot copy to target destination"))
-			return
+	if len(writers) > 0 {
+		// all destinations
+		var dst io.Writer
+		if len(writers) > 1 {
+			dst = io.MultiWriter(writers...)
+		} else {
+			dst = writers[0]
 		}
-	}()
 
+		// target pipe
+		rw := rwStruct{}
+		rw.reader, rw.writer = io.Pipe()
+		c.rws["_"] = rw
+		go func() {
+			defer func() { c.done <- true }()
+			_, err := io.Copy(dst, rw.reader)
+			if err != nil {
+				c.setError(errors.Wrap(err, "cannot copy to target destination"))
+				return
+			}
+		}()
+	}
 	// create list of writer
 	allWriters := []io.Writer{}
 	for _, rw := range c.rws {
@@ -91,7 +96,9 @@ func (c *ChecksumWriter) setError(err error) {
 
 func (c *ChecksumWriter) doChecksum(reader io.Reader, csType DigestAlgorithm, done chan bool) {
 	// we should end in all cases
-	defer func() { done <- true }()
+	defer func() {
+		done <- true
+	}()
 
 	sink, err := GetHash(csType)
 	if err != nil {
@@ -116,15 +123,16 @@ func (c *ChecksumWriter) Close() error {
 	if !c.open {
 		return errors.New("writer already closed")
 	}
-	// wait until all checksums and destination done
-	for cnt := 0; cnt < len(c.rws); cnt++ {
-		<-c.done
-	}
-
+	defer func() { c.open = false }()
 	for key, rw := range c.rws {
 		if err := rw.writer.Close(); err != nil {
 			c.errors = append(c.errors, errors.Wrapf(err, "error closing pipe '%s'", key))
 		}
+	}
+
+	// wait until all checksums and destination done
+	for cnt := 0; cnt < len(c.rws); cnt++ {
+		<-c.done
 	}
 
 	return errors.Combine(c.errors...)
