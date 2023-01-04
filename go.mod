@@ -8,6 +8,7 @@ require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.0
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
+	github.com/blend/go-sdk v1.20220411.3
 	github.com/je4/utils/v2 v2.0.7-0.20221205154750-6b88ba5d32b5
 	github.com/minio/minio-go/v7 v7.0.45
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7

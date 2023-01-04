@@ -7,7 +7,7 @@ import (
 )
 
 func TestChecksumWriter(t *testing.T) {
-	w := NewChecksumWriter(
+	w, _ := NewChecksumWriter(
 		[]DigestAlgorithm{DigestSHA512, DigestSHA256, DigestMD5},
 		os.Stdout,
 	)
@@ -23,8 +23,9 @@ func TestChecksumWriter(t *testing.T) {
 			DigestSHA256: "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
 			DigestSHA512: "861844d6704e8573fec34d967e20bcfef3d424cf48be04e6dc08f2bd58c729743371015ead891cc3cf1c9d34b49264b510751b1ff9e537937bc46b5d6ff4ecc8",
 		}
-		fmt.Printf("%v\n", w.GetChecksums())
-		for key, val := range w.GetChecksums() {
+		css, _ := w.GetChecksums()
+		fmt.Printf("%v\n", css)
+		for key, val := range css {
 			if resultmap[key] != val {
 				t.Errorf("invalid result for '%s': %s != %s", key, val, resultmap[key])
 			}

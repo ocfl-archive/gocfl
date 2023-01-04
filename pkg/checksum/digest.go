@@ -61,6 +61,11 @@ var hashFunc = map[DigestAlgorithm]func() hash.Hash{
 
 var DigestsNames = maps.Keys(hashFunc)
 
+func HashExists(csType DigestAlgorithm) bool {
+	_, ok := hashFunc[csType]
+	return ok
+}
+
 func GetHash(csType DigestAlgorithm) (hash.Hash, error) {
 	f, ok := hashFunc[csType]
 	if !ok {

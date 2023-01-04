@@ -7,7 +7,10 @@ import (
 )
 
 func Copy(dst io.Writer, src io.Reader, checksums []DigestAlgorithm) (map[DigestAlgorithm]string, error) {
-	cw := NewChecksumWriter(checksums, dst)
+	cw, err := NewChecksumWriter(checksums, dst)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create ChecksumWriter")
+	}
 	if _, err := io.Copy(cw, src); err != nil {
 		cw.Close()
 		return nil, errors.Wrap(err, "cannot copy")
@@ -15,7 +18,7 @@ func Copy(dst io.Writer, src io.Reader, checksums []DigestAlgorithm) (map[Digest
 	if err := cw.Close(); err != nil {
 		return nil, errors.Wrap(err, "error closing checksumwriter")
 	}
-	return cw.GetChecksums(), nil
+	return cw.GetChecksums()
 }
 
 func Checksum(src io.Reader, checksum DigestAlgorithm) (string, error) {
