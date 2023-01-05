@@ -606,7 +606,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 
 	file, err := fsys.Open(path)
 	if err != nil {
-		return errors.Wrapf(err, "cannot open file '%s'", path)
+		return errors.Wrapf(err, "cannot open file '%s/%s'", fsys.String(), path)
 	}
 	// file could be replaced by another file
 	defer func() {
@@ -633,7 +633,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 			// otherwise reopen it
 			file, err = fsys.Open(path)
 			if err != nil {
-				return errors.Wrapf(err, "cannot open file '%s'", path)
+				return errors.Wrapf(err, "cannot open file '%s/%s'", fsys.String(), path)
 			}
 		}
 		// if file is already there we do nothing
@@ -1052,14 +1052,15 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 				if d.IsDir() {
 					return nil
 				}
-				fp, err := object.fsRO.Open(path)
+				fname := path // filepath.ToSlash(filepath.Join(version, path))
+				fp, err := object.fsRO.Open(fname)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open file '%s'", path)
+					return errors.Wrapf(err, "cannot open file '%s/%s'", object.fsRO.String(), fname)
 				}
 				defer fp.Close()
 				css, err := checksum.Copy(&checksum.NullWriter{}, fp, digestAlgorithms)
 				if err != nil {
-					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", path)
+					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", fname)
 				}
 				for d, cs := range css {
 					if _, ok := result[d]; !ok {
@@ -1068,7 +1069,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 					if _, ok := result[d][cs]; !ok {
 						result[d][cs] = []string{}
 					}
-					result[d][cs] = append(result[d][cs], path)
+					result[d][cs] = append(result[d][cs], fname)
 				}
 				return nil
 			}); err != nil {

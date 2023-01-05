@@ -7,8 +7,7 @@ import (
 )
 
 type ChecksumWriter struct {
-	writer  *concurrentWriter.ConcurrentWriter
-	runners []concurrentWriter.WriterRunner
+	writer *concurrentWriter.ConcurrentWriter
 }
 
 func NewChecksumWriter(checksums []DigestAlgorithm, writer ...io.Writer) (*ChecksumWriter, error) {
@@ -22,8 +21,7 @@ func NewChecksumWriter(checksums []DigestAlgorithm, writer ...io.Writer) (*Check
 	}
 	w := concurrentWriter.NewConcurrentWriter(runners, writer...)
 	c := &ChecksumWriter{
-		writer:  w,
-		runners: runners,
+		writer: w,
 	}
 	return c, nil
 }
@@ -41,7 +39,7 @@ func (c *ChecksumWriter) Close() error {
 
 func (c *ChecksumWriter) GetChecksums() (map[DigestAlgorithm]string, error) {
 	var result = map[DigestAlgorithm]string{}
-	for _, runner := range c.runners {
+	for _, runner := range c.writer.GetRunners() {
 		r := runner.(*WriterRunnerChecksum)
 		digest, err := r.GetDigest()
 		if err != nil {

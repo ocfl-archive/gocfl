@@ -60,7 +60,8 @@ func (zipSubFS *SubFS) WalkDir(path string, fn fs.WalkDirFunc) error {
 	path = filepath.ToSlash(filepath.Join(zipSubFS.pathPrefix, filepath.Clean(path)))
 	prefix := zipSubFS.pathPrefix + "/"
 	return zipSubFS.FS.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		return fn(strings.TrimLeft(path, prefix), d, err)
+		newPath := strings.TrimPrefix(path, prefix)
+		return fn(newPath, d, err)
 	})
 }
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"emperror.dev/errors"
+	"encoding/hex"
 	"fmt"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
@@ -49,6 +50,16 @@ func initUpdate() {
 
 	updateCmd.Flags().Bool("echo", false, "set flag to update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'")
 	viper.BindPFlag("Update.Echo", updateCmd.Flags().Lookup("echo"))
+
+	updateCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
+	viper.BindPFlag("Init.AES", updateCmd.Flags().Lookup("encrypt-aes"))
+
+	updateCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key")
+	viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key"))
+
+	updateCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector")
+	viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key"))
+
 }
 
 func doUpdate(cmd *cobra.Command, args []string) {
@@ -89,6 +100,36 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Add.DigestAlgorithm' config file entry", flagAddDigest))
 	}
 	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
+
+	flagAES := viper.GetBool("Init.AES")
+	flagAESKey := viper.GetString("Init.AESKey")
+	if flagAESKey != "" && len(flagAESKey) != 64 {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Init.AESKey' config file entry. 64 character hex value needed", flagAESKey))
+	}
+	var aesKey []byte
+	if flagAESKey != "" {
+		aesKey = make([]byte, hex.DecodedLen(len(flagAESKey)))
+		if _, err := hex.Decode(aesKey, []byte(flagAESKey)); err != nil {
+			aesKey = nil
+			cmd.Help()
+			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Init.AESKey' config file entry. 64 character hex value needed: %v", flagAESKey, err))
+		}
+	}
+	flagAESIV := viper.GetString("Init.AESIV")
+	if flagAESIV != "" && len(flagAESIV) != 32 {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 32 character hex value needed", flagAESIV))
+	}
+	var aesIV []byte
+	if flagAESIV != "" {
+		aesIV = make([]byte, hex.DecodedLen(len(flagAESIV)))
+		if _, err := hex.Decode(aesIV, []byte(flagAESIV)); err != nil {
+			aesIV = nil
+			cmd.Help()
+			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 64 character hex value needed: %v", flagAESIV, err))
+		}
+	}
 
 	if len(notSet) > 0 {
 		cmd.Help()
@@ -133,7 +174,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(zipAlgs, daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

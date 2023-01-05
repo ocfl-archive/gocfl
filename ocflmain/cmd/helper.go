@@ -123,13 +123,13 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	return
 }
 
-func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*baseFS.Factory, error) {
+func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (*baseFS.Factory, error) {
 	fsFactory, err := baseFS.NewFactory()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
 
-	zipFS, err := zipfs.NewBaseFS(zipDigests, logger)
+	zipFS, err := zipfs.NewBaseFS(zipDigests, aes, aesKey, aesIV, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
 	}

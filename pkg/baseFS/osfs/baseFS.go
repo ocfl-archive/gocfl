@@ -33,7 +33,7 @@ func (*BaseFS) valid(path string) bool {
 		return true
 	}
 	if u, err := url.Parse(path); err == nil {
-		return u.Scheme == "file"
+		return u.Scheme == "file" || u.Scheme == ""
 	}
 
 	return true

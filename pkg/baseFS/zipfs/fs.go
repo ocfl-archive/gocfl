@@ -44,7 +44,7 @@ type FS struct {
 	encryptFP         io.WriteCloser
 }
 
-func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	pathTemp := path + ".tmp"
 
@@ -78,11 +78,12 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 		}
 	}
 	var zipWriter io.WriteCloser
-	zipWriter, err = factory.Create(pathTemp)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
+	if RW {
+		zipWriter, err = factory.Create(pathTemp)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
+		}
 	}
-
 	isClosed := false
 	zfs := &FS{
 		noCopy:    []string{},
@@ -94,23 +95,22 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 		temp:      pathTemp,
 		factory:   factory,
 	}
-	if (zipWriter != nil && zipWriter != (*os.File)(nil)) && (zipReaderAt != nil && zipReaderAt != (*os.File)(nil)) {
+	if /*(zipWriter != nil && zipWriter != (*os.File)(nil)) && */ zipReaderAt != nil && zipReaderAt != (*os.File)(nil) {
 		if zfs.r, err = zip.NewReader(zipReaderAt, fileSize); err != nil {
 			return nil, errors.Wrap(err, "cannot create zip reader")
 		}
 	}
 	if zipWriter != nil && zipWriter != (*os.File)(nil) {
-		if len(digestAlgorithms) > 0 {
+		if aes {
 			zfs.encryptFP, err = factory.Create(pathAES)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot create '%s'", path)
 			}
-
 			zfs.checksumWriterAES, err = checksum.NewChecksumWriter(digestAlgorithms, zfs.encryptFP)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
-			zfs.encryptWriterAES, err = encrypt.NewEncryptWriterAES(zfs.checksumWriterAES, nil, nil)
+			zfs.encryptWriterAES, err = encrypt.NewEncryptWriterAES(zfs.checksumWriterAES, aesKey, aesIV)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
@@ -118,11 +118,13 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
-
-			zfs.w = zip.NewWriter(zfs.checksumWriter)
 		} else {
-			zfs.w = zip.NewWriter(zipWriter)
+			zfs.checksumWriter, err = checksum.NewChecksumWriter(digestAlgorithms, zipWriter)
+			if err != nil {
+				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
+			}
 		}
+		zfs.w = zip.NewWriter(zfs.checksumWriter)
 	}
 	return zfs, nil
 }
@@ -322,6 +324,7 @@ func (zipFS *FS) Discard() error {
 }
 
 func (zipFS *FS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
+	zipFS.logger.Debugf("%s - OpenSeeker(%s)", zipFS.String(), name)
 	if zipFS.isClosed() {
 		return nil, errors.New("zipFS closed")
 	}
@@ -332,7 +335,6 @@ func (zipFS *FS) OpenSeeker(name string) (ocfl.FileSeeker, error) {
 		return nil, fs.ErrNotExist
 	}
 	name = filepath.ToSlash(name)
-	zipFS.logger.Debugf("%s", name)
 	// check whether file is newly created
 	for _, newItem := range zipFS.noCopy {
 		if newItem == name {
@@ -439,7 +441,7 @@ func (zipFS *FS) ReadDir(path string) ([]fs.DirEntry, error) {
 				continue
 			}
 			if zipItem.FileInfo().IsDir() {
-				fi, err = NewFileInfoDir(strings.TrimLeft(zipItem.Name, name))
+				fi, err = NewFileInfoDir(strings.TrimPrefix(zipItem.Name, name))
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot create FileInfo for %s", zipItem.Name)
 				}

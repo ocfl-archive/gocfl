@@ -22,6 +22,12 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 DigestAlgorithm="sha512"
 # --default-storageroot-extensions
 # StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+# --encrypt-aes
+AES=true
+# --aes-key
+#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
+# --aes-iv
+#AESIV="8594552261cb956949b661aa163fac4f"
 
 [Add]
 # --user-name

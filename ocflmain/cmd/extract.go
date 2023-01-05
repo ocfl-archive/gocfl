@@ -66,7 +66,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	defer lf.Close()
 	daLogger.Infof("creating '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, daLogger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

@@ -5,6 +5,7 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	"io"
 	"path/filepath"
@@ -165,6 +166,34 @@ func sliceContains[E comparable](s []E, vs []E) bool {
 		}
 	}
 	return true
+}
+
+func sliceInsertSorted[E constraints.Ordered](data []E, v E) []E {
+	var dummy E
+	i, _ := slices.BinarySearch(data, v) // find slot
+	data = append(data, dummy)           // extend the slice
+	copy(data[i+1:], data[i:])           // make room
+	data[i] = v
+	return data
+}
+
+func sliceInsertAt[E comparable](data []E, i int, v E) []E {
+	if i == len(data) {
+		// Insert at end is the easy case.
+		return append(data, v)
+	}
+
+	// Make space for the inserted element by shifting
+	// values at the insertion index up one index. The call
+	// to append does not allocate memory when cap(data) is
+	// greater ​than len(data).
+	data = append(data[:i+1], data[i:]...)
+
+	// Insert the new element.
+	data[i] = v
+
+	// Return the updated slice.
+	return data
 }
 
 func showStatus(ctx context.Context) error {

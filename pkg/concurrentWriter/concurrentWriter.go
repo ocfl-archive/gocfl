@@ -110,6 +110,10 @@ func (c *ConcurrentWriter) Close() error {
 	return errors.Combine(c.errors...)
 }
 
+func (c *ConcurrentWriter) GetRunners() []WriterRunner {
+	return c.runners
+}
+
 var (
 	_ io.WriteCloser = (*ConcurrentWriter)(nil)
 )

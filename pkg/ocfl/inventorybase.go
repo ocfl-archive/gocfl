@@ -306,12 +306,15 @@ func (i *InventoryBase) check() error {
 	return nil
 }
 func (i *InventoryBase) checkManifest() error {
+	i.logger.Debugf("[%s] checkManifest", i.object.GetID())
+	defer i.logger.Debugf("[%s] checkManifest done", i.object.GetID())
 	versionDigests := []string{}
 	for _, version := range i.Versions.Versions {
 		for digest, _ := range version.State.State {
 			versionDigests = append(versionDigests, digest)
 		}
 	}
+	slices.Sort(versionDigests)
 
 	digests := []string{}
 	allPaths := []string{}
@@ -320,12 +323,14 @@ func (i *InventoryBase) checkManifest() error {
 		if slices.Contains(digests, digest) {
 			i.addValidationError(E096, "manifest digest '%s' is duplicate", digest)
 		} else {
-			digests = append(digests, digest)
+			digests = sliceInsertSorted(digests, digest)
+			//digests = append(digests, digest)
 			if !slices.Contains(versionDigests, digest) {
 				i.addValidationError(E107, "digest '%s' does not appear in any version", digest)
 			}
 		}
 		for _, path := range paths {
+			//allPaths = sliceInsertSorted(allPaths, path)
 			allPaths = append(allPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
 				i.addValidationError(E100, "invalid path '%s' in manifest", path)
@@ -347,25 +352,29 @@ func (i *InventoryBase) checkManifest() error {
 		}
 
 	}
+	i.logger.Debugf("[%s] checkManifest prefix", i.object.GetID())
 	slices.Sort(allPaths)
 	for j := 0; j < len(allPaths)-1; j++ {
-		if strings.HasPrefix(allPaths[j+1], allPaths[j]) {
+		prefix := strings.TrimSuffix(allPaths[j+1], "/") + "/"
+		if strings.HasPrefix(prefix, allPaths[j]) {
 			i.addValidationError(E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], allPaths[j+1])
 		}
 	}
-
 	return nil
 }
 
 func (i *InventoryBase) checkFixity() error {
+	i.logger.Debugf("[%s] checkFixity", i.object.GetID())
+	defer i.logger.Debugf("[%s] checkFixity done", i.object.GetID())
 	for digestAlg, digestMap := range i.Fixity {
 		digests := []string{}
 		for digest, paths := range digestMap {
 			lowerDigest := strings.ToLower(digest)
-			if slices.Contains(digests, digest) || slices.Contains(digests, lowerDigest) {
+			if _, found := slices.BinarySearch(digests, lowerDigest); found {
 				i.addValidationError(E097, "fixity '%s' digest '%s' is duplicate", digestAlg, digest)
 			} else {
-				digests = append(digests, lowerDigest)
+				digests = sliceInsertSorted(digests, lowerDigest)
+				//digests = append(digests, lowerDigest)
 			}
 			// check content paths
 			for _, path := range paths {
@@ -392,12 +401,24 @@ func (i *InventoryBase) checkFixity() error {
 }
 
 func (i *InventoryBase) checkVersions() error {
+	i.logger.Debugf("[%s] checkVersions", i.object.GetID())
+	defer i.logger.Debugf("[%s] checkVersions done", i.object.GetID())
 	var paddingLength int = -1
 	var versions = []int{}
 	if len(i.Versions.Versions) == 0 {
 		i.addValidationError(E008, "length of ver is 0")
 	}
+	manifestDigests := []string{}
+	manifestDigestsLower := []string{}
+	for mDigest, _ := range i.Manifest.Manifest {
+		manifestDigests = append(manifestDigests, mDigest)
+		manifestDigestsLower = append(manifestDigestsLower, strings.ToLower(mDigest))
+	}
+	slices.Sort(manifestDigests)
+	slices.Sort(manifestDigestsLower)
+
 	for ver, version := range i.Versions.Versions {
+		i.logger.Debugf("[%s] checkVersions '%s'", i.object.GetID(), ver)
 		vInt, ok := i.versionValue[ver]
 		if !ok {
 			//			i.addValidationError(E104, "invalid ver format '%s'", ver)
@@ -464,22 +485,15 @@ func (i *InventoryBase) checkVersions() error {
 		if version.State.err != nil {
 			i.addValidationError(E050, "invalid state format in version '%s': %v", ver, version.State.err.Error())
 		}
+		i.logger.Debugf("[%s] checkVersions %s state", i.object.GetID(), ver)
 		for digest, paths := range version.State.State {
-			digestLowerUpper := []string{strings.ToLower(digest), strings.ToUpper(digest)}
-			found := false
-			for mDigest, _ := range i.Manifest.Manifest {
-				if mDigest == digest {
-					found = true
+			// massive performance boost by using sorted manifest
+			if _, found := slices.BinarySearch(manifestDigests, digest); !found {
+				if _, found := slices.BinarySearch(manifestDigestsLower, strings.ToLower(digest)); found {
+					i.addValidationError(E096, "wrong digest case in version '%s' - '%s'", ver, digest)
 				} else {
-					if slices.Contains(digestLowerUpper, mDigest) {
-						i.addValidationError(E096, "wrong digest cE09ase in version '%s' - '%s' != '%s'", ver, digest, mDigest)
-						found = true
-						break
-					}
+					i.addValidationError(E050, "digest not in manifest of versions '%s' - '%s'", ver, digest)
 				}
-			}
-			if !found {
-				i.addValidationError(E050, "digest not in manifest of versions '%s' - '%s'", ver, digest)
 			}
 			for _, path := range paths {
 				if path[0] == '/' || path[len(path)-1] == '/' {
@@ -500,6 +514,8 @@ func (i *InventoryBase) checkVersions() error {
 				}
 			}
 		}
+		i.logger.Debugf("[%s] checkVersions '%s' state done", i.object.GetID(), ver)
+		i.logger.Debugf("[%s] checkVersions '%s' done", i.object.GetID(), ver)
 	}
 	slices.Sort(versions)
 	for key, val := range versions {
@@ -541,7 +557,8 @@ func (i *InventoryBase) checkVersions() error {
 		}
 		slices.Sort(logPaths)
 		for j := 0; j < len(logPaths)-1; j++ {
-			if strings.HasPrefix(logPaths[j+1], logPaths[j]) {
+			prefix := strings.TrimSuffix(logPaths[j], "/") + "/"
+			if strings.HasPrefix(logPaths[j+1], prefix) {
 				i.addValidationError(E095, "logical path '%s' is prefix of '%s'", logPaths[j], logPaths[j+1])
 			}
 		}
@@ -551,6 +568,8 @@ func (i *InventoryBase) checkVersions() error {
 }
 
 func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
+	i.logger.Debugf("[%s] checkFiles", i.object.GetID())
+	defer i.logger.Debugf("[%s] checkFiles done", i.object.GetID())
 	csFiles, ok := fileManifest[i.GetDigestAlgorithm()]
 	if !ok {
 		if len(fileManifest) == 0 {
