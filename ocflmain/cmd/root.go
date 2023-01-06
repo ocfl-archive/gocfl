@@ -13,7 +13,7 @@ import (
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
-type LogLevelFlag enumflag.Flag
+type LogLevelFlag uint
 
 const (
 	LOGLEVELCRITICAL LogLevelFlag = iota
@@ -33,7 +33,7 @@ var LogLevelIds = map[LogLevelFlag][]string{
 	LOGLEVELCRITICAL: {"CRITICAL"},
 }
 
-type VersionFlag enumflag.Flag
+type VersionFlag uint
 
 const (
 	VERSION1_1 = iota
