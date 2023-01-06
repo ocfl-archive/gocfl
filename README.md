@@ -3,6 +3,8 @@
 This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
 and focuses on creation, update, validation and extraction of ocfl StorageRoots and Objects.
 
+* [Large Data Test](docs/largeobject.md)
+
 ## Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
 which already exists. This software is build with the following motivation.
