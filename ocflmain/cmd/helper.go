@@ -19,7 +19,27 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io/fs"
 	"os"
+	"time"
 )
+
+func startTimer() *timer {
+	t := &timer{}
+	t.Start()
+	return t
+}
+
+type timer struct {
+	start time.Time
+}
+
+func (t *timer) Start() {
+	t.start = time.Now()
+}
+
+func (t *timer) String() string {
+	delta := time.Now().Sub(t.start)
+	return delta.String()
+}
 
 func initExtensionFactory(extensionParams map[string]string, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)

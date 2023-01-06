@@ -39,6 +39,9 @@ func initStat() {
 }
 
 func doStat(cmd *cobra.Command, args []string) {
+	t := startTimer()
+	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
+
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 
 	persistentFlagLogfile := viper.GetString("LogFile")

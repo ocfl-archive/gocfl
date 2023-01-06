@@ -84,6 +84,11 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 	i := object.GetInventory()
 	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
 	m := i.GetManifest()
+	cnt := 0
+	for _, fs := range m {
+		cnt += len(fs)
+	}
+	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", cnt, len(m))
 	if slices.Contains(statInfo, StatObjectVersions) || len(statInfo) == 0 {
 		for vString, version := range i.GetVersions() {
 			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)
@@ -442,7 +447,7 @@ func (object *ObjectBase) echoDelete() error {
 }
 
 func (object *ObjectBase) Close() error {
-	object.logger.Debug(fmt.Sprintf("Closing object '%s'", object.GetID()))
+	object.logger.Infof(fmt.Sprintf("Closing object '%s'", object.GetID()))
 	if !(object.i.IsWriteable()) {
 		return nil
 	}
@@ -537,9 +542,15 @@ func (object *ObjectBase) AddFolder(fsys OCFLFSRead, checkDuplicate bool, area s
 	return nil
 }
 
-func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, area string) error {
-	if object.fsRW == nil {
-		return errors.Errorf("read only filesystem '%s'", object.fsRO)
+func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string) error {
+	object.logger.Infof("adding reader %s:%s", area, path)
+
+	if !object.i.IsWriteable() {
+		return errors.New("object not writeable")
+	}
+	internalFilename, err := object.extensionManager.BuildObjectContentPath(object, path, area)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 	}
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
@@ -585,11 +596,8 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, internalFilename string, ar
 }
 
 func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string) error {
-	if object.fsRW == nil {
-		return errors.Errorf("read only filesystem '%s'", object.fsRO)
-	}
-	//object.logger.Infof("[%s] adding '%s' -> '%s'", object.GetID(), sourceFilename, internalFilename)
-	// paranoia
+	object.logger.Infof("adding file %s:%s", area, path)
+
 	path = filepath.ToSlash(path)
 
 	if !object.i.IsWriteable() {

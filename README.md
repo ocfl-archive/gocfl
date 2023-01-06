@@ -5,23 +5,33 @@ and focuses on creation, update, validation and extraction of ocfl StorageRoots 
 
 ## Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
-which already exists. 
+which already exists. This software is build with the following motivation.
 
-### Container & I/O Performance
+### I/O Performance
+Regarding Performance, Storage I/O generates the main performance issues. Therefor, every file 
+should be read and written only once. Only in case of deduplication, the checksum of a file is
+calculated before ingest and a second time while ingesting. 
 
-Serialization of an OCFL Storage Root into a container format like ZIP should be possible 
-without much overhead on disk I/O. Therefor generation of an OCFL Container should be possible 
-with one Read and one Write Task. Including checksums and compression (ZIP). Without deduplication
-this library supports this functionality. 
+### Container 
+Serialization of an OCFL Storage Root into a container format like ZIP must not generate 
+overhead on disk I/O. Therefor generation of an OCFL Container is possible without intermediary
+file system ocfl store. 
+
+#### Encryption 
+For storing OCFL Container at low security locations (cloud storage etc.) there's a possibility
+for creating an AES-256 encrypted container while ingesting. 
 
 ### Extensions
-
 Extensions described in the OCFL Standard are quite open in their functionality and can 
 belong to [Storage Root](https://ocfl.io/1.1/spec/#storage-root-extensions) or 
 [Object](https://ocfl.io/1.1/spec/#object-extensions). Since there's no specification of 
 a generic extension api, it's hard to integrate specific extension hooks into other 
 libraries. This library identifies 7 different hooks for extensions till now. 
 
+#### Indexer
+While ingesting content into OCFL Objects, technical metadata should be extracted and stored 
+besides the manifest data. This enables the extraction of technical metadata besides the content.
+Since OCFL Structure is quite rigid, there's need for a special extensions supporting this. 
 
 ## Functionality
 
@@ -29,7 +39,8 @@ libraries. This library identifies 7 different hooks for extensions till now.
 - [x] Supports S3 Cloud Storage (via [MinIO Client SDK](https://github.com/minio/minio-go))
 - [ ] SFTP Storage
 - [ ] Google Cloud Storage
-- [x] storage root in ZIP files (native)
+- [x] Serialization into ZIP Container
+- [x] AES Encryption of Container
 - [x] Supports mixing of source and target storage systems
 - [x] Non blocking validation (does not stop on validation errors)
 - [x] Support for OCFL v1.0 and v1.1
@@ -37,12 +48,12 @@ libraries. This library identifies 7 different hooks for extensions till now.
 - [x] Digest Algorithms for Manifest: SHA512, SHA256
 - [x] Fixity Algorithms: SHA1, SHA256, SHA512, BLAKE2b-160, BLAKE2b-256, BLAKE2b-384, BLAKE2b-512, MD5
 - [x] Concurrent checksum generation on ingest/extract (multi-threaded)
-- [x] minimized I/O (data is read and written only once on Object creation)
-- [x] update strategy echo (incl. deletions) and contribute
-- [x] deduplication (needs double read of all content files, switchable)
-- [x] nearly full coverage of validation errors and warnings
-- [x] content information
-- [x] extraction with version selection
+- [x] Minimized I/O (data is read and written only once on Object creation)
+- [x] Update strategy echo (incl. deletions) and contribute
+- [x] Deduplication (needs double read of all content files, switchable)
+- [x] Nearly full coverage of validation errors and warnings
+- [x] Content information
+- [x] Extraction with version selection
 - [Community Extensions](https://github.com/OCFL/extensions) 
   - [ ] 0001-digest-algorithms
   - [x] 0002-flat-direct-storage-layout

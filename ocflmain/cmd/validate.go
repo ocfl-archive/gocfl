@@ -10,6 +10,7 @@ import (
 	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"golang.org/x/exp/slices"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -31,6 +32,9 @@ func initValidate() {
 var objectPath string
 
 func validate(cmd *cobra.Command, args []string) {
+	t := startTimer()
+	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
+
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))

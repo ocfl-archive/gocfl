@@ -63,6 +63,9 @@ func initUpdate() {
 }
 
 func doUpdate(cmd *cobra.Command, args []string) {
+	t := startTimer()
+	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
+
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
