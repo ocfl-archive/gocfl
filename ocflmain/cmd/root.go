@@ -6,7 +6,6 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/thediveo/enumflag"
 	"os"
 	"regexp"
 )
@@ -36,7 +35,7 @@ var LogLevelIds = map[LogLevelFlag][]string{
 type VersionFlag uint
 
 const (
-	VERSION1_1 = iota
+	VERSION1_1 VersionFlag = iota
 	VERSION1_0
 )
 
@@ -50,10 +49,10 @@ var VersionIdsVersion = map[VersionFlag]ocfl.OCFLVersion{
 	VERSION1_0: ocfl.Version1_0,
 }
 
-type DigestFlag enumflag.Flag
+type DigestFlag uint
 
 const (
-	DIGESTSHA512 = iota
+	DIGESTSHA512 DigestFlag = iota
 	DIGESTSHA256
 	DIGESTMD5
 	DIGESTSHA1

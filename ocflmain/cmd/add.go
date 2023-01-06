@@ -65,9 +65,6 @@ func initAdd() {
 }
 
 func doAdd(cmd *cobra.Command, args []string) {
-	t := startTimer()
-	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
-
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
@@ -142,6 +139,9 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
+
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
 	fmt.Printf("opening '%s'\n", ocflPath)
 	daLogger.Infof("opening '%s'", ocflPath)

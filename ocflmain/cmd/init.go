@@ -4,14 +4,12 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"encoding/hex"
-	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -47,9 +45,6 @@ func initInit() {
 }
 
 func doInit(cmd *cobra.Command, args []string) {
-	t := startTimer()
-	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
-
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	persistentFlagLogfile := viper.GetString("LogFile")
 
@@ -104,13 +99,13 @@ func doInit(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	fmt.Printf("creating '%s'\n", ocflPath)
-
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 	daLogger.Infof("creating '%s'", ocflPath)
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	fmt.Printf("creating '%s'\n", ocflPath)
+	daLogger.Infof("creating '%s'\n", ocflPath)
 
 	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {

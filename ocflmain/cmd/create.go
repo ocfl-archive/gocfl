@@ -160,6 +160,10 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
+
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+
 	daLogger.Infof("creating '%s'", ocflPath)
 
 	//	extensionFlags := getExtensionFlags(cmd)

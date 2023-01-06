@@ -3,14 +3,12 @@ package cmd
 import (
 	"context"
 	"emperror.dev/errors"
-	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -32,9 +30,6 @@ func initValidate() {
 var objectPath string
 
 func validate(cmd *cobra.Command, args []string) {
-	t := startTimer()
-	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
-
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
@@ -45,8 +40,10 @@ func validate(cmd *cobra.Command, args []string) {
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	fmt.Printf("validating '%s'\n", ocflPath)
+	daLogger.Infof("validating '%s'", ocflPath)
 
 	extensionParams := GetExtensionParamValues(cmd)
 	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)

@@ -355,9 +355,9 @@ func (i *InventoryBase) checkManifest() error {
 	i.logger.Debugf("[%s] checkManifest prefix", i.object.GetID())
 	slices.Sort(allPaths)
 	for j := 0; j < len(allPaths)-1; j++ {
-		prefix := strings.TrimSuffix(allPaths[j+1], "/") + "/"
-		if strings.HasPrefix(prefix, allPaths[j]) {
-			i.addValidationError(E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], allPaths[j+1])
+		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
+		if strings.HasPrefix(allPaths[j], prefix) {
+			i.addValidationError(E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], prefix)
 		}
 	}
 	return nil

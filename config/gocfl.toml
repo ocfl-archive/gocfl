@@ -67,6 +67,7 @@ Echo=true # reflect deletion in source folder
 #Source="C:/temp/$ID.json"
 
 [Stat]
+# --stat-info
 Info = ["objects", "objectversions", "objectextensionconfigs"]
 
 [Extract]
@@ -74,3 +75,9 @@ Manifest = true
 
 [Extract.ext.NNNN-content-subpath]
 Area = "full"
+
+[Siegfried]
+Signature = "C:/Users/micro/siegfried/default.sig"
+[Siegfried.MimeMap]
+"fmt/134" = "audio/mp3"
+

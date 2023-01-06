@@ -39,9 +39,6 @@ func initStat() {
 }
 
 func doStat(cmd *cobra.Command, args []string) {
-	t := startTimer()
-	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
-
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 
 	persistentFlagLogfile := viper.GetString("LogFile")
@@ -78,7 +75,10 @@ func doStat(cmd *cobra.Command, args []string) {
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
-	daLogger.Infof("creating '%s'", ocflPath)
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+
+	daLogger.Infof("opening '%s'", ocflPath)
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)
 	if err != nil {

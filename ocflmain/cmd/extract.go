@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -38,9 +37,6 @@ func initExtract() {
 }
 
 func doExtract(cmd *cobra.Command, args []string) {
-	t := startTimer()
-	defer fmt.Fprintf(os.Stdout, "Duration: %s\n", t.String())
-
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	destPath := filepath.ToSlash(filepath.Clean(args[1]))
 
@@ -67,6 +63,9 @@ func doExtract(cmd *cobra.Command, args []string) {
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+
 	daLogger.Infof("creating '%s'", ocflPath)
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)

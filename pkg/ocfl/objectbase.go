@@ -88,7 +88,7 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 	for _, fs := range m {
 		cnt += len(fs)
 	}
-	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", cnt, len(m))
+	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", object.GetID(), cnt, len(m))
 	if slices.Contains(statInfo, StatObjectVersions) || len(statInfo) == 0 {
 		for vString, version := range i.GetVersions() {
 			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)

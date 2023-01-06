@@ -2,8 +2,6 @@ module github.com/je4/gocfl/v2
 
 go 1.19
 
-replace github.com/je4/gocfl/v2 => ./
-
 require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.0
@@ -12,9 +10,9 @@ require (
 	github.com/je4/utils/v2 v2.0.7-0.20221205154750-6b88ba5d32b5
 	github.com/minio/minio-go/v7 v7.0.45
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/richardlehane/siegfried v1.9.6
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.10.0
-	github.com/thediveo/enumflag v0.10.1
 	golang.org/x/crypto v0.3.0
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
 )
@@ -36,6 +34,13 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/richardlehane/characterize v1.0.0 // indirect
+	github.com/richardlehane/match v1.0.2 // indirect
+	github.com/richardlehane/mscfb v1.0.4 // indirect
+	github.com/richardlehane/msoleps v1.0.3 // indirect
+	github.com/richardlehane/xmldetect v1.0.2 // indirect
+	github.com/ross-spencer/spargo v0.4.1 // indirect
+	github.com/ross-spencer/wikiprov v0.2.0 // indirect
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
@@ -45,6 +50,7 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
+	golang.org/x/image v0.0.0-20220902085622-e7cb96979f69 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
