@@ -2,10 +2,10 @@ package zipfs
 
 import (
 	"emperror.dev/errors"
+	"github.com/je4/gocfl/v2/pkg/baseFS"
+	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"strings"
 )

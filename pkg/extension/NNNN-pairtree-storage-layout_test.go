@@ -2,8 +2,8 @@ package extension
 
 import (
 	"fmt"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"testing"
 )
 

@@ -3,9 +3,9 @@ package s3fs
 import (
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/je4/gocfl/v2/pkg/baseFS"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/baseFS"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"io"
 	"strings"
 )

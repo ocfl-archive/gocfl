@@ -2,7 +2,7 @@ package ocfl
 
 import (
 	"fmt"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"github.com/je4/gocfl/v2/pkg/checksum"
 )
 
 type ExtensionConfig struct {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go.ub.unibas.ch/gocfl/v2/ocflmain/cmd"
+	"github.com/je4/gocfl/v2/ocflmain/cmd"
 )
 
 func main() {

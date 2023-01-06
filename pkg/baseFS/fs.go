@@ -2,7 +2,7 @@ package baseFS
 
 import (
 	"emperror.dev/errors"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"encoding/json"
+	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/op/go-logging"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
 	"golang.org/x/exp/slices"
 )
 

@@ -4,7 +4,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
 )
 

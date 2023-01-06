@@ -1,8 +1,8 @@
-module go.ub.unibas.ch/gocfl/v2
+module github.com/je4/gocfl/v2
 
 go 1.19
 
-replace go.ub.unibas.ch/gocfl/v2 => ./
+replace github.com/je4/gocfl/v2 => ./
 
 require (
 	emperror.dev/emperror v0.33.0
@@ -14,7 +14,6 @@ require (
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.10.0
-	github.com/superbrothers/httpdebugger v0.0.0-20170129141753-1cecd8d615dd
 	github.com/thediveo/enumflag v0.10.1
 	golang.org/x/crypto v0.3.0
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95

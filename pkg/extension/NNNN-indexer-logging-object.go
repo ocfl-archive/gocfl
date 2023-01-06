@@ -3,7 +3,7 @@ package extension
 import (
 	"emperror.dev/errors"
 	"fmt"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
 	"net/url"
 )

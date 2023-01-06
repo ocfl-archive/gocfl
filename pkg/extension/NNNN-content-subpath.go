@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/atsushinee/go-markdown-generator/doc"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
 	"path/filepath"
 	"strings"

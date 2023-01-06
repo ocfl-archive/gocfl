@@ -3,7 +3,7 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
-	"go.ub.unibas.ch/gocfl/v2/pkg/checksum"
+	"github.com/je4/gocfl/v2/pkg/checksum"
 	"golang.org/x/exp/slices"
 )
 

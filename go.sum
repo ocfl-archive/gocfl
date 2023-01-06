@@ -499,8 +499,6 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
-github.com/superbrothers/httpdebugger v0.0.0-20170129141753-1cecd8d615dd h1:0FKApRzjkTMlFoEgmxZO545LfPcYjPs6WdyMe9dUiZ8=
-github.com/superbrothers/httpdebugger v0.0.0-20170129141753-1cecd8d615dd/go.mod h1:FbWz8dbdgsNz7KNwFG4m+0NnUDwhMtW17glUwXO6KHI=
 github.com/thediveo/enumflag v0.10.1 h1:DB3Ag69VZ7BCv6jzKECrZ0ebZrHLzFRMIFYt96s4OxM=
 github.com/thediveo/enumflag v0.10.1/go.mod h1:KyVhQUPzreSw85oJi2uSjFM0ODLKXBH0rPod7zc2pmI=
 github.com/tilinna/clock v1.0.2/go.mod h1:ZsP7BcY7sEEz7ktc0IVy8Us6boDrK8VradlKRUGfOao=

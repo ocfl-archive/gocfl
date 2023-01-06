@@ -3,10 +3,10 @@ package cmd
 import (
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/thediveo/enumflag"
-	"go.ub.unibas.ch/gocfl/v2/pkg/ocfl"
 	"os"
 	"regexp"
 )
@@ -100,7 +100,7 @@ var rootCmd = &cobra.Command{
 	Use:   "gocfl",
 	Short: "gocfl is a fast ocfl creator/extractor/validator with focus on zip containers",
 	Long: `A fast and reliable OCFL creator, extractor and validator.
-                https://go.ub.unibas.ch/gocfl
+                https://github.com/je4/gocfl
                 Jürgen Enge (University Library Basel, juergen@info-age.net)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()

@@ -2,7 +2,7 @@ package encrypt
 
 import (
 	"emperror.dev/errors"
-	"go.ub.unibas.ch/gocfl/v2/pkg/concurrentWriter"
+	"github.com/je4/gocfl/v2/pkg/concurrentWriter"
 	"io"
 )
 
