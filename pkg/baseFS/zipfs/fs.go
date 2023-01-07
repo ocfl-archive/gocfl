@@ -235,6 +235,11 @@ func (zipFS *FS) Close() error {
 			finalError = append(finalError, err)
 		}
 	}
+	if zipFS.encryptFP != nil {
+		if err := zipFS.encryptFP.Close(); err != nil {
+			finalError = append(finalError, err)
+		}
+	}
 	if len(finalError) > 0 {
 		return errors.Combine(finalError...)
 	}
