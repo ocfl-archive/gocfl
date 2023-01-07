@@ -24,7 +24,7 @@ Disk:             SSD
 
 ### Command
 ```
-gocfl. exe create C:/temp/ocfl_create.zip C:/temp/bangbang metadata:C:/temp/standorte --config ./config/gocfl.toml -i "id:blah-blubb" --ext-NNNN-metafile-source "file:///C:/temp/WhatsApp Bild 2022-12-11 um 15.25.47.jpg"
+gocfl.exe create C:/temp/ocfl_create.zip C:/temp/bangbang metadata:C:/temp/standorte --config ./config/gocfl.toml -i "id:blah-blubb" --ext-NNNN-metafile-source "file:///C:/temp/WhatsApp Bild 2022-12-11 um 15.25.47.jpg"
 ```
 This command will result in a ZIP File and an encrypted ZIP File. Both files will have a sidecar 
 with SHA512 checksum and there will be one sidecar file with encryption key and one with encryption
@@ -68,10 +68,6 @@ ingest.
 Mode                 LastWriteTime         Length Name
 ----                 -------------         ------ ----
 -a---          06.01.2023    13:24   347890195902 ocfl_create.zip
--a---          06.01.2023    13:24   347890192178 ocfl_create.zip.aes
--a---          06.01.2023    13:24             32 ocfl_create.zip.aes.iv
--a---          06.01.2023    13:24             64 ocfl_create.zip.aes.key
--a---          06.01.2023    13:24            150 ocfl_create.zip.aes.sha512
 -a---          06.01.2023    13:24            146 ocfl_create.zip.sha512
 ```
 
@@ -112,4 +108,9 @@ object folder 'id=u003Ablah-blubb'
 
 no errors found
 ```
-
+ZIP integrity check
+```
+micro@LAPTOP-KOTV7LO0 /cygdrive/c/temp
+$ sha512sum -c ocfl_create.zip.sha512
+ocfl_create.zip: OK
+```

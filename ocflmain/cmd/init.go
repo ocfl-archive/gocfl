@@ -16,7 +16,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:     "init [path to ocfl structure]",
-	Aliases: []string{"check"},
+	Aliases: []string{},
 	Short:   "initializes an empty ocfl structure",
 	Long:    "initializes an empty ocfl structure",
 	Example: "gocfl init ./archive.zip",
@@ -105,8 +105,6 @@ func doInit(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	daLogger.Infof("creating '%s'\n", ocflPath)
-
 	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
@@ -137,7 +135,13 @@ func doInit(cmd *cobra.Command, args []string) {
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	if _, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), daLogger); err != nil {
+	if _, err := ocfl.CreateStorageRoot(ctx,
+		destFS,
+		ocfl.OCFLVersion(flagVersion),
+		extensionFactory,
+		storageRootExtensions,
+		checksum.DigestAlgorithm(flagInitDigest),
+		daLogger); err != nil {
 		destFS.Discard()
 		daLogger.Errorf("cannot create new storageroot: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

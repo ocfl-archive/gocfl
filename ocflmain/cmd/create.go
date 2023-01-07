@@ -16,7 +16,7 @@ import (
 )
 
 var createCmd = &cobra.Command{
-	Use:     "create [path to ocfl structure]",
+	Use:     "create [path to ocfl structure] [path to content folder]",
 	Aliases: []string{},
 	Short:   "creates a new ocfl structure with initial content of one object",
 	Long: "initializes an empty ocfl structure and adds contents of a directory subtree to it\n" +
@@ -64,10 +64,10 @@ func initCreate() {
 	createCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
 	viper.BindPFlag("Init.AES", createCmd.Flags().Lookup("encrypt-aes"))
 
-	createCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key")
+	createCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
 	viper.BindPFlag("Init.AESKey", createCmd.Flags().Lookup("aes-key"))
 
-	createCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector")
+	createCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)")
 	viper.BindPFlag("Init.AESKey", createCmd.Flags().Lookup("aes-key"))
 }
 
@@ -233,7 +233,14 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	storageRoot, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagAddDigest), daLogger)
+	storageRoot, err := ocfl.CreateStorageRoot(ctx,
+		destFS,
+		ocfl.OCFLVersion(flagVersion),
+		extensionFactory,
+		storageRootExtensions,
+		checksum.DigestAlgorithm(flagAddDigest),
+		daLogger,
+	)
 	if err != nil {
 		destFS.Discard()
 		daLogger.Errorf("cannot create new storageroot: %v", err)
