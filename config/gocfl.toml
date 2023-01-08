@@ -23,7 +23,7 @@ DigestAlgorithm="sha512"
 # --default-storageroot-extensions
 # StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
 # --encrypt-aes
-AES=true
+#AES=true
 # --aes-key
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
@@ -57,6 +57,8 @@ UserAddress="mailto:juergen@info-age.net"
 Echo=true # reflect deletion in source folder
 # --no-deduplicate
 # NoDeduplicate=true
+# --digest
+DigestAlgorithm="sha512"
 
 [Update.ext.NNNN-metadata]
 #Source="C:/temp/$ID.json"
@@ -68,7 +70,7 @@ Echo=true # reflect deletion in source folder
 
 [Stat]
 # --stat-info
-Info = ["objects", "objectversions", "objectextensionconfigs"]
+Info = "objects,objectversions,objectextensionconfigs"
 
 [Extract]
 Manifest = true

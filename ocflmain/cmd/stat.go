@@ -34,7 +34,7 @@ func initStat() {
 	for info, _ := range ocfl.StatInfoString {
 		infos = append(infos, info)
 	}
-	statCmd.Flags().StringArray("stat-info", []string{}, fmt.Sprintf("info field to show. multiple use [%s]", strings.Join(infos, ",")))
+	statCmd.Flags().String("stat-info", "", fmt.Sprintf("comma separated list of info fields to show [%s]", strings.Join(infos, ",")))
 	viper.BindPFlag("Stat.Info", statCmd.Flags().Lookup("stat-info"))
 }
 
@@ -43,6 +43,9 @@ func doStat(cmd *cobra.Command, args []string) {
 
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
+	if persistentFlagLoglevel == "" {
+		persistentFlagLoglevel = "INFO"
+	}
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
@@ -56,10 +59,11 @@ func doStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	statInfoStrings := viper.GetStringSlice("Stat.Info")
+	statInfoString := viper.GetString("Stat.Info")
+	statInfoStrings := strings.Split(statInfoString, ",")
 	statInfo := []ocfl.StatInfo{}
 	for _, statInfoString := range statInfoStrings {
-		statInfoString = strings.ToLower(statInfoString)
+		statInfoString = strings.ToLower(strings.TrimSpace(statInfoString))
 		var found bool
 		for str, info := range ocfl.StatInfoString {
 			if strings.ToLower(str) == statInfoString {

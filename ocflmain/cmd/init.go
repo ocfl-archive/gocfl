@@ -28,19 +28,19 @@ func initInit() {
 	initCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
 	viper.BindPFlag("Init.StorageRootExtensions", initCmd.Flags().Lookup("default-storageroot-extensions"))
 
-	initCmd.Flags().String("ocfl-version", "v", "ocfl version for new storage root")
+	initCmd.Flags().String("ocfl-version", "1.1", "ocfl version for new storage root")
 	viper.BindPFlag("Init.OCFLVersion", initCmd.Flags().Lookup("ocfl-version"))
 
 	initCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
 	viper.BindPFlag("Init.DigestAlgorithm", initCmd.Flags().Lookup("digest"))
 
-	initCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
+	initCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	viper.BindPFlag("Init.AES", initCmd.Flags().Lookup("encrypt-aes"))
 
-	initCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key")
+	initCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
 	viper.BindPFlag("Init.AESKey", initCmd.Flags().Lookup("aes-key"))
 
-	initCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector")
+	initCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 chars, empty: generate random vector)")
 	viper.BindPFlag("Init.AESKey", initCmd.Flags().Lookup("aes-key"))
 }
 

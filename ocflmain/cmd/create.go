@@ -58,10 +58,10 @@ func initCreate() {
 	viper.BindPFlag("Add.DigestAlgorithm", createCmd.Flags().Lookup("digest"))
 	viper.BindPFlag("Init.DigestAlgorithm", createCmd.Flags().Lookup("digest"))
 
-	createCmd.Flags().Bool("deduplicate", false, "set flag to force deduplication (slower)")
+	createCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	viper.BindPFlag("Add.Deduplicate", createCmd.Flags().Lookup("deduplicate"))
 
-	createCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
+	createCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	viper.BindPFlag("Init.AES", createCmd.Flags().Lookup("encrypt-aes"))
 
 	createCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")

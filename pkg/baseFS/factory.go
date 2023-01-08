@@ -86,7 +86,7 @@ func (f *Factory) Rename(src, dest string) error {
 			}
 			return errors.Wrapf(err, "error renaming '%s' --> '%s'", src, dest)
 		}
-		break
+		return nil
 	}
 	srcFP, err := f.Open(src)
 	if err != nil {

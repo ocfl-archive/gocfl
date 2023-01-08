@@ -440,6 +440,9 @@ func (object *ObjectBase) echoDelete() error {
 	if err != nil {
 		return errors.Wrap(err, "cannot build external path for '.'")
 	}
+	if basePath == "." {
+		basePath = ""
+	}
 	if err := object.i.echoDelete(object.updateFiles, basePath); err != nil {
 		return errors.Wrap(err, "cannot remove deleted files from inventory")
 	}
@@ -610,7 +613,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
-	object.updateFiles = append(object.updateFiles, internalFilename)
+	object.updateFiles = append(object.updateFiles, path)
 
 	file, err := fsys.Open(path)
 	if err != nil {
@@ -650,11 +653,12 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", internalFilename, digest)
 		}
 		if dup {
-			object.logger.Infof("[%s] ignoring '%s'", object.GetID(), newPath)
+			object.logger.Infof("[%s] '%s' already exists. ignoring", object.GetID(), newPath)
 			return nil
 		}
 		// file already ingested, but new virtual name
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
+			object.logger.Infof("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
 			if err := object.i.CopyFile(newPath, digest); err != nil {
 				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, internalFilename)
 			}

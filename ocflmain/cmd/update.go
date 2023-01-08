@@ -45,10 +45,10 @@ func initUpdate() {
 	updateCmd.Flags().StringP("digest", "d", "", "digest to use for zip file checksum")
 	viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest"))
 
-	updateCmd.Flags().Bool("no-deduplicate", false, "set flag to disable deduplication (faster)")
+	updateCmd.Flags().Bool("no-deduplicate", false, "disable deduplication (faster)")
 	viper.BindPFlag("Update.NoDeduplicate", updateCmd.Flags().Lookup("no-deduplicate"))
 
-	updateCmd.Flags().Bool("echo", false, "set flag to update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'")
+	updateCmd.Flags().Bool("echo", false, "update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'")
 	viper.BindPFlag("Update.Echo", updateCmd.Flags().Lookup("echo"))
 
 	updateCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
@@ -73,6 +73,9 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
+	if persistentFlagLoglevel == "" {
+		persistentFlagLoglevel = "INFO"
+	}
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
@@ -97,7 +100,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	flagAddDigest := viper.GetString("Update.DigestAlgorithm")
 	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagAddDigest)); err != nil {
 		cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Add.DigestAlgorithm' config file entry", flagAddDigest))
+		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Update.DigestAlgorithm' config file entry", flagAddDigest))
 	}
 	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
 

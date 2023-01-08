@@ -1,6 +1,7 @@
 # Init
 
-The `init` command initializes an OCFL Storage Root. The [default extension configs](../data/defaultextensions/storageroot) are used for that. 
+The `init` command initializes an OCFL Storage Root.   
+[Default extension configs](../data/defaultextensions/storageroot) are used. 
 
 ```
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe init --help
@@ -13,13 +14,13 @@ Examples:
 gocfl init ./archive.zip
 
 Flags:
-      --aes-iv string                           initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector
-      --aes-key string                          key to use for encrypted container in hex format (64 chars, empty: generate random key
+      --aes-iv string                           initialisation vector to use for encrypted container in hex format (32 chars, empty: generate random vector)
+      --aes-key string                          key to use for encrypted container in hex format (64 chars, empty: generate random key)
       --default-storageroot-extensions string   folder with initial extension configurations for new OCFL Storage Root
   -d, --digest string                           digest to use for ocfl checksum
-      --encrypt-aes                             set flag to create encrypted container (only for container target)
+      --encrypt-aes                             create encrypted container (only for container target)
   -h, --help                                    help for init
-      --ocfl-version string                     ocfl version for new storage root (default "v")
+      --ocfl-version string                     ocfl version for new storage root (default "1.1")
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
@@ -39,44 +40,65 @@ All Examples refer to the same [config file](../config/gocfl.toml)
 ```
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe init c:/temp/ocflroot --config ./config/gocfl.toml
 Using config file: ./config/gocfl.toml
-2023-01-07T18:51:47.523 cmd::doInit [init.go:104] > INFO - creating 'c:/temp/ocflroot'
-2023-01-07T18:51:47.523 cmd::doInit [init.go:108] > INFO - creating 'c:/temp/ocflroot'
+2023-01-08T13:27:31.770 cmd::doInit [init.go:104] > INFO - creating 'c:/temp/ocflroot'
 
 no errors found
-2023-01-07T18:51:47.538 cmd::doInit.func1 [init.go:106] > INFO - Duration: 14.2393ms
-PS C:\daten\go\dev\gocfl> dir /temp/ocflroot
+2023-01-08T13:27:31.775 cmd::doInit.func1 [init.go:106] > INFO - Duration: 5.3941ms
+
+PS C:\Users\micro> Get-ChildItem /temp/ocflroot -recurse
 
     Directory: C:\temp\ocflroot
 
 Mode                 LastWriteTime         Length Name
 ----                 -------------         ------ ----
-d----          07.01.2023    18:51                extensions
--a---          07.01.2023    18:51              9 0=ocfl_1.1
--a---          07.01.2023    18:51            110 ocfl_layout.json
+d----          08.01.2023    13:27                extensions
+-a---          08.01.2023    13:27              9 0=ocfl_1.1
+-a---          08.01.2023    13:27            110 ocfl_layout.json
+
+    Directory: C:\temp\ocflroot\extensions
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d----          08.01.2023    13:27                initial
+d----          08.01.2023    13:27                NNNN-direct-clean-path-layout
+d----          08.01.2023    13:27                NNNN-direct-path-layout
+
+    Directory: C:\temp\ocflroot\extensions\initial
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          08.01.2023    13:27            510 config.json
+
+    Directory: C:\temp\ocflroot\extensions\NNNN-direct-clean-path-layout
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          08.01.2023    13:27            298 config.json
+
+    Directory: C:\temp\ocflroot\extensions\NNNN-direct-path-layout
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          08.01.2023    13:27             50 config.json
 ```
 
 ### Storage Root on ZIP File
 
 ```
-PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe init c:/temp/ocflroot.zip --config ./config/gocfl.toml
+PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe init c:/temp/ocfl_init.zip --config ./config/gocfl.toml
 Using config file: ./config/gocfl.toml
-2023-01-07T18:53:34.192 cmd::doInit [init.go:104] > INFO - creating 'c:/temp/ocflroot.zip'
-2023-01-07T18:53:34.193 cmd::doInit [init.go:108] > INFO - creating 'c:/temp/ocflroot.zip'
+2023-01-08T13:25:58.771 cmd::doInit [init.go:104] > INFO - creating 'c:/temp/ocfl_init.zip'
 
 no errors found
-2023-01-07T18:53:34.197 cmd::doInit.func1 [init.go:106] > INFO - Duration: 4.009ms
-PS C:\daten\go\dev\gocfl> dir /temp/ocflroot.zip*
+2023-01-08T13:25:58.774 cmd::doInit.func1 [init.go:106] > INFO - Duration: 2.7303ms
+PS C:\daten\go\dev\gocfl> dir /temp/ocfl_init.*
 
     Directory: C:\temp
 
 Mode                 LastWriteTime         Length Name
 ----                 -------------         ------ ----
--a---          07.01.2023    19:05           1648 ocflroot.zip
--a---          07.01.2023    19:05           1648 ocflroot.zip.aes
--a---          07.01.2023    19:05             32 ocflroot.zip.aes.iv
--a---          07.01.2023    19:05             64 ocflroot.zip.aes.key
--a---          07.01.2023    19:05            147 ocflroot.zip.aes.sha512
--a---          07.01.2023    19:05            143 ocflroot.zip.sha512
+-a---          08.01.2023    13:25           1648 ocfl_init.zip
+-a---          08.01.2023    13:25            144 ocfl_init.zip.sha512
 ```
 
 

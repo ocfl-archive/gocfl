@@ -1,6 +1,10 @@
 # Create
 
-The `create` command is a combination of the `init` and `add` commands in one step. 
+The `create` command is a combination of the `init` and `add` commands in one step.   
+It's mainly used for single Object Storage Root in a serialized container (ZIP).   
+Deduplication is disabled by default.
+
+The [default extension configs](../data/defaultextensions/object) are used for that.
 
 ```
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe create --help
@@ -16,13 +20,13 @@ gocfl create ./archive.zip /tmp/testdata --digest sha512 -u 'Jane Doe' -a 'mailt
 Flags:
       --aes-iv string                           initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)
       --aes-key string                          key to use for encrypted container in hex format (64 chars, empty: generate random key)
-      --deduplicate                             set flag to force deduplication (slower)
+      --deduplicate                             force deduplication (slower)
       --default-object-extensions string        folder with initial extension configurations for new OCFL objects
       --default-storageroot-extensions string   folder with initial extension configurations for new OCFL Storage Root
   -d, --digest string                           digest to use for ocfl checksum
-      --encrypt-aes                             set flag to create encrypted container (only for container target)
+      --encrypt-aes                             create encrypted container (only for container target)
       --ext-NNNN-metafile-source string         url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
-  -f, --fixity string                           comma separated list of digest algorithms for fixity [blake2b-160 blake2b-256 blake2b-384 blake2b-512 md5 sha1 sha256 sha512]
+  -f, --fixity string                           comma separated list of digest algorithms for fixity [sha512 blake2b-160 blake2b-256 blake2b-384 blake2b-512 md5 sha1 sha256]
   -h, --help                                    help for create
   -m, --message string                          message for new object version (required)
   -i, --object-id string                        object id to update (required)
@@ -40,9 +44,9 @@ Global Flags:
 ```
 ## Examples
 
-All Examples refer to the same [config file](../config/gocfl.toml)
+All Examples refer to the same [config file](../config/gocfl.toml).
 
-### Storage Root in ZIP file with encrypted copy
+### Storage Root in ZIP file
 ```
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe create C:/temp/ocfl_create.zip C:/temp/ocfltest --config ./config/gocfl.toml -i "id:blah-blubb"
 Using config file: ./config/gocfl.toml
@@ -75,10 +79,6 @@ PS C:\daten\go\dev\gocfl> dir /temp/ocfl_create.*
 Mode                 LastWriteTime         Length Name
 ----                 -------------         ------ ----
 -a---          07.01.2023    17:15     1589427609 ocfl_create.zip
--a---          07.01.2023    17:15     1589427609 ocfl_create.zip.aes
--a---          07.01.2023    17:15             32 ocfl_create.zip.aes.iv
--a---          07.01.2023    17:15             64 ocfl_create.zip.aes.key
--a---          07.01.2023    17:15            150 ocfl_create.zip.aes.sha512
 -a---          07.01.2023    17:15            146 ocfl_create.zip.sha512
 ```
 

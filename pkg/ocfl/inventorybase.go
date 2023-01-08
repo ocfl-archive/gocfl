@@ -855,18 +855,23 @@ func (i *InventoryBase) echoDelete(existing []string, pathPrefix string) error {
 	if !ok {
 		return errors.Errorf("cannot get version '%s'", i.Head.string)
 	}
+	statefiles := []string{}
 	for _, state := range version.State.State {
 		for _, filename := range state {
-			if !strings.HasPrefix(filename, pathPrefix) {
-				continue
-			}
-			if _, found := slices.BinarySearch(existing, filename); !found {
-				deleteFiles = append(deleteFiles, filename)
-			}
-
+			statefiles = append(statefiles, filename)
 		}
 	}
+	for _, filename := range statefiles {
+		if !strings.HasPrefix(filename, pathPrefix) {
+			continue
+		}
+		if _, found := slices.BinarySearch(existing, filename); !found {
+			deleteFiles = append(deleteFiles, filename)
+		}
+
+	}
 	for _, filename := range deleteFiles {
+		//		i.logger.Infof("removing '%s' from state", filename)
 		if err := i.DeleteFile(filename); err != nil {
 			return errors.Wrapf(err, "cannot delete '%s'", filename)
 		}
@@ -890,7 +895,7 @@ func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 	i.Versions.Versions[i.GetHead()].State.State = newState
 	if found {
 		i.modified = found
-		i.logger.Infof("[%s] deleting '%s'", i.GetID(), virtualFilename)
+		i.logger.Infof("[%s] removing '%s' from state", i.GetID(), virtualFilename)
 	}
 	return nil
 }

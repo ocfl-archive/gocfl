@@ -51,16 +51,16 @@ func initAdd() {
 	addCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
 	viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest"))
 
-	addCmd.Flags().Bool("deduplicate", false, "set flag to force deduplication (slower)")
+	addCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	viper.BindPFlag("Add.Deduplicate", addCmd.Flags().Lookup("deduplicate"))
 
-	addCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
+	addCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	viper.BindPFlag("Init.AES", addCmd.Flags().Lookup("encrypt-aes"))
 
-	addCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key")
+	addCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
 	viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key"))
 
-	addCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector")
+	addCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 chars empty: generate random vector)")
 	viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key"))
 }
 
@@ -238,8 +238,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if !exists {
-		fmt.Printf("Object '%s' does not exist, exiting", flagObjectID)
+	if exists {
+		fmt.Printf("Object '%s' already exist, exiting", flagObjectID)
 		return
 	}
 
