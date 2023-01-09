@@ -44,6 +44,10 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 	return sl, nil
 }
 
+func (sl *PathDirect) IsRegistered() bool {
+	return false
+}
+
 func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }

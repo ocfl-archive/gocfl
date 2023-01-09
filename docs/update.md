@@ -14,7 +14,7 @@ Usage:
   gocfl update [path to ocfl structure] [flags]
 
 Examples:
-gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
+gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'first update' -object-id 'id:abc123'
 
 Flags:
       --aes-iv string                     initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector
@@ -45,7 +45,7 @@ All Examples refer to the same [config file](../config/gocfl.toml).
 
 ### Update on ZIP file
 ```
-PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe update C:/temp/ocfl.zip C:/temp/ocfltest1 --config ./config/gocfl.toml -i "id:blah-blubb"
+PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe update C:/temp/ocfl.zip C:/temp/ocfltest1 --config ./config/gocfl.toml -i "id:blah-blubb" -u 'Jane Doe' -a 'mailto:user@domain' -m 'first update' 
 Using config file: ./config/gocfl.toml
 2023-01-08T15:41:06.718 cmd::doUpdate [update.go:147] > INFO - opening 'C:/temp/ocfl.zip'
 2023-01-08T15:41:06.721 ocfl::(*ObjectBase).AddFile [objectbase.go:602] > INFO - adding file content:2017-07-25_20-15-18_980 - Kopie.jpeg

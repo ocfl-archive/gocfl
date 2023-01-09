@@ -35,6 +35,7 @@ UserName="Jürgen Enge"
 # --user-address
 UserAddress="mailto:juergen@info-age.net"
 # --fixity
+#Fixity="md5,sha256"
 Fixity="md5,sha256,blake2b-384"
 # --digest
 DigestAlgorithm="sha512"
@@ -70,7 +71,7 @@ DigestAlgorithm="sha512"
 
 [Stat]
 # --stat-info
-Info = "objects,objectversions,objectextensionconfigs"
+Info = "ExtensionConfigs,objects,objectversions,objectextensionconfigs"
 
 [Extract]
 Manifest = true

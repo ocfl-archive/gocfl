@@ -25,9 +25,9 @@ var extractCmd = &cobra.Command{
 }
 
 func initExtract() {
-	extractCmd.Flags().StringP("object-path", "p", "", "object path to show statistics for")
+	extractCmd.Flags().StringP("object-path", "p", "", "object path to extract")
 
-	extractCmd.Flags().StringP("object-id", "i", "", "object id to show statistics for")
+	extractCmd.Flags().StringP("object-id", "i", "", "object id to extract")
 
 	extractCmd.Flags().Bool("with-manifest", false, "generate manifest file in object extraction folder")
 	viper.BindPFlag("Extract.Manifest", extractCmd.Flags().Lookup("with-manifest"))
@@ -66,7 +66,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	daLogger.Infof("creating '%s'", ocflPath)
+	daLogger.Infof("extracting '%s'", ocflPath)
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)
 	if err != nil {

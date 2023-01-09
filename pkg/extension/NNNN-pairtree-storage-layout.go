@@ -32,6 +32,10 @@ type StorageLayoutPairTree struct {
 	fs   ocfl.OCFLFS
 }
 
+func (sl *StorageLayoutPairTree) IsRegistered() bool {
+	return false
+}
+
 func (sl *StorageLayoutPairTree) WriteLayout(fs ocfl.OCFLFS) error {
 	configWriter, err := fs.Create("ocfl_layout.json")
 	if err != nil {

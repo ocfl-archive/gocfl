@@ -112,6 +112,10 @@ func encodeUTFCode(s string) string {
 
 // interface Extension
 
+func (sl *DirectClean) IsRegistered() bool {
+	return false
+}
+
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
 func (sl *DirectClean) GetConfigString() string {

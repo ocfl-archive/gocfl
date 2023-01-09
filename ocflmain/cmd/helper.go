@@ -47,6 +47,10 @@ func initExtensionFactory(extensionParams map[string]string, logger *logging.Log
 		return nil, errors.Wrap(err, "cannot instantiate extension factory")
 	}
 
+	extensionFactory.AddCreator(extension.DigestAlgorithmsName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		return extension.NewDigestAlgorithmsFS(fsys)
+	})
+
 	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewDirectCleanFS(fsys)
 	})

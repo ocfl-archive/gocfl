@@ -15,6 +15,7 @@ type Extension interface {
 	SetParams(params map[string]string) error
 	WriteConfig() error
 	GetConfigString() string
+	IsRegistered() bool
 	//	Stat(w io.Writer, statInfo []StatInfo) error
 }
 

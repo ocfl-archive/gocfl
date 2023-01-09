@@ -83,6 +83,12 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 	fmt.Fprintf(w, "[%s] Digest: %s\n", object.GetID(), object.GetDigestAlgorithm())
 	i := object.GetInventory()
 	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
+	f := i.GetFixity()
+	algs := []string{}
+	for alg, _ := range f {
+		algs = append(algs, string(alg))
+	}
+	fmt.Fprintf(w, "[%s] Fixity: %s\n", object.GetID(), strings.Join(algs, ", "))
 	m := i.GetManifest()
 	cnt := 0
 	for _, fs := range m {
@@ -378,11 +384,26 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	}
 
 	for _, ext := range extensions {
+		if !ext.IsRegistered() {
+			object.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+		}
 		if err := object.extensionManager.Add(ext); err != nil {
 			return errors.Wrapf(err, "cannot add extension '%s'", ext.GetName())
 		}
 	}
 	object.extensionManager.Finalize()
+
+	// check fixity here
+	algs := []checksum.DigestAlgorithm{
+		checksum.DigestSHA512,
+		checksum.DigestSHA256,
+	}
+	algs = append(algs, object.extensionManager.GetFixityDigests()...)
+	slices.Sort(algs)
+	algs = slices.Compact(algs)
+	if !sliceContains(algs, fixity) {
+		return errors.Errorf("forbidden digest algorithm for fixity %v. Supported algorithms are %v. (to fix try to use extension 0001-digest-algorithms)", fixity, algs)
+	}
 
 	object.i, err = object.CreateInventory(id, digest, fixity)
 	return nil
@@ -415,8 +436,11 @@ func (object *ObjectBase) Load() (err error) {
 		}
 		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-			object.addValidationWarning(W013, "unknown extension in folder '%s'", subfs)
+			object.addValidationWarning(W000, "unknown extension in folder '%s'", subfs)
 		} else {
+			if !ext.IsRegistered() {
+				object.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+			}
 			if err := object.extensionManager.Add(ext); err != nil {
 				return errors.Wrapf(err, "cannot add extension '%s'", extFolder.Name())
 			}

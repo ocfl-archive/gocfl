@@ -89,7 +89,7 @@ func (zipSubFS *SubFS) SubFS(path string) (ocfl.OCFLFSRead, error) {
 	if name == "" {
 		return zipSubFS, nil
 	}
-	return zipSubFS.FS.SubFS(path)
+	return zipSubFS.FS.SubFS(name)
 }
 
 // check interface satisfaction

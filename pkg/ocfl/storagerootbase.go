@@ -111,6 +111,9 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 	}
 
 	for _, ext := range extensions {
+		if !ext.IsRegistered() {
+			osr.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+		}
 		if err := osr.extensionManager.Add(ext); err != nil {
 			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
 		}
@@ -170,6 +173,9 @@ func (osr *StorageRootBase) Load() error {
 			osr.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder)
 			//return errors.Wrapf(err, "cannot create extension for config '%s'", extFolder)
 		} else {
+			if !ext.IsRegistered() {
+				osr.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+			}
 			if err := osr.extensionManager.Add(ext); err != nil {
 				return errors.Wrapf(err, "cannot add extension '%s' to manager", extFolder)
 			}
@@ -367,7 +373,7 @@ func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest 
 	}
 
 	// create initial filesystem structure for new object
-	if err := object.Init(id, digest, fixity, defaultExtensions); err != nil {
+	if err = object.Init(id, digest, fixity, defaultExtensions); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
 	}
 
@@ -460,6 +466,18 @@ func (osr *StorageRootBase) CheckObjects() error {
 func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo []StatInfo) error {
 	fmt.Fprintf(w, "Storage Root\n")
 	fmt.Fprintf(w, "OCFL Version: %s\n", osr.GetVersion())
+	if slices.Contains(statInfo, StatExtensionConfigs) || len(statInfo) == 0 {
+		data, err := json.MarshalIndent(osr.extensionManager.ExtensionManagerConfig, "", "  ")
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
+		}
+		fmt.Fprintf(w, "Initial Extension:\n---\n%s\n---\n", string(data))
+		fmt.Fprintf(w, "Extension Configurations:\n")
+		for _, ext := range osr.extensionManager.extensions {
+			fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString())
+		}
+	}
+
 	if path == "" && id == "" {
 		objectFolders, err := osr.GetObjectFolders()
 		if err != nil {

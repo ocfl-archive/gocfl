@@ -67,6 +67,10 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 	return sl, nil
 }
 
+func (sl *StorageLayoutHashAndIdNTuple) IsRegistered() bool {
+	return true
+}
+
 func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }

@@ -3,7 +3,14 @@
 This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
 and focuses on creation, update, validation and extraction of ocfl StorageRoots and Objects.
 
-* [Large Data Test](docs/largeobject.md)
+GOCFL command line tool supports the following subcommands
+* [init](docs/init.md)
+* [add](docs/add.md)
+* [create](docs/create.md)
+* [update](docs/update.md)
+* [validate](docs/validate.md)
+* [info](docs/stat.md)
+* [extract](docs/extract.md)
 
 ## Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
@@ -56,13 +63,13 @@ Since OCFL Structure is quite rigid, there's need for a special extensions suppo
 - [x] Nearly full coverage of validation errors and warnings
 - [x] Content information
 - [x] Extraction with version selection
-- [Community Extensions](https://github.com/OCFL/extensions) 
-  - [ ] 0001-digest-algorithms
+- [Community Extensions](https://github.com/OCFL/extensions/docs) 
+  - [x] 0001-digest-algorithms
   - [x] 0002-flat-direct-storage-layout
   - [x] 0003-hash-and-id-n-tuple-storage-layout
   - [x] 0004-hashed-n-tuple-storage-layout
   - [ ] 0005-mutable-head
-  - [ ] 0006-flat-omit-prefix-storage-layout
+  - [x] 0006-flat-omit-prefix-storage-layout
   - [ ] 0007-n-tuple-omit-prefix-storage-layout
   - [ ] 0008-schema-registry
 - Local Extensions

@@ -69,6 +69,10 @@ func NewContentSubPath(config *ContentSubPathConfig) (*ContentSubPath, error) {
 	return sl, nil
 }
 
+func (sl *ContentSubPath) IsRegistered() bool {
+	return false
+}
+
 func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFS) {
 	sl.fs = fs
 }

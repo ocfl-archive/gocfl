@@ -36,6 +36,10 @@ func NewInitialDummy(config *ExtensionManagerConfig) (*InitialDummy, error) {
 	return sl, nil
 }
 
+func (dummy *InitialDummy) IsRegistered() bool {
+	return false
+}
+
 func (dummy *InitialDummy) GetName() string {
 	return ExtensionManagerName
 }

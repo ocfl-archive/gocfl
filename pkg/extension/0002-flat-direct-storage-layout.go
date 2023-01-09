@@ -44,6 +44,10 @@ func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*Storage
 	return sl, nil
 }
 
+func (sl *StorageLayoutFlatDirect) IsRegistered() bool {
+	return true
+}
+
 func (sl *StorageLayoutFlatDirect) Stat(w io.Writer, statInfo []ocfl.StatInfo) error {
 	return nil
 }

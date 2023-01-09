@@ -185,6 +185,9 @@ func (manager *ExtensionManager) Finalize() {
 }
 
 // Extension
+func (manager *ExtensionManager) IsRegistered() bool {
+	return false
+}
 func (manager *ExtensionManager) GetName() string {
 	return ExtensionManagerName
 }

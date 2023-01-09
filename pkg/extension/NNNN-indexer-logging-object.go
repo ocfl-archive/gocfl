@@ -19,6 +19,10 @@ type LoggingIndexer struct {
 	metadata map[string]any
 }
 
+func (sl *LoggingIndexer) IsRegistered() bool {
+	return false
+}
+
 func (li *LoggingIndexer) SetFS(fs ocfl.OCFLFS) {
 	//TODO implement me
 	panic("implement me")

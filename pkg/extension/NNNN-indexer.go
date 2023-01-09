@@ -60,6 +60,10 @@ func NewIndexer(config *IndexerConfig) (*Indexer, error) {
 	return sl, nil
 }
 
+func (sl *Indexer) IsRegistered() bool {
+	return false
+}
+
 func (sl *Indexer) GetName() string { return IndexerName }
 
 func (sl *Indexer) SetFS(fs ocfl.OCFLFS) {

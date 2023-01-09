@@ -78,6 +78,10 @@ func NewMetaFile(config *MetaFileConfig) (*MetaFile, error) {
 	return sl, nil
 }
 
+func (sl *MetaFile) IsRegistered() bool {
+	return false
+}
+
 func (sl *MetaFile) SetParams(params map[string]string) error {
 	if params != nil {
 		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")

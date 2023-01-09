@@ -68,6 +68,10 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 	return sl, nil
 }
 
+func (sl *StorageLayoutHashedNTuple) IsRegistered() bool {
+	return true
+}
+
 func (sl *StorageLayoutHashedNTuple) GetName() string { return StorageLayoutHashedNTupleName }
 
 func (sl *StorageLayoutHashedNTuple) GetConfigString() string {

@@ -159,6 +159,7 @@ func validVersion(ctx context.Context, fs OCFLFS, version OCFLVersion, folder, p
 	return v == version
 }
 
+// Contains reports whether vs is present in s
 func sliceContains[E comparable](s []E, vs []E) bool {
 	for _, v := range vs {
 		if !slices.Contains(s, v) {
