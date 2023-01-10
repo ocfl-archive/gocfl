@@ -126,23 +126,58 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fs ocfl.OCFLFS) error {
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
-	last := strings.LastIndex(id, sl.Delimiter)
-	if last >= 0 {
-		id = id[last+len(sl.Delimiter):]
+	/*
+	  1) Remove the prefix, which is everything to the left of the right-most instance of the delimiter, as well as the delimiter. If there is no delimiter, the whole id is used; if the delimiter is found at the end, an error is thrown.
+	*/
+	if sl.Delimiter != "" {
+		last := strings.LastIndex(id, sl.Delimiter)
+		if last >= 0 {
+			id = id[last+len(sl.Delimiter):]
+		}
 	}
-	var base string
+	/*
+	 2) Optionally, add zero-padding to the left or right of the remaining id, depending on zeroPadding configuration.
+	*/
+	var targetLength = sl.TupleSize * sl.NumberOfTuples
+	/*
+		if targetLength < len(id) {
+			return "", errors.Errorf("'%s' longer than %v", id, targetLength)
+		}
+	*/
+	var str = strings.Builder{}
+	str.Grow(max(targetLength, len(id)))
+	l := len(id)
+	if sl.ZeroPadding == "right" {
+		str.WriteString(id)
+	}
+	for i := 0; i < targetLength-l; i++ {
+		str.WriteString("0")
+	}
+	if sl.ZeroPadding == "left" {
+		str.WriteString(id)
+	}
+	base := str.String()
+	/*
+		3) Optionally reverse the remaining id, depending on reverseObjectRoot
+	*/
 	if sl.ReverseObjectRoot {
-		base = reverse(id)
-	} else {
-		base = id
+		base = reverse(base)
 	}
-	// todo: finalize
-	var pathComponents = []string{}
-	for i := 0; i*sl.TupleSize < len(base); i++ {
 
+	/*
+		4) Starting at the leftmost character of the resulting id and working right, divide the id into numberOfTuples each containing tupleSize characters.
+	*/
+	var pathComponents = []string{}
+	for i := 0; i < targetLength/sl.TupleSize; i++ {
+		pathComponents = append(pathComponents, base[i*sl.TupleSize:(i+1)*sl.TupleSize])
 	}
-	var _ = pathComponents
-	return id[last+len(sl.Delimiter):], nil
+	/*
+		5) Create the start of the object root path by joining the tuples, in order, using the filesystem path separator.
+		6) Complete the object root path by joining the prefix-omitted id (from step 1) onto the end.
+	*/
+	pathComponents = append(pathComponents, id)
+	result := strings.Join(pathComponents, "/")
+	return result, nil
 }
 
 // check interface satisfaction

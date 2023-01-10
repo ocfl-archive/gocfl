@@ -10,6 +10,8 @@ import (
 	"regexp"
 )
 
+const VERSION = "0.1"
+
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
 type LogLevelFlag uint
@@ -98,9 +100,10 @@ var areaPathRegexp = regexp.MustCompile("^([a-z]+):([^/].*)$")
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",
 	Short: "gocfl is a fast ocfl creator/extractor/validator with focus on zip containers",
-	Long: `A fast and reliable OCFL creator, extractor and validator.
-                https://github.com/je4/gocfl
-                Jürgen Enge (University Library Basel, juergen@info-age.net)`,
+	Long: fmt.Sprintf(`A fast and reliable OCFL creator, extractor and validator.
+https://github.com/je4/gocfl
+Jürgen Enge (University Library Basel, juergen@info-age.net)
+Version %s`, VERSION),
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

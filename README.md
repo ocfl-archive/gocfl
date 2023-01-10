@@ -17,14 +17,14 @@ There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Imp
 which already exists. This software is build with the following motivation.
 
 ### I/O Performance
-Regarding Performance, Storage I/O generates the main performance issues. Therefor, every file 
+Regarding performance, Storage I/O generates the main performance issues. Therefor, every file 
 should be read and written only once. Only in case of deduplication, the checksum of a file is
 calculated before ingest and a second time while ingesting. 
 
 ### Container 
 Serialization of an OCFL Storage Root into a container format like ZIP must not generate 
-overhead on disk I/O. Therefor generation of an OCFL Container is possible without intermediary
-file system ocfl store. 
+overhead on disk I/O. Therefor generation of an OCFL Container is possible without an intermediary
+OCFL Storage Root on a filesystem. 
 
 #### Encryption 
 For storing OCFL Container at low security locations (cloud storage etc.) there's a possibility
@@ -70,7 +70,7 @@ Since OCFL Structure is quite rigid, there's need for a special extensions suppo
   - [x] 0004-hashed-n-tuple-storage-layout
   - [ ] 0005-mutable-head
   - [x] 0006-flat-omit-prefix-storage-layout
-  - [ ] 0007-n-tuple-omit-prefix-storage-layout
+  - [x] 0007-n-tuple-omit-prefix-storage-layout
   - [ ] 0008-schema-registry
 - Local Extensions
   - [x] [NNNN-pairtree-storage-layout](https://pythonhosted.org/Pairtree/pairtree.pairtree_client.PairtreeStorageClient-class.html) 
@@ -84,7 +84,7 @@ Since OCFL Structure is quite rigid, there's need for a special extensions suppo
 
 ```
 An OCFL creator, extractor and validator.
-      https://go.ub.unibas.ch/gocfl
+      https://github.com/je4/gocfl
       Jürgen Enge (University Library Basel, juergen@info-age.net)
 
 Usage:
