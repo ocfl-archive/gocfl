@@ -69,6 +69,7 @@ func initCreate() {
 
 	createCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)")
 	viper.BindPFlag("Init.AESKey", createCmd.Flags().Lookup("aes-key"))
+
 }
 
 func doCreate(cmd *cobra.Command, args []string) {
