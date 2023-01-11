@@ -28,7 +28,7 @@ func (osFS *FS) Delete(name string) error {
 
 func NewFS(folder string, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
-	folder = strings.Trim(filepath.ToSlash(filepath.Clean(folder)), "/")
+	folder = strings.TrimRight(filepath.ToSlash(filepath.Clean(folder)), "/")
 	osfs := &FS{
 		folder: folder,
 		//fs:     os.DirFS(folder),
@@ -42,9 +42,9 @@ func (osFS *FS) String() string {
 }
 
 func (osFS *FS) Rename(src, dest string) error {
-	src = strings.Trim(filepath.ToSlash(filepath.Clean(src)), "/")
+	src = strings.TrimRight(filepath.ToSlash(filepath.Clean(src)), "/")
 	src = filepath.Join(osFS.folder, src)
-	dest = strings.Trim(filepath.ToSlash(filepath.Clean(dest)), "/")
+	dest = strings.TrimRight(filepath.ToSlash(filepath.Clean(dest)), "/")
 	dest = filepath.Join(osFS.folder, dest)
 	return errors.Wrapf(os.Rename(src, dest), "cannot rename '%s' --> '%s'", src, dest)
 }
@@ -55,7 +55,7 @@ func (osFS *FS) IsNotExist(err error) bool {
 }
 
 func (osFS *FS) Close() error {
-	osFS.logger.Debug("Close OSFS ('%s')", osFS.folder)
+	osFS.logger.Debugf("Close OSFS ('%s')", osFS.folder)
 	return nil
 }
 

@@ -51,14 +51,6 @@ func initExtensionFactory(extensionParams map[string]string, logger *logging.Log
 		return extension.NewDigestAlgorithmsFS(fsys)
 	})
 
-	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
-		return extension.NewDirectCleanFS(fsys)
-	})
-
-	extensionFactory.AddCreator(extension.PathDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
-		return extension.NewPathDirectFS(fsys)
-	})
-
 	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutFlatDirectFS(fsys)
 	})
@@ -69,6 +61,22 @@ func initExtensionFactory(extensionParams map[string]string, logger *logging.Log
 
 	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashedNTupleFS(fsys)
+	})
+
+	extensionFactory.AddCreator(extension.FlatOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		return extension.NewFlatOmitPrefixStorageLayoutFS(fsys)
+	})
+
+	extensionFactory.AddCreator(extension.NTupleOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		return extension.NewNTupleOmitPrefixStorageLayoutFS(fsys)
+	})
+
+	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		return extension.NewDirectCleanFS(fsys)
+	})
+
+	extensionFactory.AddCreator(extension.PathDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		return extension.NewPathDirectFS(fsys)
 	})
 
 	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {

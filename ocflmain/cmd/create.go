@@ -263,11 +263,11 @@ func doCreate(cmd *cobra.Command, args []string) {
 		false)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
 
 	if err := destFS.Close(); err != nil {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
 }
