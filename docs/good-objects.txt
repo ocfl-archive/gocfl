@@ -1,0 +1,11 @@
+object folder 'minimal_content_dir_called_stuff'
+object folder 'minimal_mixed_digests'
+object folder 'minimal_no_content'
+object folder 'minimal_one_version_one_file'
+object folder 'minimal_uppercase_digests'
+object folder 'ocfl_object_all_fixity_digests'
+object folder 'spec-ex-full'
+object folder 'updates_all_actions'
+object folder 'updates_three_versions_one_file'
+
+no errors found

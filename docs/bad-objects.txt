@@ -1,0 +1,395 @@
+object folder 'E001_extra_dir_in_root'
+object folder 'E001_extra_file_in_root'
+object folder 'E001_invalid_version_format'
+object folder 'E001_v2_file_in_root'
+object folder 'E003_E063_empty'
+object folder 'E003_no_decl'
+object folder 'E007_bad_declaration_contents'
+object folder 'E008_E036_no_versions_no_head'
+object folder 'E010_missing_versions'
+object folder 'E010_skipped_versions'
+object folder 'E011_E013_invalid_padded_head_version'
+object folder 'E015_content_not_in_content_dir'
+object folder 'E017_invalid_content_dir'
+object folder 'E019_inconsistent_content_dir'
+object folder 'E023_extra_file'
+object folder 'E023_old_manifest_missing_entries'
+object folder 'E025_wrong_digest_algorithm'
+object folder 'E036_no_head'
+object folder 'E036_no_id'
+object folder 'E037_inconsistent_id'
+object folder 'E040_head_not_most_recent'
+object folder 'E040_wrong_head_doesnt_exist'
+object folder 'E040_wrong_head_format'
+object folder 'E040_wrong_version_in_version_dir'
+object folder 'E041_no_manifest'
+object folder 'E046_root_not_most_recent'
+object folder 'E049_E050_E054_bad_version_block_values'
+object folder 'E049_created_no_timezone'
+object folder 'E049_created_not_to_seconds'
+object folder 'E050_manifest_digest_wrong_case'
+object folder 'E050_state_digest_not_in_manifest'
+object folder 'E053_E052_invalid_logical_paths'
+object folder 'E058_no_sidecar'
+object folder 'E060_E064_root_inventory_digest_mismatch'
+object folder 'E060_version_inventory_digest_mismatch'
+object folder 'E061_invalid_sidecar'
+object folder 'E063_no_inv'
+object folder 'E064_different_root_and_latest_inventories'
+object folder 'E066_E092_old_manifest_digest_incorrect'
+object folder 'E066_algorithm_change_state_mismatch'
+object folder 'E066_inconsistent_version_state'
+object folder 'E067_file_in_extensions_dir'
+object folder 'E092_E093_content_path_does_not_exist'
+object folder 'E092_algorithm_change_incorrect_digest'
+object folder 'E092_content_file_digest_mismatch'
+object folder 'E093_fixity_digest_mismatch'
+object folder 'E095_conflicting_logical_paths'
+object folder 'E095_non_unique_logical_paths'
+object folder 'E096_manifest_duplicate_digests'
+object folder 'E097_fixity_duplicate_digests'
+object folder 'E100_E099_fixity_invalid_content_paths'
+object folder 'E100_E099_manifest_invalid_content_paths'
+object folder 'E101_non_unique_content_paths'
+object folder 'E103_older_spec_v2'
+object folder 'E107_file_in_manifest_not_used'
+
+[storage root 'file://fixtures/fixtures/1.1/bad-objects']
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid folder 'E003_E063_empty': cannot get version in 'E003_E063_empty': no version file found]
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid folder 'E003_no_decl': cannot get version in 'E003_no_decl': no version file found]
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid folder 'E007_bad_declaration_contents': cannot get version in 'E007_bad_declaration_contents': content of version declaration does not equal filename]
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid folder 'E063_no_inv': cannot load object from folder 'E063_no_inv': cannot load inventory.json of root: cannot open fixtures/fixtures/1.1/bad-objects/E063_no_inv/inventory.json: open fixtures/fixtures/1.1/bad-objects/E063_no_inv/inventory.json: no such file or directory]
+   #E003 - ‘There must be exactly one version declaration file in the base directory of the OCFL Object Root giving the OCFL version in the filename.’ [no version in folder 'E003_E063_empty']
+   #E003 - ‘There must be exactly one version declaration file in the base directory of the OCFL Object Root giving the OCFL version in the filename.’ [no version in folder 'E003_no_decl']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E001_extra_dir_in_root' - 'ark:123/abc']
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid directory 'extra_dir' found]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E001_extra_file_in_root' - 'ark:123/abc']
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid file 'extra_file' found]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E001_invalid_version_format' - 'urn:example']
+   #E104 - ‘Version directory names MUST be constructed by prepending v to the version number.’ [invalid version format '1' (./inventory.json)]
+   #E104 - ‘Version directory names MUST be constructed by prepending v to the version number.’ [invalid version format '1' (1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E001_v2_file_in_root' - 'ark:123/abc']
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid file 'v2' found]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E008_E036_no_versions_no_head' - 'http://example.org/E008_no_versions']
+   #E008 - ‘OCFL Object content must be stored as a sequence of one or more versions.’ [length of ver is 0 (./inventory.json)]
+   #E036 - ‘An OCFL Object Inventory must include the following keys: [id, type, digestAlgorithm, head]’ [invalid field "head" for object (./inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E010_missing_versions' - 'urn:example-1']
+   #E010 - ‘The version number sequence must start at 1 and MUST be continuous without missing integers.’ [number of versions in inventory (3) does not fit versions in filesystem (4)]
+   #W000 - unknown warning [no inventory for version 'v3']
+   #W010 - ‘In addition to the inventory in the OCFL Object Root, every version directory SHOULD include an inventory file that is an Inventory of all content for versions up to and including that particular version.’ [no inventory for version 'v3']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E010_skipped_versions' - 'urn:example-1']
+   #E010 - ‘The version number sequence must start at 1 and MUST be continuous without missing integers.’ [invalid ver sequence [1 4 5 7 8] (./inventory.json)]
+   #E010 - ‘The version number sequence must start at 1 and MUST be continuous without missing integers.’ [invalid ver sequence [1 4 5 7 8] (v8/inventory.json)]
+   #E010 - ‘The version number sequence must start at 1 and MUST be continuous without missing integers.’ [invalid ver sequence [1 4 5 7] (v7/inventory.json)]
+   #E010 - ‘The version number sequence must start at 1 and MUST be continuous without missing integers.’ [invalid ver sequence [1 4 5] (v5/inventory.json)]
+   #E010 - ‘The version number sequence must start at 1 and MUST be continuous without missing integers.’ [invalid ver sequence [1 4] (v4/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E011_E013_invalid_padded_head_version' - 'urn:example-1']
+   #E011 - ‘If zero-padded version directory numbers are used then they must start with the prefix v and then a zero.’ [invalid ver padding 'v10' (./inventory.json)]
+   #E011 - ‘If zero-padded version directory numbers are used then they must start with the prefix v and then a zero.’ [invalid ver padding 'v10' (v10/inventory.json)]
+   #E012 - ‘All version directories of an object must use the same naming convention: either a non-padded version directory number, or a zero-padded version directory number of consistent length.’ [invalid ver padding 'v10' (./inventory.json)]
+   #E012 - ‘All version directories of an object must use the same naming convention: either a non-padded version directory number, or a zero-padded version directory number of consistent length.’ [invalid ver padding 'v10' (v10/inventory.json)]
+   #E013 - ‘Operations that add a new version to an object must follow the version directory naming convention established by earlier versions.’ [invalid ver padding 'v10' (./inventory.json)]
+   #E013 - ‘Operations that add a new version to an object must follow the version directory naming convention established by earlier versions.’ [invalid ver padding 'v10' (v10/inventory.json)]
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v01/content/test.txt' not in manifest version 'v08']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [versions [v01 v02 v03 v04 v05 v06 v07 v08] do not contains versions from manifest [v1] (v08/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/test.txt' from manifest not in object content (v08/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/test.txt' (v08/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (./inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v01/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v02/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v03/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v04/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v05/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v06/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v07/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v08/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v09/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 1 (v10/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E015_content_not_in_content_dir' - 'uri:something451']
+   #E000 - unknown error [invalid filepath in manifest 'v1/a_file.txt' (./inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v1/a_file.txt' (v1/inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v1/a_file.txt' (v2/inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v1/a_file.txt' (v3/inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v2/a_file.txt' (./inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v2/a_file.txt' (v2/inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v2/a_file.txt' (v3/inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v3/a_file.txt' (./inventory.json)]
+   #E000 - unknown error [invalid filepath in manifest 'v3/a_file.txt' (v3/inventory.json)]
+   #E015 - ‘There must be no other files as children of a version directory, other than an inventory file and a inventory digest.’ [extra file 'a_file.txt' in version directory 'v1']
+   #E015 - ‘There must be no other files as children of a version directory, other than an inventory file and a inventory digest.’ [extra file 'a_file.txt' in version directory 'v2']
+   #E015 - ‘There must be no other files as children of a version directory, other than an inventory file and a inventory digest.’ [extra file 'a_file.txt' in version directory 'v3']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E017_invalid_content_dir' - 'urn:example-2']
+   #E017 - ‘The contentDirectory value MUST NOT contain the forward slash (/) path separator and must not be either one or two periods (. or ..).’ [invalid content directory 'content/dir' (./inventory.json)]
+   #E017 - ‘The contentDirectory value MUST NOT contain the forward slash (/) path separator and must not be either one or two periods (. or ..).’ [invalid content directory 'content/dir' (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/dir/test.txt' from manifest not in object content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/dir/test.txt' manifest not in object content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/dir/test.txt' (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/dir/test.txt' (v1/inventory.json)]
+   #W002 - ‘The version directory SHOULD NOT contain any directories other than the designated content sub-directory. Once created, the contents of a version directory are expected to be immutable.’ [extra dir 'content' in version directory 'v1']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E019_inconsistent_content_dir' - 'urn:example-2']
+   #E019 - ‘If the key contentDirectory is set, it MUST be set in the first version of the object and must not change between versions of the same object.’ [content directory 'content' of version 'v2' not the same as 'content-dir' in version 'v1']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E023_extra_file' - 'info:bad05']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v1/content/file2.txt' not in manifest version 'v1']
+   #W009 - ‘In the OCFL Object Inventory, in the version block, the address value SHOULD be a URI: either a mailto URI [RFC6068] with the e-mail address of the user or a URL to a personal identifier, e.g., an ORCID iD.’ [cannot parse user address 'somewhere' in version 'v1' (./inventory.json)]
+   #W009 - ‘In the OCFL Object Inventory, in the version block, the address value SHOULD be a URI: either a mailto URI [RFC6068] with the e-mail address of the user or a URL to a personal identifier, e.g., an ORCID iD.’ [cannot parse user address 'somewhere' in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E023_old_manifest_missing_entries' - 'urn:example-3']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v1/content/file-3.txt' not in manifest version 'v2']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E025_wrong_digest_algorithm' - 'urn:example']
+   #E025 - ‘For content-addressing, OCFL Objects must use either sha512 or sha256, and should use sha512.’ [invalid digest algorithm 'md5' (./inventory.json)]
+   #E025 - ‘For content-addressing, OCFL Objects must use either sha512 or sha256, and should use sha512.’ [invalid digest algorithm 'md5' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E036_no_head' - 'urn:example']
+   #E036 - ‘An OCFL Object Inventory must include the following keys: [id, type, digestAlgorithm, head]’ [invalid field "head" for object (./inventory.json)]
+   #E036 - ‘An OCFL Object Inventory must include the following keys: [id, type, digestAlgorithm, head]’ [invalid field "head" for object (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E036_no_id' - '']
+   #E036 - ‘An OCFL Object Inventory must include the following keys: [id, type, digestAlgorithm, head]’ [invalid field "id" for object (./inventory.json)]
+   #E036 - ‘An OCFL Object Inventory must include the following keys: [id, type, digestAlgorithm, head]’ [invalid field "id" for object (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E037_inconsistent_id' - 'urn:example-2']
+   #E037 - ‘[id] must be unique in the local context, and should be a URI [RFC3986].’ [invalid id - root inventory id 'urn:example-2' != version 'v1' inventory id 'urn:example-two']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E040_head_not_most_recent' - 'urn:example-2']
+   #E040 - [head] must be the version directory name with the highest version number.’ [manifest head 'v1' is not recent ver 'v2' (./inventory.json)]
+   #E064 - ‘Where an OCFL Object contains inventory.json in version directories, the inventory file in the OCFL Object Root must be the same as the file in the most recent version.’ [root inventory not equal to inventory version 'v2']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E040_wrong_head_doesnt_exist' - 'ark:123/abc']
+   #E040 - [head] must be the version directory name with the highest version number.’ [manifest head 'v2' does not exists in versions [v1] (./inventory.json)]
+   #E040 - [head] must be the version directory name with the highest version number.’ [manifest head 'v2' does not exists in versions [v1] (v1/inventory.json)]
+   #E040 - [head] must be the version directory name with the highest version number.’ [manifest head 'v2' is not recent ver 'v1' (./inventory.json)]
+   #E040 - [head] must be the version directory name with the highest version number.’ [manifest head 'v2' is not recent ver 'v1' (v1/inventory.json)]
+   #E040 - [head] must be the version directory name with the highest version number.’ [wrong head 'v2' in manifest for version 'v1']
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E040_wrong_head_format' - 'ark:123/abc']
+   #E040 - [head] must be the version directory name with the highest version number.’ [invalid field "head" for object: cannot unmarshal string '{ "should not": "be a JSON object" }': json: cannot unmarshal object into Go value of type string (./inventory.json)]
+   #E040 - [head] must be the version directory name with the highest version number.’ [invalid field "head" for object: cannot unmarshal string '{ "should not": "be a JSON object" }': json: cannot unmarshal object into Go value of type string (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E040_wrong_version_in_version_dir' - 'urn:example-2']
+   #E040 - [head] must be the version directory name with the highest version number.’ [wrong head 'v3' in manifest for version 'v2']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E041_no_manifest' - 'http://example.org/E041_no_manifest']
+   #E041 - ‘In addition to these keys, there must be two other blocks present, manifest and versions, which are discussed in the next two sections.’ [no manifest in inventory (./inventory.json)]
+   #E041 - ‘In addition to these keys, there must be two other blocks present, manifest and versions, which are discussed in the next two sections.’ [no manifest in inventory (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E046_root_not_most_recent' - 'urn:example-2']
+   #E001 - ‘The OCFL Object Root must not contain files or directories other than those specified in the following sections.’ [invalid directory 'v2' found]
+   #E046 - ‘The keys of [the versions object] must correspond to the names of the version directories used.’ [root manifest not most recent because of 'v2']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E049_E050_E054_bad_version_block_values' - 'ark:123/abc']
+   #E049 - ‘[the value of the “created” key] must be expressed in the Internet Date/Time Format defined by [RFC3339].’ [invalid created format in version 'v1': cannot unmarshal time '{ "key": "should be a datetime string" }': json: cannot unmarshal object into Go value of type string (./inventory.json)]
+   #E049 - ‘[the value of the “created” key] must be expressed in the Internet Date/Time Format defined by [RFC3339].’ [invalid created format in version 'v1': cannot unmarshal time '{ "key": "should be a datetime string" }': json: cannot unmarshal object into Go value of type string (v1/inventory.json)]
+   #E050 - ‘The keys of [the “state” JSON object] are digest values, each of which must correspond to an entry in the manifest of the inventory.’ [invalid state format in version 'v1': cannot unmarshal state "should be an object": json: cannot unmarshal string into Go value of type map[string][]string (./inventory.json)]
+   #E050 - ‘The keys of [the “state” JSON object] are digest values, each of which must correspond to an entry in the manifest of the inventory.’ [invalid state format in version 'v1': cannot unmarshal state "should be an object": json: cannot unmarshal string into Go value of type map[string][]string (v1/inventory.json)]
+   #E054 - ‘The value of the user key must contain a user name key, “name” and should contain an address key, “address”.’ [invalid user in version 'v1': cannot unmarshal user '"should be an object"': json: cannot unmarshal string into Go value of type ocfl.User (./inventory.json)]
+   #E054 - ‘The value of the user key must contain a user name key, “name” and should contain an address key, “address”.’ [invalid user in version 'v1': cannot unmarshal user '"should be an object"': json: cannot unmarshal string into Go value of type ocfl.User (v1/inventory.json)]
+   #E094 - ‘The value of [the message] key is freeform text, used to record the rationale for creating this version. It must be a JSON string.’ [invalid format for message in version 'v1': cannot unmarshal string '[ "should be a string" ]': json: cannot unmarshal array into Go value of type string (./inventory.json)]
+   #E094 - ‘The value of [the message] key is freeform text, used to record the rationale for creating this version. It must be a JSON string.’ [invalid format for message in version 'v1': cannot unmarshal string '[ "should be a string" ]': json: cannot unmarshal array into Go value of type string (v1/inventory.json)]
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest '43a43fe8a8a082d3b5343dfaf2fd0c8b8e370675b1f376e92e9994612c33ea255b11298269d72f797399ebb94edeefe53df243643676548f584fb8603ca53a0f' does not appear in any version (./inventory.json)]
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest '43a43fe8a8a082d3b5343dfaf2fd0c8b8e370675b1f376e92e9994612c33ea255b11298269d72f797399ebb94edeefe53df243643676548f584fb8603ca53a0f' does not appear in any version (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E049_created_no_timezone' - 'info:a/b/cde-1']
+   #E049 - ‘[the value of the “created” key] must be expressed in the Internet Date/Time Format defined by [RFC3339].’ [invalid created format in version 'v1': cannot parse time "2019-01-01T02:03:04": parsing time "2019-01-01T02:03:04" as "2006-01-02T15:04:05Z07:00": cannot parse "" as "Z07:00" (./inventory.json)]
+   #E049 - ‘[the value of the “created” key] must be expressed in the Internet Date/Time Format defined by [RFC3339].’ [invalid created format in version 'v1': cannot parse time "2019-01-01T02:03:04": parsing time "2019-01-01T02:03:04" as "2006-01-02T15:04:05Z07:00": cannot parse "" as "Z07:00" (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E049_created_not_to_seconds' - 'info:a/b/cde-1']
+   #E049 - ‘[the value of the “created” key] must be expressed in the Internet Date/Time Format defined by [RFC3339].’ [invalid created format in version 'v1': cannot parse time "2019-01-01T01:02Z": parsing time "2019-01-01T01:02Z" as "2006-01-02T15:04:05Z07:00": cannot parse "Z" as ":" (./inventory.json)]
+   #E049 - ‘[the value of the “created” key] must be expressed in the Internet Date/Time Format defined by [RFC3339].’ [invalid created format in version 'v1': cannot parse time "2019-01-01T01:02Z": parsing time "2019-01-01T01:02Z" as "2006-01-02T15:04:05Z07:00": cannot parse "Z" as ":" (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E050_manifest_digest_wrong_case' - 'urn:example-2']
+   #E096 - ‘As JSON keys are case sensitive, while digests may not be, there is an additional requirement that each digest value must occur only once in the manifest regardless of case.’ [wrong digest case in version 'v1' - '24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28' (./inventory.json)]
+   #E096 - ‘As JSON keys are case sensitive, while digests may not be, there is an additional requirement that each digest value must occur only once in the manifest regardless of case.’ [wrong digest case in version 'v1' - '24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28' (v1/inventory.json)]
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest '24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28' does not appear in any version (./inventory.json)]
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest '24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28' does not appear in any version (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E050_state_digest_not_in_manifest' - 'urn:example-state-digest-not-in-manifest']
+   #E050 - ‘The keys of [the “state” JSON object] are digest values, each of which must correspond to an entry in the manifest of the inventory.’ [digest not in manifest of versions 'v1' - 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' (./inventory.json)]
+   #E050 - ‘The keys of [the “state” JSON object] are digest values, each of which must correspond to an entry in the manifest of the inventory.’ [digest not in manifest of versions 'v1' - 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E053_E052_invalid_logical_paths' - 'urn:example-3']
+   #E052 - ‘[logical] Path elements must not be ., .., or empty (//).’ [invalid path '../../file-2.txt' in state for version 'v1' (./inventory.json)]
+   #E052 - ‘[logical] Path elements must not be ., .., or empty (//).’ [invalid path '../../file-2.txt' in state for version 'v1' (v1/inventory.json)]
+   #E052 - ‘[logical] Path elements must not be ., .., or empty (//).’ [invalid path '//file-3.txt' in state for version 'v1' (./inventory.json)]
+   #E052 - ‘[logical] Path elements must not be ., .., or empty (//).’ [invalid path '//file-3.txt' in state for version 'v1' (v1/inventory.json)]
+   #E053 - ‘Additionally, a logical path must not begin or end with a forward slash (/).’ [invalid path '//file-3.txt' in state for version 'v1' (./inventory.json)]
+   #E053 - ‘Additionally, a logical path must not begin or end with a forward slash (/).’ [invalid path '//file-3.txt' in state for version 'v1' (v1/inventory.json)]
+   #E053 - ‘Additionally, a logical path must not begin or end with a forward slash (/).’ [invalid path '/file-1.txt' in state for version 'v1' (./inventory.json)]
+   #E053 - ‘Additionally, a logical path must not begin or end with a forward slash (/).’ [invalid path '/file-1.txt' in state for version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E058_no_sidecar' - '']
+   #E058 - ‘Every occurrence of an inventory file must have an accompanying sidecar file stating its digest.’ [sidecar 'file://fixtures/fixtures/1.1/bad-objects/E058_no_sidecar/inventory.json.sha512' does not exist]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E060_E064_root_inventory_digest_mismatch' - '']
+   #E060 - ‘The digest sidecar file must contain the digest of the inventory file.’ ['032c545b5cb61ce4fafc0cef91fd9895859dcb8f0eb9485f3d5e1a25ccc5caa061345820ceeb99f81be1f0d54df9abcedad654a82c5d7d7922d02bb165ac315a' != 'cf60208ec99d58e971bc21fdf05356706d5b9cc2af13ed3edae5c0e54fc23a6d93b91c9ec1ccf21f9094ca170ac9c214a005382ed69e71e8aaf87b4619c93ffb']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E060_E064_root_inventory_digest_mismatch' - 'urn:example-2']
+   #E064 - ‘Where an OCFL Object contains inventory.json in version directories, the inventory file in the OCFL Object Root must be the same as the file in the most recent version.’ [root inventory not equal to inventory version 'v1']
+   #W011 - ‘In the case that prior version directories include an inventory file, the values of the created, message and user keys in each version block in each prior inventory file SHOULD have the same values as the corresponding keys in the corresponding version block in the current inventory file.’ [version 'v1' in version folder 'v1' has different metadata as version in object root manifest]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E060_version_inventory_digest_mismatch' - 'urn:example-2']
+   #E060 - ‘The digest sidecar file must contain the digest of the inventory file.’ ['cf60208ec99d58e971bc21fdf05356706d5b9cc2af13ed3edae5c0e54fc23a6d93b91c9ec1ccf21f9094ca170ac9c214a005382ed69e71e8aaf87b4619c93ffb' != '032c545b5cb61ce4fafc0cef91fd9895859dcb8f0eb9485f3d5e1a25ccc5caa061345820ceeb99f81be1f0d54df9abcedad654a82c5d7d7922d02bb165ac315a']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E061_invalid_sidecar' - '']
+   #E061 - ‘[The digest sidecar file] must follow the format: DIGEST inventory.json’ [no suffix " inventory.json" in 'file://fixtures/fixtures/1.1/bad-objects/E061_invalid_sidecar/inventory.json.sha512']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E066_E092_old_manifest_digest_incorrect' - 'urn:example-3']
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [digest '17e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1' for file(s) [v1/content/file-1.txt] not found in content (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E066_algorithm_change_state_mismatch' - 'urn:example-3']
+   #E066 - ‘Each version block in each prior inventory file must represent the same object state as the corresponding version block in the current inventory file.’ [version 'v1' in version folder 'v1' not equal to version in object root manifest]
+   #W000 - unknown warning [different digest algorithm 'sha512' in version 'v1']
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (./inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v2/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E066_inconsistent_version_state' - 'urn:example-2']
+   #E066 - ‘Each version block in each prior inventory file must represent the same object state as the corresponding version block in the current inventory file.’ [version 'v1' in version folder 'v1' not equal to version in object root manifest]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E067_file_in_extensions_dir' - '']
+   #E067 - ‘The extensions directory must not contain any files or sub-directories other than extension sub-directories.’ [invalid file 'file://fixtures/fixtures/1.1/bad-objects/E067_file_in_extensions_dir/extra_file' in extension dir]
+   #W013 - ‘In an OCFL Object, extension sub-directories SHOULD be named according to a registered extension name.’ [unknown extension in folder 'file://fixtures/fixtures/1.1/bad-objects/E067_file_in_extensions_dir/extensions/unregistered']
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E067_file_in_extensions_dir' - 'ark:123/abc']
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E092_E093_content_path_does_not_exist' - 'urn:example-2']
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/bonus.txt' from manifest not in object content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/bonus.txt' manifest not in object content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/bonus.txt' (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/bonus.txt' (v1/inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file 'v1/content/bonus.txt' (./inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file 'v1/content/bonus.txt' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E092_algorithm_change_incorrect_digest' - 'urn:example-3']
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [digest '13b26d26c9d8cfbb884b50e798f93ac6bef275a018547b1560af3e6d38f2723785731d3ca6338682fa7ac9acb506b3c594a125ce9d3d60cd14498304cc864cf2' for file(s) [v1/content/file-3.txt] not found in content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [digest '17e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1' for file(s) [v1/content/file-1.txt] not found in content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [digest '1fef2458ee1a9277925614272adfe60872f4c1bf02eecce7276166957d1ab30f65cf5c8065a294bf1b13e3c3589ba936a3b5db911572e30dfcb200ef71ad33d5' for file(s) [v1/content/file-2.txt] not found in content (v1/inventory.json)]
+   #W000 - unknown warning [different digest algorithm 'sha512' in version 'v1']
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (./inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v2/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E092_content_file_digest_mismatch' - 'urn:example-2']
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [digest '24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28' for file(s) [v1/content/test.txt] not found in content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [digest '24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28' for file(s) [v1/content/test.txt] not found in content (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E093_fixity_digest_mismatch' - 'urn:example-2']
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [fixity digest '9eacfb9289073dd9c9a8c4cdf820ac71' for file(s) [v1/content/test.txt] not found in content (./inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [fixity digest '9eacfb9289073dd9c9a8c4cdf820ac71' for file(s) [v1/content/test.txt] not found in content (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E095_conflicting_logical_paths' - 'http://example.org/E095_conflicting_logical_paths']
+   #E095 - ‘Within a version, logical paths must be unique and non-conflicting, so the logical path for a file cannot appear as the initial part of another logical path.’ [logical path 'sub-path' is prefix of 'sub-path/a_file.txt' (./inventory.json)]
+   #E095 - ‘Within a version, logical paths must be unique and non-conflicting, so the logical path for a file cannot appear as the initial part of another logical path.’ [logical path 'sub-path' is prefix of 'sub-path/a_file.txt' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E096_manifest_duplicate_digests' - 'urn:example-2']
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest '24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28' does not appear in any version (./inventory.json)]
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest '24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28' does not appear in any version (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E097_fixity_duplicate_digests' - 'urn:example-2']
+   #E097 - ‘As JSON keys are case sensitive, while digests may not be, there is an additional requirement that each digest value must occur only once in the fixity block for any digest algorithm, regardless of case.’ [fixity 'md5' digest 'EB1A3227CDC3FEDBAEC2FE38BF6C044A' is duplicate (./inventory.json)]
+   #E097 - ‘As JSON keys are case sensitive, while digests may not be, there is an additional requirement that each digest value must occur only once in the fixity block for any digest algorithm, regardless of case.’ [fixity 'md5' digest 'EB1A3227CDC3FEDBAEC2FE38BF6C044A' is duplicate (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E100_E099_fixity_invalid_content_paths' - 'urn:example-3']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v1/content/file-1.txt' not in manifest version 'v1']
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/content/file-1.txt' from manifest not in object content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/content/file-1.txt' manifest not in object content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/content/file-1.txt' (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/content/file-1.txt' (v1/inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file '/v1/content/file-3.txt' (./inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file '/v1/content/file-3.txt' (v1/inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file 'v1/content/../content/file-1.txt' (./inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file 'v1/content/../content/file-1.txt' (v1/inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file 'v1/content//file-2.txt' (./inventory.json)]
+   #E093 - ‘Where included in the fixity block, the digest values given must match the digests of the files at the corresponding content paths.’ [invalid fixity digest for file 'v1/content//file-2.txt' (v1/inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content/../content/file-1.txt' in fixity (./inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content/../content/file-1.txt' in fixity (v1/inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content//file-2.txt' in fixity (./inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content//file-2.txt' in fixity (v1/inventory.json)]
+   #E100 - ‘A content path must not begin or end with a forward slash (/).’ [invalid path '/v1/content/file-3.txt' in fixity (./inventory.json)]
+   #E100 - ‘A content path must not begin or end with a forward slash (/).’ [invalid path '/v1/content/file-3.txt' in fixity (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E100_E099_manifest_invalid_content_paths' - 'urn:example-3']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v1/content/file-1.txt' not in manifest version 'v1']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v1/content/file-2.txt' not in manifest version 'v1']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [file 'v1/content/file-3.txt' not in manifest version 'v1']
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [versions [v1] do not contains versions from manifest [ v1] (./inventory.json)]
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [versions [v1] do not contains versions from manifest [ v1] (v1/inventory.json)]
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [versions [v1] do not contains versions from manifest [v1 ] (./inventory.json)]
+   #E023 - ‘Every file within a version's content directory must be referenced in the manifest section of the inventory.’ [versions [v1] do not contains versions from manifest [v1 ] (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file '/v1/content/file-3.txt' from manifest not in object content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file '/v1/content/file-3.txt' manifest not in object content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/../content/file-1.txt' from manifest not in object content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content/../content/file-1.txt' manifest not in object content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content//file-2.txt' from manifest not in object content (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [file 'v1/content//file-2.txt' manifest not in object content (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file '/v1/content/file-3.txt' (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file '/v1/content/file-3.txt' (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/../content/file-1.txt' (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content/../content/file-1.txt' (v1/inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content//file-2.txt' (./inventory.json)]
+   #E092 - ‘The value for each key in the manifest must be an array containing the content paths of files in the OCFL Object that have content with the given digest.’ [invalid digest for file 'v1/content//file-2.txt' (v1/inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content/../content/file-1.txt' in manifest (./inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content/../content/file-1.txt' in manifest (v1/inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content//file-2.txt' in manifest (./inventory.json)]
+   #E099 - ‘[content] path elements must not be ., .., or empty (//).’ [invalid path 'v1/content//file-2.txt' in manifest (v1/inventory.json)]
+   #E100 - ‘A content path must not begin or end with a forward slash (/).’ [invalid path '/v1/content/file-3.txt' in manifest (./inventory.json)]
+   #E100 - ‘A content path must not begin or end with a forward slash (/).’ [invalid path '/v1/content/file-3.txt' in manifest (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E103_older_spec_v2' - 'ark:/12345/bcd987']
+   #E103 - ‘Each version directory within an OCFL Object MUST conform to either the same or a later OCFL specification version as the preceding version directory.’ [spec in version 'v1' (https://ocfl.io/1.1/spec/#inventory) greater than spec in version 'v2' (https://ocfl.io/1.0/spec/#inventory)]
+
+[object 'file://fixtures/fixtures/1.1/bad-objects/E107_file_in_manifest_not_used' - 'info:bad07']
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest 'dfe9a0bbfdaab7173036571a1d9e34e2465b1e3a52e8b707bbf6dea9239a9a55b0fc9e511fc24882d7f493cd950a9dbef1de13e08a007909b21cd5ba54dc4888' does not appear in any version (./inventory.json)]
+   #E107 - ‘The value of the manifest key must be a JSON object, and each key MUST correspond to a digest value key found in one or more state blocks of the current and/or previous version blocks of the OCFL Object.’ [digest 'dfe9a0bbfdaab7173036571a1d9e34e2465b1e3a52e8b707bbf6dea9239a9a55b0fc9e511fc24882d7f493cd950a9dbef1de13e08a007909b21cd5ba54dc4888' does not appear in any version (v1/inventory.json)]
+   #W009 - ‘In the OCFL Object Inventory, in the version block, the address value SHOULD be a URI: either a mailto URI [RFC6068] with the e-mail address of the user or a URL to a personal identifier, e.g., an ORCID iD.’ [cannot parse user address 'somewhere' in version 'v1' (./inventory.json)]
+   #W009 - ‘In the OCFL Object Inventory, in the version block, the address value SHOULD be a URI: either a mailto URI [RFC6068] with the e-mail address of the user or a URL to a personal identifier, e.g., an ORCID iD.’ [cannot parse user address 'somewhere' in version 'v1' (v1/inventory.json)]
+
+172 errors found

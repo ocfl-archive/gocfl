@@ -1,0 +1,70 @@
+object folder 'W001_W004_W005_zero_padded_versions'
+object folder 'W001_zero_padded_versions'
+object folder 'W002_extra_dir_in_version_dir'
+object folder 'W004_uses_sha256'
+object folder 'W004_versions_diff_digests'
+object folder 'W005_id_not_uri'
+object folder 'W007_no_message_or_user'
+object folder 'W008_user_no_address'
+object folder 'W009_user_address_not_uri'
+object folder 'W010_no_version_inventory'
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W001_W004_W005_zero_padded_versions' - 'bb123cd4567']
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 3 (./inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 3 (v0001/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 3 (v0002/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 3 (v0003/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 3 (v0004/inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (./inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v0001/inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v0002/inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v0003/inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v0004/inventory.json)]
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'bb123cd4567': 'bb123cd4567' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (./inventory.json)]
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'bb123cd4567': 'bb123cd4567' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (v0001/inventory.json)]
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'bb123cd4567': 'bb123cd4567' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (v0002/inventory.json)]
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'bb123cd4567': 'bb123cd4567' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (v0003/inventory.json)]
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'bb123cd4567': 'bb123cd4567' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (v0004/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W001_zero_padded_versions' - 'uri:something451']
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 2 (./inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 2 (v001/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 2 (v002/inventory.json)]
+   #W001 - ‘Implementations SHOULD use version directory names constructed without zero-padding the version number, ie. v1, v2, v3, etc.’’ [padding length is 2 (v003/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W002_extra_dir_in_version_dir' - 'ark:123/abc']
+   #W002 - ‘The version directory SHOULD NOT contain any directories other than the designated content sub-directory. Once created, the contents of a version directory are expected to be immutable.’ [extra dir 'extra_dir' in version directory 'v1']
+   #W002 - ‘The version directory SHOULD NOT contain any directories other than the designated content sub-directory. Once created, the contents of a version directory are expected to be immutable.’ [extra dir 'v1/extra_dir' in version 'v1']
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W004_uses_sha256' - 'ark:123/abc']
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (./inventory.json)]
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W004_versions_diff_digests' - 'uri:something451']
+   #W000 - unknown warning [different digest algorithm 'sha256' in version 'v1']
+   #W004 - ‘For content-addressing, OCFL Objects SHOULD use sha512.’ [digest algorithm 'sha256' not suggested (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W005_id_not_uri' - 'not_a_uri']
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'not_a_uri': 'not_a_uri' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (./inventory.json)]
+   #W005 - ‘The OCFL Object Inventory id SHOULD be a URI.’ [cannot parse uri id 'not_a_uri': 'not_a_uri' does not match regexp '^(?P<scheme>[a-z]+[a-z0-9+-.]+):(//(?P<authority>((?P<userinfo>[^@]+)@)?(?P<host>[^:/?#]+)(:(?P<port>[0-9]+)))/?)?(?P<path>[^#?]*)?(\?(?P<query>[^#]*))?(#(?P<anchor>.*))?$' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W007_no_message_or_user' - 'ark:123/abc']
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no message key in version 'v1' (v1/inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (./inventory.json)]
+   #W007 - ‘In the OCFL Object Inventory, the JSON object describing an OCFL Version, SHOULD include the message and user keys.’ [no user key in version 'v1' (v1/inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W008_user_no_address' - 'ark:123/abc']
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (./inventory.json)]
+   #W008 - ‘In the OCFL Object Inventory, in the version block, the value of the user key SHOULD contain an address key, address.’ [no user address in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W009_user_address_not_uri' - 'ark:123/abc']
+   #W009 - ‘In the OCFL Object Inventory, in the version block, the address value SHOULD be a URI: either a mailto URI [RFC6068] with the e-mail address of the user or a URL to a personal identifier, e.g., an ORCID iD.’ [cannot parse user address '1 Wonky Way, Wibblesville, WW' in version 'v1' (./inventory.json)]
+   #W009 - ‘In the OCFL Object Inventory, in the version block, the address value SHOULD be a URI: either a mailto URI [RFC6068] with the e-mail address of the user or a URL to a personal identifier, e.g., an ORCID iD.’ [cannot parse user address '1 Wonky Way, Wibblesville, WW' in version 'v1' (v1/inventory.json)]
+
+[object 'file://fixtures/fixtures/1.1/warn-objects/W010_no_version_inventory' - 'ark:123/abc']
+   #W010 - ‘In addition to the inventory in the OCFL Object Root, every version directory SHOULD include an inventory file that is an Inventory of all content for versions up to and including that particular version.’ [no inventory for version 'v1']
+
+no errors found
