@@ -10,7 +10,7 @@ import (
 	"regexp"
 )
 
-const VERSION = "0.1"
+const VERSION = "v1.0-beta.1"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
@@ -181,6 +181,9 @@ func init() {
 
 	rootCmd.PersistentFlags().String("s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
 	viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key"))
+
+	rootCmd.PersistentFlags().String("s3-region", "", "Region for S3 Access")
+	viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region"))
 
 	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
 	//	viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))

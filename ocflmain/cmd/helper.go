@@ -171,7 +171,8 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aes bool, aesKey
 	endpoint := viper.GetString("S3Endpoint")
 	accessKeyID := viper.GetString("S3AccessKeyID")
 	secretAccessKey := viper.GetString("S3SecretAccessKey")
-	s3FS, err := s3fs.NewBaseFS(endpoint, accessKeyID, secretAccessKey, "", true, logger)
+	region := viper.GetString("S3Region")
+	s3FS, err := s3fs.NewBaseFS(endpoint, accessKeyID, secretAccessKey, region, true, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create s3 base filesystem factory")
 	}
