@@ -37,6 +37,7 @@ func NewFS(endpoint, accessKeyID, secretAccessKey, bucket, region string, useSSL
 	fs.client, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
+		Region: region,
 		/* Transport: NewDebuggingRoundTripper(
 			&http.Transport{},
 			logger,
