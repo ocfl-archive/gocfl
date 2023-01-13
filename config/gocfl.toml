@@ -50,6 +50,8 @@ Message="Initial commit"
 [Add.ext.NNNN-metafile]
 # --ext-NNNN-metafile-source
 #Source="C:/temp/$ID.json"
+# --default-area
+DefaultArea="content"
 
 [Update]
 # --user-name
@@ -62,6 +64,8 @@ Echo=true # reflect deletion in source folder
 # NoDeduplicate=true
 # --digest
 DigestAlgorithm="sha512"
+# --default-area
+DefaultArea="content"
 
 [Update.ext.NNNN-metadata]
 #Source="C:/temp/$ID.json"

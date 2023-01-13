@@ -66,11 +66,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
-	area := "content"
-	if matches := areaPathRegexp.FindStringSubmatch(srcPath); matches != nil {
-		area = matches[1]
-		srcPath = matches[2]
-	}
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if persistentFlagLoglevel == "" {
@@ -132,6 +127,15 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 64 character hex value needed: %v", flagAESIV, err))
 		}
+	}
+
+	area := viper.GetString("Add.DefaultArea")
+	if area == "" {
+		area = "content"
+	}
+	if matches := areaPathRegexp.FindStringSubmatch(srcPath); matches != nil {
+		area = matches[1]
+		srcPath = matches[2]
 	}
 
 	if len(notSet) > 0 {

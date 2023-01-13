@@ -58,6 +58,10 @@ func initCreate() {
 	viper.BindPFlag("Add.DigestAlgorithm", createCmd.Flags().Lookup("digest"))
 	viper.BindPFlag("Init.DigestAlgorithm", createCmd.Flags().Lookup("digest"))
 
+	createCmd.Flags().String("default-area", "", "default area for update or ingest (default: content)")
+	viper.BindPFlag("Add.DefaultArea", createCmd.Flags().Lookup("default-area"))
+	viper.BindPFlag("Update.DefaultArea", createCmd.Flags().Lookup("default-area"))
+
 	createCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	viper.BindPFlag("Add.Deduplicate", createCmd.Flags().Lookup("deduplicate"))
 
@@ -76,11 +80,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
-	area := "content"
-	if matches := areaPathRegexp.FindStringSubmatch(srcPath); matches != nil {
-		area = matches[1]
-		srcPath = matches[2]
-	}
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
@@ -122,6 +121,15 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid version '%s' for flag 'ocfl-version' or 'Init.OCFLVersion' config file entry", flagVersion))
+	}
+
+	area := viper.GetString("Add.DefaultArea")
+	if area == "" {
+		area = "content"
+	}
+	if matches := areaPathRegexp.FindStringSubmatch(srcPath); matches != nil {
+		area = matches[1]
+		srcPath = matches[2]
 	}
 
 	flagAES := viper.GetBool("Init.AES")

@@ -68,7 +68,6 @@ func doAdd(cmd *cobra.Command, args []string) {
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
-	area := "content"
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
@@ -167,33 +166,38 @@ func doAdd(cmd *cobra.Command, args []string) {
 	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	sourceFS, err := fsFactory.GetFS(srcPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", srcPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	destFS, err := fsFactory.GetFSRW(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
+	area := viper.GetString("Add.DefaultArea")
+	if area == "" {
+		area = "content"
+	}
 	var areaPaths = map[string]ocfl.OCFLFSRead{}
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
+			daLogger.Errorf("no area given in areapath '%s'", args[i])
 			continue
 		}
 		areaPaths[matches[1]], err = fsFactory.GetFS(matches[2])
 		if err != nil {
 			daLogger.Errorf("cannot get filesystem for '%s': %v", args[i], err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			return
 		}
 	}
@@ -202,13 +206,13 @@ func doAdd(cmd *cobra.Command, args []string) {
 	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	_, objectExtensions, err := initDefaultExtensions(extensionFactory, "", flagObjectExtensionFolder, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
@@ -220,7 +224,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	if storageRoot.GetDigest() == "" {
@@ -235,7 +239,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
 		daLogger.Errorf("cannot check for object: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	if exists {
@@ -258,12 +262,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 		false)
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
 
 	if err := destFS.Close(); err != nil {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
 
 }
