@@ -334,10 +334,10 @@ func (manager *ExtensionManager) DeleteFileBefore(object Object, dest string) er
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) AddFileAfter(object Object, source, dest string) error {
+func (manager *ExtensionManager) AddFileAfter(object Object, source, internalPath, digest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.AddFileAfter(object, source, dest); err != nil {
+		if err := ocp.AddFileAfter(object, source, internalPath, digest); err != nil {
 			errs = append(errs, err)
 			continue
 		}

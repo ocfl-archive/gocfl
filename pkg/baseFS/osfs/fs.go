@@ -38,7 +38,7 @@ func NewFS(folder string, logger *logging.Logger) (*FS, error) {
 }
 
 func (osFS *FS) String() string {
-	return fmt.Sprintf("file://%s", osFS.folder)
+	return fmt.Sprintf("file:///%s", osFS.folder)
 }
 
 func (osFS *FS) Rename(src, dest string) error {

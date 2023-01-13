@@ -635,6 +635,10 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 	}
 
+	if err := object.extensionManager.AddFileBefore(object, path, internalFilename); err != nil {
+		return errors.Wrapf(err, "error on AddFileBefore() extension hook")
+	}
+
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
 	object.updateFiles = append(object.updateFiles, path)
@@ -721,6 +725,11 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	if err := object.i.AddFile(newPath, targetFilename, checksums); err != nil {
 		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", path, internalFilename)
 	}
+
+	if err := object.extensionManager.AddFileAfter(object, path, targetFilename, digest); err != nil {
+		return errors.Wrapf(err, "error on AddFileBefore() extension hook")
+	}
+
 	return nil
 }
 

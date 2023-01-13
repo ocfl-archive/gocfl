@@ -57,7 +57,7 @@ type ExtensionContentChange interface {
 	AddFileBefore(object Object, source, dest string) error
 	UpdateFileBefore(object Object, source, dest string) error
 	DeleteFileBefore(object Object, dest string) error
-	AddFileAfter(object Object, source, dest string) error
+	AddFileAfter(object Object, source, internalPath, digest string) error
 	UpdateFileAfter(object Object, source, dest string) error
 	DeleteFileAfter(object Object, dest string) error
 }

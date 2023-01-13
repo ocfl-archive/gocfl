@@ -6,14 +6,18 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	ironmaiden "github.com/je4/indexer/pkg/indexer"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var updateCmd = &cobra.Command{
@@ -63,6 +67,8 @@ func initUpdate() {
 }
 
 func doUpdate(cmd *cobra.Command, args []string) {
+	var err error
+
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
@@ -145,6 +151,29 @@ func doUpdate(cmd *cobra.Command, args []string) {
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
+
+	var idx *ironmaiden.Server
+	var addr net.Addr
+	if withIndexer := viper.GetBool("WithIndexer"); withIndexer {
+		siegfriedSignature := viper.GetString("Siegfried.Signature")
+		mimeMap := viper.GetStringMapString("Siegfried.MimeMap")
+		idx, addr, err = indexer.StartIndexer(siegfriedSignature,
+			mimeMap,
+			map[int]ironmaiden.MimeWeightString{},
+			daLogger)
+		if err != nil {
+			daLogger.Errorf("cannot start indexer: %v", err)
+			return
+		}
+		defer func() {
+			daLogger.Info("shutting down indexer")
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			idx.Shutdown(ctx)
+		}()
+	}
+
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
@@ -168,20 +197,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)
-	if err != nil {
-		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-	_, objectExtensions, err := initDefaultExtensions(extensionFactory, "", "", daLogger)
-	if err != nil {
-		daLogger.Errorf("cannot initialize default extensions: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-
 	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
@@ -198,6 +213,20 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	destFS, err := fsFactory.GetFSRW(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
+	extensionParams := GetExtensionParamValues(cmd)
+	extensionFactory, err := initExtensionFactory(extensionParams, "http://"+addr.String(), sourceFS, daLogger)
+	if err != nil {
+		daLogger.Errorf("cannot initialize extension factory: %v", err)
+		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	_, objectExtensions, err := initDefaultExtensions(extensionFactory, "", "", daLogger)
+	if err != nil {
+		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}

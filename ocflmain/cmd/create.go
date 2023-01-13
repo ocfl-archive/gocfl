@@ -6,13 +6,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	ironmaiden "github.com/je4/indexer/pkg/indexer"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"net"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var createCmd = &cobra.Command{
@@ -77,6 +81,7 @@ func initCreate() {
 }
 
 func doCreate(cmd *cobra.Command, args []string) {
+	var err error
 	notSet := []string{}
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
@@ -170,6 +175,28 @@ func doCreate(cmd *cobra.Command, args []string) {
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
+	var idx *ironmaiden.Server
+	var addr net.Addr
+	if withIndexer := viper.GetBool("WithIndexer"); withIndexer {
+		siegfriedSignature := viper.GetString("Siegfried.Signature")
+		mimeMap := viper.GetStringMapString("Siegfried.MimeMap")
+		idx, addr, err = indexer.StartIndexer(siegfriedSignature,
+			mimeMap,
+			map[int]ironmaiden.MimeWeightString{},
+			daLogger)
+		if err != nil {
+			daLogger.Errorf("cannot start indexer: %v", err)
+			return
+		}
+		defer func() {
+			daLogger.Info("shutting down indexer")
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			idx.Shutdown(ctx)
+		}()
+	}
+
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
@@ -227,7 +254,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, "http://"+addr.String(), sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

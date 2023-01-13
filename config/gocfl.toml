@@ -17,6 +17,9 @@ S3Endpoint="s3-zh.os.switch.ch"
 # --s3-region
 S3Region=""
 
+# -- with-indexer
+WithIndexer=true
+
 [Init]
 # --ocfl-version
 OCFLVersion="1.1" # supported versions 1.0 1.1
