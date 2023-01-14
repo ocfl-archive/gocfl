@@ -185,8 +185,8 @@ func init() {
 	rootCmd.PersistentFlags().String("s3-region", "", "Region for S3 Access")
 	viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region"))
 
-	createCmd.PersistentFlags().String("with-indexer", "", "starts indexer as a service and uses the given toml config file")
-	viper.BindPFlag("WithIndexer", createCmd.Flags().Lookup("with-indexer"))
+	createCmd.PersistentFlags().Bool("with-indexer", false, "starts indexer as a local service")
+	viper.BindPFlag("Indexer.Local", createCmd.PersistentFlags().Lookup("with-indexer"))
 
 	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
 	//	viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))

@@ -5,13 +5,13 @@ go 1.19
 require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.0
+	github.com/andybalholm/brotli v1.0.4
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
 	github.com/blend/go-sdk v1.20220411.3
 	github.com/je4/indexer v0.0.0-20210603180844-c22f48bafd8c
 	github.com/je4/utils/v2 v2.0.7-0.20221205154750-6b88ba5d32b5
 	github.com/minio/minio-go/v7 v7.0.45
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/richardlehane/siegfried v1.9.6
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.10.0
 	golang.org/x/crypto v0.3.0
@@ -55,6 +55,7 @@ require (
 	github.com/richardlehane/match v1.0.2 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.3 // indirect
+	github.com/richardlehane/siegfried v1.9.6 // indirect
 	github.com/richardlehane/xmldetect v1.0.2 // indirect
 	github.com/ross-spencer/spargo v0.4.1 // indirect
 	github.com/ross-spencer/wikiprov v0.2.0 // indirect

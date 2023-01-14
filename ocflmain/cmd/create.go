@@ -177,12 +177,32 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var idx *ironmaiden.Server
 	var addr net.Addr
-	if withIndexer := viper.GetBool("WithIndexer"); withIndexer {
-		siegfriedSignature := viper.GetString("Siegfried.Signature")
-		mimeMap := viper.GetStringMapString("Siegfried.MimeMap")
-		idx, addr, err = indexer.StartIndexer(siegfriedSignature,
-			mimeMap,
-			map[int]ironmaiden.MimeWeightString{},
+	if withIndexer := viper.GetBool("Indexer.Local"); withIndexer {
+		siegfried, err := indexer.GetSiegfried()
+		if err != nil {
+			daLogger.Errorf("cannot load indexer Siegfried: %v", err)
+			return
+		}
+		mimeRelevance, err := indexer.GetMimeRelevance()
+		if err != nil {
+			daLogger.Errorf("cannot load indexer MimeRelevance: %v", err)
+			return
+		}
+		ffmpeg, err := indexer.GetFFMPEG()
+		if err != nil {
+			daLogger.Errorf("cannot load indexer FFMPEG: %v", err)
+			return
+		}
+		imageMagick, err := indexer.GetImageMagick()
+		if err != nil {
+			daLogger.Errorf("cannot load indexer ImageMagick: %v", err)
+			return
+		}
+		idx, addr, err = indexer.StartIndexer(
+			siegfried,
+			ffmpeg,
+			imageMagick,
+			mimeRelevance,
 			daLogger)
 		if err != nil {
 			daLogger.Errorf("cannot start indexer: %v", err)

@@ -1,3 +1,5 @@
 {
-  "extensionName": "NNNN-indexer"
+  "extensionName": "NNNN-indexer",
+  "storageType": "path",
+  "storageName": "indexer"
 }

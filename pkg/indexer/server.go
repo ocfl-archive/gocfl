@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func StartIndexer(signatureFile string, mimeMap map[string]string, mimeRelevance map[int]ironmaiden.MimeWeightString, logger *logging.Logger) (*ironmaiden.Server, net.Addr, error) {
+func StartIndexer(siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, mimeRelevance map[int]ironmaiden.MimeWeightString, logger *logging.Logger) (*ironmaiden.Server, net.Addr, error) {
 	errorTemplate, err := template.New("foo").Parse(
 		`<!DOCTYPE html>
 <html>
@@ -46,7 +46,27 @@ func StartIndexer(signatureFile string, mimeMap map[string]string, mimeRelevance
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "cannot create new server")
 	}
-	_ = ironmaiden.NewActionSiegfried(signatureFile, mimeMap, srv)
+	_ = ironmaiden.NewActionSiegfried(siegfried.Signature, siegfried.MimeMap, srv)
+	if ffmpeg.Enabled {
+		timeout, err := time.ParseDuration(ffmpeg.Timeout)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot parse ffmpeg timeout '%s'", ffmpeg.Timeout)
+		}
+		_ = ironmaiden.NewActionFFProbe(
+			ffmpeg.FFProbe,
+			ffmpeg.WSL,
+			timeout,
+			ffmpeg.Online,
+			ffmpeg.Mime,
+			srv)
+	}
+	if magick.Enabled {
+		timeout, err := time.ParseDuration(magick.Timeout)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
+		}
+		_ = ironmaiden.NewActionIdentify(magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
+	}
 
 	// get a random free port
 	l, err := net.Listen("tcp", "localhost:0")
