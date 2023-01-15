@@ -1,5 +1,6 @@
 {
   "extensionName": "NNNN-indexer",
-  "storageType": "path",
-  "storageName": "indexer"
+  "storageType": "area",
+  "storageName": "index",
+  "actions": ["siegfried", "ffprobe", "identify", "tika"]
 }

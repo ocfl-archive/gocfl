@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const IndexerName = "NNNN-indexer"
@@ -32,6 +33,7 @@ type IndexerConfig struct {
 	*ocfl.ExtensionConfig
 	StorageType string
 	StorageName string
+	Actions     []string
 }
 type Indexer struct {
 	*IndexerConfig
@@ -40,6 +42,7 @@ type Indexer struct {
 	sourceFS   ocfl.OCFLFSRead
 	buffer     *bytes.Buffer
 	writer     *brotli.Writer
+	active     bool
 }
 
 func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string, sourceFS ocfl.OCFLFSRead) (*Indexer, error) {
@@ -65,6 +68,7 @@ func NewIndexer(config *IndexerConfig, urlString string, sourceFS ocfl.OCFLFSRea
 		IndexerConfig: config,
 		sourceFS:      sourceFS,
 		buffer:        new(bytes.Buffer),
+		active:        true,
 	}
 	sl.writer = brotli.NewWriter(sl.buffer)
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
@@ -167,10 +171,13 @@ func (sl *Indexer) DeleteFileBefore(object ocfl.Object, dest string) error {
 	return nil
 }
 func (sl *Indexer) AddFileAfter(object ocfl.Object, source, internalPath, digest string) error {
+	if !sl.active {
+		return nil
+	}
 	filePath := fmt.Sprintf("%s/%s", sl.sourceFS.String(), source)
 	param := ironmaiden.ActionParam{
 		Url:        filePath,
-		Actions:    []string{"siegfried", "ffprobe", "identify"},
+		Actions:    sl.IndexerConfig.Actions,
 		HeaderSize: 0,
 		Checksums:  map[string]string{},
 	}
@@ -217,6 +224,7 @@ func (sl *Indexer) UpdateObjectBefore(object ocfl.Object) error {
 }
 
 func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
+	sl.active = false
 	if err := sl.writer.Flush(); err != nil {
 		return errors.Wrap(err, "cannot flush brotli writer")
 	}
@@ -226,13 +234,25 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	reader := brotli.NewReader(sl.buffer)
 	switch sl.StorageType {
 	case "area":
+		targetname := fmt.Sprintf("indexer_%s.jsonl", object.GetInventory().GetHead())
+		if err := object.AddReader(io.NopCloser(reader), targetname, sl.IndexerConfig.StorageName); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", targetname)
+		}
 	case "path":
-		//sl.buffer.Reset()
 		targetname := fmt.Sprintf("%s/indexer_%s.jsonl", sl.IndexerConfig.StorageName, object.GetInventory().GetHead())
-		if err := object.AddReader(io.NopCloser(reader), targetname, ""); err != nil {
+		if err := object.AddReader(io.NopCloser(reader), targetname, "content"); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
+		targetname := strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl", sl.IndexerConfig.StorageName, object.GetInventory().GetHead()), "/")
+		fp, err := sl.fs.Create(targetname)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create '%s/%s'", sl.fs.String(), targetname)
+		}
+		defer fp.Close()
+		if _, err := io.Copy(fp, reader); err != nil {
+			return errors.Wrapf(err, "cannot write '%s/%s'", sl.fs.String(), targetname)
+		}
 	default:
 		return errors.Errorf("unsupported storage type '%s'", sl.StorageType)
 	}

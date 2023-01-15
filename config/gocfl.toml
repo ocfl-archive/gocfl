@@ -108,16 +108,16 @@ Addr="http://localhost:1234/"
     Weight = 3
     [Indexer.MimeRelevance.3]
     Regexp = "^audio/mpeg$"
-    Weight = 4
+    Weight = 6
     [Indexer.MimeRelevance.4]
     Regexp = "^video/mpeg$"
-    Weight = 4
+    Weight = 5
     [Indexer.MimeRelevance.5]
     Regexp = "^text/.+$"
     Weight = 4
     [Indexer.MimeRelevance.6]
-    Regexp = "^application/vnd.openxmlformats.+"
-    Weight = 5
+    Regexp = "^application/vnd\\..+"
+    Weight = 4
     [Indexer.MimeRelevance.7]
     Regexp = "^application/.+"
     Weight = 2
@@ -152,5 +152,13 @@ Addr="http://localhost:1234/"
         convert = "C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe"
         wsl = false  # true, if executable is within linux subsystem on windows
         timeout = "10s"
+        online = true
+        enabled = true
+
+    [Indexer.Tika]
+        address = "http://localhost:9998/rmeta/text"
+        #address = "http://localhost:9998/rmeta/text"
+        timeout = "10s"
+        regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
         online = true
         enabled = true

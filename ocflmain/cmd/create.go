@@ -198,10 +198,16 @@ func doCreate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer ImageMagick: %v", err)
 			return
 		}
+		tika, err := indexer.GetTika()
+		if err != nil {
+			daLogger.Errorf("cannot load indexer Tika: %v", err)
+			return
+		}
 		idx, addr, err = indexer.StartIndexer(
 			siegfried,
 			ffmpeg,
 			imageMagick,
+			tika,
 			mimeRelevance,
 			daLogger)
 		if err != nil {

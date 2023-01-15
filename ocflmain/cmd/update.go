@@ -175,12 +175,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer ImageMagick: %v", err)
 			return
 		}
-		idx, addr, err = indexer.StartIndexer(
-			siegfried,
-			ffmpeg,
-			imageMagick,
-			mimeRelevance,
-			daLogger)
+		idx, addr, err = indexer.StartIndexer(siegfried, ffmpeg, imageMagick, nil, mimeRelevance, daLogger)
 		if err != nil {
 			daLogger.Errorf("cannot start indexer: %v", err)
 			return

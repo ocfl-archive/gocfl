@@ -10,7 +10,14 @@ import (
 	"time"
 )
 
-func StartIndexer(siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, mimeRelevance map[int]ironmaiden.MimeWeightString, logger *logging.Logger) (*ironmaiden.Server, net.Addr, error) {
+func StartIndexer(
+	siegfried *Siegfried,
+	ffmpeg *FFMPEG,
+	magick *ImageMagick,
+	tika *Tika,
+	mimeRelevance map[int]ironmaiden.MimeWeightString,
+	logger *logging.Logger,
+) (*ironmaiden.Server, net.Addr, error) {
 	errorTemplate, err := template.New("foo").Parse(
 		`<!DOCTYPE html>
 <html>
@@ -66,6 +73,13 @@ func StartIndexer(siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, mim
 			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
 		_ = ironmaiden.NewActionIdentify(magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
+	}
+	if tika.Enabled {
+		timeout, err := time.ParseDuration(tika.Timeout)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
+		}
+		_ = ironmaiden.NewActionTika(tika.Address, timeout, tika.RegexpMime, tika.Online, srv)
 	}
 
 	// get a random free port

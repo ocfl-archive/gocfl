@@ -146,3 +146,22 @@ func GetImageMagick() (*ImageMagick, error) {
 	}
 	return im, nil
 }
+
+type Tika struct {
+	Address    string
+	RegexpMime string
+	Timeout    string
+	Online     bool
+	Enabled    bool
+}
+
+func GetTika() (*Tika, error) {
+	im := &Tika{
+		Address:    viper.GetString("Indexer.Tika.Address"),
+		RegexpMime: viper.GetString("Indexer.Tika.RegexpMime"),
+		Timeout:    viper.GetString("Indexer.Tika.Timeout"),
+		Online:     viper.GetBool("Indexer.Tika.Online"),
+		Enabled:    viper.GetBool("Indexer.Tika.Enabled"),
+	}
+	return im, nil
+}
