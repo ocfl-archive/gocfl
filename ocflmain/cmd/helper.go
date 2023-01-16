@@ -96,7 +96,11 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	})
 
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
-		return extension.NewIndexerFS(fsys, indexerAddr, sourceFS)
+		ext, err := extension.NewIndexerFS(fsys, indexerAddr, sourceFS)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
+		}
+		return ext, nil
 	})
 
 	return extensionFactory, nil

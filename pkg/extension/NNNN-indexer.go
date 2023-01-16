@@ -2,6 +2,7 @@ package extension
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"emperror.dev/errors"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	"golang.org/x/exp/slices"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,6 +19,9 @@ import (
 
 const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
+
+var actions = []string{"siegfried", "ffprobe", "identify", "tika"}
+var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
@@ -34,6 +39,7 @@ type IndexerConfig struct {
 	StorageType string
 	StorageName string
 	Actions     []string
+	Compress    string
 }
 type Indexer struct {
 	*IndexerConfig
@@ -60,10 +66,37 @@ func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string, sourceFS ocfl.OCFLFSRead
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	return NewIndexer(config, urlString, sourceFS)
+	ext, err := NewIndexer(config, urlString, sourceFS)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create new indexer")
+	}
+	return ext, nil
 }
 func NewIndexer(config *IndexerConfig, urlString string, sourceFS ocfl.OCFLFSRead) (*Indexer, error) {
 	var err error
+
+	if len(config.Actions) == 0 {
+		config.Actions = []string{"siegfried"}
+	}
+	as := []string{}
+	for _, a := range config.Actions {
+		a = strings.ToLower(a)
+		if !slices.Contains(actions, a) {
+			return nil, errors.Errorf("invalid action '%s' in config file", a)
+		}
+		as = append(as, a)
+	}
+	config.Actions = as
+
+	if config.Compress == "" {
+		config.Compress = "none"
+	}
+	c := strings.ToLower(config.Compress)
+	if !slices.Contains(compress, c) {
+		return nil, errors.Errorf("invalid compression '%s' in config file", c)
+	}
+	config.Compress = c
+
 	sl := &Indexer{
 		IndexerConfig: config,
 		sourceFS:      sourceFS,
@@ -224,6 +257,7 @@ func (sl *Indexer) UpdateObjectBefore(object ocfl.Object) error {
 }
 
 func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
+	//var err error
 	sl.active = false
 	if err := sl.writer.Flush(); err != nil {
 		return errors.Wrap(err, "cannot flush brotli writer")
@@ -231,20 +265,44 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	if err := sl.writer.Close(); err != nil {
 		return errors.Wrap(err, "cannot close brotli writer")
 	}
-	reader := brotli.NewReader(sl.buffer)
+	var reader io.Reader
+	var ext string
+	switch sl.IndexerConfig.Compress {
+	case "brotli":
+		ext = ".br"
+		reader = sl.buffer
+	case "gzip":
+		ext = ".gz"
+		brotliReader := brotli.NewReader(sl.buffer)
+		pr, pw := io.Pipe()
+		go func() {
+			defer pw.Close()
+			gzipWriter := gzip.NewWriter(pw)
+			defer gzipWriter.Close()
+			if _, err := io.Copy(gzipWriter, brotliReader); err != nil {
+				pw.CloseWithError(errors.Wrapf(err, "error on gzip compressor"))
+			}
+		}()
+		reader = pr
+	case "none":
+		reader = brotli.NewReader(sl.buffer)
+	default:
+		return errors.Errorf("invalid compression '%s'", sl.IndexerConfig.Compress)
+	}
+
 	switch sl.StorageType {
 	case "area":
-		targetname := fmt.Sprintf("indexer_%s.jsonl", object.GetInventory().GetHead())
+		targetname := fmt.Sprintf("indexer_%s.jsonl%s", object.GetInventory().GetHead(), ext)
 		if err := object.AddReader(io.NopCloser(reader), targetname, sl.IndexerConfig.StorageName); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
-		targetname := fmt.Sprintf("%s/indexer_%s.jsonl", sl.IndexerConfig.StorageName, object.GetInventory().GetHead())
+		targetname := fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, object.GetInventory().GetHead(), ext)
 		if err := object.AddReader(io.NopCloser(reader), targetname, "content"); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
-		targetname := strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl", sl.IndexerConfig.StorageName, object.GetInventory().GetHead()), "/")
+		targetname := strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, object.GetInventory().GetHead(), ext), "/")
 		fp, err := sl.fs.Create(targetname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%s/%s'", sl.fs.String(), targetname)
