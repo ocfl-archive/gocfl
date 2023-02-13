@@ -1,6 +1,7 @@
 package extension
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"crypto/tls"
@@ -43,7 +44,7 @@ type IndexerConfig struct {
 }
 type Indexer struct {
 	*IndexerConfig
-	fs         ocfl.OCFLFS
+	fs         ocfl.OCFLFSRead
 	indexerURL *url.URL
 	sourceFS   ocfl.OCFLFSRead
 	buffer     *bytes.Buffer
@@ -122,14 +123,14 @@ func (sl *Indexer) IsRegistered() bool { return false }
 
 func (sl *Indexer) GetName() string { return IndexerName }
 
-func (sl *Indexer) SetFS(fs ocfl.OCFLFS) { sl.fs = fs }
+func (sl *Indexer) SetFS(fs ocfl.OCFLFSRead) { sl.fs = fs }
 
 func (sl *Indexer) SetParams(params map[string]string) error {
 	var err error
 	name := fmt.Sprintf("ext-%s-%s", IndexerName, "indexer-url")
 	urlString, _ := params[name]
 	if urlString == "" {
-		if sl.indexerURL != nil {
+		if sl.indexerURL != nil && sl.indexerURL.String() != "" {
 			result, code, err := sl.post("{}")
 			if err != nil {
 				return errors.Wrapf(err, "cannot post to '%s'", urlString)
@@ -140,7 +141,8 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 			_ = result
 			return nil
 		}
-		return errors.Errorf("url '%s' not set", name)
+		return nil
+		// return errors.Errorf("url '%s' not set", name)
 	}
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
 		return errors.Wrapf(err, "cannot parse '%s' '%s'", name, urlString)
@@ -160,6 +162,9 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 }
 
 func (sl *Indexer) post(data any) ([]byte, int, error) {
+	if !(sl.indexerURL != nil && sl.indexerURL.String() != "") {
+		return nil, 0, errors.New("indexer url not set")
+	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "cannot marshal %v", data)
@@ -180,14 +185,19 @@ func (sl *Indexer) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
+	if err := jenc.Encode(sl.IndexerConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
@@ -302,8 +312,13 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
+		fsRW, ok := sl.fs.(ocfl.OCFLFS)
+		if !ok {
+			return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+		}
+
 		targetname := strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, object.GetInventory().GetHead(), ext), "/")
-		fp, err := sl.fs.Create(targetname)
+		fp, err := fsRW.Create(targetname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%s/%s'", sl.fs.String(), targetname)
 		}
@@ -317,8 +332,80 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
+func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	var result = map[string]any{}
+	var ext string
+	switch sl.IndexerConfig.Compress {
+	case "brotli":
+		ext = ".br"
+	case "gzip":
+		ext = ".gz"
+	case "none":
+	default:
+		return nil, errors.Errorf("invalid compression '%s'", sl.IndexerConfig.Compress)
+	}
+
+	inventory := object.GetInventory()
+	for v, _ := range inventory.GetVersions() {
+		var targetname string
+		switch sl.StorageType {
+		case "area":
+			path, err := object.GetAreaPath(sl.IndexerConfig.StorageName)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot get area path for '%s'", sl.IndexerConfig.StorageName)
+			}
+			targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, path, v, ext)
+		case "path":
+			targetname = fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, v, ext)
+		case "extension":
+			targetname = strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, v, ext), "/")
+		default:
+			return nil, errors.Errorf("unsupported storage type '%s'", sl.StorageType)
+		}
+
+		f, err := object.GetFS().Open(targetname)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		var reader io.Reader
+		switch sl.IndexerConfig.Compress {
+		case "brotli":
+			reader = brotli.NewReader(f)
+		case "gzip":
+			reader, err = gzip.NewReader(f)
+			if err != nil {
+				f.Close()
+				return nil, errors.Wrapf(err, "cannot open gzip reader on '%s'", targetname)
+			}
+		case "none":
+			reader = f
+		}
+		r := bufio.NewScanner(reader)
+		r.Buffer(make([]byte, 128*1024), 128*1024)
+		r.Split(bufio.ScanLines)
+		for r.Scan() {
+			line := r.Text()
+			var meta = struct {
+				Digest   string
+				Metadata map[string]any
+			}{}
+			if err := json.Unmarshal([]byte(line), &meta); err != nil {
+				f.Close()
+				return nil, errors.Wrapf(err, "cannot unmarshal line from '%s' - [%s]", targetname, line)
+			}
+			result[meta.Digest] = meta.Metadata
+		}
+		if err := r.Err(); err != nil {
+			return nil, errors.Wrapf(err, "cannot scan lines from '%s'", targetname)
+		}
+		f.Close()
+	}
+	return result, nil
+}
+
 var (
 	_ ocfl.Extension              = &Indexer{}
 	_ ocfl.ExtensionContentChange = &Indexer{}
 	_ ocfl.ExtensionObjectChange  = &Indexer{}
+	_ ocfl.ExtensionMetadata      = &Indexer{}
 )

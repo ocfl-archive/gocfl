@@ -26,7 +26,7 @@ type ContentSubPathConfig struct {
 }
 type ContentSubPath struct {
 	*ContentSubPathConfig
-	fs   ocfl.OCFLFS
+	fs   ocfl.OCFLFSRead
 	area string
 }
 
@@ -73,7 +73,7 @@ func (sl *ContentSubPath) IsRegistered() bool {
 	return false
 }
 
-func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFS) {
+func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -97,7 +97,12 @@ func (sl *ContentSubPath) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -182,6 +187,14 @@ func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPat
 	return originalPath, nil
 }
 
+func (sl *ContentSubPath) GetAreaPath(object ocfl.Object, area string) (string, error) {
+	subpath, ok := sl.Paths[area]
+	if !ok {
+		return "", errors.Errorf("invalid area '%s'", sl.area)
+	}
+	return subpath.Path, nil
+}
+
 // check interface satisfaction
 var (
 	_ ocfl.Extension                   = &ContentSubPath{}
@@ -189,4 +202,5 @@ var (
 	_ ocfl.ExtensionObjectChange       = &ContentSubPath{}
 	_ ocfl.ExtensionObjectExternalPath = &ContentSubPath{}
 	_ ocfl.ExtensionObjectExtractPath  = &ContentSubPath{}
+	_ ocfl.ExtensionArea               = &ContentSubPath{}
 )

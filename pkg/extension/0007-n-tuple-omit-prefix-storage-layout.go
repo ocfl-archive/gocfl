@@ -38,7 +38,7 @@ type NTupleOmitPrefixStorageLayoutConfig struct {
 
 type NTupleOmitPrefixStorageLayout struct {
 	*NTupleOmitPrefixStorageLayoutConfig
-	fs ocfl.OCFLFS
+	fs ocfl.OCFLFSRead
 }
 
 func NewNTupleOmitPrefixStorageLayoutFS(fsys ocfl.OCFLFSRead) (*NTupleOmitPrefixStorageLayout, error) {
@@ -79,7 +79,7 @@ func (sl *NTupleOmitPrefixStorageLayout) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) SetFS(fs ocfl.OCFLFS) {
+func (sl *NTupleOmitPrefixStorageLayout) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -92,7 +92,12 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

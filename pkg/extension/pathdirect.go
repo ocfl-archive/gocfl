@@ -12,7 +12,7 @@ const PathDirectName = "NNNN-direct-path-layout"
 
 type PathDirectConfig struct {
 	*Config
-	fs ocfl.OCFLFS
+	fs ocfl.OCFLFSRead
 }
 
 type PathDirect struct {
@@ -48,7 +48,7 @@ func (sl *PathDirect) IsRegistered() bool {
 	return false
 }
 
-func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFS) {
+func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -84,7 +84,15 @@ func (sl *PathDirect) WriteLayout(fs ocfl.OCFLFS) error {
 }
 
 func (sl *PathDirect) WriteConfig() error {
-	configWriter, err := sl.fs.Create("config.json")
+	if sl.fs == nil {
+		return errors.New("no filesystem set")
+	}
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

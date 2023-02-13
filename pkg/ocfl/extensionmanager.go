@@ -20,7 +20,9 @@ type ExtensionManager struct {
 	objectChange       []ExtensionObjectChange
 	fixityDigest       []ExtensionFixityDigest
 	objectExtractPath  []ExtensionObjectExtractPath
-	fs                 OCFLFS
+	metadata           []ExtensionMetadata
+	area               []ExtensionArea
+	fs                 OCFLFSRead
 }
 
 func (manager *ExtensionManager) GetConfigString() string {
@@ -46,6 +48,8 @@ func NewExtensionManager() (*ExtensionManager, error) {
 		objectContentPath: []ExtensionObjectContentPath{},
 		objectChange:      []ExtensionObjectChange{},
 		fixityDigest:      []ExtensionFixityDigest{},
+		metadata:          []ExtensionMetadata{},
+		area:              []ExtensionArea{},
 	}
 	return m, nil
 }
@@ -83,21 +87,42 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	if occ, ok := ext.(ExtensionObjectExtractPath); ok {
 		manager.objectExtractPath = append(manager.objectExtractPath, occ)
 	}
+	if meta, ok := ext.(ExtensionMetadata); ok {
+		manager.metadata = append(manager.metadata, meta)
+	}
+	if area, ok := ext.(ExtensionArea); ok {
+		manager.area = append(manager.area, area)
+	}
 	return nil
 }
 
-func (manager *ExtensionManager) SetFS(subfs OCFLFS) {
-	for _, ext := range manager.extensions {
-		extFS, err := subfs.SubFSRW(ext.GetName())
+func (manager *ExtensionManager) SetFS(subFSRO OCFLFSRead) {
+	if subfs, ok := subFSRO.(OCFLFS); ok {
+		for _, ext := range manager.extensions {
+			extFS, err := subfs.SubFSRW(ext.GetName())
+			if err != nil {
+				panic(err)
+			}
+			ext.SetFS(extFS)
+		}
+		var err error
+		manager.fs, err = subfs.SubFSRW("initial")
 		if err != nil {
 			panic(err)
 		}
-		ext.SetFS(extFS)
-	}
-	var err error
-	manager.fs, err = subfs.SubFSRW("initial")
-	if err != nil {
-		panic(err)
+	} else {
+		for _, ext := range manager.extensions {
+			extFS, err := subFSRO.SubFS(ext.GetName())
+			if err != nil {
+				panic(err)
+			}
+			ext.SetFS(extFS)
+		}
+		var err error
+		manager.fs, err = subFSRO.SubFS("initial")
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -181,7 +206,8 @@ func (manager *ExtensionManager) Finalize() {
 	manager.contentChange = organize(manager, manager.contentChange, ExtensionContentChangeName)
 	manager.objectChange = organize(manager, manager.objectChange, ExtensionObjectChangeName)
 	manager.fixityDigest = organize(manager, manager.fixityDigest, ExtensionFixityDigestName)
-
+	manager.metadata = organize(manager, manager.metadata, ExtensionMetadataName)
+	manager.area = organize(manager, manager.area, ExtensionAreaName)
 }
 
 // Extension
@@ -192,13 +218,17 @@ func (manager *ExtensionManager) GetName() string {
 	return ExtensionManagerName
 }
 func (manager *ExtensionManager) WriteConfig() error {
+	fsRW, ok := manager.fs.(OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", manager.fs.String())
+	}
 	for _, ext := range manager.extensions {
 		if err := ext.WriteConfig(); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
 	}
 
-	configWriter, err := manager.fs.Create("config.json")
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -409,6 +439,43 @@ func (manager *ExtensionManager) BuildObjectExtractPath(object Object, originalP
 	return originalPath, nil
 }
 
+func (manager *ExtensionManager) GetMetadata(object Object) (map[string]any, error) {
+	var metaResult = map[string]map[string]any{}
+	for _, ext := range manager.metadata {
+		meta, err := ext.GetMetadata(object)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot call GetMetadata() from extension '%s'", ext.GetName())
+		}
+		for h, val := range meta {
+			if _, ok := metaResult[h]; !ok {
+				metaResult[h] = map[string]any{}
+			}
+			name := ext.GetName()
+			metaResult[h][name] = val
+		}
+	}
+	var result = map[string]any{}
+	for h, val := range metaResult {
+		result[h] = val
+	}
+	return result, nil
+}
+
+func (manager *ExtensionManager) GetAreaPath(object Object, area string) (string, error) {
+	var errs = []error{}
+	for _, ext := range manager.area {
+		path, err := ext.GetAreaPath(object, area)
+		if err != nil {
+			errs = append(errs, errors.Wrapf(err, "cannot call GetArea(%s) from extension '%s'", area, ext.GetName()))
+		}
+		if path != "" {
+			return path, nil
+		}
+	}
+
+	return "", errors.Combine(errs...)
+}
+
 // check interface satisfaction
 var (
 	_ Extension                   = &ExtensionManager{}
@@ -419,4 +486,6 @@ var (
 	_ ExtensionObjectChange       = &ExtensionManager{}
 	_ ExtensionFixityDigest       = &ExtensionManager{}
 	_ ExtensionObjectExtractPath  = &ExtensionManager{}
+	_ ExtensionMetadata           = &ExtensionManager{}
+	_ ExtensionArea               = &ExtensionManager{}
 )

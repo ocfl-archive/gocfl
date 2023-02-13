@@ -1,7 +1,6 @@
 module github.com/je4/gocfl/v2
 
-go 1.19
-
+go 1.20
 require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.0

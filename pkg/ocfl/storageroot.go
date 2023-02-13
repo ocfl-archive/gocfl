@@ -32,6 +32,7 @@ type StorageRoot interface {
 	GetVersion() OCFLVersion
 	Stat(w io.Writer, path string, id string, statInfo []StatInfo) error
 	Extract(fs OCFLFS, path, id, version string, withManifest bool) error
+	ExtractMeta(path, id string) (*StorageRootMetadata, error)
 }
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")

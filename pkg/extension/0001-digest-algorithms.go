@@ -28,7 +28,7 @@ type DigestAlgorithmsConfig struct {
 }
 type DigestAlgorithms struct {
 	*DigestAlgorithmsConfig
-	fs ocfl.OCFLFS
+	fs ocfl.OCFLFSRead
 }
 
 func NewDigestAlgorithmsFS(fsys ocfl.OCFLFSRead) (*DigestAlgorithms, error) {
@@ -70,7 +70,7 @@ func (sl *DigestAlgorithms) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *DigestAlgorithms) SetFS(fs ocfl.OCFLFS) {
+func (sl *DigestAlgorithms) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -83,7 +83,11 @@ func (sl *DigestAlgorithms) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

@@ -45,7 +45,7 @@ type MetaFileConfig struct {
 type MetaFile struct {
 	*MetaFileConfig
 	metadataSource *url.URL
-	fs             ocfl.OCFLFS
+	fs             ocfl.OCFLFSRead
 }
 
 func NewMetaFileFS(fsys ocfl.OCFLFSRead) (*MetaFile, error) {
@@ -96,7 +96,7 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *MetaFile) SetFS(fs ocfl.OCFLFS) {
+func (sl *MetaFile) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -111,7 +111,12 @@ func (sl *MetaFile) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -159,6 +164,10 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	}
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
+	}
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
 	}
 	var rc io.ReadCloser
 	switch sl.metadataSource.Scheme {
@@ -208,14 +217,14 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 		if entry.Name() == "config.json" {
 			continue
 		}
-		if err := sl.fs.Delete(entry.Name()); err != nil {
+		if err := fsRW.Delete(entry.Name()); err != nil {
 			return errors.Wrapf(err, "cannot delete '%s' from '%s'", entry.Name(), sl.fs)
 		}
 	}
 
 	// complex writes to prevent simultaneous writes on filesystems, which do not support that
 	targetBase := filepath.Base(sl.metadataSource.Path)
-	w2, err := sl.fs.Create(targetBase)
+	w2, err := fsRW.Create(targetBase)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetBase)
 	}
@@ -240,7 +249,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	targetBaseSidecar := fmt.Sprintf("%s.%s", targetBase, inventory.GetDigestAlgorithm())
-	w2Sidecar, err := sl.fs.Create(targetBaseSidecar)
+	w2Sidecar, err := fsRW.Create(targetBaseSidecar)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetBaseSidecar)
 	}
@@ -252,7 +261,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 
 	if sl.Versioned {
 		targetVersioned := fmt.Sprintf("%s/%s", inventory.GetHead(), targetBase)
-		w, err := sl.fs.Create(targetVersioned)
+		w, err := fsRW.Create(targetVersioned)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%s'", targetVersioned)
 		}
@@ -262,7 +271,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		w.Close()
 		targetVersionedSidecar := fmt.Sprintf("%s.%s", targetVersioned, inventory.GetDigestAlgorithm())
-		wSidecar, err := sl.fs.Create(targetVersionedSidecar)
+		wSidecar, err := fsRW.Create(targetVersionedSidecar)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%s'", targetVersionedSidecar)
 		}

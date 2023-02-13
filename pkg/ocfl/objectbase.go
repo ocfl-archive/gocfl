@@ -56,6 +56,7 @@ func newObjectBase(ctx context.Context, fs OCFLFSRead, defaultVersion OCFLVersio
 	if rwFS, ok := fs.(OCFLFS); ok {
 		ocfl.fsRW = rwFS
 	}
+
 	return ocfl, nil
 }
 
@@ -77,6 +78,63 @@ func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationWarnings(object.ctx, valError)
+}
+
+func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
+	result := &ObjectMetadata{
+		ID:    object.GetID(),
+		Files: map[string]*FileMetadata{},
+	}
+	inventory := object.GetInventory()
+	manifest := inventory.GetManifest()
+	versions := inventory.GetVersions()
+	fixity := inventory.GetFixity()
+	versionStrings := []string{}
+	for v, _ := range versions {
+		versionStrings = append(versionStrings, v)
+	}
+	// sort version strings in ascending order
+	slices.SortFunc(versionStrings, func(a, b string) bool {
+		a = strings.TrimPrefix(a, "v0")
+		b = strings.TrimPrefix(b, "v0")
+		ia, _ := strconv.Atoi(a)
+		ib, _ := strconv.Atoi(b)
+		return ia < ib
+	})
+	extensionMetadata, err := object.extensionManager.GetMetadata(object)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot get extension metadata for object '%s'", object.GetID())
+	}
+	for digest, fnames := range manifest {
+		if len(fnames) == 0 {
+			continue
+		}
+		fm := &FileMetadata{
+			Checksums:    map[checksum.DigestAlgorithm]string{},
+			InternalName: fnames,
+			VersionName:  map[string][]string{},
+			Extension:    map[string]any{},
+		}
+		fm.Checksums = fixity.Checksums(fnames[0])
+		for v, version := range versions {
+			for d, fnames := range version.State.State {
+				if digest == d {
+					if _, ok := fm.VersionName[v]; !ok {
+						fm.VersionName[v] = []string{}
+					}
+					fm.VersionName[v] = append(fm.VersionName[v], fnames...)
+					break
+				}
+			}
+		}
+		if emAny, ok := extensionMetadata[digest]; ok {
+			if em, ok := emAny.(map[string]any); ok {
+				fm.Extension = em
+			}
+		}
+		result.Files[digest] = fm
+	}
+	return result, nil
 }
 
 func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
@@ -393,6 +451,12 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	}
 	object.extensionManager.Finalize()
 
+	subfs, err := object.fsRW.SubFSRW("extensions")
+	if err != nil {
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsRW, "extensions")
+	}
+	object.extensionManager.SetFS(subfs)
+
 	// check fixity here
 	algs := []checksum.DigestAlgorithm{
 		checksum.DigestSHA512,
@@ -446,6 +510,13 @@ func (object *ObjectBase) Load() (err error) {
 			}
 		}
 	}
+
+	subfs, err := object.fsRO.SubFS("extensions")
+	if err != nil {
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsRW, "extensions")
+	}
+	object.extensionManager.SetFS(subfs)
+
 	// load the inventory
 	if object.i, err = object.LoadInventory("."); err != nil {
 		return errors.Wrap(err, "cannot load inventory.json of root")
@@ -1232,4 +1303,9 @@ func (object *ObjectBase) Extract(fs OCFLFS, version string, withManifest bool) 
 	}
 	object.logger.Debugf("object '%s' extracted", object.GetID())
 	return nil
+}
+
+func (object *ObjectBase) GetAreaPath(area string) (string, error) {
+	path, err := object.extensionManager.GetAreaPath(object, area)
+	return path, errors.WithStack(err)
 }
