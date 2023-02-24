@@ -11,6 +11,7 @@ GOCFL command line tool supports the following subcommands
 * [validate](docs/validate.md)
 * [info](docs/stat.md)
 * [extract](docs/extract.md)
+* [extractmeta](docs/extractmeta.md)
 
 ## Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
@@ -74,8 +75,8 @@ Since OCFL Structure is quite rigid, there's need for a special extensions suppo
   - [ ] 0008-schema-registry
 - Local Extensions
   - [x] [NNNN-pairtree-storage-layout](https://pythonhosted.org/Pairtree/pairtree.pairtree_client.PairtreeStorageClient-class.html) 
-  - [x] NNNN-direct-clean-path-layout
-  - [x] NNNN-content-subpath (integration of non-payload files in content)
+  - [x] [NNNN-direct-clean-path-layout](docs/NNNN-direct-clean-path-layout.md)
+  - [x] [NNNN-content-subpath](docs/NNNN-content-subpath.md) (integration of non-payload files in content)
   - [x] NNNN-metafile (integration of one file into extension folder)
   - [ ] NNNN-indexer (technical metadata indexing) 
   - [x] NNNN-gocfl-extension-manager (initial extension for sorted exclusion and sorted execution)

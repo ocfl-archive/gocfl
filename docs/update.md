@@ -37,6 +37,7 @@ Global Flags:
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
+      --with-indexer                  starts indexer as a local service
 ```
 
 ## Examples

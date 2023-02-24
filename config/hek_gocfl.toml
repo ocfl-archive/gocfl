@@ -1,0 +1,165 @@
+# --log-level
+# CRITICAL = 0
+# ERROR = 1
+# WARNING = 2
+# NOTICE = 3
+# INFO = 4
+# DEBUG = 5
+LogLevel="INFO"
+# --log-file
+#logFile="C:/temp/gocfl.log"
+# --s3-access-key-id
+#S3AccessKeyID=""
+# --s3-secret-access-key
+#S3SecretAccessKey=""
+# --s3-endpoint
+#S3Endpoint="s3-zh.os.switch.ch"
+# --s3-region
+#S3Region=""
+
+[Init]
+# --ocfl-version
+OCFLVersion="1.1" # supported versions 1.0 1.1
+# --digest
+DigestAlgorithm="sha512"
+# --default-storageroot-extensions
+# StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+# --encrypt-aes
+#AES=true
+# --aes-key
+#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
+# --aes-iv
+#AESIV="8594552261cb956949b661aa163fac4f"
+
+[Add]
+# --user-name
+UserName="unauthorized access"
+# --user-address
+UserAddress="mailto:sammlung@hek.ch"
+# --fixity
+Fixity="md5"
+#Fixity="md5,sha256,blake2b-384"
+# --digest
+DigestAlgorithm="sha512"
+# --message
+Message="Initial commit"
+# --object-extensions
+# ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+# --deduplicate
+# Deduplicate=true # default false: true = check before ingest for checksum
+[Add.ext.NNNN-metafile]
+# --ext-NNNN-metafile-source
+#Source="C:/temp/$ID.json"
+# --default-area
+DefaultArea="content"
+
+[Update]
+# --user-name
+UserName="unauthorized access"
+# --user-address
+UserAddress="mailto:sammlung@hek.ch"
+# --echo
+Echo=true # reflect deletion in source folder
+# --no-deduplicate
+# NoDeduplicate=true
+# --digest
+DigestAlgorithm="sha512"
+# --default-area
+DefaultArea="content"
+
+[Update.ext.NNNN-metadata]
+#Source="C:/temp/$ID.json"
+
+[Create]
+[Create.ext.NNNN-metadata]
+# --ext-NNNN-metafile-source
+#Source="C:/temp/$ID.json"
+
+[Stat]
+# --stat-info
+#Info = "ExtensionConfigs,objects,objectversions,objectextensionconfigs"
+Info = "objects,objectversions"
+
+[Extract]
+Manifest = true
+
+[Extract.ext.NNNN-content-subpath]
+Area = "full"
+
+[Indexer]
+# -- with-indexer
+Local=true
+
+Addr="http://localhost:1234/"
+
+[Indexer.Siegfried]
+Signature = "/root/siegfried/default.sig"
+
+[Indexer.Siegfried.MimeMap]
+"fmt/134" = "audio/mp3"
+
+# relevance < 100: rate down
+# relevance > 100: rate up
+# default = 100
+[Indexer.MimeRelevance.1]
+Regexp = "^application/octet-stream$"
+Weight = 1
+[Indexer.MimeRelevance.2]
+Regexp = "^text/plain$"
+Weight = 3
+[Indexer.MimeRelevance.3]
+Regexp = "^audio/mpeg$"
+Weight = 6
+[Indexer.MimeRelevance.4]
+Regexp = "^video/mpeg$"
+Weight = 5
+[Indexer.MimeRelevance.5]
+Regexp = "^text/.+$"
+Weight = 4
+[Indexer.MimeRelevance.6]
+Regexp = "^application/vnd\\..+"
+Weight = 4
+[Indexer.MimeRelevance.7]
+Regexp = "^application/.+"
+Weight = 2
+[Indexer.MimeRelevance.8]
+Regexp = "^.+/x-.+"
+Weight = 80
+
+[Indexer.FFMPEG]
+ffprobe = "/usr/bin/ffprobe"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "25s"
+online = true
+enabled = true
+[[Indexer.FFMPEG.Mime]]
+video = false
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "audio/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = false
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+
+[Indexer.ImageMagick]
+identify = "/usr/bin/identify"
+convert = "/usr/bin/convert"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "10s"
+online = true
+enabled = true
+
+[Indexer.Tika]
+address = "http://localhost:9998/rmeta"
+#address = "http://localhost:9998/rmeta/text"
+timeout = "10s"
+regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+online = true
+enabled = true

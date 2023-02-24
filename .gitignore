@@ -4,3 +4,4 @@
 /build/gocfl_linux_arm64
 /build/gocfl_windows_amd64.exe
 /build/gocfl_windows_arm64.exe
+/config/hek_gocfl.toml
