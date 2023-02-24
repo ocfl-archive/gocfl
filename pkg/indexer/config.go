@@ -55,7 +55,7 @@ func GetFFMPEG() (*FFMPEG, error) {
 		}
 		m.Audio, ok = audioInt.(bool)
 		if !ok {
-			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not bool", key, "audio", audioInt)
+			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not bool in %v", key, "audio", audioInt)
 		}
 		videoInt, ok := mimeMap["video"]
 		if !ok {
@@ -63,7 +63,7 @@ func GetFFMPEG() (*FFMPEG, error) {
 		}
 		m.Video, ok = videoInt.(bool)
 		if !ok {
-			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not bool", key, "video", videoInt)
+			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not bool in %v", key, "video", videoInt)
 		}
 		formatInt, ok := mimeMap["format"]
 		if !ok {
@@ -71,7 +71,7 @@ func GetFFMPEG() (*FFMPEG, error) {
 		}
 		m.Format, ok = formatInt.(string)
 		if !ok {
-			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not string", key, "format", formatInt)
+			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not string in %v", key, "format", formatInt)
 		}
 		mimeInt, ok := mimeMap["mime"]
 		if !ok {
@@ -79,7 +79,7 @@ func GetFFMPEG() (*FFMPEG, error) {
 		}
 		m.Mime, ok = mimeInt.(string)
 		if !ok {
-			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not string", key, "mime", mimeInt)
+			return nil, errors.Errorf("Indexer.FFMPEG.Mime.%v.%s is not string in %v", key, "mime", mimeInt)
 		}
 		ffmpeg.Mime = append(ffmpeg.Mime, m)
 	}
