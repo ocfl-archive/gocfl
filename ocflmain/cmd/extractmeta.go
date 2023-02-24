@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"emperror.dev/errors"
+	"encoding/json"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -31,6 +33,8 @@ func initExtractMeta() {
 
 	extractMetaCmd.Flags().String("version", "latest", "version to extract")
 	viper.BindPFlag("Extract.Version", extractMetaCmd.Flags().Lookup("version"))
+
+	extractMetaCmd.Flags().String("output-json", "", "path to json file with metadata")
 }
 
 func doExtractMeta(cmd *cobra.Command, args []string) {
@@ -55,6 +59,7 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
+	outputJson, _ := cmd.Flags().GetString("output-json")
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
@@ -104,6 +109,21 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	_ = metadata
-	fmt.Printf("extraction done without errors\n")
+
+	if outputJson != "" {
+		jsonBytes, err := json.MarshalIndent(metadata, "", "  ")
+		if err != nil {
+			fmt.Printf("cannot marshal metadata")
+			daLogger.Errorf("cannot marshal metadata: %v\n", err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
+		if err := os.WriteFile(outputJson, jsonBytes, 0644); err != nil {
+			fmt.Printf("cannot write json to file")
+			daLogger.Errorf("cannot write json to file '%s': %v\n", outputJson, err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
+	}
+	fmt.Printf("metadata extraction done without errors\n")
 }

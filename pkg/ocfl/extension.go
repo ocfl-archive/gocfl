@@ -56,11 +56,11 @@ type ExtensionObjectExternalPath interface {
 
 type ExtensionContentChange interface {
 	Extension
-	AddFileBefore(object Object, source, dest string) error
-	UpdateFileBefore(object Object, source, dest string) error
+	AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
+	UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
 	DeleteFileBefore(object Object, dest string) error
-	AddFileAfter(object Object, source, internalPath, digest string) error
-	UpdateFileAfter(object Object, source, dest string) error
+	AddFileAfter(object Object, sourceFS OCFLFSRead, source, internalPath, digest string) error
+	UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error
 	DeleteFileAfter(object Object, dest string) error
 }
 

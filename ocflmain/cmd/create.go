@@ -30,6 +30,7 @@ var createCmd = &cobra.Command{
 	Run:     doCreate,
 }
 
+// initCreate initializes the gocfl create command
 func initCreate() {
 	createCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
 	viper.BindPFlag("Init.StorageRootExtensions", createCmd.Flags().Lookup("default-storageroot-extensions"))
@@ -80,6 +81,7 @@ func initCreate() {
 
 }
 
+// initCreate executes the gocfl create command
 func doCreate(cmd *cobra.Command, args []string) {
 	var err error
 	notSet := []string{}

@@ -46,13 +46,12 @@ type Indexer struct {
 	*IndexerConfig
 	fs         ocfl.OCFLFSRead
 	indexerURL *url.URL
-	sourceFS   ocfl.OCFLFSRead
 	buffer     *bytes.Buffer
 	writer     *brotli.Writer
 	active     bool
 }
 
-func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string, sourceFS ocfl.OCFLFSRead) (*Indexer, error) {
+func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string) (*Indexer, error) {
 	fp, err := fs.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -67,13 +66,13 @@ func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string, sourceFS ocfl.OCFLFSRead
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	ext, err := NewIndexer(config, urlString, sourceFS)
+	ext, err := NewIndexer(config, urlString)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create new indexer")
 	}
 	return ext, nil
 }
-func NewIndexer(config *IndexerConfig, urlString string, sourceFS ocfl.OCFLFSRead) (*Indexer, error) {
+func NewIndexer(config *IndexerConfig, urlString string) (*Indexer, error) {
 	var err error
 
 	if len(config.Actions) == 0 {
@@ -100,7 +99,6 @@ func NewIndexer(config *IndexerConfig, urlString string, sourceFS ocfl.OCFLFSRea
 
 	sl := &Indexer{
 		IndexerConfig: config,
-		sourceFS:      sourceFS,
 		buffer:        new(bytes.Buffer),
 		active:        true,
 	}
@@ -203,21 +201,21 @@ func (sl *Indexer) WriteConfig() error {
 	return nil
 }
 
-func (sl *Indexer) AddFileBefore(object ocfl.Object, source, dest string) error {
+func (sl *Indexer) AddFileBefore(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
 	return nil
 }
-func (sl *Indexer) UpdateFileBefore(object ocfl.Object, source, dest string) error {
+func (sl *Indexer) UpdateFileBefore(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
 	return nil
 }
 func (sl *Indexer) DeleteFileBefore(object ocfl.Object, dest string) error {
 	// nothing to do
 	return nil
 }
-func (sl *Indexer) AddFileAfter(object ocfl.Object, source, internalPath, digest string) error {
+func (sl *Indexer) AddFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, internalPath, digest string) error {
 	if !sl.active {
 		return nil
 	}
-	filePath := fmt.Sprintf("%s/%s", sl.sourceFS.String(), source)
+	filePath := fmt.Sprintf("%s/%s", sourceFS.String(), source)
 	param := ironmaiden.ActionParam{
 		Url:        filePath,
 		Actions:    sl.IndexerConfig.Actions,
@@ -254,7 +252,7 @@ func (sl *Indexer) AddFileAfter(object ocfl.Object, source, internalPath, digest
 	}
 	return nil
 }
-func (sl *Indexer) UpdateFileAfter(object ocfl.Object, source, dest string) error {
+func (sl *Indexer) UpdateFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
 	return nil
 }
 func (sl *Indexer) DeleteFileAfter(object ocfl.Object, dest string) error {

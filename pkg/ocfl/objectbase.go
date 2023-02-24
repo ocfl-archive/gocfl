@@ -82,15 +82,23 @@ func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format
 
 func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 	result := &ObjectMetadata{
-		ID:    object.GetID(),
-		Files: map[string]*FileMetadata{},
+		ID:              object.GetID(),
+		Files:           map[string]*FileMetadata{},
+		DigestAlgorithm: object.GetDigestAlgorithm(),
+		Versions:        map[string]*VersionMetadata{},
 	}
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	versions := inventory.GetVersions()
 	fixity := inventory.GetFixity()
 	versionStrings := []string{}
-	for v, _ := range versions {
+	for v, version := range versions {
+		result.Versions[v] = &VersionMetadata{
+			Created: version.Created.Time,
+			Message: version.Message.string,
+			Name:    version.User.Name.string,
+			Address: version.User.Address.string,
+		}
 		versionStrings = append(versionStrings, v)
 	}
 	// sort version strings in ascending order
@@ -706,13 +714,11 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 	}
 
-	if err := object.extensionManager.AddFileBefore(object, path, internalFilename); err != nil {
+	if err := object.extensionManager.AddFileBefore(object, nil, path, internalFilename); err != nil {
 		return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 	}
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
-
-	object.updateFiles = append(object.updateFiles, path)
 
 	file, err := fsys.Open(path)
 	if err != nil {
@@ -727,6 +733,9 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	if err != nil {
 		return errors.Wrapf(err, "cannot map external path '%s'", path)
 	}
+
+	object.updateFiles = append(object.updateFiles, newPath)
+
 	if checkDuplicate {
 		// do the checksum
 		digest, err = checksum.Checksum(file, object.i.GetDigestAlgorithm())
@@ -797,7 +806,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", path, internalFilename)
 	}
 
-	if err := object.extensionManager.AddFileAfter(object, path, targetFilename, digest); err != nil {
+	if err := object.extensionManager.AddFileAfter(object, fsys, path, targetFilename, digest); err != nil {
 		return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 	}
 

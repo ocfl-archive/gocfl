@@ -334,20 +334,20 @@ func (manager *ExtensionManager) BuildObjectExternalPath(object Object, original
 }
 
 // ContentChange
-func (manager *ExtensionManager) AddFileBefore(object Object, source, dest string) error {
+func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.AddFileBefore(object, source, dest); err != nil {
+		if err := ocp.AddFileBefore(object, sourceFS, source, dest); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileBefore(object Object, source, dest string) error {
+func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.UpdateFileBefore(object, source, dest); err != nil {
+		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -364,20 +364,20 @@ func (manager *ExtensionManager) DeleteFileBefore(object Object, dest string) er
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) AddFileAfter(object Object, source, internalPath, digest string) error {
+func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead, source, internalPath, digest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.AddFileAfter(object, source, internalPath, digest); err != nil {
+		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileAfter(object Object, source, dest string) error {
+func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.UpdateFileAfter(object, source, dest); err != nil {
+		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -478,14 +478,14 @@ func (manager *ExtensionManager) GetAreaPath(object Object, area string) (string
 
 // check interface satisfaction
 var (
-	_ Extension                   = &ExtensionManager{}
-	_ ExtensionStorageRootPath    = &ExtensionManager{}
-	_ ExtensionObjectContentPath  = &ExtensionManager{}
-	_ ExtensionObjectExternalPath = &ExtensionManager{}
-	_ ExtensionContentChange      = &ExtensionManager{}
-	_ ExtensionObjectChange       = &ExtensionManager{}
-	_ ExtensionFixityDigest       = &ExtensionManager{}
-	_ ExtensionObjectExtractPath  = &ExtensionManager{}
-	_ ExtensionMetadata           = &ExtensionManager{}
-	_ ExtensionArea               = &ExtensionManager{}
+	_ Extension                   = (*ExtensionManager)(nil)
+	_ ExtensionStorageRootPath    = (*ExtensionManager)(nil)
+	_ ExtensionObjectContentPath  = (*ExtensionManager)(nil)
+	_ ExtensionObjectExternalPath = (*ExtensionManager)(nil)
+	_ ExtensionContentChange      = (*ExtensionManager)(nil)
+	_ ExtensionObjectChange       = (*ExtensionManager)(nil)
+	_ ExtensionFixityDigest       = (*ExtensionManager)(nil)
+	_ ExtensionObjectExtractPath  = (*ExtensionManager)(nil)
+	_ ExtensionMetadata           = (*ExtensionManager)(nil)
+	_ ExtensionArea               = (*ExtensionManager)(nil)
 )

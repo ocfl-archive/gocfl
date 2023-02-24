@@ -30,6 +30,7 @@ var addCmd = &cobra.Command{
 	Run:     doAdd,
 }
 
+// initAdd initializes the gocfl add command
 func initAdd() {
 	addCmd.Flags().StringVarP(&flagObjectID, "object-id", "i", "", "object id to update (required)")
 	addCmd.MarkFlagRequired("object-id")
@@ -68,6 +69,7 @@ func initAdd() {
 	viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key"))
 }
 
+// initAdd executes the gocfl add command
 func doAdd(cmd *cobra.Command, args []string) {
 	var err error
 
@@ -168,7 +170,18 @@ func doAdd(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer ImageMagick: %v", err)
 			return
 		}
-		idx, addr, err = indexer.StartIndexer(siegfried, ffmpeg, imageMagick, nil, mimeRelevance, daLogger)
+		tika, err := indexer.GetTika()
+		if err != nil {
+			daLogger.Errorf("cannot load indexer Tika: %v", err)
+			return
+		}
+		idx, addr, err = indexer.StartIndexer(
+			siegfried,
+			ffmpeg,
+			imageMagick,
+			tika,
+			mimeRelevance,
+			daLogger)
 		if err != nil {
 			daLogger.Errorf("cannot start indexer: %v", err)
 			return
@@ -246,7 +259,11 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "http://"+addr.String(), sourceFS, daLogger)
+	var indexerAddr string
+	if addr != nil {
+		indexerAddr = "http://" + addr.String()
+	}
+	extensionFactory, err := initExtensionFactory(extensionParams, indexerAddr, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
