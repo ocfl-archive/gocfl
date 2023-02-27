@@ -95,7 +95,7 @@ var flagStatInfo = []string{}
 // var flagFixity string
 // var flagDigestSHA256, flagDigestSHA512 bool
 
-var areaPathRegexp = regexp.MustCompile("^([a-z]+):([^/].*)$")
+var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",
@@ -165,6 +165,8 @@ func init() {
 
 	cobra.OnInitialize(initConfig)
 
+	rootCmd.PersistentFlags().BoolP("version", "v", false, "show version")
+
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
 
 	rootCmd.PersistentFlags().String("log-file", "", "log output file (default is console)")
@@ -205,6 +207,10 @@ func init() {
 }
 
 func Execute() {
+	if ver, _ := rootCmd.PersistentFlags().GetBool("version"); ver {
+		fmt.Printf("\ngocfl %s\n", VERSION)
+		return
+	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -625,6 +625,7 @@ func (object *ObjectBase) EndArea() error {
 }
 
 func (object *ObjectBase) AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error {
+	object.logger.Debugf("walking '%s'", fsys.String())
 	if err := fsys.WalkDir(".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
 		// directory not interesting

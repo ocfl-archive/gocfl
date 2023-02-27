@@ -28,8 +28,8 @@ func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
 		{
 			ExtensionName: IndexerName,
-			Param:         "indexer-url",
-			File:          "IndexerUrl",
+			Param:         "addr",
+			File:          "Addr",
 			Description:   "url for indexer format recognition service",
 		},
 	}
@@ -125,7 +125,7 @@ func (sl *Indexer) SetFS(fs ocfl.OCFLFSRead) { sl.fs = fs }
 
 func (sl *Indexer) SetParams(params map[string]string) error {
 	var err error
-	name := fmt.Sprintf("ext-%s-%s", IndexerName, "indexer-url")
+	name := fmt.Sprintf("ext-%s-%s", IndexerName, "addr")
 	urlString, _ := params[name]
 	if urlString == "" {
 		if sl.indexerURL != nil && sl.indexerURL.String() != "" {

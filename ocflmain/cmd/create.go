@@ -94,6 +94,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	defer lf.Close()
+
 	flagFixity := viper.GetString("Add.Fixity")
 	flagUserName := viper.GetString("Add.UserName")
 	if flagUserName == "" {
@@ -138,6 +141,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		area = matches[1]
 		srcPath = matches[2]
 	}
+	daLogger.Infof("source path '%s:%s'", area, srcPath)
 
 	flagAES := viper.GetBool("Init.AES")
 	flagAESKey := viper.GetString("Init.AESKey")
@@ -174,11 +178,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("required flag(s) %s not set", strings.Join(notSet, ", ")))
 	}
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
-	defer lf.Close()
-
 	var idx *ironmaiden.Server
-	var addr net.Addr
+	var addr string
 	if withIndexer := viper.GetBool("Indexer.Local"); withIndexer {
 		siegfried, err := indexer.GetSiegfried()
 		if err != nil {
@@ -205,7 +206,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer Tika: %v", err)
 			return
 		}
-		idx, addr, err = indexer.StartIndexer(
+		var netAddr net.Addr
+		idx, netAddr, err = indexer.StartIndexer(
 			siegfried,
 			ffmpeg,
 			imageMagick,
@@ -216,6 +218,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot start indexer: %v", err)
 			return
 		}
+		addr = fmt.Sprintf("http://%s", netAddr.String())
 		defer func() {
 			daLogger.Info("shutting down indexer")
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -271,8 +274,10 @@ func doCreate(cmd *cobra.Command, args []string) {
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
+			daLogger.Warningf("no area prefix for '%s'", args[i])
 			continue
 		}
+		daLogger.Infof("additional path '%s:%s'", matches[1], matches[2])
 		areaPaths[matches[1]], err = fsFactory.GetFS(matches[2])
 		if err != nil {
 			daLogger.Errorf("cannot get filesystem for '%s': %v", args[i], err)
@@ -282,12 +287,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "http://"+addr.String(), sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+
 	storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, flagObjectExtensionFolder, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
