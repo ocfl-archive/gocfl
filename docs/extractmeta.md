@@ -11,7 +11,7 @@ Usage:
   gocfl extractmeta [path to ocfl structure] [flags]
 
 Examples:
-gocfl extractmeta ./archive.zip /tmp/archive
+gocfl extractmeta ./archive.zip --output-json ./archive_meta.json
 
 Flags:
   -h, --help                 help for extractmeta
@@ -57,7 +57,7 @@ no errors found
 2023-02-24T16:53:38.630 cmd::doExtractMeta.func1 [extractmeta.go:67] > INFO - Duration: 10.1231ms
 ```
 
-The if the indexer extension is used, the resulting ocfl_create.json looks like this:
+If the [NNNN-indexer](NNNN-indexer.md) extension is used, the resulting ocfl_create.json looks like this:
 ```json
 {
   "Objects": {

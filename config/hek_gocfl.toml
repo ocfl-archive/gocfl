@@ -71,6 +71,43 @@ DefaultArea="content"
 #Source="C:/temp/$ID.json"
 
 [Create]
+# --ocfl-version
+OCFLVersion="1.1" # supported versions 1.0 1.1
+# --digest
+DigestAlgorithm="sha512"
+# --default-storageroot-extensions
+# StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+# --encrypt-aes
+#AES=true
+# --aes-key
+#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
+# --aes-iv
+#AESIV="8594552261cb956949b661aa163fac4f"
+
+# --user-name
+UserName="unauthorized access"
+# --user-address
+UserAddress="mailto:sammlung@hek.ch"
+# --fixity
+#Fixity="md5,sha256"
+Fixity="md5,sha256,blake2b-384"
+# --message
+Message="Initial commit"
+# --object-extensions
+# ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+# --deduplicate
+# Deduplicate=true # default false: true = check before ingest for checksum
+
+[Create.ext.NNNN-metafile]
+# --ext-NNNN-metafile-source
+#Source="C:/temp/$ID.json"
+# --default-area
+DefaultArea="content"
+
+[Create.ext.NNNN-indexer]
+# --ext-NNNN-indexer-addr
+Addr=""
+
 [Create.ext.NNNN-metadata]
 # --ext-NNNN-metafile-source
 #Source="C:/temp/$ID.json"

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"encoding/hex"
 	"fmt"
@@ -36,33 +37,33 @@ func initUpdate() {
 
 	updateCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
 	//	updateCmd.MarkFlagRequired("message")
-	viper.BindPFlag("Add.Message", updateCmd.Flags().Lookup("message"))
+	emperror.Panic(viper.BindPFlag("Add.Message", updateCmd.Flags().Lookup("message")))
 
 	updateCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
 	//	updateCmd.MarkFlagRequired("user-name")
-	viper.BindPFlag("Add.UserName", updateCmd.Flags().Lookup("user-name"))
+	emperror.Panic(viper.BindPFlag("Add.UserName", updateCmd.Flags().Lookup("user-name")))
 
 	updateCmd.Flags().StringP("user-address", "a", "", "user address for new object version (required)")
 	//	updateCmd.MarkFlagRequired("user-address")
-	viper.BindPFlag("Add.UserAddress", updateCmd.Flags().Lookup("user-address"))
+	emperror.Panic(viper.BindPFlag("Add.UserAddress", updateCmd.Flags().Lookup("user-address")))
 
 	updateCmd.Flags().StringP("digest", "d", "", "digest to use for zip file checksum")
-	viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest"))
+	emperror.Panic(viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest")))
 
 	updateCmd.Flags().Bool("no-deduplicate", false, "disable deduplication (faster)")
-	viper.BindPFlag("Update.NoDeduplicate", updateCmd.Flags().Lookup("no-deduplicate"))
+	emperror.Panic(viper.BindPFlag("Update.NoDeduplicate", updateCmd.Flags().Lookup("no-deduplicate")))
 
 	updateCmd.Flags().Bool("echo", false, "update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'")
-	viper.BindPFlag("Update.Echo", updateCmd.Flags().Lookup("echo"))
+	emperror.Panic(viper.BindPFlag("Update.Echo", updateCmd.Flags().Lookup("echo")))
 
 	updateCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
-	viper.BindPFlag("Init.AES", updateCmd.Flags().Lookup("encrypt-aes"))
+	emperror.Panic(viper.BindPFlag("Init.AES", updateCmd.Flags().Lookup("encrypt-aes")))
 
 	updateCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key")
-	viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key"))
+	emperror.Panic(viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key")))
 
 	updateCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector")
-	viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key"))
+	emperror.Panic(viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key")))
 
 }
 

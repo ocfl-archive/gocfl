@@ -84,24 +84,26 @@ Since OCFL Structure is quite rigid, there's need for a special extensions suppo
 ## Command Line Interface
 
 ```
-An OCFL creator, extractor and validator.
-      https://github.com/je4/gocfl
-      Jürgen Enge (University Library Basel, juergen@info-age.net)
+A fast and reliable OCFL creator, extractor and validator.
+https://github.com/je4/gocfl
+Jürgen Enge (University Library Basel, juergen@info-age.net)
+Version v1.0-beta.1
 
 Usage:
-gocfl [flags]
-gocfl [command]
+  gocfl [flags]
+  gocfl [command]
 
 Available Commands:
-add         adds new object to existing ocfl structure
-completion  Generate the autocompletion script for the specified shell
-create      creates a new ocfl structure with initial content of one object
-extract     extract version of ocfl content
-help        Help about any command
-init        initializes an empty ocfl structure
-stat        statistics of an ocfl structure
-update      update object in existing ocfl structure
-validate    validates an ocfl structure
+  add         adds new object to existing ocfl structure
+  completion  Generate the autocompletion script for the specified shell
+  create      creates a new ocfl structure with initial content of one object
+  extract     extract version of ocfl content
+  extractmeta extract metadata from ocfl structure
+  help        Help about any command
+  init        initializes an empty ocfl structure
+  stat        statistics of an ocfl structure
+  update      update object in existing ocfl structure
+  validate    validates an ocfl structure
 
 Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
@@ -110,7 +112,10 @@ Flags:
       --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
+  -v, --version                       show version
+      --with-indexer                  starts indexer as a local service
 
 Use "gocfl [command] --help" for more information about a command.
 ```

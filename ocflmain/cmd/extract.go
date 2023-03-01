@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
@@ -30,10 +31,10 @@ func initExtract() {
 	extractCmd.Flags().StringP("object-id", "i", "", "object id to extract")
 
 	extractCmd.Flags().Bool("with-manifest", false, "generate manifest file in object extraction folder")
-	viper.BindPFlag("Extract.Manifest", extractCmd.Flags().Lookup("with-manifest"))
+	emperror.Panic(viper.BindPFlag("Extract.Manifest", extractCmd.Flags().Lookup("with-manifest")))
 
 	extractCmd.Flags().String("version", "latest", "version to extract")
-	viper.BindPFlag("Extract.Version", extractCmd.Flags().Lookup("version"))
+	emperror.Panic(viper.BindPFlag("Extract.Version", extractCmd.Flags().Lookup("version")))
 }
 
 func doExtract(cmd *cobra.Command, args []string) {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -21,7 +22,7 @@ var extractMetaCmd = &cobra.Command{
 	Aliases: []string{},
 	Short:   "extract metadata from ocfl structure",
 	//Long:    "an utterly useless command for testing",
-	Example: "gocfl extractmeta ./archive.zip /tmp/archive",
+	Example: "gocfl extractmeta ./archive.zip --output-json ./archive_meta.json",
 	Args:    cobra.ExactArgs(1),
 	Run:     doExtractMeta,
 }
@@ -32,7 +33,7 @@ func initExtractMeta() {
 	extractMetaCmd.Flags().StringP("object-id", "i", "", "object id to extract")
 
 	extractMetaCmd.Flags().String("version", "latest", "version to extract")
-	viper.BindPFlag("Extract.Version", extractMetaCmd.Flags().Lookup("version"))
+	emperror.Panic(viper.BindPFlag("Extract.Version", extractMetaCmd.Flags().Lookup("version")))
 
 	extractMetaCmd.Flags().String("output-json", "", "path to json file with metadata")
 }

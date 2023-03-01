@@ -30,7 +30,6 @@ DigestAlgorithm="sha512"
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
 #AESIV="8594552261cb956949b661aa163fac4f"
-#AESIV="8594552261cb956949b661aa163fac4f"
 
 [Add]
 # --user-name
@@ -101,6 +100,8 @@ UserAddress="mailto:juergen@info-age.net"
 # --fixity
 #Fixity="md5,sha256"
 Fixity="md5,sha256,blake2b-384"
+# --digest
+DigestAlgorithm="sha512"
 # --message
 Message="Initial commit"
 # --object-extensions
@@ -122,6 +123,7 @@ Addr=""
 # --ext-NNNN-metafile-source
 #Source="C:/temp/$ID.json"
 
+
 [Stat]
 # --stat-info
 Info = "ExtensionConfigs,objects,objectversions,objectextensionconfigs"
@@ -139,8 +141,8 @@ Local=true
 Addr="http://localhost:1234/"
 
     [Indexer.Siegfried]
-    #Signature = "/usr/share/siegfried/default.sig"
-    Signature = "C:/Users/micro/siegfried/default.sig"
+    Signature = "/usr/share/siegfried/default.sig"
+    #Signature = "C:/Users/micro/siegfried/default.sig"
 
     [Indexer.Siegfried.MimeMap]
     "fmt/134" = "audio/mp3"

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"encoding/hex"
 	"fmt"
@@ -36,37 +37,37 @@ func initAdd() {
 	addCmd.MarkFlagRequired("object-id")
 
 	addCmd.Flags().String("default-object-extensions", "", "folder with initial extension configurations for new OCFL objects")
-	viper.BindPFlag("Init.ObjectExtensions", addCmd.Flags().Lookup("default-object-extensions"))
+	emperror.Panic(viper.BindPFlag("Init.ObjectExtensions", addCmd.Flags().Lookup("default-object-extensions")))
 
 	addCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
 	//	addCmd.MarkFlagRequired("message")
-	viper.BindPFlag("Add.Message", addCmd.Flags().Lookup("message"))
+	emperror.Panic(viper.BindPFlag("Add.Message", addCmd.Flags().Lookup("message")))
 
 	addCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
 	//	addCmd.MarkFlagRequired("user-name")
-	viper.BindPFlag("Add.UserName", addCmd.Flags().Lookup("user-name"))
+	emperror.Panic(viper.BindPFlag("Add.UserName", addCmd.Flags().Lookup("user-name")))
 
 	addCmd.Flags().StringP("user-address", "a", "", "user address for new object version (required)")
 	//	addCmd.MarkFlagRequired("user-address")
-	viper.BindPFlag("Add.UserAddress", addCmd.Flags().Lookup("user-address"))
+	emperror.Panic(viper.BindPFlag("Add.UserAddress", addCmd.Flags().Lookup("user-address")))
 
 	addCmd.Flags().StringP("fixity", "f", "", "comma separated list of digest algorithms for fixity")
-	viper.BindPFlag("Add.Fixity", addCmd.Flags().Lookup("fixity"))
+	emperror.Panic(viper.BindPFlag("Add.Fixity", addCmd.Flags().Lookup("fixity")))
 
 	addCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
-	viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest"))
+	emperror.Panic(viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest")))
 
 	addCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
-	viper.BindPFlag("Add.Deduplicate", addCmd.Flags().Lookup("deduplicate"))
+	emperror.Panic(viper.BindPFlag("Add.Deduplicate", addCmd.Flags().Lookup("deduplicate")))
 
 	addCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
-	viper.BindPFlag("Init.AES", addCmd.Flags().Lookup("encrypt-aes"))
+	emperror.Panic(viper.BindPFlag("Init.AES", addCmd.Flags().Lookup("encrypt-aes")))
 
 	addCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
-	viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key"))
+	emperror.Panic(viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key")))
 
 	addCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 chars empty: generate random vector)")
-	viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key"))
+	emperror.Panic(viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key")))
 }
 
 // initAdd executes the gocfl add command
