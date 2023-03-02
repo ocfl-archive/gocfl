@@ -154,7 +154,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	defer lf.Close()
 
 	var idx *ironmaiden.Server
-	var addr net.Addr
+	var addr string
 	if withIndexer := viper.GetBool("Indexer.Local"); withIndexer {
 		siegfried, err := indexer.GetSiegfried()
 		if err != nil {
@@ -181,7 +181,8 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer Tika: %v", err)
 			return
 		}
-		idx, addr, err = indexer.StartIndexer(
+		var netAddr net.Addr
+		idx, netAddr, err = indexer.StartIndexer(
 			siegfried,
 			ffmpeg,
 			imageMagick,
@@ -192,6 +193,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot start indexer: %v", err)
 			return
 		}
+		addr = fmt.Sprintf("http://%s/v2", netAddr.String())
 		defer func() {
 			daLogger.Info("shutting down indexer")
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -245,7 +247,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "http://"+addr.String(), sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

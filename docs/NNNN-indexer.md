@@ -72,6 +72,23 @@ Every entry whithin the [OCFL Object Manifest](https://ocfl.io/1.1/spec/#manifes
 is represented by a JSON line in a file called  `indexer_<version>.jsonl[.gz|.br]`.
 Since this file is immutable, every version of the ocfl object gets its own indexer file.
 
+```json
+{
+  "Digest": "5cb8c60eb3c7641561df988493acdd0fbc6b6325ec396a6eaf6a9cbc329e1790b006d61b4465371c21a105b0fb5a77dff9a219ed57ead6cd074d6b8a6e2be896",
+  "Metadata": {
+    "errors": {},
+    "mimetype": "image/jpeg",
+    "mimetypes": [
+      "image/jpeg"
+    ],
+    "height": 1512,
+    "size": 668629,
+    "width": 2016,
+    "<subsystem>": {}
+  }
+}
+```
+
 ## Examples
 
 JSON Entry for an Image

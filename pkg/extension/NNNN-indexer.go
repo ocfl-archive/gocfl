@@ -385,7 +385,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			line := r.Text()
 			var meta = struct {
 				Digest   string
-				Metadata map[string]any
+				Metadata ironmaiden.ResultV2
 			}{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
 				f.Close()

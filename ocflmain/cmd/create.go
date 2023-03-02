@@ -216,7 +216,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot start indexer: %v", err)
 			return
 		}
-		addr = fmt.Sprintf("http://%s", netAddr.String())
+		addr = fmt.Sprintf("http://%s/v2", netAddr.String())
 		defer func() {
 			daLogger.Info("shutting down indexer")
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
