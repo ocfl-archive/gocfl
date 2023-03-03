@@ -133,6 +133,7 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 		// fmt.Println(viper.AllSettings())
 	} else {
+		rootCmd.Help()
 		log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
 		os.Exit(1)
 	}
