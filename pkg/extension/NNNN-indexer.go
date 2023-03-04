@@ -21,7 +21,7 @@ import (
 const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
-var actions = []string{"siegfried", "ffprobe", "identify", "tika"}
+var actions = []string{"siegfried", "ffprobe", "identify", "identify2", "tika"}
 var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {

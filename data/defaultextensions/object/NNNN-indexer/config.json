@@ -2,6 +2,6 @@
   "extensionName": "NNNN-indexer",
   "storageType": "area",
   "storageName": "index",
-  "actions": ["siegfried", "ffprobe", "identify", "tika"],
+  "actions": ["siegfried", "ffprobe", "identify2", "tika"],
   "compress": "gzip"
 }

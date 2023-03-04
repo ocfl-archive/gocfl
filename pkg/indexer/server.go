@@ -73,6 +73,10 @@ func StartIndexer(
 			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
 		_ = ironmaiden.NewActionIdentify(magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
+		}
+		_ = ironmaiden.NewActionIdentifyV2(magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
 	}
 	if tika.Enabled {
 		timeout, err := time.ParseDuration(tika.Timeout)

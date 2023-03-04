@@ -133,7 +133,25 @@ Addr="http://localhost:1234/"
 Signature = "/root/siegfried/default.sig"
 
 [Indexer.Siegfried.MimeMap]
+"x-fmt/92" = "image/psd"
 "fmt/134" = "audio/mp3"
+"x-fmt/184" = "image/x-sun-raster"
+"fmt/202" = "image/x-nikon-nef"
+"fmt/211" = "image/x-photo-cd"
+"x-fmt/383" = "image/fits"
+"fmt/405" = "image/x-portable-anymap"
+"fmt/406" = "image/x-portable-graymap"
+"fmt/408" = "image/x-portable-pixmap"
+"fmt/436" = "image/x-adobe-dng"
+"fmt/437" = "image/x-adobe-dng"
+"fmt/592" = "image/x-canon-cr2"
+"fmt/642" = "image/x-raw-fuji"
+"fmt/662" = "image/x-raw-panasonic"
+"fmt/668" = "image/x-olympus-orf"
+"fmt/986" = "text/xmp"
+"fmt/1001" = "image/x-exr"
+"fmt/1040" = "image/vnd.ms-dds"
+"fmt/1781" = "image/x-pentax-pef"
 
 # relevance < 100: rate down
 # relevance > 100: rate up
@@ -189,14 +207,14 @@ mime = "video/mp4"
 identify = "/usr/bin/identify"
 convert = "/usr/bin/convert"
 wsl = false  # true, if executable is within linux subsystem on windows
-timeout = "10s"
+timeout = "480s"
 online = true
 enabled = true
 
 [Indexer.Tika]
-address = "http://localhost:9998/rmeta"
+address = "http://localhost:9998/meta"
 #address = "http://localhost:9998/rmeta/text"
-timeout = "10s"
+timeout = "120s"
 regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
 online = true
 enabled = true
