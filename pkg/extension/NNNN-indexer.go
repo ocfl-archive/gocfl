@@ -21,7 +21,12 @@ import (
 const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
-var actions = []string{"siegfried", "ffprobe", "identify", "identify2", "tika"}
+type indexerLine struct {
+	Digest  string
+	Indexer ironmaiden.ResultV2
+}
+
+var actions = []string{"siegfried", "ffprobe", "identify", "tika"}
 var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {
@@ -229,16 +234,13 @@ func (sl *Indexer) AddFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, so
 	if code >= 300 {
 		return errors.Errorf("indexer error for '%s': %s", filePath, result)
 	}
-	var meta = map[string]any{}
+	var meta = ironmaiden.ResultV2{}
 	if err := json.Unmarshal(result, &meta); err != nil {
 		return errors.Errorf("cannot unmarshal indexer result `%s`", string(result))
 	}
-	var indexerline = struct {
-		Digest   string
-		Metadata map[string]any
-	}{
-		Digest:   digest,
-		Metadata: meta,
+	var indexerline = indexerLine{
+		Digest:  digest,
+		Indexer: meta,
 	}
 	data, err := json.Marshal(indexerline)
 	if err != nil {
@@ -383,15 +385,12 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 		r.Split(bufio.ScanLines)
 		for r.Scan() {
 			line := r.Text()
-			var meta = struct {
-				Digest   string
-				Metadata ironmaiden.ResultV2
-			}{}
+			var meta = indexerLine{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
 				f.Close()
 				return nil, errors.Wrapf(err, "cannot unmarshal line from '%s' - [%s]", targetname, line)
 			}
-			result[meta.Digest] = meta.Metadata
+			result[meta.Digest] = meta.Indexer
 		}
 		if err := r.Err(); err != nil {
 			return nil, errors.Wrapf(err, "cannot scan lines from '%s'", targetname)

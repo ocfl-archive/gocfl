@@ -66,7 +66,7 @@ helpful. It is an aid to reporting as well as to preservation management.
 Make sure, that there's an indexer service available to use this extension for ingest.
 [gocfl](https://github.com/je4/gocfl) comes with a build in service.
 
-## Procedure
+## Procedure (tbd.)
 
 Every entry whithin the [OCFL Object Manifest](https://ocfl.io/1.1/spec/#manifest) 
 is represented by a JSON line in a file called  `indexer_<version>.jsonl[.gz|.br]`.
@@ -77,14 +77,21 @@ Since this file is immutable, every version of the ocfl object gets its own inde
   "Digest": "5cb8c60eb3c7641561df988493acdd0fbc6b6325ec396a6eaf6a9cbc329e1790b006d61b4465371c21a105b0fb5a77dff9a219ed57ead6cd074d6b8a6e2be896",
   "Metadata": {
     "errors": {},
-    "mimetype": "image/jpeg",
+    "mimetype": "image/x-canon-cr2",
     "mimetypes": [
-      "image/jpeg"
+      "image/x-canon-cr2",
+      "application/octet-stream"
     ],
-    "height": 1512,
-    "size": 668629,
-    "width": 2016,
-    "<subsystem>": {}
+    "pronom": "fmt/592",
+    "pronoms": [
+      "fmt/592"
+    ],
+    "width": 8736,
+    "height": 5856,
+    "size": 67127952,
+    "metadata": {
+      "<subsystem>": {[...]}
+    }
   }
 }
 ```
@@ -94,31 +101,47 @@ Since this file is immutable, every version of the ocfl object gets its own inde
 JSON Entry for an Image
 ```json
 {
-	"Digest": "5cb8c60eb3c7641561df988493acdd0fbc6b6325ec396a6eaf6a9cbc329e1790b006d61b4465371c21a105b0fb5a77dff9a219ed57ead6cd074d6b8a6e2be896",
-	"Metadata": {
-        "errors": {},
-        "mimetype": "image/jpeg",
-        "mimetypes": [ "image/jpeg" ],
-        "height": 1512,
-        "size": 668629,
-        "width": 2016,
-        "identify": { <complete result from identify command> },
-        "siegfried": [
+  "Digest": "f2b2660694b24f17026721cc1fc9246277629666e68e54519630baee6c33bfe10be79ca88706a73e3d23584b37ecf6296894868e04f2f3a106d301def86734e4",
+  "Indexer": {
+    "mimetype": "image/x-canon-cr2",
+    "mimetypes": [
+      "image/x-canon-cr2",
+      "application/octet-stream"
+    ],
+    "pronom": "fmt/592",
+    "pronoms": [
+      "fmt/592"
+    ],
+    "width": 8736,
+    "height": 5856,
+    "size": 67127952,
+    "metadata": {
+      "identify": {
+        "frames": [
           {
-            "Basis": [
-              "extension match jpeg",
-              "byte match at [[0 16] [256 12] [668627 2]] (signature 1/2)"
-            ],
-            "ID": "fmt/645",
-            "MIME": "image/jpeg",
-            "Name": "Exchangeable Image File Format (Compressed)",
-            "Namespace": "pronom",
-            "Version": "2.2.1",
-            "Warning": ""
+            "height": 5856,
+            "width": 8736
           }
-       ]
-    }
-}
+        ],
+        "magick": {
+          "image": {
+            "backgroundColor": "#FFFFFFFFFFFF",
+            "baseDepth": 16,
+            "baseName": "-",
+            "baseType": "Undefined",
+            "borderColor": "#DFDFDFDFDFDF",
+            "channelDepth": {
+              "blue": 1,
+              "green": 16,
+              "red": 16
+            },
+            "channelStatistics": {
+              "blue": {
+                "entropy": 0.872713,
+                "kurtosis": 3.73131,
+                "max": 65535,
+                "mean": 18144.4,
+[...]
 ```
 
 ### Result

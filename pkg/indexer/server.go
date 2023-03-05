@@ -53,13 +53,14 @@ func StartIndexer(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "cannot create new server")
 	}
-	_ = ironmaiden.NewActionSiegfried(siegfried.Signature, siegfried.MimeMap, srv)
+	_ = ironmaiden.NewActionSiegfried("siegfried", siegfried.Signature, siegfried.MimeMap, srv)
 	if ffmpeg.Enabled {
 		timeout, err := time.ParseDuration(ffmpeg.Timeout)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot parse ffmpeg timeout '%s'", ffmpeg.Timeout)
 		}
 		_ = ironmaiden.NewActionFFProbe(
+			"ffprobe",
 			ffmpeg.FFProbe,
 			ffmpeg.WSL,
 			timeout,
@@ -69,21 +70,23 @@ func StartIndexer(
 	}
 	if magick.Enabled {
 		timeout, err := time.ParseDuration(magick.Timeout)
+		/*
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
+			}
+			_ = ironmaiden.NewActionIdentify("identify", magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
+		*/
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
-		_ = ironmaiden.NewActionIdentify(magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
-		}
-		_ = ironmaiden.NewActionIdentifyV2(magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
+		_ = ironmaiden.NewActionIdentifyV2("identify", magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, srv)
 	}
 	if tika.Enabled {
 		timeout, err := time.ParseDuration(tika.Timeout)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
-		_ = ironmaiden.NewActionTika(tika.Address, timeout, tika.RegexpMime, tika.Online, srv)
+		_ = ironmaiden.NewActionTika("tika", tika.Address, timeout, tika.RegexpMime, tika.Online, srv)
 	}
 
 	// get a random free port
