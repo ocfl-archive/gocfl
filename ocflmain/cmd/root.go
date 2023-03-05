@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/google/martian/log"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -10,7 +12,7 @@ import (
 	"regexp"
 )
 
-const VERSION = "v1.0-beta.1"
+const VERSION = "v1.0-beta.2"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
@@ -95,7 +97,7 @@ var flagStatInfo = []string{}
 // var flagFixity string
 // var flagDigestSHA256, flagDigestSHA512 bool
 
-var areaPathRegexp = regexp.MustCompile("^([a-z]+):([^/].*)$")
+var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
 var rootCmd = &cobra.Command{
 	Use:   "gocfl",
@@ -131,7 +133,9 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 		// fmt.Println(viper.AllSettings())
 	} else {
-		fmt.Printf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
+		rootCmd.Help()
+		log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
+		os.Exit(1)
 	}
 	persistentFlagLoglevel := viper.GetInt64("LogLevel")
 	if _, ok := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)]; !ok {
@@ -168,25 +172,28 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
 
 	rootCmd.PersistentFlags().String("log-file", "", "log output file (default is console)")
-	viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file"))
+	emperror.Panic(viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file")))
 
 	rootCmd.PersistentFlags().String("log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
-	viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level"))
+	emperror.Panic(viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level")))
 
 	rootCmd.PersistentFlags().String("s3-endpoint", "", "Endpoint for S3 Buckets")
-	viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint"))
+	emperror.Panic(viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint")))
 
 	rootCmd.PersistentFlags().String("s3-access-key-id", "", "Access Key ID for S3 Buckets")
-	viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id"))
+	emperror.Panic(viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id")))
 
 	rootCmd.PersistentFlags().String("s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
-	viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key"))
+	emperror.Panic(viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key")))
 
 	rootCmd.PersistentFlags().String("s3-region", "", "Region for S3 Access")
-	viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region"))
+	emperror.Panic(viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region")))
+
+	rootCmd.PersistentFlags().Bool("with-indexer", false, "starts indexer as a local service")
+	emperror.Panic(viper.BindPFlag("Indexer.Local", rootCmd.PersistentFlags().Lookup("with-indexer")))
 
 	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
-	//	viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
+	//	emperror.Panic(viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
 
 	initValidate()
 	initInit()
@@ -195,9 +202,10 @@ func init() {
 	initUpdate()
 	initStat()
 	initExtract()
+	initExtractMeta()
 
-	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd)
-	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd)
+	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd)
+	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd)
 }
 
 func Execute() {

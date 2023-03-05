@@ -29,7 +29,7 @@ var convert = map[rune]rune{
 type StorageLayoutPairTree struct {
 	*StorageLayoutPairTreeConfig
 	hash hash.Hash
-	fs   ocfl.OCFLFS
+	fs   ocfl.OCFLFSRead
 }
 
 func (sl *StorageLayoutPairTree) IsRegistered() bool {
@@ -56,7 +56,7 @@ func (sl *StorageLayoutPairTree) WriteLayout(fs ocfl.OCFLFS) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) SetFS(fs ocfl.OCFLFS) {
+func (sl *StorageLayoutPairTree) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -115,7 +115,12 @@ func (sl *StorageLayoutPairTree) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

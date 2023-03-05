@@ -17,7 +17,7 @@ const StorageLayoutHashAndIdNTupleDescription = "Hashed Truncated N-tuple Trees 
 type StorageLayoutHashAndIdNTuple struct {
 	*StorageLayoutHashAndIdNTupleConfig
 	hash hash.Hash
-	fs   ocfl.OCFLFS
+	fs   ocfl.OCFLFSRead
 }
 
 type StorageLayoutHashAndIdNTupleConfig struct {
@@ -80,7 +80,7 @@ func (sl *StorageLayoutHashAndIdNTuple) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) SetFS(fs ocfl.OCFLFS) {
+func (sl *StorageLayoutHashAndIdNTuple) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -92,7 +92,11 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

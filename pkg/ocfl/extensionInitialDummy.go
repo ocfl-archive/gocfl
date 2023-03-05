@@ -57,7 +57,7 @@ func (dummy *InitialDummy) WriteConfig() error {
 	panic("never call me")
 }
 
-func (dummy *InitialDummy) SetFS(fs OCFLFS) {
+func (dummy *InitialDummy) SetFS(fs OCFLFSRead) {
 	panic("never call me")
 }
 

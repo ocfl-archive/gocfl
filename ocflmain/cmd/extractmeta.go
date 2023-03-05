@@ -4,6 +4,7 @@ import (
 	"context"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"encoding/json"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -11,35 +12,34 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
-var extractCmd = &cobra.Command{
-	Use:     "extract [path to ocfl structure] [path to target folder]",
+var extractMetaCmd = &cobra.Command{
+	Use:     "extractmeta [path to ocfl structure]",
 	Aliases: []string{},
-	Short:   "extract version of ocfl content",
+	Short:   "extract metadata from ocfl structure",
 	//Long:    "an utterly useless command for testing",
-	Example: "gocfl extract ./archive.zip /tmp/archive",
-	Args:    cobra.MinimumNArgs(2),
-	Run:     doExtract,
+	Example: "gocfl extractmeta ./archive.zip --output-json ./archive_meta.json",
+	Args:    cobra.ExactArgs(1),
+	Run:     doExtractMeta,
 }
 
-func initExtract() {
-	extractCmd.Flags().StringP("object-path", "p", "", "object path to extract")
+func initExtractMeta() {
+	extractMetaCmd.Flags().StringP("object-path", "p", "", "object path to extract")
 
-	extractCmd.Flags().StringP("object-id", "i", "", "object id to extract")
+	extractMetaCmd.Flags().StringP("object-id", "i", "", "object id to extract")
 
-	extractCmd.Flags().Bool("with-manifest", false, "generate manifest file in object extraction folder")
-	emperror.Panic(viper.BindPFlag("Extract.Manifest", extractCmd.Flags().Lookup("with-manifest")))
+	extractMetaCmd.Flags().String("version", "latest", "version to extract")
+	emperror.Panic(viper.BindPFlag("Extract.Version", extractMetaCmd.Flags().Lookup("version")))
 
-	extractCmd.Flags().String("version", "latest", "version to extract")
-	emperror.Panic(viper.BindPFlag("Extract.Version", extractCmd.Flags().Lookup("version")))
+	extractMetaCmd.Flags().String("output-json", "", "path to json file with metadata")
 }
 
-func doExtract(cmd *cobra.Command, args []string) {
+func doExtractMeta(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
-	destPath := filepath.ToSlash(filepath.Clean(args[1]))
 
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
@@ -48,7 +48,6 @@ func doExtract(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
-	withManifest := viper.GetBool("Extract.Manifest")
 	version := viper.GetString("Extract.Version")
 	if version == "" {
 		version = "latest"
@@ -61,32 +60,26 @@ func doExtract(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
+	outputJson, _ := cmd.Flags().GetString("output-json")
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	daLogger.Infof("extracting '%s'", ocflPath)
+	daLogger.Infof("extracting metadata from '%s'", ocflPath)
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	ocflFS, err := fsFactory.GetFS(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
-
-	destFS, err := fsFactory.GetFSRW(destPath)
-	if err != nil {
-		daLogger.Errorf("cannot get filesystem for '%s': %v", destPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
@@ -94,7 +87,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
@@ -106,21 +99,32 @@ func doExtract(cmd *cobra.Command, args []string) {
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	if destFS.HasContent() {
-		fmt.Printf("target folder '%s' is not empty\n", destFS)
-		daLogger.Errorf("target folder '%s' is not empty", destFS)
+	metadata, err := storageRoot.ExtractMeta(oPath, oID)
+	if err != nil {
+		fmt.Printf("cannot extract metadata from storage root: %v\n", err)
+		daLogger.Errorf("cannot extract metadata from storage root: %v\n", err)
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	if err := storageRoot.Extract(destFS, oPath, oID, version, withManifest); err != nil {
-		fmt.Printf("cannot extract storage root: %v\n", err)
-		daLogger.Errorf("cannot extract storage root: %v\n", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
+	if outputJson != "" {
+		jsonBytes, err := json.MarshalIndent(metadata, "", "  ")
+		if err != nil {
+			fmt.Printf("cannot marshal metadata")
+			daLogger.Errorf("cannot marshal metadata: %v\n", err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
+		if err := os.WriteFile(outputJson, jsonBytes, 0644); err != nil {
+			fmt.Printf("cannot write json to file")
+			daLogger.Errorf("cannot write json to file '%s': %v\n", outputJson, err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
 	}
-	fmt.Printf("extraction done without errors\n")
+	fmt.Printf("metadata extraction done without errors\n")
 }

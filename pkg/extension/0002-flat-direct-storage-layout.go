@@ -16,7 +16,7 @@ type StorageLayoutFlatDirectConfig struct {
 }
 type StorageLayoutFlatDirect struct {
 	*StorageLayoutFlatDirectConfig
-	fs ocfl.OCFLFS
+	fs ocfl.OCFLFSRead
 }
 
 func NewStorageLayoutFlatDirectFS(fsys ocfl.OCFLFSRead) (*StorageLayoutFlatDirect, error) {
@@ -57,7 +57,7 @@ func (sl *StorageLayoutFlatDirect) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *StorageLayoutFlatDirect) SetFS(fs ocfl.OCFLFS) {
+func (sl *StorageLayoutFlatDirect) SetFS(fs ocfl.OCFLFSRead) {
 	sl.fs = fs
 }
 
@@ -70,7 +70,11 @@ func (sl *StorageLayoutFlatDirect) WriteConfig() error {
 	if sl.fs == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := sl.fs.Create("config.json")
+	fsRW, ok := sl.fs.(ocfl.OCFLFS)
+	if !ok {
+		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
+	}
+	configWriter, err := fsRW.Create("config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

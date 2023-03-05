@@ -5,17 +5,17 @@
 # NOTICE = 3
 # INFO = 4
 # DEBUG = 5
-LogLevel="DEBUG"
+LogLevel="INFO"
 # --log-file
 #logFile="C:/temp/gocfl.log"
 # --s3-access-key-id
-S3AccessKeyID="012c9e0ed7e3171e1112"
+#S3AccessKeyID=""
 # --s3-secret-access-key
 #S3SecretAccessKey=""
 # --s3-endpoint
-S3Endpoint="s3-zh.os.switch.ch"
+#S3Endpoint="s3-zh.os.switch.ch"
 # --s3-region
-S3Region=""
+#S3Region=""
 
 [Init]
 # --ocfl-version
@@ -30,16 +30,15 @@ DigestAlgorithm="sha512"
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
 #AESIV="8594552261cb956949b661aa163fac4f"
-#AESIV="8594552261cb956949b661aa163fac4f"
 
 [Add]
 # --user-name
-UserName="Jürgen Enge"
+UserName="unauthorized access"
 # --user-address
-UserAddress="mailto:juergen@info-age.net"
+UserAddress="mailto:sammlung@hek.ch"
 # --fixity
-#Fixity="md5,sha256"
-Fixity="md5,sha256,blake2b-384"
+Fixity="md5"
+#Fixity="md5,sha256,blake2b-384"
 # --digest
 DigestAlgorithm="sha512"
 # --message
@@ -48,22 +47,17 @@ Message="Initial commit"
 # ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
-
 [Add.ext.NNNN-metafile]
 # --ext-NNNN-metafile-source
 #Source="C:/temp/$ID.json"
 # --default-area
 DefaultArea="content"
 
-[Add.ext.NNNN-indexer]
-# --ext-NNNN-indexer-addr
-Addr=""
-
 [Update]
 # --user-name
-UserName="Jürgen Enge"
+UserName="unauthorized access"
 # --user-address
-UserAddress="mailto:juergen@info-age.net"
+UserAddress="mailto:sammlung@hek.ch"
 # --echo
 Echo=true # reflect deletion in source folder
 # --no-deduplicate
@@ -75,10 +69,6 @@ DefaultArea="content"
 
 [Update.ext.NNNN-metadata]
 #Source="C:/temp/$ID.json"
-
-[Update.ext.NNNN-indexer]
-# --ext-NNNN-indexer-addr
-Addr=""
 
 [Create]
 # --ocfl-version
@@ -95,9 +85,9 @@ DigestAlgorithm="sha512"
 #AESIV="8594552261cb956949b661aa163fac4f"
 
 # --user-name
-UserName="Jürgen Enge"
+UserName="unauthorized access"
 # --user-address
-UserAddress="mailto:juergen@info-age.net"
+UserAddress="mailto:sammlung@hek.ch"
 # --fixity
 #Fixity="md5,sha256"
 Fixity="md5,sha256,blake2b-384"
@@ -124,7 +114,8 @@ Addr=""
 
 [Stat]
 # --stat-info
-Info = "ExtensionConfigs,objects,objectversions,objectextensionconfigs"
+#Info = "ExtensionConfigs,objects,objectversions,objectextensionconfigs"
+Info = "objects,objectversions"
 
 [Extract]
 Manifest = true
@@ -133,39 +124,35 @@ Manifest = true
 Area = "full"
 
 [Indexer]
-# --with-indexer
+# -- with-indexer
 Local=true
 
-# only for external indexer service
 Addr="http://localhost:1234/"
 
 [Indexer.Siegfried]
-#Signature = "/usr/share/siegfried/default.sig"
-Signature = "C:/Users/micro/siegfried/default.sig"
+Signature = "/root/siegfried/default.sig"
 
-    # mapping of pronom id to mimetype if not found in siegfried
-    [Indexer.Siegfried.MimeMap]
-    "x-fmt/92" = "image/psd"
-    "fmt/134" = "audio/mp3"
-    "x-fmt/184" = "image/x-sun-raster"
-    "fmt/202" = "image/x-nikon-nef"
-    "fmt/211" = "image/x-photo-cd"
-    "x-fmt/383" = "image/fits"
-    "fmt/405" = "image/x-portable-anymap"
-    "fmt/406" = "image/x-portable-graymap"
-    "fmt/408" = "image/x-portable-pixmap"
-    "fmt/436" = "image/x-adobe-dng"
-    "fmt/437" = "image/x-adobe-dng"
-    "fmt/592" = "image/x-canon-cr2"
-    "fmt/642" = "image/x-raw-fuji"
-    "fmt/662" = "image/x-raw-panasonic"
-    "fmt/668" = "image/x-olympus-orf"
-    "fmt/986" = "text/xmp"
-    "fmt/1001" = "image/x-exr"
-    "fmt/1040" = "image/vnd.ms-dds"
-    "fmt/1781" = "image/x-pentax-pef"
+[Indexer.Siegfried.MimeMap]
+"x-fmt/92" = "image/psd"
+"fmt/134" = "audio/mp3"
+"x-fmt/184" = "image/x-sun-raster"
+"fmt/202" = "image/x-nikon-nef"
+"fmt/211" = "image/x-photo-cd"
+"x-fmt/383" = "image/fits"
+"fmt/405" = "image/x-portable-anymap"
+"fmt/406" = "image/x-portable-graymap"
+"fmt/408" = "image/x-portable-pixmap"
+"fmt/436" = "image/x-adobe-dng"
+"fmt/437" = "image/x-adobe-dng"
+"fmt/592" = "image/x-canon-cr2"
+"fmt/642" = "image/x-raw-fuji"
+"fmt/662" = "image/x-raw-panasonic"
+"fmt/668" = "image/x-olympus-orf"
+"fmt/986" = "text/xmp"
+"fmt/1001" = "image/x-exr"
+"fmt/1040" = "image/vnd.ms-dds"
+"fmt/1781" = "image/x-pentax-pef"
 
-# relevance of mimetype for sorting
 # relevance < 100: rate down
 # relevance > 100: rate up
 # default = 100
@@ -195,39 +182,39 @@ Regexp = "^.+/x-.+"
 Weight = 80
 
 [Indexer.FFMPEG]
-    ffprobe = "C:/Users/micro/Downloads/ffmpeg-5.1.2-full_build/bin/ffprobe.exe"
-    wsl = false  # true, if executable is within linux subsystem on windows
-    timeout = "25s"
-    online = true
-    enabled = true
-    [[Indexer.FFMPEG.Mime]]
-        video = false
-        audio = true
-        format = "mov,mp4,m4a,3gp,3g2,mj2"
-        mime = "audio/mp4"
-    [[Indexer.FFMPEG.Mime]]
-        video = true
-        audio = true
-        format = "mov,mp4,m4a,3gp,3g2,mj2"
-        mime = "video/mp4"
-    [[Indexer.FFMPEG.Mime]]
-        video = true
-        audio = false
-        format = "mov,mp4,m4a,3gp,3g2,mj2"
-        mime = "video/mp4"
+ffprobe = "/usr/bin/ffprobe"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "25s"
+online = true
+enabled = true
+[[Indexer.FFMPEG.Mime]]
+video = false
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "audio/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = false
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
 
 [Indexer.ImageMagick]
-    identify = "C:/Program Files/ImageMagick-7.1.0-Q16/identify.exe"
-    convert = "C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe"
-    wsl = false  # true, if executable is within linux subsystem on windows
-    timeout = "480s"
-    online = true
-    enabled = true
+identify = "/usr/bin/identify"
+convert = "/usr/bin/convert"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "480s"
+online = true
+enabled = true
 
 [Indexer.Tika]
-    address = "http://localhost:9998/meta"
-    #address = "http://localhost:9998/rmeta/text"
-    timeout = "10s"
-    regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
-    online = true
-    enabled = true
+address = "http://localhost:9998/meta"
+#address = "http://localhost:9998/rmeta/text"
+timeout = "120s"
+regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+online = true
+enabled = true

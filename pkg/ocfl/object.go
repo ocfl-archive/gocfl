@@ -33,6 +33,8 @@ type Object interface {
 	IsModified() bool
 	Stat(w io.Writer, statInfo []StatInfo) error
 	Extract(fs OCFLFS, version string, manifest bool) error
+	GetMetadata() (*ObjectMetadata, error)
+	GetAreaPath(area string) (string, error)
 }
 
 func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion, err error) {

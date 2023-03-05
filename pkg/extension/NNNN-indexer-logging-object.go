@@ -23,7 +23,7 @@ func (sl *LoggingIndexer) IsRegistered() bool {
 	return false
 }
 
-func (li *LoggingIndexer) SetFS(fs ocfl.OCFLFS) {
+func (li *LoggingIndexer) SetFS(fs ocfl.OCFLFSRead) {
 	//TODO implement me
 	panic("implement me")
 }

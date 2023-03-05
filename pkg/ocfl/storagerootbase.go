@@ -527,6 +527,47 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 	return nil
 }
 
+func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, error) {
+	var result = &StorageRootMetadata{
+		Objects: map[string]*ObjectMetadata{},
+	}
+	if path == "" && id == "" {
+		osr.logger.Debug("Extracting storage root with all objects")
+		objectFolders, err := osr.GetObjectFolders()
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot get object folders")
+		}
+		for _, oFolder := range objectFolders {
+			o, err := osr.LoadObjectByFolder(oFolder)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot open object in folder '%s'", oFolder)
+			}
+			result.Objects[o.GetID()], err = o.GetMetadata()
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot extract metadata from object '%s'", o.GetID())
+			}
+		}
+	} else {
+		osr.logger.Debugf("Extracting object '%s%s'", path, id)
+		var o Object
+		var err error
+		if path != "" {
+			o, err = osr.LoadObjectByFolder(path)
+		} else {
+			o, err = osr.LoadObjectByID(id)
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot load object '%s%s'", path, id)
+		}
+		result.Objects[o.GetID()], err = o.GetMetadata()
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot extract metadata from object '%s'", o.GetID())
+		}
+	}
+	osr.logger.Debugf("extraction done")
+	return result, nil
+}
+
 func (osr *StorageRootBase) Extract(fs OCFLFS, path, id, version string, withManifest bool) error {
 	if version == "" {
 		version = "latest"
