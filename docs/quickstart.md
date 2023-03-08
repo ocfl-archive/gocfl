@@ -12,5 +12,5 @@ the [releases page](https://github.com/je4/gocfl/releases/latest).
 Alternatively, you can install the latest version with `go install`:
 
 ```bash
-go install github.com/je4/gocfl/v2/ocflmain@latest
+go install github.com/je4/gocfl/v2/gocfl@latest
 ```
