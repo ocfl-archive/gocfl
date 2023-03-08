@@ -9,7 +9,7 @@ require (
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
 	github.com/blend/go-sdk v1.20220411.3
 	github.com/google/martian v2.1.0+incompatible
-	github.com/je4/indexer v1.0-beta.1
+	github.com/je4/indexer v0.0.0-20230305145139-60437d957189
 	github.com/je4/utils/v2 v2.0.7-0.20221205154750-6b88ba5d32b5
 	github.com/minio/minio-go/v7 v7.0.49
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
