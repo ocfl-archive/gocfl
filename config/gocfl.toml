@@ -23,7 +23,7 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --default-storageroot-extensions
-# StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
 # --encrypt-aes
 #AES=true
 # --aes-key
@@ -45,7 +45,7 @@ DigestAlgorithm="sha512"
 # --message
 Message="Initial commit"
 # --object-extensions
-# ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
 
@@ -85,8 +85,10 @@ Addr=""
 OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
+# --object-extensions
+ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-# StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
 # --encrypt-aes
 #AES=true
 # --aes-key
@@ -103,8 +105,6 @@ UserAddress="mailto:juergen@info-age.net"
 Fixity="md5,sha256,blake2b-384"
 # --message
 Message="Initial commit"
-# --object-extensions
-# ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
 
