@@ -1,0 +1,63 @@
+# --log-level
+# CRITICAL = 0
+# ERROR = 1
+# WARNING = 2
+# NOTICE = 3
+# INFO = 4
+# DEBUG = 5
+LogLevel="INFO"
+
+[Init]
+# --ocfl-version
+OCFLVersion="1.1" # supported versions 1.0 1.1
+# --digest
+DigestAlgorithm="sha512"
+
+[Add]
+# --user-name
+UserName="unknown user"
+# --user-address
+UserAddress="mailto:someone@internet"
+# --fixity
+Fixity="md5,sha256,blake2b-384"
+# --digest
+DigestAlgorithm="sha512"
+# --message
+Message="initial commit"
+
+[Update]
+# --user-name
+UserName="unknown user"
+# --user-address
+UserAddress="mailto:somewone@internet"
+# --echo
+Echo=false # do not reflect deletion in source folder
+# --digest
+DigestAlgorithm="sha512"
+# --message
+Message="update message"
+
+[Create]
+# --ocfl-version
+OCFLVersion="1.1" # supported versions 1.0 1.1
+# --digest
+DigestAlgorithm="sha512"
+
+# --user-name
+UserName="unknown user"
+# --user-address
+UserAddress="mailto:someone@internet"
+# --fixity
+#Fixity="md5,sha256"
+Fixity="md5,sha256,blake2b-384"
+# --message
+Message="Initial commit"
+
+[Stat]
+# --stat-info
+#Info = "ExtensionConfigs,objects,objectversions,objectextensionconfigs"
+Info = "objects,objectversions"
+
+[Extract]
+# --extract-manifest
+Manifest = true

@@ -228,15 +228,17 @@ func (manager *ExtensionManager) WriteConfig() error {
 		}
 	}
 
-	configWriter, err := fsRW.Create("config.json")
-	if err != nil {
-		return errors.Wrap(err, "cannot open config.json")
-	}
-	defer configWriter.Close()
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(manager.ExtensionManagerConfig); err != nil {
-		return errors.Wrapf(err, "cannot encode config to file")
+	if len(manager.Exclusion) != 0 || len(manager.Sort) != 0 {
+		configWriter, err := fsRW.Create("config.json")
+		if err != nil {
+			return errors.Wrap(err, "cannot open config.json")
+		}
+		defer configWriter.Close()
+		jenc := json.NewEncoder(configWriter)
+		jenc.SetIndent("", "   ")
+		if err := jenc.Encode(manager.ExtensionManagerConfig); err != nil {
+			return errors.Wrapf(err, "cannot encode config to file")
+		}
 	}
 	return nil
 }

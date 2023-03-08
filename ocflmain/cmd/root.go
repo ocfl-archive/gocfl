@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/martian/log"
+	"github.com/je4/gocfl/v2/config"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -115,33 +117,29 @@ func initConfig() {
 	if persistentFlagConfigFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(persistentFlagConfigFile)
+		if err := viper.ReadInConfig(); err == nil {
+			fmt.Println("Using config file:", viper.ConfigFileUsed())
+			// fmt.Println(viper.AllSettings())
+		} else {
+			rootCmd.Help()
+			log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
+			os.Exit(1)
+		}
 	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".gocfl" (without extension).
-		viper.AddConfigPath(".")
-		viper.AddConfigPath(home)
 		viper.SetConfigType("toml")
-		viper.SetConfigName(".gocfl")
+		if err := viper.ReadConfig(bytes.NewBuffer(config.DefaultConfig)); err != nil {
+			log.Errorf("error reading default config file: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-		// fmt.Println(viper.AllSettings())
-	} else {
-		rootCmd.Help()
-		log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
-		os.Exit(1)
-	}
 	persistentFlagLoglevel := viper.GetInt64("LogLevel")
 	if _, ok := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)]; !ok {
 		cobra.CheckErr(errors.Errorf("invalid Loglevel ID %v", persistentFlagLoglevel))
 	}
-
+	return
 }
 
 func setExtensionFlags(commands ...*cobra.Command) {

@@ -50,6 +50,10 @@ func newObjectBase(ctx context.Context, fs OCFLFSRead, defaultVersion OCFLVersio
 			extensions:        []Extension{},
 			storageRootPath:   []ExtensionStorageRootPath{},
 			objectContentPath: []ExtensionObjectContentPath{},
+			ExtensionManagerConfig: &ExtensionManagerConfig{
+				Sort:      map[string][]string{},
+				Exclusion: map[string][][]string{},
+			},
 		},
 		logger: logger,
 	}
