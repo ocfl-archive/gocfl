@@ -436,11 +436,25 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 	}
 	return nil
 }
-func (osr *StorageRootBase) CheckObject(objectFolder string) error {
+func (osr *StorageRootBase) CheckObjectByFolder(objectFolder string) error {
 	fmt.Printf("object folder '%s'\n", objectFolder)
 	object, err := osr.LoadObjectByFolder(objectFolder)
 	if err != nil {
 		osr.addValidationError(E001, "invalid folder '%s': %v", objectFolder, err)
+		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
+	} else {
+		if err := object.Check(); err != nil {
+			return errors.Wrapf(err, "check of '%s' failed", object.GetID())
+		}
+	}
+	return nil
+}
+
+func (osr *StorageRootBase) CheckObjectByID(objectID string) error {
+	fmt.Printf("object id '%s'\n", objectID)
+	object, err := osr.LoadObjectByID(objectID)
+	if err != nil {
+		osr.addValidationError(E001, "invalid id '%s': %v", objectID, err)
 		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
 	} else {
 		if err := object.Check(); err != nil {
@@ -456,7 +470,7 @@ func (osr *StorageRootBase) CheckObjects() error {
 		return errors.Wrapf(err, "cannot get object folders")
 	}
 	for _, objectFolder := range objectFolders {
-		if err := osr.CheckObject(objectFolder); err != nil {
+		if err := osr.CheckObjectByFolder(objectFolder); err != nil {
 			return errors.WithStack(err)
 		}
 	}

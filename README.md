@@ -11,6 +11,7 @@ GOCFL command line tool supports the following subcommands
 * [validate](docs/validate.md)
 * [info](docs/stat.md)
 * [extract](docs/extract.md)
+* [extractmeta](docs/extractmeta.md)
 
 ## Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
