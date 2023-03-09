@@ -649,7 +649,7 @@ func (i *InventoryBase) GetManifest() map[string][]string {
 	return i.Manifest.Manifest
 }
 
-func (i *InventoryBase) GetFixity() map[checksum.DigestAlgorithm]map[string][]string {
+func (i *InventoryBase) GetFixity() Fixity {
 	if i.Fixity == nil {
 		return map[checksum.DigestAlgorithm]map[string][]string{}
 	}

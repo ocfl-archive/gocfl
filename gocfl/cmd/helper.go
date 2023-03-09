@@ -41,58 +41,80 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func initExtensionFactory(extensionParams map[string]string, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+func initExtensionFactory(extensionParams map[string]string, indexerAddr string, sourceFS ocfl.OCFLFSRead, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+	logger.Debugf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate extension factory")
 	}
 
+	logger.Debugf("adding creator for extension %s", extension.DigestAlgorithmsName)
 	extensionFactory.AddCreator(extension.DigestAlgorithmsName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewDigestAlgorithmsFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.StorageLayoutFlatDirectName)
 	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutFlatDirectFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.StorageLayoutHashAndIdNTupleName)
 	extensionFactory.AddCreator(extension.StorageLayoutHashAndIdNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashAndIdNTupleFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.StorageLayoutHashedNTupleName)
 	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashedNTupleFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.FlatOmitPrefixStorageLayoutName)
 	extensionFactory.AddCreator(extension.FlatOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewFlatOmitPrefixStorageLayoutFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.NTupleOmitPrefixStorageLayoutName)
 	extensionFactory.AddCreator(extension.NTupleOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewNTupleOmitPrefixStorageLayoutFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.DirectCleanName)
 	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewDirectCleanFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.PathDirectName)
 	extensionFactory.AddCreator(extension.PathDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewPathDirectFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.StorageLayoutPairTreeName)
 	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutPairTreeFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", ocfl.ExtensionManagerName)
 	extensionFactory.AddCreator(ocfl.ExtensionManagerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return ocfl.NewInitialDummyFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.ContentSubPathName)
 	extensionFactory.AddCreator(extension.ContentSubPathName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewContentSubPathFS(fsys)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.MetaFileName)
 	extensionFactory.AddCreator(extension.MetaFileName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
 		return extension.NewMetaFileFS(fsys)
+	})
+
+	logger.Debugf("adding creator for extension %s", extension.IndexerName)
+	extensionFactory.AddCreator(extension.IndexerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		ext, err := extension.NewIndexerFS(fsys, indexerAddr)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
+		}
+		return ext, nil
 	})
 
 	return extensionFactory, nil

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/checksum"
@@ -35,7 +36,7 @@ func initStat() {
 		infos = append(infos, info)
 	}
 	statCmd.Flags().String("stat-info", "", fmt.Sprintf("comma separated list of info fields to show [%s]", strings.Join(infos, ",")))
-	viper.BindPFlag("Stat.Info", statCmd.Flags().Lookup("stat-info"))
+	emperror.Panic(viper.BindPFlag("Stat.Info", statCmd.Flags().Lookup("stat-info")))
 }
 
 func doStat(cmd *cobra.Command, args []string) {
@@ -47,14 +48,14 @@ func doStat(cmd *cobra.Command, args []string) {
 		persistentFlagLoglevel = "INFO"
 	}
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
 	oPath, _ := cmd.Flags().GetString("object-path")
 	oID, _ := cmd.Flags().GetString("object-id")
 	if oPath != "" && oID != "" {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
@@ -72,7 +73,7 @@ func doStat(cmd *cobra.Command, args []string) {
 			}
 		}
 		if !found {
-			cmd.Help()
+			emperror.Panic(cmd.Help())
 			cobra.CheckErr(errors.Errorf("--stat-info invalid value '%s' ", statInfoString))
 		}
 	}
@@ -99,7 +100,7 @@ func doStat(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

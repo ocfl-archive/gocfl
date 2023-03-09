@@ -11,7 +11,7 @@ type ExtensionConfig struct {
 
 type Extension interface {
 	GetName() string
-	SetFS(fs OCFLFS)
+	SetFS(fs OCFLFSRead)
 	SetParams(params map[string]string) error
 	WriteConfig() error
 	GetConfigString() string
@@ -27,6 +27,8 @@ const (
 	ExtensionContentChangeName      = "ContentChange"
 	ExtensionObjectChangeName       = "ObjectChange"
 	ExtensionFixityDigestName       = "FixityDigest"
+	ExtensionMetadataName           = "Metadata"
+	ExtensionAreaName               = "Area"
 )
 
 type ExtensionStorageRootPath interface {
@@ -54,11 +56,11 @@ type ExtensionObjectExternalPath interface {
 
 type ExtensionContentChange interface {
 	Extension
-	AddFileBefore(object Object, source, dest string) error
-	UpdateFileBefore(object Object, source, dest string) error
+	AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
+	UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
 	DeleteFileBefore(object Object, dest string) error
-	AddFileAfter(object Object, source, dest string) error
-	UpdateFileAfter(object Object, source, dest string) error
+	AddFileAfter(object Object, sourceFS OCFLFSRead, source, internalPath, digest string) error
+	UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error
 	DeleteFileAfter(object Object, dest string) error
 }
 
@@ -71,4 +73,14 @@ type ExtensionObjectChange interface {
 type ExtensionFixityDigest interface {
 	Extension
 	GetFixityDigests() []checksum.DigestAlgorithm
+}
+
+type ExtensionMetadata interface {
+	Extension
+	GetMetadata(object Object) (map[string]any, error)
+}
+
+type ExtensionArea interface {
+	Extension
+	GetAreaPath(object Object, area string) (string, error)
 }
