@@ -84,6 +84,9 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 			return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
 		}
 	}
+	if zipReaderAt == nil && zipWriter == nil {
+		return nil, errors.Errorf("cannot open '%s'", path)
+	}
 	isClosed := false
 	zfs := &FS{
 		noCopy:    []string{},
