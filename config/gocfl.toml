@@ -132,6 +132,13 @@ Manifest = true
 [Extract.ext.NNNN-content-subpath]
 Area = "full"
 
+[ExtractMeta]
+# --format
+Format = "json"
+# --output
+Output = ""
+
+
 [Indexer]
 # --with-indexer
 Local=true

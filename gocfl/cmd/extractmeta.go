@@ -33,9 +33,12 @@ func initExtractMeta() {
 	extractMetaCmd.Flags().StringP("object-id", "i", "", "object id to extract")
 
 	extractMetaCmd.Flags().String("version", "latest", "version to extract")
-	emperror.Panic(viper.BindPFlag("Extract.Version", extractMetaCmd.Flags().Lookup("version")))
+	emperror.Panic(viper.BindPFlag("ExtractMeta.Version", extractMetaCmd.Flags().Lookup("version")))
 
-	extractMetaCmd.Flags().String("output-json", "", "path to json file with metadata")
+	extractMetaCmd.Flags().String("format", "json", "output format (json)")
+	emperror.Panic(viper.BindPFlag("ExtractMeta.Format", extractMetaCmd.Flags().Lookup("format")))
+	extractMetaCmd.Flags().String("output", "", "output file (default stdout)")
+	emperror.Panic(viper.BindPFlag("ExtractMeta.Output", extractMetaCmd.Flags().Lookup("output")))
 }
 
 func doExtractMeta(cmd *cobra.Command, args []string) {
@@ -60,7 +63,13 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
-	outputJson, _ := cmd.Flags().GetString("output-json")
+	format := strings.ToLower(viper.GetString("ExtractMeta.Format"))
+	if format != "json" {
+		cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'format' or 'Format' config file entry", format))
+		return
+	}
+	output := viper.GetString("ExtractMeta.Output")
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
@@ -111,20 +120,28 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if outputJson != "" {
-		jsonBytes, err := json.MarshalIndent(metadata, "", "  ")
-		if err != nil {
-			fmt.Printf("cannot marshal metadata")
-			daLogger.Errorf("cannot marshal metadata: %v\n", err)
-			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
-		}
-		if err := os.WriteFile(outputJson, jsonBytes, 0644); err != nil {
+	jsonBytes, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		fmt.Printf("cannot marshal metadata")
+		daLogger.Errorf("cannot marshal metadata: %v\n", err)
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	if output != "" {
+		if err := os.WriteFile(output, jsonBytes, 0644); err != nil {
 			fmt.Printf("cannot write json to file")
-			daLogger.Errorf("cannot write json to file '%s': %v\n", outputJson, err)
+			daLogger.Errorf("cannot write json to file '%s': %v\n", output, err)
 			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			return
 		}
+	} else {
+		if _, err := os.Stdout.Write(jsonBytes); err != nil {
+			fmt.Printf("cannot write json to file")
+			daLogger.Errorf("cannot write json to file standard output: %v\n", err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
+		fmt.Print("\n")
 	}
 	fmt.Printf("metadata extraction done without errors\n")
 }
