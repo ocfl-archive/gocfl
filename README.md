@@ -13,6 +13,8 @@ GOCFL command line tool supports the following subcommands
 * [extract](docs/extract.md)
 * [extractmeta](docs/extractmeta.md)
 
+There's a [quickstart guide](docs/quickstart.md) available.
+
 ## Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
 which already exists. This software is build with the following motivation.
@@ -25,23 +27,22 @@ calculated before ingest and a second time while ingesting.
 ### Container 
 Serialization of an OCFL Storage Root into a container format like ZIP must not generate 
 overhead on disk I/O. Therefor generation of an OCFL Container is possible without an intermediary
-OCFL Storage Root on a filesystem. 
+OCFL Storage Root on a filesystem.  
 
 #### Encryption 
-For storing OCFL Container at low security locations (cloud storage etc.) there's a possibility
-for creating an AES-256 encrypted container while ingesting. 
+For storing OCFL containers in low-security locations (cloud storage, etc.), it's possible to 
+create an AES-256 encrypted container on ingest.
 
 ### Extensions
-Extensions described in the OCFL Standard are quite open in their functionality and can 
-belong to [Storage Root](https://ocfl.io/1.1/spec/#storage-root-extensions) or 
-[Object](https://ocfl.io/1.1/spec/#object-extensions). Since there's no specification of 
-a generic extension api, it's hard to integrate specific extension hooks into other 
-libraries. This library identifies 7 different hooks for extensions till now. 
+The extensions described in the OCFL standard are quite open in their functionality and may 
+belong to the [Storage Root](https://ocfl.io/1.1/spec/#storage-root-extensions) or
+[Object](https://ocfl.io/1.1/spec/#object-extensions). Since there's no specification of a 
+generic extension api, it's difficult to integrate specific extension hooks into other libraries. 
+This library identifies 7 different extension hooks so far.
 
 #### Indexer
-While ingesting content into OCFL Objects, technical metadata should be extracted and stored 
-besides the manifest data. This enables the extraction of technical metadata besides the content.
-Since OCFL Structure is quite rigid, there's need for a special extensions supporting this. 
+When content is ingested into OCFL objects, technical metadata should be extracted and stored alongside the manifest data. This allows technical metadata to be extracted alongside the content.
+Since the OCFL structure is quite rigid, there's a need for a special extension to support this.
 
 ## Functionality
 

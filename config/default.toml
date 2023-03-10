@@ -61,3 +61,9 @@ Info = "objects,objectversions"
 [Extract]
 # --extract-manifest
 Manifest = true
+
+[ExtractMeta]
+# --format
+Format = "json"
+# --output
+Output = ""

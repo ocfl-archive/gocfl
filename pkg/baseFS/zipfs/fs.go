@@ -35,6 +35,7 @@ type FS struct {
 	dstWriter         io.WriteCloser
 	r                 *zip.Reader
 	w                 *zip.Writer
+	noCompression     bool
 	noCopy            []string
 	logger            *logging.Logger
 	closed            *bool
@@ -44,7 +45,7 @@ type FS struct {
 	encryptFP         io.WriteCloser
 }
 
-func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	pathTemp := path + ".tmp"
 
@@ -84,16 +85,20 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 			return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
 		}
 	}
+	if zipReaderAt == nil && zipWriter == nil {
+		return nil, errors.Errorf("cannot open '%s'", path)
+	}
 	isClosed := false
 	zfs := &FS{
-		noCopy:    []string{},
-		srcReader: zipReaderAt,
-		dstWriter: zipWriter,
-		logger:    logger,
-		closed:    &isClosed,
-		path:      path,
-		temp:      pathTemp,
-		factory:   factory,
+		noCopy:        []string{},
+		srcReader:     zipReaderAt,
+		dstWriter:     zipWriter,
+		logger:        logger,
+		closed:        &isClosed,
+		path:          path,
+		temp:          pathTemp,
+		factory:       factory,
+		noCompression: noCompression,
 	}
 	if /*(zipWriter != nil && zipWriter != (*os.File)(nil)) && */ zipReaderAt != nil && zipReaderAt != (*os.File)(nil) {
 		if zfs.r, err = zip.NewReader(zipReaderAt, fileSize); err != nil {
@@ -384,9 +389,20 @@ func (zipFS *FS) Create(name string) (io.WriteCloser, error) {
 	if zipFS.isClosed() {
 		return nil, errors.New("zipFS closed")
 	}
+	if zipFS.w == nil {
+		return nil, errors.New("cannot create file in read-only zipFS")
+	}
 	name = filepath.ToSlash(filepath.Clean(name))
 	zipFS.logger.Debugf("%s", name)
-	wc, err := zipFS.w.Create(name)
+	header := &zip.FileHeader{
+		Name:   name,
+		Method: zip.Deflate,
+	}
+	if zipFS.noCompression {
+		header.Method = zip.Store
+	}
+	wc, err := zipFS.w.CreateHeader(header)
+	// wc, err := zipFS.w.Create(name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create file %s", name)
 	}

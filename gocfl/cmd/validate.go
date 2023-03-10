@@ -24,10 +24,12 @@ var validateCmd = &cobra.Command{
 }
 
 func initValidate() {
-	validateCmd.Flags().StringVarP(&objectPath, "object-path", "o", "", "validate only the selected object in storage root")
+	validateCmd.Flags().StringVarP(&objectPath, "object-path", "o", "", "validate only the object at the specified path in storage root")
+	validateCmd.Flags().StringVar(&objectID, "object-id", "", "validate only the object with the specified id in storage root")
 }
 
 var objectPath string
+var objectID string
 
 func validate(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
@@ -53,7 +55,7 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, false, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -75,17 +77,29 @@ func validate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	if objectPath == "" {
+	if objectID != "" && objectPath != "" {
+		daLogger.Errorf("cannot specify both --object-id and --object-path")
+		return
+	}
+	if objectID == "" && objectPath == "" {
 		if err := storageRoot.Check(); err != nil {
 			daLogger.Errorf("ocfl not valid: %v", err)
 			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			return
 		}
 	} else {
-		if err := storageRoot.CheckObject(objectPath); err != nil {
-			daLogger.Errorf("ocfl object '%s' not valid: %v", objectPath, err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			return
+		if objectID != "" {
+			if err := storageRoot.CheckObjectByID(objectID); err != nil {
+				daLogger.Errorf("ocfl object '%s' not valid: %v", objectID, err)
+				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				return
+			}
+		} else {
+			if err := storageRoot.CheckObjectByFolder(objectPath); err != nil {
+				daLogger.Errorf("ocfl object '%s' not valid: %v", objectPath, err)
+				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				return
+			}
 		}
 	}
 }

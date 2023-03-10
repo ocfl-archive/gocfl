@@ -7,9 +7,9 @@ foreach ($os in $oss) {
         $env:GOARCH=$arch
         Write-Output "$os/$arch"
         if ($os -eq "windows") {
-            Start-Process -FilePath "go.exe" -ArgumentList "build -o ./gocfl_$($os)_$($arch).exe ../ocflmain" -Wait
+            Start-Process -FilePath "go.exe" -ArgumentList "build -o ./gocfl_$($os)_$($arch).exe ../gocfl" -Wait
         } else {
-            Start-Process -FilePath "go.exe" -ArgumentList "build -o ./gocfl_$($os)_$($arch) ../ocflmain" -Wait
+            Start-Process -FilePath "go.exe" -ArgumentList "build -o ./gocfl_$($os)_$($arch) ../gocfl" -Wait
         }
     }
 }

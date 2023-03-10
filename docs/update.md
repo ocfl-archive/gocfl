@@ -25,6 +25,7 @@ Flags:
       --ext-NNNN-metafile-source string   url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
   -h, --help                              help for update
   -m, --message string                    message for new object version (required)
+      --no-compression                    do not compress data in zip file
       --no-deduplicate                    disable deduplication (faster)
   -i, --object-id string                  object id to update (required)
   -a, --user-address string               user address for new object version (required)

@@ -69,6 +69,9 @@ func initCreate() {
 	createCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	emperror.Panic(viper.BindPFlag("Create.Deduplicate", createCmd.Flags().Lookup("deduplicate")))
 
+	createCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Create.NoCompression", createCmd.Flags().Lookup("no-compression")))
+
 	createCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	emperror.Panic(viper.BindPFlag("Create.AES", createCmd.Flags().Lookup("encrypt-aes")))
 
@@ -140,6 +143,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 		srcPath = matches[2]
 	}
 	daLogger.Infof("source path '%s:%s'", area, srcPath)
+
+	flagNoCompression := viper.GetBool("Create.NoCompression")
 
 	flagAES := viper.GetBool("Create.AES")
 	flagAESKey := viper.GetString("Create.AESKey")
@@ -248,7 +253,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
-	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, flagNoCompression, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

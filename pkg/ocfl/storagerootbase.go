@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/gocfl/v2/docs"
 	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
@@ -108,6 +109,28 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 	}
 	if err := rcd.Close(); err != nil {
 		return errors.Wrapf(err, "cannot close '%s'", rootConformanceDeclarationFile)
+	}
+
+	extDocs, err := docs.ExtensionDocs.ReadDir(".")
+	if err != nil {
+		return errors.Wrap(err, "cannot read extension docs")
+	}
+	for _, extDoc := range extDocs {
+		if extDoc.IsDir() {
+			continue
+		}
+		extDocFileContent, err := docs.ExtensionDocs.ReadFile(extDoc.Name())
+		if err != nil {
+			return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
+		}
+		extDocFile, err := osr.fsRW.Create(extDoc.Name())
+		if err != nil {
+			return errors.Wrapf(err, "cannot create extension doc %s", extDoc.Name())
+		}
+		if _, err := extDocFile.Write(extDocFileContent); err != nil {
+			return errors.Wrapf(err, "cannot write extension doc %s", extDoc.Name())
+		}
+		extDocFile.Close()
 	}
 
 	for _, ext := range extensions {
@@ -436,11 +459,25 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 	}
 	return nil
 }
-func (osr *StorageRootBase) CheckObject(objectFolder string) error {
+func (osr *StorageRootBase) CheckObjectByFolder(objectFolder string) error {
 	fmt.Printf("object folder '%s'\n", objectFolder)
 	object, err := osr.LoadObjectByFolder(objectFolder)
 	if err != nil {
 		osr.addValidationError(E001, "invalid folder '%s': %v", objectFolder, err)
+		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
+	} else {
+		if err := object.Check(); err != nil {
+			return errors.Wrapf(err, "check of '%s' failed", object.GetID())
+		}
+	}
+	return nil
+}
+
+func (osr *StorageRootBase) CheckObjectByID(objectID string) error {
+	fmt.Printf("object id '%s'\n", objectID)
+	object, err := osr.LoadObjectByID(objectID)
+	if err != nil {
+		osr.addValidationError(E001, "invalid id '%s': %v", objectID, err)
 		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
 	} else {
 		if err := object.Check(); err != nil {
@@ -456,7 +493,7 @@ func (osr *StorageRootBase) CheckObjects() error {
 		return errors.Wrapf(err, "cannot get object folders")
 	}
 	for _, objectFolder := range objectFolders {
-		if err := osr.CheckObject(objectFolder); err != nil {
+		if err := osr.CheckObjectByFolder(objectFolder); err != nil {
 			return errors.WithStack(err)
 		}
 	}
