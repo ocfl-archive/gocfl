@@ -16,11 +16,13 @@ type BaseFS struct {
 	aes              bool
 	aesKey, aesIV    []byte
 	digestAlgorithms []checksum.DigestAlgorithm
+	noCompression    bool
 }
 
-func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (baseFS.FS, error) {
+func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, noCompression bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (baseFS.FS, error) {
 	return &BaseFS{
 		digestAlgorithms: digestAlgorithms,
+		noCompression:    noCompression,
 		aes:              aes,
 		aesKey:           aesKey,
 		aesIV:            aesIV,
@@ -63,7 +65,7 @@ func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, true, b.aes, b.aesKey, b.aesIV, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, true, b.noCompression, b.aes, b.aesKey, b.aesIV, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}
@@ -74,7 +76,7 @@ func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, false, false, nil, nil, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, false, b.noCompression, false, nil, nil, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}

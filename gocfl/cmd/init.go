@@ -35,6 +35,9 @@ func initInit() {
 	initCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
 	emperror.Panic(viper.BindPFlag("Init.DigestAlgorithm", initCmd.Flags().Lookup("digest")))
 
+	initCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Init.NoCompression", initCmd.Flags().Lookup("no-compression")))
+
 	initCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	emperror.Panic(viper.BindPFlag("Init.AES", initCmd.Flags().Lookup("encrypt-aes")))
 
@@ -69,6 +72,8 @@ func doInit(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagInitDigest))
 	}
 	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagInitDigest)}
+
+	flagNoCompression := viper.GetBool("Init.NoCompression")
 
 	flagAES := viper.GetBool("Init.AES")
 	flagAESKey := viper.GetString("Init.AESKey")
@@ -106,7 +111,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, flagNoCompression, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

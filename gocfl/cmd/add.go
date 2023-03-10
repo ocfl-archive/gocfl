@@ -37,7 +37,7 @@ func initAdd() {
 	addCmd.MarkFlagRequired("object-id")
 
 	addCmd.Flags().String("default-object-extensions", "", "folder with initial extension configurations for new OCFL objects")
-	emperror.Panic(viper.BindPFlag("Init.ObjectExtensions", addCmd.Flags().Lookup("default-object-extensions")))
+	emperror.Panic(viper.BindPFlag("Add.ObjectExtensions", addCmd.Flags().Lookup("default-object-extensions")))
 
 	addCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
 	//	addCmd.MarkFlagRequired("message")
@@ -60,14 +60,17 @@ func initAdd() {
 	addCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	emperror.Panic(viper.BindPFlag("Add.Deduplicate", addCmd.Flags().Lookup("deduplicate")))
 
+	addCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Add.NoCompression", initCmd.Flags().Lookup("no-compression")))
+
 	addCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
-	emperror.Panic(viper.BindPFlag("Init.AES", addCmd.Flags().Lookup("encrypt-aes")))
+	emperror.Panic(viper.BindPFlag("Add.AES", addCmd.Flags().Lookup("encrypt-aes")))
 
 	addCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
-	emperror.Panic(viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key")))
+	emperror.Panic(viper.BindPFlag("Add.AESKey", addCmd.Flags().Lookup("aes-key")))
 
 	addCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 chars empty: generate random vector)")
-	emperror.Panic(viper.BindPFlag("Init.AESKey", addCmd.Flags().Lookup("aes-key")))
+	emperror.Panic(viper.BindPFlag("Add.AESKey", addCmd.Flags().Lookup("aes-key")))
 }
 
 // initAdd executes the gocfl add command
@@ -109,6 +112,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 		}
 		zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
 	}
+
+	flagNoCompression := viper.GetBool("Add.NoCompression")
 
 	flagAES := viper.GetBool("Init.AES")
 	flagAESKey := viper.GetString("Init.AESKey")
@@ -222,7 +227,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, flagNoCompression, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

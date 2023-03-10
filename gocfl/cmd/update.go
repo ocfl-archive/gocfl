@@ -37,18 +37,18 @@ func initUpdate() {
 
 	updateCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
 	//	updateCmd.MarkFlagRequired("message")
-	emperror.Panic(viper.BindPFlag("Add.Message", updateCmd.Flags().Lookup("message")))
+	emperror.Panic(viper.BindPFlag("Update.Message", updateCmd.Flags().Lookup("message")))
 
 	updateCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
 	//	updateCmd.MarkFlagRequired("user-name")
-	emperror.Panic(viper.BindPFlag("Add.UserName", updateCmd.Flags().Lookup("user-name")))
+	emperror.Panic(viper.BindPFlag("Update.UserName", updateCmd.Flags().Lookup("user-name")))
 
 	updateCmd.Flags().StringP("user-address", "a", "", "user address for new object version (required)")
 	//	updateCmd.MarkFlagRequired("user-address")
-	emperror.Panic(viper.BindPFlag("Add.UserAddress", updateCmd.Flags().Lookup("user-address")))
+	emperror.Panic(viper.BindPFlag("Update.UserAddress", updateCmd.Flags().Lookup("user-address")))
 
 	updateCmd.Flags().StringP("digest", "d", "", "digest to use for zip file checksum")
-	emperror.Panic(viper.BindPFlag("Add.DigestAlgorithm", addCmd.Flags().Lookup("digest")))
+	emperror.Panic(viper.BindPFlag("Update.DigestAlgorithm", addCmd.Flags().Lookup("digest")))
 
 	updateCmd.Flags().Bool("no-deduplicate", false, "disable deduplication (faster)")
 	emperror.Panic(viper.BindPFlag("Update.NoDeduplicate", updateCmd.Flags().Lookup("no-deduplicate")))
@@ -56,14 +56,17 @@ func initUpdate() {
 	updateCmd.Flags().Bool("echo", false, "update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'")
 	emperror.Panic(viper.BindPFlag("Update.Echo", updateCmd.Flags().Lookup("echo")))
 
+	updateCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Update.NoCompression", updateCmd.Flags().Lookup("no-compression")))
+
 	updateCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
-	emperror.Panic(viper.BindPFlag("Init.AES", updateCmd.Flags().Lookup("encrypt-aes")))
+	emperror.Panic(viper.BindPFlag("Update.AES", updateCmd.Flags().Lookup("encrypt-aes")))
 
 	updateCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key")
-	emperror.Panic(viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key")))
+	emperror.Panic(viper.BindPFlag("Update.AESKey", updateCmd.Flags().Lookup("aes-key")))
 
 	updateCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector")
-	emperror.Panic(viper.BindPFlag("Init.AESKey", updateCmd.Flags().Lookup("aes-key")))
+	emperror.Panic(viper.BindPFlag("Update.AESKey", updateCmd.Flags().Lookup("aes-key")))
 
 }
 
@@ -105,6 +108,8 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Update.DigestAlgorithm' config file entry", flagAddDigest))
 	}
 	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
+
+	flagNoCompression := viper.GetBool("Update.NoCompression")
 
 	flagAES := viper.GetBool("Init.AES")
 	flagAESKey := viper.GetString("Init.AESKey")
@@ -226,7 +231,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(zipAlgs, flagAES, aesKey, aesIV, daLogger)
+	fsFactory, err := initializeFSFactory(zipAlgs, flagNoCompression, flagAES, aesKey, aesIV, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
