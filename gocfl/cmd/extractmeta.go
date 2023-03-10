@@ -78,7 +78,7 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 
 	daLogger.Infof("extracting metadata from '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, nil, nil, daLogger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, false, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

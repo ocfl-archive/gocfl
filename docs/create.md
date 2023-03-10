@@ -29,6 +29,7 @@ Flags:
   -f, --fixity string                           comma separated list of digest algorithms for fixity [sha512 blake2b-160 blake2b-256 blake2b-384 blake2b-512 md5 sha1 sha256]
   -h, --help                                    help for create
   -m, --message string                          message for new object version (required)
+      --no-compression                          do not compress data in zip file
   -i, --object-id string                        object id to update (required)
       --ocfl-version string                     ocfl version for new storage root (default "1.1")
   -a, --user-address string                     user address for new object version (required)

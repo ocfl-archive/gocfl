@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/gocfl/v2/docs"
 	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
@@ -108,6 +109,28 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 	}
 	if err := rcd.Close(); err != nil {
 		return errors.Wrapf(err, "cannot close '%s'", rootConformanceDeclarationFile)
+	}
+
+	extDocs, err := docs.ExtensionDocs.ReadDir(".")
+	if err != nil {
+		return errors.Wrap(err, "cannot read extension docs")
+	}
+	for _, extDoc := range extDocs {
+		if extDoc.IsDir() {
+			continue
+		}
+		extDocFileContent, err := docs.ExtensionDocs.ReadFile(extDoc.Name())
+		if err != nil {
+			return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
+		}
+		extDocFile, err := osr.fsRW.Create(extDoc.Name())
+		if err != nil {
+			return errors.Wrapf(err, "cannot create extension doc %s", extDoc.Name())
+		}
+		if _, err := extDocFile.Write(extDocFileContent); err != nil {
+			return errors.Wrapf(err, "cannot write extension doc %s", extDoc.Name())
+		}
+		extDocFile.Close()
 	}
 
 	for _, ext := range extensions {

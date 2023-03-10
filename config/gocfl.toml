@@ -24,12 +24,13 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 DigestAlgorithm="sha512"
 # --default-storageroot-extensions
 StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+# --no-compress
+#NoCompress=true
 # --encrypt-aes
 #AES=true
 # --aes-key
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
 #AESIV="8594552261cb956949b661aa163fac4f"
 
 [Add]
@@ -48,6 +49,14 @@ Message="Initial commit"
 ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
+# --no-compress
+#NoCompress=true
+# --encrypt-aes
+#AES=true
+# --aes-key
+#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
+# --aes-iv
+#AESIV="8594552261cb956949b661aa163fac4f"
 
 [Add.ext.NNNN-metafile]
 # --ext-NNNN-metafile-source
@@ -72,6 +81,14 @@ Echo=true # reflect deletion in source folder
 DigestAlgorithm="sha512"
 # --default-area
 DefaultArea="content"
+# --no-compress
+#NoCompress=true
+# --encrypt-aes
+#AES=true
+# --aes-key
+#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
+# --aes-iv
+#AESIV="8594552261cb956949b661aa163fac4f"
 
 [Update.ext.NNNN-metadata]
 #Source="C:/temp/$ID.json"
@@ -89,6 +106,8 @@ DigestAlgorithm="sha512"
 ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
 StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+# --no-compress
+#NoCompress=true
 # --encrypt-aes
 #AES=true
 # --aes-key
