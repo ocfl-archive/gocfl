@@ -33,11 +33,11 @@ var updateCmd = &cobra.Command{
 
 func initUpdate() {
 	updateCmd.Flags().StringVarP(&flagObjectID, "object-id", "i", "", "object id to update (required)")
-	updateCmd.MarkFlagRequired("object-id")
+	emperror.Panic(updateCmd.MarkFlagRequired("object-id"))
 
 	updateCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
-	//	updateCmd.MarkFlagRequired("message")
-	emperror.Panic(viper.BindPFlag("Update.Message", updateCmd.Flags().Lookup("message")))
+	emperror.Panic(updateCmd.MarkFlagRequired("message"))
+	//emperror.Panic(viper.BindPFlag("Update.Message", updateCmd.Flags().Lookup("message")))
 
 	updateCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
 	//	updateCmd.MarkFlagRequired("user-name")
@@ -82,7 +82,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		persistentFlagLoglevel = "INFO"
 	}
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
@@ -95,7 +95,11 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	if flagUserAddress == "" {
 		notSet = append(notSet, "user-address")
 	}
-	flagMessage := viper.GetString("Add.Message")
+	flagMessage, err := cmd.Flags().GetString("message")
+	if err != nil {
+		emperror.Panic(cmd.Help())
+		cobra.CheckErr(errors.Wrap(err, "error getting flag 'message'"))
+	}
 	if flagMessage == "" {
 		notSet = append(notSet, "message")
 	}
@@ -104,7 +108,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 
 	flagAddDigest := viper.GetString("Update.DigestAlgorithm")
 	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagAddDigest)); err != nil {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Update.DigestAlgorithm' config file entry", flagAddDigest))
 	}
 	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
@@ -114,7 +118,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	flagAES := viper.GetBool("Init.AES")
 	flagAESKey := viper.GetString("Init.AESKey")
 	if flagAESKey != "" && len(flagAESKey) != 64 {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Init.AESKey' config file entry. 64 character hex value needed", flagAESKey))
 	}
 	var aesKey []byte
@@ -122,13 +126,13 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		aesKey = make([]byte, hex.DecodedLen(len(flagAESKey)))
 		if _, err := hex.Decode(aesKey, []byte(flagAESKey)); err != nil {
 			aesKey = nil
-			cmd.Help()
+			emperror.Panic(cmd.Help())
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Init.AESKey' config file entry. 64 character hex value needed: %v", flagAESKey, err))
 		}
 	}
 	flagAESIV := viper.GetString("Init.AESIV")
 	if flagAESIV != "" && len(flagAESIV) != 32 {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 32 character hex value needed", flagAESIV))
 	}
 	var aesIV []byte
@@ -136,7 +140,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		aesIV = make([]byte, hex.DecodedLen(len(flagAESIV)))
 		if _, err := hex.Decode(aesIV, []byte(flagAESIV)); err != nil {
 			aesIV = nil
-			cmd.Help()
+			emperror.Panic(cmd.Help())
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 64 character hex value needed: %v", flagAESIV, err))
 		}
 	}
@@ -151,7 +155,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	if len(notSet) > 0 {
-		cmd.Help()
+		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("required flag(s) %s not set", strings.Join(notSet, ", ")))
 	}
 
