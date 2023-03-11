@@ -36,8 +36,8 @@ func initUpdate() {
 	updateCmd.MarkFlagRequired("object-id")
 
 	updateCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
-	//	updateCmd.MarkFlagRequired("message")
-	emperror.Panic(viper.BindPFlag("Update.Message", updateCmd.Flags().Lookup("message")))
+	updateCmd.MarkFlagRequired("message")
+	//emperror.Panic(viper.BindPFlag("Update.Message", updateCmd.Flags().Lookup("message")))
 
 	updateCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
 	//	updateCmd.MarkFlagRequired("user-name")
@@ -95,7 +95,11 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	if flagUserAddress == "" {
 		notSet = append(notSet, "user-address")
 	}
-	flagMessage := viper.GetString("Add.Message")
+	flagMessage, err := updateCmd.Flags().GetString("message")
+	if err != nil {
+		cmd.Help()
+		cobra.CheckErr(errors.Wrap(err, "error getting flag 'message'"))
+	}
 	if flagMessage == "" {
 		notSet = append(notSet, "message")
 	}
