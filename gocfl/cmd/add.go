@@ -34,7 +34,7 @@ var addCmd = &cobra.Command{
 // initAdd initializes the gocfl add command
 func initAdd() {
 	addCmd.Flags().StringVarP(&flagObjectID, "object-id", "i", "", "object id to update (required)")
-	addCmd.MarkFlagRequired("object-id")
+	emperror.Panic(addCmd.MarkFlagRequired("object-id"))
 
 	addCmd.Flags().String("default-object-extensions", "", "folder with initial extension configurations for new OCFL objects")
 	emperror.Panic(viper.BindPFlag("Add.ObjectExtensions", addCmd.Flags().Lookup("default-object-extensions")))
@@ -60,8 +60,8 @@ func initAdd() {
 	addCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	emperror.Panic(viper.BindPFlag("Add.Deduplicate", addCmd.Flags().Lookup("deduplicate")))
 
-	addCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
-	emperror.Panic(viper.BindPFlag("Add.NoCompression", initCmd.Flags().Lookup("no-compression")))
+	addCmd.Flags().Bool("no-compress", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Add.NoCompression", initCmd.Flags().Lookup("no-compress")))
 
 	addCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	emperror.Panic(viper.BindPFlag("Add.AES", addCmd.Flags().Lookup("encrypt-aes")))
@@ -83,7 +83,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
@@ -107,7 +107,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	flagAddDigest := viper.GetString("Add.DigestAlgorithm")
 	if flagAddDigest != "" {
 		if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagAddDigest)); err != nil {
-			cmd.Help()
+			_ = cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Add.DigestAlgorithm' config file entry", flagAddDigest))
 		}
 		zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
@@ -118,7 +118,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	flagAES := viper.GetBool("Init.AES")
 	flagAESKey := viper.GetString("Init.AESKey")
 	if flagAESKey != "" && len(flagAESKey) != 64 {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Init.AESKey' config file entry. 64 character hex value needed", flagAESKey))
 	}
 	var aesKey []byte
@@ -126,13 +126,13 @@ func doAdd(cmd *cobra.Command, args []string) {
 		aesKey = make([]byte, hex.DecodedLen(len(flagAESKey)))
 		if _, err := hex.Decode(aesKey, []byte(flagAESKey)); err != nil {
 			aesKey = nil
-			cmd.Help()
+			_ = cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Init.AESKey' config file entry. 64 character hex value needed: %v", flagAESKey, err))
 		}
 	}
 	flagAESIV := viper.GetString("Init.AESIV")
 	if flagAESIV != "" && len(flagAESIV) != 32 {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 32 character hex value needed", flagAESIV))
 	}
 	var aesIV []byte
@@ -140,13 +140,13 @@ func doAdd(cmd *cobra.Command, args []string) {
 		aesIV = make([]byte, hex.DecodedLen(len(flagAESIV)))
 		if _, err := hex.Decode(aesIV, []byte(flagAESIV)); err != nil {
 			aesIV = nil
-			cmd.Help()
+			_ = cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Init.AESIV' config file entry. 64 character hex value needed: %v", flagAESIV, err))
 		}
 	}
 
 	if len(notSet) > 0 {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("required flag(s) %s not set", strings.Join(notSet, ", ")))
 	}
 

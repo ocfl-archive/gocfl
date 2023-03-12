@@ -14,7 +14,7 @@ import (
 	"regexp"
 )
 
-const VERSION = "v1.0-beta.3"
+const VERSION = "v1.0-beta.4"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
@@ -109,7 +109,7 @@ https://github.com/je4/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
 Version %s`, VERSION),
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 
@@ -121,7 +121,7 @@ func initConfig() {
 			fmt.Println("Using config file:", viper.ConfigFileUsed())
 			// fmt.Println(viper.AllSettings())
 		} else {
-			rootCmd.Help()
+			_ = rootCmd.Help()
 			log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
 			os.Exit(1)
 		}
@@ -208,7 +208,7 @@ func init() {
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

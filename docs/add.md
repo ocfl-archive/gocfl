@@ -27,7 +27,7 @@ Flags:
   -f, --fixity string                      comma separated list of digest algorithms for fixity
   -h, --help                               help for add
   -m, --message string                     message for new object version (required)
-      --no-compression                          do not compress data in zip file
+      --no-compress                          do not compress data in zip file
   -i, --object-id string                   object id to update (required)
   -a, --user-address string                user address for new object version (required)
   -u, --user-name string                   user name for new object version (required)

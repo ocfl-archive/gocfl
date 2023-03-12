@@ -20,7 +20,7 @@ Flags:
   -d, --digest string                           digest to use for ocfl checksum
       --encrypt-aes                             create encrypted container (only for container target)
   -h, --help                                    help for init
-      --no-compression                          do not compress data in zip file
+      --no-compress                          do not compress data in zip file
       --ocfl-version string                     ocfl version for new storage root (default "1.1")
 
 Global Flags:

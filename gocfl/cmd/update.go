@@ -56,8 +56,8 @@ func initUpdate() {
 	updateCmd.Flags().Bool("echo", false, "update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'")
 	emperror.Panic(viper.BindPFlag("Update.Echo", updateCmd.Flags().Lookup("echo")))
 
-	updateCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
-	emperror.Panic(viper.BindPFlag("Update.NoCompression", updateCmd.Flags().Lookup("no-compression")))
+	updateCmd.Flags().Bool("no-compress", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Update.NoCompression", updateCmd.Flags().Lookup("no-compress")))
 
 	updateCmd.Flags().Bool("encrypt-aes", false, "set flag to create encrypted container (only for container target)")
 	emperror.Panic(viper.BindPFlag("Update.AES", updateCmd.Flags().Lookup("encrypt-aes")))
@@ -208,7 +208,9 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			idx.Shutdown(ctx)
+			if err := idx.Shutdown(ctx); err != nil {
+				daLogger.Errorf("cannot shutdown indexer: %v", err)
+			}
 		}()
 	}
 

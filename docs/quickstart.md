@@ -33,7 +33,7 @@ Instead of a zip file, you can also use a directory as target.
 By default, no deduplication is performed. If you want to deduplicate the files, 
 you can use the `--deduplicate` flag (more I/O, takes longer).
 
-Using the --no-compression flag, you can disable compression of the files in the zip file.
+Using the --no-compress flag, you can disable compression of the files in the zip file.
 
 ## Adding a new version to an existing OCFL Repository
 
