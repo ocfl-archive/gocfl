@@ -69,8 +69,8 @@ func initCreate() {
 	createCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
 	emperror.Panic(viper.BindPFlag("Create.Deduplicate", createCmd.Flags().Lookup("deduplicate")))
 
-	createCmd.Flags().Bool("no-compression", false, "do not compress data in zip file")
-	emperror.Panic(viper.BindPFlag("Create.NoCompression", createCmd.Flags().Lookup("no-compression")))
+	createCmd.Flags().Bool("no-compress", false, "do not compress data in zip file")
+	emperror.Panic(viper.BindPFlag("Create.NoCompression", createCmd.Flags().Lookup("no-compress")))
 
 	createCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	emperror.Panic(viper.BindPFlag("Create.AES", createCmd.Flags().Lookup("encrypt-aes")))
@@ -91,7 +91,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
 
@@ -117,20 +117,20 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	flagInitDigest := viper.GetString("Create.DigestAlgorithm")
 	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagInitDigest)); err != nil {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Create.DigestAlgorithm' config file entry", flagInitDigest))
 	}
 
 	flagAddDigest := viper.GetString("Create.DigestAlgorithm")
 	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagAddDigest)); err != nil {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Create.DigestAlgorithm' config file entry", flagAddDigest))
 	}
 	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
 
 	flagVersion := viper.GetString("Create.OCFLVersion")
 	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid version '%s' for flag 'ocfl-version' or 'Create.OCFLVersion' config file entry", flagVersion))
 	}
 
@@ -149,7 +149,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	flagAES := viper.GetBool("Create.AES")
 	flagAESKey := viper.GetString("Create.AESKey")
 	if flagAESKey != "" && len(flagAESKey) != 64 {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Create.AESKey' config file entry. 64 character hex value needed", flagAESKey))
 	}
 	var aesKey []byte
@@ -157,13 +157,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 		aesKey = make([]byte, hex.DecodedLen(len(flagAESKey)))
 		if _, err := hex.Decode(aesKey, []byte(flagAESKey)); err != nil {
 			aesKey = nil
-			cmd.Help()
+			_ = cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Create.AESKey' config file entry. 64 character hex value needed: %v", flagAESKey, err))
 		}
 	}
 	flagAESIV := viper.GetString("Create.AESIV")
 	if flagAESIV != "" && len(flagAESIV) != 32 {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Create.AESIV' config file entry. 32 character hex value needed", flagAESIV))
 	}
 	var aesIV []byte
@@ -171,13 +171,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 		aesIV = make([]byte, hex.DecodedLen(len(flagAESIV)))
 		if _, err := hex.Decode(aesIV, []byte(flagAESIV)); err != nil {
 			aesIV = nil
-			cmd.Help()
+			_ = cmd.Help()
 			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Create.AESIV' config file entry. 64 character hex value needed: %v", flagAESIV, err))
 		}
 	}
 
 	if len(notSet) > 0 {
-		cmd.Help()
+		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("required flag(s) %s not set", strings.Join(notSet, ", ")))
 	}
 
@@ -227,7 +227,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			idx.Shutdown(ctx)
+			if err := idx.Shutdown(ctx); err != nil {
+				daLogger.Errorf("error shutting down indexer: %v", err)
+			}
 		}()
 	}
 
@@ -315,7 +317,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger,
 	)
 	if err != nil {
-		destFS.Discard()
+		if err := destFS.Discard(); err != nil {
+			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS.String(), err)
+		}
 		daLogger.Errorf("cannot create new storageroot: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
