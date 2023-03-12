@@ -80,7 +80,7 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
   - [x] [NNNN-content-subpath](docs/NNNN-content-subpath.md) (integration of non-payload files in content)
   - [x] NNNN-metafile (integration of one file into extension folder)
   - [x] [NNNN-indexer](docs/NNNN-indexer.md) (technical metadata indexing) 
-  - [x] NNNN-gocfl-extension-manager (initial extension for sorted exclusion and sorted execution)
+  - [x] [NNNN-gocfl-extension-manager](docs/NNNN-gocfl-extension-manager.md) (initial extension for sorted exclusion and sorted execution)
 
 ## Command Line Interface
 
