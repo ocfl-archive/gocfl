@@ -6,8 +6,8 @@ import (
 	"io"
 )
 
-func Copy(dst io.Writer, src io.Reader, checksums []DigestAlgorithm) (map[DigestAlgorithm]string, error) {
-	cw, err := NewChecksumWriter(checksums, dst)
+func Copy(checksums []DigestAlgorithm, src io.Reader, dst ...io.Writer) (map[DigestAlgorithm]string, error) {
+	cw, err := NewChecksumWriter(checksums, dst...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 	}

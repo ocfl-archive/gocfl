@@ -83,7 +83,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.GetFSRW(destPath)
+	destFS, err := fsFactory.GetFSRW(destPath, false)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", destPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -91,7 +91,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

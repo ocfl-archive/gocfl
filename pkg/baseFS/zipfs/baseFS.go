@@ -61,11 +61,11 @@ func (b *BaseFS) Delete(path string) error {
 	return baseFS.ErrPathNotSupported
 }
 
-func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
+func (b *BaseFS) GetFSRW(path string, clear bool) (ocfl.OCFLFS, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, true, b.noCompression, b.aes, b.aesKey, b.aesIV, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, true, b.noCompression, b.aes, b.aesKey, b.aesIV, clear, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}
@@ -76,7 +76,7 @@ func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, false, b.noCompression, false, nil, nil, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, false, b.noCompression, false, nil, nil, false, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}

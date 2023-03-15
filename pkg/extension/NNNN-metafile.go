@@ -236,7 +236,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	mw := io.MultiWriter(allTargets...)
-	digests, err := checksum.Copy(mw, rc, []checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()})
+	digests, err := checksum.Copy([]checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()}, rc, mw)
 	if err != nil {
 		w2.Close()
 		return errors.Wrap(err, "cannot write data")

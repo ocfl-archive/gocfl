@@ -22,6 +22,7 @@ type VersionMetadata struct {
 type ObjectMetadata struct {
 	ID              string
 	DigestAlgorithm checksum.DigestAlgorithm
+	Head            string
 	Versions        map[string]*VersionMetadata
 	Files           map[string]*FileMetadata
 }

@@ -26,13 +26,18 @@ func (osFS *FS) Delete(name string) error {
 	return os.Remove(filename)
 }
 
-func NewFS(folder string, logger *logging.Logger) (*FS, error) {
+func NewFS(folder string, clear bool, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	folder = strings.TrimRight(filepath.ToSlash(filepath.Clean(folder)), "/")
 	osfs := &FS{
 		folder: folder,
 		//fs:     os.DirFS(folder),
 		logger: logger,
+	}
+	if clear {
+		if osfs.HasContent() {
+			// todo: delete all content
+		}
 	}
 	return osfs, nil
 }
@@ -195,14 +200,14 @@ func (osFS *FS) SubFS(name string) (ocfl.OCFLFSRead, error) {
 	if name == "" || name == "." || name == "./" {
 		return osFS, nil
 	}
-	return NewFS(filepath.Join(osFS.folder, name), osFS.logger)
+	return NewFS(filepath.Join(osFS.folder, name), false, osFS.logger)
 }
 
 func (osFS *FS) SubFSRW(name string) (ocfl.OCFLFS, error) {
 	if name == "" || name == "." || name == "./" {
 		return osFS, nil
 	}
-	return NewFS(filepath.Join(osFS.folder, name), osFS.logger)
+	return NewFS(filepath.Join(osFS.folder, name), false, osFS.logger)
 }
 
 // check interface satisfaction

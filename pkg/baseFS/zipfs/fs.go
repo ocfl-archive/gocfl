@@ -45,10 +45,13 @@ type FS struct {
 	encryptFP         io.WriteCloser
 }
 
-func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aesKey []byte, aesIV []byte, clear bool, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	pathTemp := path + ".tmp"
 
+	if clear {
+		_ = factory.Delete(path)
+	}
 	fp, err := factory.Open(path)
 	if err != nil {
 		if IsErrNotExist(err) {

@@ -14,7 +14,7 @@ func ErrNotSupported(err error) bool {
 
 type FS interface {
 	SetFSFactory(factory *Factory)
-	GetFSRW(path string) (ocfl.OCFLFS, error)
+	GetFSRW(path string, clear bool) (ocfl.OCFLFS, error)
 	GetFS(path string) (ocfl.OCFLFSRead, error)
 	Open(path string) (ReadSeekCloserStat, error)
 	Create(path string) (io.WriteCloser, error)

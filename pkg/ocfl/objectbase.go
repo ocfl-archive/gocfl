@@ -85,13 +85,18 @@ func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format
 }
 
 func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
+	inventory := object.GetInventory()
+	if inventory == nil {
+		return nil, errors.Errorf("inventory is nil")
+	}
+
 	result := &ObjectMetadata{
 		ID:              object.GetID(),
+		Head:            inventory.GetHead(),
 		Files:           map[string]*FileMetadata{},
 		DigestAlgorithm: object.GetDigestAlgorithm(),
 		Versions:        map[string]*VersionMetadata{},
 	}
-	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	versions := inventory.GetVersions()
 	fixity := inventory.GetFixity()
@@ -150,7 +155,7 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 }
 
 func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
-	fmt.Fprintf(w, "[%s] Digest: %s\n", object.GetID(), object.GetDigestAlgorithm())
+	fmt.Fprintf(w, "[%s] Path: %s\n", object.GetID(), object.GetDigestAlgorithm())
 	i := object.GetInventory()
 	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
 	f := i.GetFixity()
@@ -682,7 +687,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string) e
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
-	checksums, err := checksum.Copy(writer, r, digestAlgorithms)
+	checksums, err := checksum.Copy(digestAlgorithms, r, writer)
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", internalFilename, targetFilename)
 	}
@@ -789,7 +794,15 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
-	checksums, err := checksum.Copy(writer, file, digestAlgorithms)
+	pr, pw := io.Pipe()
+	extErrors := make(chan error, 1)
+	go func() {
+		if err := object.extensionManager.StreamObject(object, pr, path, internalFilename); err != nil {
+			extErrors <- err
+		}
+	}()
+	checksums, err := checksum.Copy(digestAlgorithms, file, writer, pw)
+	_ = pw.Close()
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
 	}
@@ -798,6 +811,13 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 			return fmt.Errorf("invalid checksum '%s'", digest)
 		}
 	*/
+	select {
+	case err, ok := <-extErrors:
+		if ok {
+			return errors.Wrapf(err, "error on StreamObject() extension hook for object '%s'", object.GetID())
+		}
+	default:
+	}
 	if digest == "" {
 		var ok bool
 		digest, ok = checksums[object.i.GetDigestAlgorithm()]
@@ -1188,7 +1208,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 					return errors.Wrapf(err, "cannot open file '%s/%s'", object.fsRO.String(), fname)
 				}
 				defer fp.Close()
-				css, err := checksum.Copy(&checksum.NullWriter{}, fp, digestAlgorithms)
+				css, err := checksum.Copy(digestAlgorithms, fp, &checksum.NullWriter{})
 				if err != nil {
 					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", fname)
 				}
@@ -1282,7 +1302,7 @@ func (object *ObjectBase) Extract(fs OCFLFS, version string, withManifest bool) 
 			}
 			defer target.Close()
 			object.logger.Debugf("writing '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
-			copyDigests, err := checksum.Copy(target, src, []checksum.DigestAlgorithm{digestAlg})
+			copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 			if err != nil {
 				return errors.Wrapf(err, "error copying '%s/%s' -> '%s/%s'", object.fsRO.String(), internal, fs.String(), external)
 			}
