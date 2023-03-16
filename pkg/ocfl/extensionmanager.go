@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"bufio"
 	"emperror.dev/errors"
 	"encoding/json"
 	"github.com/je4/gocfl/v2/pkg/checksum"
@@ -509,10 +510,16 @@ func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, s
 	}
 	var ws = []io.Writer{}
 	for _, w := range writer {
-		ws = append(ws, w)
+		ws = append(ws, bufio.NewWriterSize(w, 1024*1024))
 	}
 	multiWriter := io.MultiWriter(ws...)
 	_, err := io.Copy(multiWriter, reader)
+	for _, w := range ws {
+		// it's sure that w is a bufio.Writer
+		if err := w.(*bufio.Writer).Flush(); err != nil {
+			return errors.Wrap(err, "cannot flush buffer")
+		}
+	}
 	for _, w := range writer {
 		w.ForceClose()
 	}
