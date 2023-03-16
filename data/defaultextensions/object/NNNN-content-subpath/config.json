@@ -8,10 +8,6 @@
     "metadata": {
       "path": "metadata",
       "description": "additional semantic metadata"
-    },
-    "index": {
-      "path": "index",
-      "description": "additional technical metadata"
     }
   }
 }
