@@ -3,8 +3,8 @@ package zipfs
 import (
 	"emperror.dev/errors"
 	"github.com/je4/gocfl/v2/pkg/baseFS"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
 	"strings"

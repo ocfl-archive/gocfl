@@ -2,8 +2,8 @@ package extension
 
 import (
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"testing"
 )
 

@@ -419,7 +419,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			line := r.Text()
 			var meta = indexerLine{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				f.Close()
+				_ = f.Close()
 				return nil, errors.Wrapf(err, "cannot unmarshal line from '%s' - [%s]", targetname, line)
 			}
 			result[path2digest[meta.Path]] = meta.Indexer

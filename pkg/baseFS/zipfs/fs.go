@@ -6,9 +6,9 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/baseFS"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/encrypt"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	checksum2 "github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
 	"io/fs"
@@ -39,13 +39,13 @@ type FS struct {
 	noCopy            []string
 	logger            *logging.Logger
 	closed            *bool
-	checksumWriter    *checksum.ChecksumWriter
-	checksumWriterAES *checksum.ChecksumWriter
+	checksumWriter    *checksum2.ChecksumWriter
+	checksumWriterAES *checksum2.ChecksumWriter
 	encryptWriterAES  *encrypt.EncryptWriter
 	encryptFP         io.WriteCloser
 }
 
-func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aesKey []byte, aesIV []byte, clear bool, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum2.DigestAlgorithm, RW bool, noCompression bool, aes bool, aesKey []byte, aesIV []byte, clear bool, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	pathTemp := path + ".tmp"
 
@@ -114,7 +114,7 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot create '%s'", path)
 			}
-			zfs.checksumWriterAES, err = checksum.NewChecksumWriter(digestAlgorithms, zfs.encryptFP)
+			zfs.checksumWriterAES, err = checksum2.NewChecksumWriter(digestAlgorithms, zfs.encryptFP)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
@@ -122,12 +122,12 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
-			zfs.checksumWriter, err = checksum.NewChecksumWriter(digestAlgorithms, zipWriter, zfs.encryptWriterAES)
+			zfs.checksumWriter, err = checksum2.NewChecksumWriter(digestAlgorithms, zipWriter, zfs.encryptWriterAES)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
 		} else {
-			zfs.checksumWriter, err = checksum.NewChecksumWriter(digestAlgorithms, zipWriter)
+			zfs.checksumWriter, err = checksum2.NewChecksumWriter(digestAlgorithms, zipWriter)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
@@ -186,8 +186,8 @@ func (zipFS *FS) Close() error {
 		}
 	}
 	finalError := []error{}
-	var digests = map[checksum.DigestAlgorithm]string{}
-	var digestsAES = map[checksum.DigestAlgorithm]string{}
+	var digests = map[checksum2.DigestAlgorithm]string{}
+	var digestsAES = map[checksum2.DigestAlgorithm]string{}
 	var key []byte
 	var iv []byte
 	if zipFS.w != nil {
@@ -203,7 +203,7 @@ func (zipFS *FS) Close() error {
 			} else {
 				digests, err = zipFS.checksumWriter.GetChecksums()
 				if err != nil {
-					digests = map[checksum.DigestAlgorithm]string{}
+					digests = map[checksum2.DigestAlgorithm]string{}
 					finalError = append(finalError, err)
 				}
 			}
@@ -214,7 +214,7 @@ func (zipFS *FS) Close() error {
 			} else {
 				digestsAES, err = zipFS.checksumWriterAES.GetChecksums()
 				if err != nil {
-					digestsAES = map[checksum.DigestAlgorithm]string{}
+					digestsAES = map[checksum2.DigestAlgorithm]string{}
 					finalError = append(finalError, err)
 				}
 			}

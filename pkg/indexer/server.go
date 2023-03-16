@@ -2,8 +2,8 @@ package indexer
 
 import (
 	"emperror.dev/errors"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"html/template"
 	"net"

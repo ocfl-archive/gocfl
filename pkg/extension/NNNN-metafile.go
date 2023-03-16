@@ -5,8 +5,8 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	checksum2 "github.com/je4/utils/v2/pkg/checksum"
 	"io"
 	"net/http"
 	"net/url"
@@ -236,7 +236,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	mw := io.MultiWriter(allTargets...)
-	digests, err := checksum.Copy([]checksum.DigestAlgorithm{inventory.GetDigestAlgorithm()}, rc, mw)
+	digests, err := checksum2.Copy([]checksum2.DigestAlgorithm{inventory.GetDigestAlgorithm()}, rc, mw)
 	if err != nil {
 		w2.Close()
 		return errors.Wrap(err, "cannot write data")

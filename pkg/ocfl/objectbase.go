@@ -5,7 +5,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
 	"io"
@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 //const VERSION = "1.0"
@@ -794,9 +795,13 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
 	}
 	defer writer.Close()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	pr, pw := io.Pipe()
 	extErrors := make(chan error, 1)
 	go func() {
+		defer wg.Done()
 		if err := object.extensionManager.StreamObject(object, pr, path, internalFilename); err != nil {
 			extErrors <- err
 		}
@@ -806,6 +811,8 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	if err != nil {
 		return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
 	}
+	wg.Wait()
+	close(extErrors)
 	/*
 		if digest != "" && digest != checksums[object.i.GetDigestAlgorithm()] {
 			return fmt.Errorf("invalid checksum '%s'", digest)

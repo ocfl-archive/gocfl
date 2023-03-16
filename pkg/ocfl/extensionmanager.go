@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"emperror.dev/errors"
 	"encoding/json"
-	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
 	"golang.org/x/exp/slices"
 	"io"
@@ -500,12 +500,12 @@ func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, s
 		pr, pw := io.Pipe()
 		writer = append(writer, iou.NewWriteIgnoreCloser(pw))
 		go func(r io.Reader, extension ExtensionStream) {
+			defer wg.Done()
 			if err := extension.StreamObject(object, r, source, dest); err != nil {
 				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", extension.GetName(), object.GetID())
 			}
 			// discard remaining data
 			_, _ = io.Copy(io.Discard, r)
-			wg.Done()
 		}(pr, ext)
 	}
 	var ws = []io.Writer{}

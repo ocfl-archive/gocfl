@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/je4/gocfl/v2/docs"
-	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
 	"io"
