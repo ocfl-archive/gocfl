@@ -88,7 +88,8 @@ func StartIndexer(
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
-		_ = ironmaiden.NewActionTika("tika", tika.Address, timeout, tika.RegexpMime, tika.Online, srv, ad)
+		_ = ironmaiden.NewActionTika("tika", tika.AddressMeta, timeout, tika.RegexpMimeMeta, tika.RegexpMimeMetaNot, "", tika.Online, srv, ad)
+		_ = ironmaiden.NewActionTika("fulltext", tika.AddressFulltext, timeout, tika.RegexpMimeFulltext, tika.RegexpMimeFulltextNot, "X-TIKA:content", tika.Online, srv, ad)
 	}
 
 	var addr net.Addr

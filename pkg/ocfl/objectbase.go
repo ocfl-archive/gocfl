@@ -518,7 +518,7 @@ func (object *ObjectBase) Load() (err error) {
 		}
 		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
 			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-			object.addValidationWarning(W000, "unknown extension in folder '%s'", subfs)
+			object.addValidationWarning(W000, "cannot initialize extension in folder '%s'", subfs)
 		} else {
 			if !ext.IsRegistered() {
 				object.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())

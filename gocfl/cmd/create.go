@@ -185,7 +185,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var indexerActions *ironmaiden.ActionDispatcher
 	var addr string
-	if withIndexer := viper.GetBool("Indexer.Local"); withIndexer {
+	if viper.GetBool("Indexer.Enable") {
 		siegfried, err := indexer.GetSiegfried()
 		if err != nil {
 			daLogger.Errorf("cannot load indexer Siegfried: %v", err)

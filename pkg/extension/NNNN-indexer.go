@@ -27,7 +27,7 @@ type indexerLine struct {
 	Indexer *ironmaiden.ResultV2
 }
 
-var actions = []string{"siegfried", "ffprobe", "identify", "tika"}
+var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext"}
 var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {
@@ -209,89 +209,15 @@ func (sl *Indexer) WriteConfig() error {
 	return nil
 }
 
-/*
-	func (sl *Indexer) AddFileBefore(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
-		return nil
-	}
-
-	func (sl *Indexer) UpdateFileBefore(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
-		return nil
-	}
-
-	func (sl *Indexer) DeleteFileBefore(object ocfl.Object, dest string) error {
-		// nothing to do
-		return nil
-	}
-
-	func (sl *Indexer) AddFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, internalPath, digest string) error {
-		if !sl.active {
-			return nil
-		}
-
-		var meta *ironmaiden.ResultV2
-		if sl.indexerActions != nil {
-			f, err := sourceFS.Open(source)
-			if err != nil {
-				return errors.Wrapf(err, "cannot open '%s/%s'", sourceFS.String(), source)
-			}
-			defer f.Close()
-
-			meta, err = sl.indexerActions.Stream(f, source)
-			if err != nil {
-				return errors.Wrapf(err, "cannot process '%s/%s'", sourceFS.String(), source)
-			}
-		} else {
-			filePath := fmt.Sprintf("%s/%s", sourceFS.String(), source)
-			param := ironmaiden.ActionParam{
-				Url:        filePath,
-				Actions:    sl.IndexerConfig.Actions,
-				HeaderSize: 0,
-				Checksums:  map[string]string{},
-			}
-			result, code, err := sl.post(param)
-			if err != nil {
-				return errors.Wrapf(err, "indexer error for '%s'", filePath)
-			}
-			if code >= 300 {
-				return errors.Errorf("indexer error for '%s': %s", filePath, result)
-			}
-			//		var meta = ironmaiden.ResultV2{}
-			if err := json.Unmarshal(result, &meta); err != nil {
-				return errors.Errorf("cannot unmarshal indexer result `%s`", string(result))
-			}
-		}
-		var indexerline = indexerLine{
-			Path:    internalPath,
-			Indexer: meta,
-		}
-		data, err := json.Marshal(indexerline)
-		if err != nil {
-			return errors.Errorf("cannot marshal result %v", indexerline)
-		}
-		if _, err := sl.writer.Write(data); err != nil {
-			return errors.Errorf("cannot brotli %s", string(data))
-		}
-		if _, err := sl.writer.Write([]byte("\n")); err != nil {
-			return errors.Errorf("cannot brotli %s", string(data))
-		}
-		return nil
-	}
-
-	func (sl *Indexer) UpdateFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
-		return nil
-	}
-
-	func (sl *Indexer) DeleteFileAfter(object ocfl.Object, dest string) error {
-		// nothing to do
-		return nil
-	}
-*/
-
 func (sl *Indexer) UpdateObjectBefore(object ocfl.Object) error {
 	return nil
 }
 
 func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
+	if sl.indexerActions == nil {
+		return errors.New("Please enable indexer in config file")
+	}
+
 	//var err error
 	sl.active = false
 	if err := sl.writer.Flush(); err != nil {
@@ -413,7 +339,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			reader = f
 		}
 		r := bufio.NewScanner(reader)
-		r.Buffer(make([]byte, 128*1024), 128*1024)
+		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
 		r.Split(bufio.ScanLines)
 		for r.Scan() {
 			line := r.Text()
@@ -435,6 +361,9 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, source, dest string) error {
 	if !sl.active {
 		return nil
+	}
+	if sl.indexerActions == nil {
+		return errors.New("Please enable indexer in config file")
 	}
 
 	result, err := sl.indexerActions.Stream(reader, source)

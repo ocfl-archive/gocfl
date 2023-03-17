@@ -160,10 +160,7 @@ Output = ""
 
 [Indexer]
 # --with-indexer
-Local=true
-
-# only for external indexer service
-Addr="http://localhost:1234/"
+Enable=true
 
 [Indexer.Siegfried]
 #Signature = "/usr/share/siegfried/default.sig"
@@ -251,9 +248,14 @@ Weight = 80
     enabled = true
 
 [Indexer.Tika]
-    address = "http://localhost:9998/meta"
+    addressMeta = "http://localhost:9998/meta"
+    addressFulltext = "http://localhost:9998/tika"
     #address = "http://localhost:9998/rmeta/text"
     timeout = "10s"
-    regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+    regexpMimeFulltext = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+    regexpMimeFulltextNot = "" # "^.*$" # ""^application/.*$"
+    regexpMimeMeta = ""
+    regexpMimeMetaNot = "^(image|video|audio)/.*$"
     online = true
     enabled = true
+

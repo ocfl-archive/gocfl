@@ -188,7 +188,7 @@ func init() {
 	emperror.Panic(viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region")))
 
 	rootCmd.PersistentFlags().Bool("with-indexer", false, "starts indexer as a local service")
-	emperror.Panic(viper.BindPFlag("Indexer.Local", rootCmd.PersistentFlags().Lookup("with-indexer")))
+	emperror.Panic(viper.BindPFlag("Indexer.Enable", rootCmd.PersistentFlags().Lookup("with-indexer")))
 
 	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
 	//	emperror.Panic(viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))

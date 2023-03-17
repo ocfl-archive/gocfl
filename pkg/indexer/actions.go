@@ -43,7 +43,8 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
-		_ = ironmaiden.NewActionTika("tika", tika.Address, timeout, tika.RegexpMime, tika.Online, nil, ad)
+		_ = ironmaiden.NewActionTika("tika", tika.AddressMeta, timeout, tika.RegexpMimeMeta, tika.RegexpMimeMetaNot, "", tika.Online, nil, ad)
+		_ = ironmaiden.NewActionTika("fulltext", tika.AddressFulltext, timeout, tika.RegexpMimeFulltext, tika.RegexpMimeFulltextNot, "X-TIKA:content", tika.Online, nil, ad)
 	}
 
 	return ad, nil
