@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 )
 
@@ -22,11 +23,11 @@ const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
 type indexerLine struct {
-	Digest  string
-	Indexer ironmaiden.ResultV2
+	Path    string
+	Indexer *ironmaiden.ResultV2
 }
 
-var actions = []string{"siegfried", "ffprobe", "identify", "tika"}
+var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext"}
 var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {
@@ -49,14 +50,15 @@ type IndexerConfig struct {
 }
 type Indexer struct {
 	*IndexerConfig
-	fs         ocfl.OCFLFSRead
-	indexerURL *url.URL
-	buffer     *bytes.Buffer
-	writer     *brotli.Writer
-	active     bool
+	fs             ocfl.OCFLFSRead
+	indexerURL     *url.URL
+	buffer         *bytes.Buffer
+	writer         *brotli.Writer
+	active         bool
+	indexerActions *ironmaiden.ActionDispatcher
 }
 
-func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string) (*Indexer, error) {
+func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string, indexerActions *ironmaiden.ActionDispatcher) (*Indexer, error) {
 	fp, err := fs.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -71,13 +73,13 @@ func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string) (*Indexer, error) {
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	ext, err := NewIndexer(config, urlString)
+	ext, err := NewIndexer(config, urlString, indexerActions)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create new indexer")
 	}
 	return ext, nil
 }
-func NewIndexer(config *IndexerConfig, urlString string) (*Indexer, error) {
+func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher) (*Indexer, error) {
 	var err error
 
 	if len(config.Actions) == 0 {
@@ -103,9 +105,10 @@ func NewIndexer(config *IndexerConfig, urlString string) (*Indexer, error) {
 	config.Compress = c
 
 	sl := &Indexer{
-		IndexerConfig: config,
-		buffer:        new(bytes.Buffer),
-		active:        true,
+		IndexerConfig:  config,
+		buffer:         new(bytes.Buffer),
+		active:         true,
+		indexerActions: indexerActions,
 	}
 	sl.writer = brotli.NewWriter(sl.buffer)
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
@@ -206,67 +209,15 @@ func (sl *Indexer) WriteConfig() error {
 	return nil
 }
 
-func (sl *Indexer) AddFileBefore(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
-	return nil
-}
-func (sl *Indexer) UpdateFileBefore(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
-	return nil
-}
-func (sl *Indexer) DeleteFileBefore(object ocfl.Object, dest string) error {
-	// nothing to do
-	return nil
-}
-func (sl *Indexer) AddFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, internalPath, digest string) error {
-	if !sl.active {
-		return nil
-	}
-	filePath := fmt.Sprintf("%s/%s", sourceFS.String(), source)
-	param := ironmaiden.ActionParam{
-		Url:        filePath,
-		Actions:    sl.IndexerConfig.Actions,
-		HeaderSize: 0,
-		Checksums:  map[string]string{},
-	}
-	result, code, err := sl.post(param)
-	if err != nil {
-		return errors.Wrapf(err, "indexer error for '%s'", filePath)
-	}
-	if code >= 300 {
-		return errors.Errorf("indexer error for '%s': %s", filePath, result)
-	}
-	var meta = ironmaiden.ResultV2{}
-	if err := json.Unmarshal(result, &meta); err != nil {
-		return errors.Errorf("cannot unmarshal indexer result `%s`", string(result))
-	}
-	var indexerline = indexerLine{
-		Digest:  digest,
-		Indexer: meta,
-	}
-	data, err := json.Marshal(indexerline)
-	if err != nil {
-		return errors.Errorf("cannot marshal result %v", indexerline)
-	}
-	if _, err := sl.writer.Write(data); err != nil {
-		return errors.Errorf("cannot brotli %s", string(data))
-	}
-	if _, err := sl.writer.Write([]byte("\n")); err != nil {
-		return errors.Errorf("cannot brotli %s", string(data))
-	}
-	return nil
-}
-func (sl *Indexer) UpdateFileAfter(object ocfl.Object, sourceFS ocfl.OCFLFSRead, source, dest string) error {
-	return nil
-}
-func (sl *Indexer) DeleteFileAfter(object ocfl.Object, dest string) error {
-	// nothing to do
-	return nil
-}
-
 func (sl *Indexer) UpdateObjectBefore(object ocfl.Object) error {
 	return nil
 }
 
 func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
+	if sl.indexerActions == nil {
+		return errors.New("Please enable indexer in config file")
+	}
+
 	//var err error
 	sl.active = false
 	if err := sl.writer.Flush(); err != nil {
@@ -346,6 +297,13 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	}
 
 	inventory := object.GetInventory()
+	manifest := inventory.GetManifest()
+	path2digest := map[string]string{}
+	for checksum, names := range manifest {
+		for _, name := range names {
+			path2digest[name] = checksum
+		}
+	}
 	for v, _ := range inventory.GetVersions() {
 		var targetname string
 		switch sl.StorageType {
@@ -381,16 +339,16 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			reader = f
 		}
 		r := bufio.NewScanner(reader)
-		r.Buffer(make([]byte, 128*1024), 128*1024)
+		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
 		r.Split(bufio.ScanLines)
 		for r.Scan() {
 			line := r.Text()
 			var meta = indexerLine{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				f.Close()
+				_ = f.Close()
 				return nil, errors.Wrapf(err, "cannot unmarshal line from '%s' - [%s]", targetname, line)
 			}
-			result[meta.Digest] = meta.Indexer
+			result[path2digest[meta.Path]] = meta.Indexer
 		}
 		if err := r.Err(); err != nil {
 			return nil, errors.Wrapf(err, "cannot scan lines from '%s'", targetname)
@@ -400,9 +358,41 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	return result, nil
 }
 
+func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, source, dest string) error {
+	if !sl.active {
+		return nil
+	}
+	if sl.indexerActions == nil {
+		return errors.New("Please enable indexer in config file")
+	}
+
+	result, err := sl.indexerActions.Stream(reader, source)
+	if err != nil {
+		return errors.Wrapf(err, "cannot index '%s'", source)
+	}
+	inventory := object.GetInventory()
+	head := inventory.GetHead()
+	var indexerline = indexerLine{
+		Path:    filepath.ToSlash(filepath.Join(head, "content", dest)),
+		Indexer: result,
+	}
+	data, err := json.Marshal(indexerline)
+	if err != nil {
+		return errors.Errorf("cannot marshal result %v", indexerline)
+	}
+	if _, err := sl.writer.Write(data); err != nil {
+		return errors.Errorf("cannot brotli %s", string(data))
+	}
+	if _, err := sl.writer.Write([]byte("\n")); err != nil {
+		return errors.Errorf("cannot brotli %s", string(data))
+	}
+	return nil
+}
+
 var (
-	_ ocfl.Extension              = &Indexer{}
-	_ ocfl.ExtensionContentChange = &Indexer{}
-	_ ocfl.ExtensionObjectChange  = &Indexer{}
-	_ ocfl.ExtensionMetadata      = &Indexer{}
+	_ ocfl.Extension = &Indexer{}
+	//	_ ocfl.ExtensionContentChange = &Indexer{}
+	_ ocfl.ExtensionObjectChange = &Indexer{}
+	_ ocfl.ExtensionMetadata     = &Indexer{}
+	_ ocfl.ExtensionStream       = &Indexer{}
 )

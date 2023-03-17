@@ -46,7 +46,7 @@ func (b *BaseFS) Rename(src, dest string) error {
 	if !b.valid(dest) {
 		return baseFS.ErrPathNotSupported
 	}
-	fs, err := b.GetFSRW("/")
+	fs, err := b.GetFSRW("/", false)
 	if err != nil {
 		return errors.Wrap(err, "cannot get fs for '/'")
 	}
@@ -54,18 +54,18 @@ func (b *BaseFS) Rename(src, dest string) error {
 	return fs.Rename(src, dest)
 }
 
-func (b *BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
+func (b *BaseFS) GetFSRW(path string, clear bool) (ocfl.OCFLFS, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	return NewFS(path, b.logger)
+	return NewFS(path, clear, b.logger)
 }
 
 func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	return NewFS(path, b.logger)
+	return NewFS(path, false, b.logger)
 }
 
 func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {

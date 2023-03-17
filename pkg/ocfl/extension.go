@@ -2,7 +2,8 @@ package ocfl
 
 import (
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"io"
 )
 
 type ExtensionConfig struct {
@@ -29,7 +30,13 @@ const (
 	ExtensionFixityDigestName       = "FixityDigest"
 	ExtensionMetadataName           = "Metadata"
 	ExtensionAreaName               = "Area"
+	ExtensionStreamName             = "Stream"
 )
+
+type ExtensionStream interface {
+	Extension
+	StreamObject(object Object, reader io.Reader, source, dest string) error
+}
 
 type ExtensionStorageRootPath interface {
 	Extension

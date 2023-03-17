@@ -1,10 +1,14 @@
 package ocfl
 
 import (
+	"bufio"
 	"emperror.dev/errors"
 	"encoding/json"
-	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/checksum"
+	iou "github.com/je4/utils/v2/pkg/io"
 	"golang.org/x/exp/slices"
+	"io"
+	"sync"
 )
 
 const ExtensionManagerName = "NNNN-gocfl-extension-manager"
@@ -22,6 +26,7 @@ type ExtensionManager struct {
 	objectExtractPath  []ExtensionObjectExtractPath
 	metadata           []ExtensionMetadata
 	area               []ExtensionArea
+	stream             []ExtensionStream
 	fs                 OCFLFSRead
 }
 
@@ -92,6 +97,9 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	}
 	if area, ok := ext.(ExtensionArea); ok {
 		manager.area = append(manager.area, area)
+	}
+	if stream, ok := ext.(ExtensionStream); ok {
+		manager.stream = append(manager.stream, stream)
 	}
 	return nil
 }
@@ -208,6 +216,7 @@ func (manager *ExtensionManager) Finalize() {
 	manager.fixityDigest = organize(manager, manager.fixityDigest, ExtensionFixityDigestName)
 	manager.metadata = organize(manager, manager.metadata, ExtensionMetadataName)
 	manager.area = organize(manager, manager.area, ExtensionAreaName)
+	manager.stream = organize(manager, manager.stream, ExtensionStreamName)
 }
 
 // Extension
@@ -478,6 +487,55 @@ func (manager *ExtensionManager) GetAreaPath(object Object, area string) (string
 	return "", errors.Combine(errs...)
 }
 
+// Stream
+func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, source, dest string) error {
+	if len(manager.stream) == 0 {
+		return nil
+	}
+	var wg = sync.WaitGroup{}
+	writer := []*iou.WriteIgnoreCloser{}
+	extErrors := make(chan error, len(manager.stream))
+	for _, ext := range manager.stream {
+		wg.Add(1)
+		pr, pw := io.Pipe()
+		writer = append(writer, iou.NewWriteIgnoreCloser(pw))
+		go func(r io.Reader, extension ExtensionStream) {
+			defer wg.Done()
+			if err := extension.StreamObject(object, r, source, dest); err != nil {
+				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", extension.GetName(), object.GetID())
+			}
+			// discard remaining data
+			_, _ = io.Copy(io.Discard, r)
+		}(pr, ext)
+	}
+	var ws = []io.Writer{}
+	for _, w := range writer {
+		ws = append(ws, bufio.NewWriterSize(w, 1024*1024))
+	}
+	multiWriter := io.MultiWriter(ws...)
+	_, err := io.Copy(multiWriter, reader)
+	for _, w := range ws {
+		// it's sure that w is a bufio.Writer
+		if err := w.(*bufio.Writer).Flush(); err != nil {
+			return errors.Wrap(err, "cannot flush buffer")
+		}
+	}
+	for _, w := range writer {
+		w.ForceClose()
+	}
+	if err != nil {
+		return errors.Wrap(err, "cannot copy stream to actions")
+	}
+	// wait for all actions to finish
+	wg.Wait()
+	close(extErrors)
+	var errs = []error{}
+	for err := range extErrors {
+		errs = append(errs, err)
+	}
+	return errors.Combine(errs...)
+}
+
 // check interface satisfaction
 var (
 	_ Extension                   = (*ExtensionManager)(nil)
@@ -490,4 +548,5 @@ var (
 	_ ExtensionObjectExtractPath  = (*ExtensionManager)(nil)
 	_ ExtensionMetadata           = (*ExtensionManager)(nil)
 	_ ExtensionArea               = (*ExtensionManager)(nil)
+	_ ExtensionStream             = (*ExtensionManager)(nil)
 )

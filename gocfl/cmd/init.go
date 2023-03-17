@@ -5,8 +5,8 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"encoding/hex"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -118,7 +118,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.GetFSRW(ocflPath)
+	destFS, err := fsFactory.GetFSRW(ocflPath, false)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -126,7 +126,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -141,13 +141,7 @@ func doInit(cmd *cobra.Command, args []string) {
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	if _, err := ocfl.CreateStorageRoot(ctx,
-		destFS,
-		ocfl.OCFLVersion(flagVersion),
-		extensionFactory,
-		storageRootExtensions,
-		checksum.DigestAlgorithm(flagInitDigest),
-		daLogger); err != nil {
+	if _, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), daLogger); err != nil {
 		if err := destFS.Discard(); err != nil {
 			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS, err)
 		}

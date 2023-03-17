@@ -1,7 +1,7 @@
 {
   "extensionName": "NNNN-indexer",
   "storageType": "area",
-  "storageName": "index",
-  "actions": ["siegfried", "ffprobe", "identify", "tika"],
+  "storageName": "metadata",
+  "actions": ["siegfried", "ffprobe", "identify", "tika", "fulltext"],
   "compress": "gzip"
 }

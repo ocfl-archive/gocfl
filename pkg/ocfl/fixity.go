@@ -1,6 +1,8 @@
 package ocfl
 
-import "github.com/je4/gocfl/v2/pkg/checksum"
+import (
+	"github.com/je4/utils/v2/pkg/checksum"
+)
 
 type Fixity map[checksum.DigestAlgorithm]map[string][]string
 

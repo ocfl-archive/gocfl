@@ -148,20 +148,28 @@ func GetImageMagick() (*ImageMagick, error) {
 }
 
 type Tika struct {
-	Address    string
-	RegexpMime string
-	Timeout    string
-	Online     bool
-	Enabled    bool
+	AddressMeta           string
+	RegexpMimeFulltext    string
+	RegexpMimeFulltextNot string
+	RegexpMimeMeta        string
+	RegexpMimeMetaNot     string
+	Timeout               string
+	Online                bool
+	Enabled               bool
+	AddressFulltext       string
 }
 
 func GetTika() (*Tika, error) {
 	im := &Tika{
-		Address:    viper.GetString("Indexer.Tika.Address"),
-		RegexpMime: viper.GetString("Indexer.Tika.RegexpMime"),
-		Timeout:    viper.GetString("Indexer.Tika.Timeout"),
-		Online:     viper.GetBool("Indexer.Tika.Online"),
-		Enabled:    viper.GetBool("Indexer.Tika.Enabled"),
+		AddressMeta:           viper.GetString("Indexer.Tika.AddressMeta"),
+		AddressFulltext:       viper.GetString("Indexer.Tika.AddressFulltext"),
+		RegexpMimeFulltext:    viper.GetString("Indexer.Tika.RegexpMimeFulltext"),
+		RegexpMimeFulltextNot: viper.GetString("Indexer.Tika.RegexpMimeFulltextNot"),
+		RegexpMimeMeta:        viper.GetString("Indexer.Tika.RegexpMimeMeta"),
+		RegexpMimeMetaNot:     viper.GetString("Indexer.Tika.RegexpMimeMetaNot"),
+		Timeout:               viper.GetString("Indexer.Tika.Timeout"),
+		Online:                viper.GetBool("Indexer.Tika.Online"),
+		Enabled:               viper.GetBool("Indexer.Tika.Enabled"),
 	}
 	return im, nil
 }

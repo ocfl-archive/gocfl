@@ -1,7 +1,7 @@
 package ocfl
 
 import (
-	"github.com/je4/gocfl/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"time"
 )
 
@@ -22,6 +22,7 @@ type VersionMetadata struct {
 type ObjectMetadata struct {
 	ID              string
 	DigestAlgorithm checksum.DigestAlgorithm
+	Head            string
 	Versions        map[string]*VersionMetadata
 	Files           map[string]*FileMetadata
 }

@@ -35,7 +35,7 @@ func (b BaseFS) valid(path string) bool {
 	return strings.HasPrefix(path, "bucket:")
 }
 
-func (b BaseFS) GetFSRW(path string) (ocfl.OCFLFS, error) {
+func (b BaseFS) GetFSRW(path string, clear bool) (ocfl.OCFLFS, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
@@ -117,7 +117,7 @@ func (b *BaseFS) Create(path string) (io.WriteCloser, error) {
 	if len(parts) < 2 {
 		return nil, errors.Errorf("invalid path '%s' (no bucket name)", path)
 	}
-	fsys, err := b.GetFSRW(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")))
+	fsys, err := b.GetFSRW(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")), false)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get filesystem")
 	}
@@ -144,7 +144,7 @@ func (b *BaseFS) Delete(path string) error {
 	if len(parts) < 2 {
 		return errors.Errorf("invalid path '%s' (no bucket name)", path)
 	}
-	fsys, err := b.GetFSRW(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")))
+	fsys, err := b.GetFSRW(fmt.Sprintf("bucket:%s", strings.Join(parts[0:len(parts)-1], "/")), false)
 	if err != nil {
 		return errors.Wrap(err, "cannot get filesystem")
 	}

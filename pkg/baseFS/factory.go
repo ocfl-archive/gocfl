@@ -21,9 +21,9 @@ func (f *Factory) Add(fs FS) {
 	f.fss = append(f.fss, fs)
 }
 
-func (f *Factory) GetFSRW(path string) (ocfl.OCFLFS, error) {
+func (f *Factory) GetFSRW(path string, clear bool) (ocfl.OCFLFS, error) {
 	for _, fsys := range f.fss {
-		ret, err := fsys.GetFSRW(path)
+		ret, err := fsys.GetFSRW(path, clear)
 		if ErrNotSupported(err) {
 			continue
 		}

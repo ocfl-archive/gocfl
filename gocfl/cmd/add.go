@@ -6,19 +6,17 @@ import (
 	"emperror.dev/errors"
 	"encoding/hex"
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/checksum"
 	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 var addCmd = &cobra.Command{
@@ -153,9 +151,9 @@ func doAdd(cmd *cobra.Command, args []string) {
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
-	var idx *ironmaiden.Server
+	var indexerActions *ironmaiden.ActionDispatcher
 	var addr string
-	if withIndexer := viper.GetBool("Indexer.Local"); withIndexer {
+	if viper.GetBool("Indexer.Enable") {
 		siegfried, err := indexer.GetSiegfried()
 		if err != nil {
 			daLogger.Errorf("cannot load indexer Siegfried: %v", err)
@@ -181,26 +179,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer Tika: %v", err)
 			return
 		}
-		var netAddr net.Addr
-		idx, netAddr, err = indexer.StartIndexer(
-			siegfried,
-			ffmpeg,
-			imageMagick,
-			tika,
-			mimeRelevance,
-			daLogger)
-		if err != nil {
-			daLogger.Errorf("cannot start indexer: %v", err)
-			return
-		}
-		addr = fmt.Sprintf("http://%s/v2", netAddr.String())
-		defer func() {
-			daLogger.Info("shutting down indexer")
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
 
-			idx.Shutdown(ctx)
-		}()
+		indexerActions, err = indexer.InitActions(mimeRelevance, siegfried, ffmpeg, imageMagick, tika, daLogger)
 	}
 
 	t := startTimer()
@@ -240,7 +220,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	destFS, err := fsFactory.GetFSRW(ocflPath)
+	destFS, err := fsFactory.GetFSRW(ocflPath, false)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -267,7 +247,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
