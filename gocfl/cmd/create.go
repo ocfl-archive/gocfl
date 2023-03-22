@@ -4,7 +4,6 @@ import (
 	"context"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
-	"encoding/hex"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -79,6 +78,15 @@ func initCreate() {
 	createCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)")
 	emperror.Panic(viper.BindPFlag("Create.AESKey", createCmd.Flags().Lookup("aes-key")))
 
+	createCmd.Flags().String("keypass-file", "", "file with keypass2 database")
+	emperror.Panic(viper.BindPFlag("Create.KeyPassFile", createCmd.Flags().Lookup("keypass-file")))
+
+	createCmd.Flags().String("keypass-entry", "", "keypass2 entry to use for key encryption")
+	emperror.Panic(viper.BindPFlag("Create.KeyPassEntry", createCmd.Flags().Lookup("keypass-entry")))
+
+	createCmd.Flags().String("keypass-key", "", "key to use for keypass2 database decryption")
+	emperror.Panic(viper.BindPFlag("Create.KeyPassKey", createCmd.Flags().Lookup("keypass-key")))
+
 	createCmd.Flags().Bool("force", false, "force overwrite of existing files")
 }
 
@@ -98,7 +106,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 
-	flagFixity := viper.GetString("Create.Fixity")
 	flagUserName := viper.GetString("Create.UserName")
 	if flagUserName == "" {
 		notSet = append(notSet, "user-name")
@@ -126,13 +133,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Create.DigestAlgorithm' config file entry", flagAddDigest))
 	}
-	var zipAlgs = []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagAddDigest)}
-
-	flagVersion := viper.GetString("Create.OCFLVersion")
-	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
-		_ = cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid version '%s' for flag 'ocfl-version' or 'Create.OCFLVersion' config file entry", flagVersion))
-	}
 
 	area := viper.GetString("Create.DefaultArea")
 	if area == "" {
@@ -143,38 +143,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 		srcPath = matches[2]
 	}
 	daLogger.Infof("source path '%s:%s'", area, srcPath)
-
-	flagNoCompression := viper.GetBool("Create.NoCompression")
-
-	flagAES := viper.GetBool("Create.AES")
-	flagAESKey := viper.GetString("Create.AESKey")
-	if flagAESKey != "" && len(flagAESKey) != 64 {
-		_ = cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Create.AESKey' config file entry. 64 character hex value needed", flagAESKey))
-	}
-	var aesKey []byte
-	if flagAESKey != "" {
-		aesKey = make([]byte, hex.DecodedLen(len(flagAESKey)))
-		if _, err := hex.Decode(aesKey, []byte(flagAESKey)); err != nil {
-			aesKey = nil
-			_ = cmd.Help()
-			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-key' or 'Create.AESKey' config file entry. 64 character hex value needed: %v", flagAESKey, err))
-		}
-	}
-	flagAESIV := viper.GetString("Create.AESIV")
-	if flagAESIV != "" && len(flagAESIV) != 32 {
-		_ = cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Create.AESIV' config file entry. 32 character hex value needed", flagAESIV))
-	}
-	var aesIV []byte
-	if flagAESIV != "" {
-		aesIV = make([]byte, hex.DecodedLen(len(flagAESIV)))
-		if _, err := hex.Decode(aesIV, []byte(flagAESIV)); err != nil {
-			aesIV = nil
-			_ = cmd.Help()
-			cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'aes-iv' or 'Create.AESIV' config file entry. 64 character hex value needed: %v", flagAESIV, err))
-		}
-	}
 
 	flagForce, _ := cmd.Flags().GetBool("force")
 
@@ -226,6 +194,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	fmt.Printf("creating '%s'\n", ocflPath)
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
+	flagFixity := viper.GetString("Create.Fixity")
 	for _, alg := range strings.Split(flagFixity, ",") {
 		alg = strings.TrimSpace(strings.ToLower(alg))
 		if alg == "" {
@@ -238,7 +207,16 @@ func doCreate(cmd *cobra.Command, args []string) {
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
-	fsFactory, err := initializeFSFactory(zipAlgs, flagNoCompression, flagAES, aesKey, aesIV, daLogger)
+	flagDigest := strings.ToLower(viper.GetString("Add.DigestAlgorithm"))
+	if flagDigest == "" {
+		flagDigest = "sha512"
+	}
+	if _, err := checksum.GetHash(checksum.DigestAlgorithm(flagDigest)); err != nil {
+		_ = cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagDigest))
+	}
+
+	fsFactory, err := initializeFSFactory("Create", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -287,6 +265,12 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
+	}
+
+	flagVersion := viper.GetString("Init.OCFLVersion")
+	if !ocfl.ValidVersion(ocfl.OCFLVersion(flagVersion)) {
+		_ = cmd.Help()
+		cobra.CheckErr(errors.Errorf("invalid version '%s' for flag 'ocfl-version' or 'Init.OCFLVersion' config file entry", flagVersion))
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())

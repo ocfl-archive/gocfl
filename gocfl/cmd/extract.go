@@ -6,7 +6,6 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -69,7 +68,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 
 	daLogger.Infof("extracting '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{}, false, false, nil, nil, daLogger)
+	fsFactory, err := initializeFSFactory("Extract", cmd, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

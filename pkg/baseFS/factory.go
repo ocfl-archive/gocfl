@@ -110,3 +110,15 @@ func (f *Factory) Rename(src, dest string) error {
 	}
 	return nil
 }
+
+func (f *Factory) WriteFile(path string, data []byte) error {
+	fp, err := f.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create '%s'", path)
+	}
+	defer fp.Close()
+	if _, err := fp.Write(data); err != nil {
+		return errors.Wrapf(err, "cannot write '%s'", path)
+	}
+	return nil
+}
