@@ -14,7 +14,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/baseFS/zipfs"
 	"github.com/je4/gocfl/v2/pkg/extension"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"github.com/op/go-logging"

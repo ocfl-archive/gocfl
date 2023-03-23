@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"

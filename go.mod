@@ -9,7 +9,7 @@ require (
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/tink/go v1.7.0
-	github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4
+	github.com/je4/indexer/v2 v2.0.0-20230323123016-c2d8e7e7fa5e
 	github.com/je4/utils/v2 v2.0.8-0.20230323112149-25d8c0f590af
 	github.com/minio/minio-go/v7 v7.0.49
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
@@ -41,6 +41,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d // indirect
+	github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
