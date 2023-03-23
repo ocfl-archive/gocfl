@@ -2,6 +2,8 @@ package encrypt
 
 import (
 	"emperror.dev/errors"
+	"encoding/base64"
+	"encoding/json"
 	"github.com/google/tink/go/keyset"
 	"github.com/google/tink/go/proto/tink_go_proto"
 	"github.com/google/tink/go/streamingaead"
@@ -10,8 +12,28 @@ import (
 )
 
 type KeyStruct struct {
-	EncryptedKey string `json:"encrypted_key"`
-	Aad          string `json:"associated_data"`
+	EncryptedKey Base64 `json:"encrypted_key"`
+	Aad          Base64 `json:"associated_data"`
+}
+
+type Base64 []byte
+
+func (b64 *Base64) MarshalJSON() ([]byte, error) {
+	resultString := base64.StdEncoding.EncodeToString(*b64)
+	return json.Marshal(resultString)
+}
+
+func (b64 *Base64) UnmarshalJSON(data []byte) error {
+	var x string
+	if err := json.Unmarshal(data, &x); err != nil {
+		return errors.Wrap(err, "cannot unmarshal base64")
+	}
+	y, err := base64.StdEncoding.DecodeString(x)
+	if err != nil {
+		return errors.Wrap(err, "cannot decode base64")
+	}
+	*b64 = y
+	return nil
 }
 
 type WriterAESGCM struct {

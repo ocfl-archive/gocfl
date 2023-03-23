@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"emperror.dev/errors"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/google/tink/go/keyset"
@@ -315,8 +314,8 @@ func (zipFS *FS) Close() error {
 			finalError = append(finalError, errors.Wrapf(err, "cannot write %s", keyFileName))
 		}
 		ts := encrypt.KeyStruct{
-			EncryptedKey: base64.StdEncoding.EncodeToString(keyBuf.Bytes()),
-			Aad:          base64.StdEncoding.EncodeToString(zipFS.aad),
+			EncryptedKey: keyBuf.Bytes(),
+			Aad:          zipFS.aad,
 		}
 		jsonBytes, err := json.Marshal(ts)
 		if err != nil {
