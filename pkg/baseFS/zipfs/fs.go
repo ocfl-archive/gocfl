@@ -134,8 +134,6 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.Dig
 	}
 	var zipFile io.WriteCloser
 	if RW {
-		//
-		// zipfile encryptFP
 		zipFile, err = factory.Create(pathTemp)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
