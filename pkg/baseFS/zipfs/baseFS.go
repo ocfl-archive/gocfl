@@ -23,7 +23,6 @@ type BaseFS struct {
 }
 
 func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, noCompression bool, aes bool, keyUri string, logger *logging.Logger) (baseFS.FS, error) {
-
 	bfs := &BaseFS{
 		digestAlgorithms: digestAlgorithms,
 		noCompression:    noCompression,
