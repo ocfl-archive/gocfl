@@ -490,6 +490,7 @@ func (manager *ExtensionManager) GetAreaPath(object Object, area string) (string
 // Stream
 func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, source, dest string) error {
 	if len(manager.stream) == 0 {
+		_, _ = io.Copy(io.Discard, reader)
 		return nil
 	}
 	var wg = sync.WaitGroup{}
