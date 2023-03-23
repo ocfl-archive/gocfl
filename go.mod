@@ -7,7 +7,6 @@ require (
 	emperror.dev/errors v0.8.1
 	github.com/andybalholm/brotli v1.0.5
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
-	github.com/blend/go-sdk v1.20220411.3
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/tink/go v1.7.0
 	github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4
@@ -16,7 +15,6 @@ require (
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
-	golang.org/x/crypto v0.7.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 )
 
@@ -73,8 +71,8 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/tobischo/gokeepasslib/v3 v3.5.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/image v0.6.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
