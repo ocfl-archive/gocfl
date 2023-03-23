@@ -23,22 +23,26 @@ type BaseFS struct {
 }
 
 func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, noCompression bool, aes bool, keyUri string, logger *logging.Logger) (baseFS.FS, error) {
-	client, err := registry.GetKMSClient(keyUri)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get KMS client for '%s'", keyUri)
-	}
-	aead, err := client.GetAEAD(keyUri)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get AEAD for entry '%s'", keyUri)
-	}
 
-	return &BaseFS{
+	bfs := &BaseFS{
 		digestAlgorithms: digestAlgorithms,
 		noCompression:    noCompression,
 		aes:              aes,
-		aead:             aead,
 		logger:           logger,
-	}, nil
+	}
+
+	if aes {
+		client, err := registry.GetKMSClient(keyUri)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get KMS client for '%s'", keyUri)
+		}
+		bfs.aead, err = client.GetAEAD(keyUri)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get AEAD for entry '%s'", keyUri)
+		}
+	}
+
+	return bfs, nil
 }
 
 func (b *BaseFS) SetFSFactory(factory *baseFS.Factory) {
