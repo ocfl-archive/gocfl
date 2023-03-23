@@ -2,7 +2,7 @@ package indexer
 
 import (
 	"emperror.dev/errors"
-	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/spf13/viper"
 	"strconv"
 )

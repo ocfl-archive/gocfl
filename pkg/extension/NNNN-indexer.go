@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	ironmaiden "github.com/je4/indexer/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"golang.org/x/exp/slices"
 	"io"
 	"net/http"
