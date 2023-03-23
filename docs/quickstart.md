@@ -16,6 +16,42 @@ Alternatively, you can install the latest version with `go install`:
 go install github.com/je4/gocfl/v2/gocfl@latest
 ```
 
+## Initializing a new storage root
+
+To initialize a new storage on an existing empty folder root, run the `init` command:
+
+```bash
+gocfl init ./storage_root
+```
+
+## Add a new object to an existing storage root
+
+To add a new object to an existing storage root, run the `add` command:
+
+```bash
+gocfl add ./storage_root ./ocfltest1 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
+```
+
+## Adding a new version to an existing OCFL Repository
+
+To add a new version to an existing OCFL Object, run the `update` command:
+
+```bash
+gocfl update ./archive.zip /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
+```
+
+```bash
+gocfl update ./storage_root /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
+```
+
+This command adds a new version to the object `id:abc123` located in the storage root `archive.zip`.
+The object contains the new or changed files from the directory `/temp/ocfltest1`.
+The digest is derived from the existing manifest.
+
+By default, deduplication is performed. If you want to disable deduplication, use
+the `--no-deduplicate` flag (less I/O, faster).
+
+
 ## Creating an OCFL Repository with one object
 
 To create a new OCFL repository, run the `create` command:
@@ -63,6 +99,10 @@ target folder or zip file and specify the object-id:
 
 ```bash
 gocfl validate ./archive.zip --object-id 'id:abc123'
+```
+
+```bash
+gocfl validate ./storage_root
 ```
 
 ## Extracting an Object from an OCFL Repository
