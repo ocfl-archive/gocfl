@@ -27,11 +27,14 @@ StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use b
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
-#AES=true
+AES=false
 # --aes-key
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
 #AESIV="8594552261cb956949b661aa163fac4f"
+KeePassFile="C:/temp/test.kdbx"
+KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
+KeePassKey="test"
 
 [Add]
 # --user-name
@@ -57,6 +60,10 @@ ObjectExtensions="./data/defaultextensions/object" # default "": use built in ex
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
 #AESIV="8594552261cb956949b661aa163fac4f"
+KeePassFile="C:/temp/test.kdbx"
+KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
+KeePassKey="test"
+
 
 [Add.ext.NNNN-metafile]
 # --ext-NNNN-metafile-source
@@ -89,6 +96,10 @@ DefaultArea="content"
 #AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
 #AESIV="8594552261cb956949b661aa163fac4f"
+KeePassFile="C:/temp/test.kdbx"
+KeePassEntry="keepass2://test.kdbx/keepass2://test.kdbx/Root/gocfl/test"
+KeePassKey="test"
+
 
 [Update.ext.NNNN-metadata]
 #Source="C:/temp/$ID.json"
@@ -109,11 +120,14 @@ StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use b
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
-#AES=true
+AES=true
 # --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
+AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
 # --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AESIV="8594552261cb956949b661aa163fac4f"
+KeePassFile="C:/temp/test.kdbx"
+KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
+KeePassKey="test"
 
 # --user-name
 UserName="Jürgen Enge"

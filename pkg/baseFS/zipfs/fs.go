@@ -2,13 +2,17 @@ package zipfs
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"emperror.dev/errors"
+	"encoding/json"
 	"fmt"
+	"github.com/google/tink/go/keyset"
+	"github.com/google/tink/go/tink"
 	"github.com/je4/gocfl/v2/pkg/baseFS"
 	"github.com/je4/gocfl/v2/pkg/encrypt"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	checksum2 "github.com/je4/utils/v2/pkg/checksum"
+	checksum "github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
 	"io/fs"
@@ -22,6 +26,25 @@ func IsErrNotExist(err error) bool {
 	return errors.Cause(err) == fs.ErrNotExist
 }
 
+type flusherCloser struct {
+	closer io.Closer
+	buffer *bufio.Writer
+}
+
+func (c flusherCloser) FlushClose() error {
+	if c.buffer != nil {
+		if err := c.buffer.Flush(); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	if c.closer != nil {
+		if err := c.closer.Close(); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
 type nopCloserWriter struct {
 	io.Writer
 }
@@ -29,28 +52,37 @@ type nopCloserWriter struct {
 func (*nopCloserWriter) Close() error { return nil }
 
 type FS struct {
-	path, temp        string
-	factory           *baseFS.Factory
-	srcReader         ocfl.CloserAt
-	dstWriter         io.WriteCloser
+	path, temp string
+	factory    *baseFS.Factory
+	srcReader  ocfl.CloserAt
+	//	dstWriter  io.Writer
+	//	dstBufferWriter *bufio.Writer
 	r                 *zip.Reader
 	w                 *zip.Writer
 	noCompression     bool
 	noCopy            []string
 	logger            *logging.Logger
 	closed            *bool
-	checksumWriter    *checksum2.ChecksumWriter
-	checksumWriterAES *checksum2.ChecksumWriter
-	encryptWriterAES  *encrypt.EncryptWriter
-	encryptFP         io.WriteCloser
+	checksumWriter    *checksum.ChecksumWriter
+	checksumAESWriter *checksum.ChecksumWriter
+	//	encryptAESWriter       *encrypt.EncryptWriterAESCBC
+	//	encryptAESBufferWriter *bufio.Writer
+	// encryptFP io.WriteCloser
+	flusherCloser []*flusherCloser
+	aead          tink.AEAD
+	aad           []byte
+	handle        *keyset.Handle
 }
 
-func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum2.DigestAlgorithm, RW bool, noCompression bool, aes bool, aesKey []byte, aesIV []byte, clear bool, logger *logging.Logger) (*FS, error) {
+func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aead tink.AEAD, aad []byte, clear bool, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	pathTemp := path + ".tmp"
 
 	if clear {
 		_ = factory.Delete(path)
+		if aes {
+			_ = factory.Delete(path + ".aes")
+		}
 	}
 	fp, err := factory.Open(path)
 	if err != nil {
@@ -81,60 +113,76 @@ func NewFS(path string, factory *baseFS.Factory, digestAlgorithms []checksum2.Di
 			zipReaderAt = &readSeekCloserToCloserAt{readSeeker: zipReader}
 		}
 	}
-	var zipWriter io.WriteCloser
-	if RW {
-		zipWriter, err = factory.Create(pathTemp)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
-		}
-	}
-	if zipReaderAt == nil && zipWriter == nil {
-		return nil, errors.Errorf("cannot open '%s'", path)
-	}
 	isClosed := false
-	zfs := &FS{
+	zipFS := &FS{
 		noCopy:        []string{},
 		srcReader:     zipReaderAt,
-		dstWriter:     zipWriter,
 		logger:        logger,
 		closed:        &isClosed,
 		path:          path,
 		temp:          pathTemp,
 		factory:       factory,
 		noCompression: noCompression,
+		aead:          aead,
+		aad:           aad,
+		flusherCloser: []*flusherCloser{},
 	}
-	if /*(zipWriter != nil && zipWriter != (*os.File)(nil)) && */ zipReaderAt != nil && zipReaderAt != (*os.File)(nil) {
-		if zfs.r, err = zip.NewReader(zipReaderAt, fileSize); err != nil {
+	if /*(zipFS.dstWriter != nil && zipFS.dstWriter != (*os.File)(nil)) && */ zipReaderAt != nil && zipReaderAt != (*os.File)(nil) {
+		if zipFS.r, err = zip.NewReader(zipReaderAt, fileSize); err != nil {
 			return nil, errors.Wrap(err, "cannot create zip reader")
 		}
 	}
-	if zipWriter != nil && zipWriter != (*os.File)(nil) {
+	var zipFile io.WriteCloser
+	if RW {
+		//
+		// zipfile encryptFP
+		zipFile, err = factory.Create(pathTemp)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create '%s'", pathTemp)
+		}
+		zipFileBuffer := bufio.NewWriterSize(zipFile, 1024*1024)
+		zipFS.flusherCloser = append(zipFS.flusherCloser, &flusherCloser{closer: zipFile, buffer: zipFileBuffer})
+
+		targetWriter := []io.Writer{zipFileBuffer}
 		if aes {
-			zfs.encryptFP, err = factory.Create(pathAES)
+			encryptFile, err := factory.Create(pathAES)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot create '%s'", path)
 			}
-			zfs.checksumWriterAES, err = checksum2.NewChecksumWriter(digestAlgorithms, zfs.encryptFP)
+			encryptFileBuffer := bufio.NewWriterSize(encryptFile, 1024*1024)
+			zipFS.flusherCloser = append(zipFS.flusherCloser, &flusherCloser{closer: encryptFile, buffer: encryptFileBuffer})
+
+			checksumEncryptFile, err := checksum.NewChecksumWriter(digestAlgorithms, encryptFileBuffer)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
-			zfs.encryptWriterAES, err = encrypt.NewEncryptWriterAES(zfs.checksumWriterAES, aesKey, aesIV)
+			zipFS.flusherCloser = append(zipFS.flusherCloser, &flusherCloser{closer: checksumEncryptFile, buffer: nil})
+			zipFS.checksumAESWriter = checksumEncryptFile
+
+			encrypter, err := encrypt.NewEncryptWriterAESGCM(checksumEncryptFile, aad, nil)
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
 			}
-			zfs.checksumWriter, err = checksum2.NewChecksumWriter(digestAlgorithms, zipWriter, zfs.encryptWriterAES)
-			if err != nil {
-				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
-			}
-		} else {
-			zfs.checksumWriter, err = checksum2.NewChecksumWriter(digestAlgorithms, zipWriter)
-			if err != nil {
-				return nil, errors.Wrap(err, "cannot create ChecksumWriter")
-			}
+			zipFS.handle = encrypter.GetKeysetHandle()
+			zipFS.flusherCloser = append(zipFS.flusherCloser, &flusherCloser{closer: encrypter, buffer: nil})
+
+			targetWriter = append(targetWriter, encrypter)
 		}
-		zfs.w = zip.NewWriter(zfs.checksumWriter)
+		checksumWriter, err := checksum.NewChecksumWriter(digestAlgorithms, targetWriter...)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create ChecksumWriter")
+		}
+		zipFS.flusherCloser = append(zipFS.flusherCloser, &flusherCloser{closer: checksumWriter, buffer: nil})
+		zipFS.checksumWriter = checksumWriter
+
+		zipFS.w = zip.NewWriter(checksumWriter)
+		zipFS.flusherCloser = append(zipFS.flusherCloser, &flusherCloser{closer: zipFS.w, buffer: nil})
 	}
-	return zfs, nil
+	if zipReaderAt == nil && zipFile == nil {
+		return nil, errors.Errorf("cannot open '%s'", path)
+	}
+
+	return zipFS, nil
 }
 
 func (zipFS *FS) String() string {
@@ -150,6 +198,7 @@ func (zipFS *FS) IsNotExist(err error) bool {
 }
 
 func (zipFS *FS) Close() error {
+	var err error
 	if zipFS.isClosed() {
 		return nil
 		//return errors.New("zipFS closed")
@@ -186,66 +235,31 @@ func (zipFS *FS) Close() error {
 		}
 	}
 	finalError := []error{}
-	var digests = map[checksum2.DigestAlgorithm]string{}
-	var digestsAES = map[checksum2.DigestAlgorithm]string{}
-	var key []byte
-	var iv []byte
+
+	// first flush all buffers in reverse order
+	for i := len(zipFS.flusherCloser) - 1; i >= 0; i-- {
+		fc := zipFS.flusherCloser[i]
+		if err := fc.FlushClose(); err != nil {
+			finalError = append(finalError, err)
+		}
+	}
+
+	var digests = map[checksum.DigestAlgorithm]string{}
+	var digestsAES = map[checksum.DigestAlgorithm]string{}
 	if zipFS.w != nil {
-		if err := zipFS.w.Flush(); err != nil {
-			finalError = append(finalError, err)
-		}
-		if err := zipFS.w.Close(); err != nil {
-			finalError = append(finalError, err)
-		}
 		if zipFS.checksumWriter != nil {
-			if err := zipFS.checksumWriter.Close(); err != nil {
+			digests, err = zipFS.checksumWriter.GetChecksums()
+			if err != nil {
+				digests = map[checksum.DigestAlgorithm]string{}
 				finalError = append(finalError, err)
-			} else {
-				digests, err = zipFS.checksumWriter.GetChecksums()
-				if err != nil {
-					digests = map[checksum2.DigestAlgorithm]string{}
-					finalError = append(finalError, err)
-				}
 			}
 		}
-		if zipFS.checksumWriterAES != nil {
-			if err := zipFS.checksumWriterAES.Close(); err != nil {
+		if zipFS.checksumAESWriter != nil {
+			digestsAES, err = zipFS.checksumAESWriter.GetChecksums()
+			if err != nil {
+				digestsAES = map[checksum.DigestAlgorithm]string{}
 				finalError = append(finalError, err)
-			} else {
-				digestsAES, err = zipFS.checksumWriterAES.GetChecksums()
-				if err != nil {
-					digestsAES = map[checksum2.DigestAlgorithm]string{}
-					finalError = append(finalError, err)
-				}
 			}
-		}
-		if zipFS.encryptWriterAES != nil {
-			if err := zipFS.encryptWriterAES.Close(); err != nil {
-				finalError = append(finalError, err)
-			} else {
-				key = zipFS.encryptWriterAES.GetKey()
-				iv = zipFS.encryptWriterAES.GetIV()
-			}
-		}
-	}
-	/*
-		if err := zipFS.Close(); err != nil {
-			finalError = append(finalError, err)
-		}
-	*/
-	if zipFS.srcReader != nil {
-		if err := zipFS.srcReader.Close(); err != nil {
-			finalError = append(finalError, err)
-		}
-	}
-	if zipFS.dstWriter != nil {
-		if err := zipFS.dstWriter.Close(); err != nil {
-			finalError = append(finalError, err)
-		}
-	}
-	if zipFS.encryptFP != nil {
-		if err := zipFS.encryptFP.Close(); err != nil {
-			finalError = append(finalError, err)
 		}
 	}
 	if len(finalError) > 0 {
@@ -256,7 +270,7 @@ func (zipFS *FS) Close() error {
 			return errors.Wrap(err, "cannot rename on close")
 		}
 
-		if zipFS.encryptWriterAES != nil {
+		if zipFS.checksumAESWriter != nil {
 			if err := zipFS.factory.Rename(zipFS.temp+".aes", zipFS.path+".aes"); err != nil {
 				return errors.Wrap(err, "cannot rename on close")
 			}
@@ -291,36 +305,28 @@ func (zipFS *FS) Close() error {
 			finalError = append(finalError, errors.Wrapf(err, "cannot close %s", manifestName))
 		}
 	}
-	if key != nil {
-		keyFileName := zipFS.path + ".aes.key"
-		fp, err := zipFS.factory.Create(keyFileName)
+	if zipFS.handle != nil {
+		keyFileName := zipFS.path + ".aes.key.json"
+		keyBuf := bytes.NewBuffer(nil)
+		wr := keyset.NewBinaryWriter(keyBuf)
+
+		if err := zipFS.handle.Write(wr, zipFS.aead); err != nil {
+			finalError = append(finalError, errors.Wrapf(err, "cannot write %s", keyFileName))
+		}
+		ts := encrypt.KeyStruct{
+			EncryptedKey: keyBuf.Bytes(),
+			Aad:          zipFS.aad,
+		}
+		jsonBytes, err := json.Marshal(ts)
 		if err != nil {
-			finalError = append(finalError, errors.Wrapf(err, "cannot create %s", keyFileName))
+			finalError = append(finalError, errors.Wrapf(err, "cannot marshal %s", keyFileName))
 		} else {
-			if _, err := fp.Write([]byte(fmt.Sprintf("%x", key))); err != nil {
+			if err := zipFS.factory.WriteFile(keyFileName, jsonBytes); err != nil {
 				finalError = append(finalError, errors.Wrapf(err, "cannot write %s", keyFileName))
 			}
-			if err := fp.Close(); err != nil {
-				finalError = append(finalError, errors.Wrapf(err, "cannot close %s", keyFileName))
-			}
 		}
 	}
-	if iv != nil {
-		ivFileName := zipFS.path + ".aes.iv"
-		fp, err := zipFS.factory.Create(ivFileName)
-		if err != nil {
-			finalError = append(finalError, errors.Wrapf(err, "cannot create %s", ivFileName))
-		} else {
-			if _, err := fp.Write([]byte(fmt.Sprintf("%x", iv))); err != nil {
-				finalError = append(finalError, errors.Wrapf(err, "cannot write %s", ivFileName))
-			}
-			if err := fp.Close(); err != nil {
-				finalError = append(finalError, errors.Wrapf(err, "cannot close %s", ivFileName))
-			}
-		}
-	}
-
-	return nil
+	return errors.Combine(finalError...)
 }
 
 func (zipFS *FS) Discard() error {

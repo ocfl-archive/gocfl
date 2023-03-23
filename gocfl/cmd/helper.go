@@ -4,6 +4,7 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/google/tink/go/core/registry"
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/je4/gocfl/v2/pkg/baseFS"
@@ -15,11 +16,14 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -178,13 +182,38 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	return
 }
 
-func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, noCompression bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (*baseFS.Factory, error) {
+func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*baseFS.Factory, error) {
+	if zipDigests == nil {
+		zipDigests = []checksum.DigestAlgorithm{}
+	}
+	prefix = strings.TrimRight(prefix, ".") + "."
+
 	fsFactory, err := baseFS.NewFactory()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
 
-	zipFS, err := zipfs.NewBaseFS(zipDigests, noCompression, aes, aesKey, aesIV, logger)
+	flagAES := viper.GetBool(prefix + "AES")
+
+	keePassFile := viper.GetString(prefix + "KeePassFile")
+	keePassEntry := viper.GetString(prefix + "KeePassEntry")
+	keePassKey := viper.GetString(prefix + "KeePassKey")
+	// todo: allow different KMS clients
+	if flagAES {
+		db, err := keepass2kms.LoadKeePassDBFromFile(keePassFile, keePassKey)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot load keepass file '%s'", keePassFile)
+		}
+		client, err := keepass2kms.NewClient(db, filepath.Base(keePassFile))
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create keepass2kms client")
+		}
+		registry.RegisterKMSClient(client)
+	}
+
+	flagNoCompression := viper.GetBool(prefix + "NoCompression")
+
+	zipFS, err := zipfs.NewBaseFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
 	}

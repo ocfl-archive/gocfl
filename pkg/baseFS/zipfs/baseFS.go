@@ -2,11 +2,14 @@ package zipfs
 
 import (
 	"emperror.dev/errors"
+	"github.com/google/tink/go/core/registry"
+	"github.com/google/tink/go/tink"
 	"github.com/je4/gocfl/v2/pkg/baseFS"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,18 +17,26 @@ type BaseFS struct {
 	factory          *baseFS.Factory
 	logger           *logging.Logger
 	aes              bool
-	aesKey, aesIV    []byte
 	digestAlgorithms []checksum.DigestAlgorithm
 	noCompression    bool
+	aead             tink.AEAD
 }
 
-func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, noCompression bool, aes bool, aesKey []byte, aesIV []byte, logger *logging.Logger) (baseFS.FS, error) {
+func NewBaseFS(digestAlgorithms []checksum.DigestAlgorithm, noCompression bool, aes bool, keyUri string, logger *logging.Logger) (baseFS.FS, error) {
+	client, err := registry.GetKMSClient(keyUri)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot get KMS client for '%s'", keyUri)
+	}
+	aead, err := client.GetAEAD(keyUri)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot get AEAD for entry '%s'", keyUri)
+	}
+
 	return &BaseFS{
 		digestAlgorithms: digestAlgorithms,
 		noCompression:    noCompression,
 		aes:              aes,
-		aesKey:           aesKey,
-		aesIV:            aesIV,
+		aead:             aead,
 		logger:           logger,
 	}, nil
 }
@@ -65,7 +76,7 @@ func (b *BaseFS) GetFSRW(path string, clear bool) (ocfl.OCFLFS, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
-	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, true, b.noCompression, b.aes, b.aesKey, b.aesIV, clear, b.logger)
+	ocfs, err := NewFS(path, b.factory, b.digestAlgorithms, true, b.noCompression, b.aes, b.aead, []byte(filepath.Base(path)), clear, b.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create zipfs")
 	}
