@@ -71,19 +71,6 @@ you can use the `--deduplicate` flag (more I/O, takes longer).
 
 Using the --no-compress flag, you can disable compression of the files in the zip file.
 
-## Adding a new version to an existing OCFL Repository
-
-To add a new version to an existing OCFL Object, run the `update` command:
-
-```bash
-gocfl update ./archive.zip /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
-```
-This command adds a new version to the object `id:abc123` located in the storage root `archive.zip`.
-The object contains the new or changed files from the directory `/temp/ocfltest1`. 
-The digest is derived from the existing manifest.
-
-By default, deduplication is performed. If you want to disable deduplication, use 
-the `--no-deduplicate` flag (less I/O, faster).
 
 ## Validating an OCFL Storage Root or Object
 
@@ -111,6 +98,10 @@ To extract an object from an OCFL Repository, run the `extract` command:
 
 ```bash
 gocfl extract ./archive.zip /temp/abc123 --object-id 'id:abc123' --with-manifest
+```
+
+```bash
+gocfl extract ./storage_root /temp/abc123 --object-id 'id:abc123' --with-manifest
 ```
 
 This command extracts the object `id:abc123` from the storage root `archive.zip` to the directory `/temp/abc123`.
@@ -141,5 +132,6 @@ gocfl info ./archive.zip --object-id 'id:abc123'
 gocfl info ./storage_root --object-id 'id:abc123' 
 ```
 
-This command prints information about the object `id:abc123` from the storage root `archive.zip` to the console.
+This command prints information about the object `id:abc123` from the storage root `archive.zip` or 
+`storage_root`to the console.
 It contains the Object ID, Digest, Head Version, Number of Files

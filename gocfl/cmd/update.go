@@ -133,21 +133,23 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot load indexer MimeRelevance: %v", err)
 			return
 		}
+
 		ffmpeg, err := indexer.GetFFMPEG()
 		if err != nil {
-			daLogger.Errorf("cannot load indexer FFMPEG: %v", err)
-			return
+			daLogger.Warningf("cannot load indexer FFMPEG: %v", err)
+			//			return
 		}
 		imageMagick, err := indexer.GetImageMagick()
 		if err != nil {
-			daLogger.Errorf("cannot load indexer ImageMagick: %v", err)
-			return
+			daLogger.Warningf("cannot load indexer ImageMagick: %v", err)
+			//return
 		}
 		tika, err := indexer.GetTika()
 		if err != nil {
-			daLogger.Errorf("cannot load indexer Tika: %v", err)
-			return
+			daLogger.Warningf("cannot load indexer Tika: %v", err)
+			//return
 		}
+
 		indexerActions, err = indexer.InitActions(mimeRelevance, siegfried, ffmpeg, imageMagick, tika, daLogger)
 	}
 

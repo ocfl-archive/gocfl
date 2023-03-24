@@ -13,7 +13,7 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 	ad := ironmaiden.NewActionDispatcher(relevance)
 	signatureData, err := os.ReadFile(siegfried.Signature)
 	if err != nil {
-		logger.Warningf("no signature file provided. using default signature file. please provide a recent signature file.")
+		logger.Warningf("no siegfried signature file provided. using default signature file. please provide a recent signature file.")
 		signatureData = datasiegfried.DefaultSig
 	}
 	_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, nil, ad)
