@@ -2,11 +2,13 @@ package indexer
 
 import (
 	"emperror.dev/errors"
+	datasiegfried "github.com/je4/gocfl/v2/data/siegfried"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"html/template"
 	"net"
+	"os"
 	"time"
 )
 
@@ -54,7 +56,12 @@ func StartIndexer(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "cannot create new server")
 	}
-	_ = ironmaiden.NewActionSiegfried("siegfried", siegfried.Signature, siegfried.MimeMap, srv, ad)
+	signatureData, err := os.ReadFile(siegfried.Signature)
+	if err != nil {
+		logger.Warningf("no signature file provided. using default signature file. please provide a recent signature file.")
+		signatureData = datasiegfried.DefaultSig
+	}
+	_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, srv, ad)
 	if ffmpeg.Enabled {
 		timeout, err := time.ParseDuration(ffmpeg.Timeout)
 		if err != nil {
