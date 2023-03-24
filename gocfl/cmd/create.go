@@ -156,13 +156,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if viper.GetBool("Indexer.Enable") {
 		siegfried, err := indexer.GetSiegfried()
 		if err != nil {
-			daLogger.Errorf("cannot load indexer Siegfried: %v", err)
-			return
+			daLogger.Warningf("cannot load indexer Siegfried: %v", err)
+			//return
 		}
 		mimeRelevance, err := indexer.GetMimeRelevance()
 		if err != nil {
-			daLogger.Errorf("cannot load indexer MimeRelevance: %v", err)
-			return
+			daLogger.Warningf("cannot load indexer MimeRelevance: %v", err)
+			// return
 		}
 
 		ffmpeg, err := indexer.GetFFMPEG()

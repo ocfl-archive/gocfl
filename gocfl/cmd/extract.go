@@ -71,21 +71,21 @@ func doExtract(cmd *cobra.Command, args []string) {
 	fsFactory, err := initializeFSFactory("Extract", cmd, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	ocflFS, err := fsFactory.GetFS(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	destFS, err := fsFactory.GetFSRW(destPath, false)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", destPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
@@ -93,7 +93,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
@@ -105,20 +105,20 @@ func doExtract(cmd *cobra.Command, args []string) {
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	if destFS.HasContent() {
 		fmt.Printf("target folder '%s' is not empty\n", destFS)
-		daLogger.Errorf("target folder '%s' is not empty", destFS)
+		daLogger.Debugf("target folder '%s' is not empty", destFS)
 		return
 	}
 
 	if err := storageRoot.Extract(destFS, oPath, oID, version, withManifest); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		daLogger.Errorf("cannot extract storage root: %v\n", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	fmt.Printf("extraction done without errors\n")
