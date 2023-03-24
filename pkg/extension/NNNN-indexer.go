@@ -305,6 +305,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 		}
 	}
 	for v, _ := range inventory.GetVersions() {
+		var fs ocfl.OCFLFSRead
 		var targetname string
 		switch sl.StorageType {
 		case "area":
@@ -313,17 +314,20 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot get area path for '%s'", sl.IndexerConfig.StorageName)
 			}
 			targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, path, v, ext)
+			fs = object.GetFS()
 		case "path":
-			targetname = fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, v, ext)
+			targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
+			fs = object.GetFS()
 		case "extension":
 			targetname = strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, v, ext), "/")
+			fs = sl.fs
 		default:
 			return nil, errors.Errorf("unsupported storage type '%s'", sl.StorageType)
 		}
 
-		f, err := object.GetFS().Open(targetname)
+		f, err := fs.Open(targetname)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.Wrapf(err, "cannot open '%s/%s'", fs.String(), targetname)
 		}
 		var reader io.Reader
 		switch sl.IndexerConfig.Compress {
@@ -366,7 +370,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, source, de
 		return errors.New("Please enable indexer in config file")
 	}
 
-	result, err := sl.indexerActions.Stream(reader, source)
+	result, err := sl.indexerActions.Stream(reader, source, sl.Actions)
 	if err != nil {
 		return errors.Wrapf(err, "cannot index '%s'", source)
 	}

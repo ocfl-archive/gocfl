@@ -198,8 +198,8 @@ github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d h1:elX95ncLvCbNgkfD03
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d/go.mod h1:AU6NEns8+WYmI/UYzllN8CWM2jsIVO7jDz2FeCf7Ssw=
 github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4 h1:cDt3TzCmVaBw8TpZYKEQEOz7cWABvnP8INztQbWnAe0=
 github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4/go.mod h1:1QF1LW78M8U1BwiAxEDV1RrrjwJA2B7Fuk0omqTkxCQ=
-github.com/je4/indexer/v2 v2.0.0-20230323123016-c2d8e7e7fa5e h1:42MfVx/98JGDNFkthtM1NaPWAOXAdpBvpHIU/YnFhcY=
-github.com/je4/indexer/v2 v2.0.0-20230323123016-c2d8e7e7fa5e/go.mod h1:Nu3Hp55xLYA1m4O4Xpc6NEVEXl9Y8wX5gM+GqvvOuBA=
+github.com/je4/indexer/v2 v2.0.0-20230324093516-1af9c038b02e h1:0azdSbPMs2DHeq9aUEHbP9NUUsRkhWSdI+Gr49Oi8Dw=
+github.com/je4/indexer/v2 v2.0.0-20230324093516-1af9c038b02e/go.mod h1:Nu3Hp55xLYA1m4O4Xpc6NEVEXl9Y8wX5gM+GqvvOuBA=
 github.com/je4/utils/v2 v2.0.8-0.20230323112149-25d8c0f590af h1:Cy2lsXKKPGUvEnaDbcq9LVSk+PmmEjDu2tzT8DYddsU=
 github.com/je4/utils/v2 v2.0.8-0.20230323112149-25d8c0f590af/go.mod h1:27QGPEmnY2JasMHvFgfvvlhtk1U50k+xOMeyaAH3X3o=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=

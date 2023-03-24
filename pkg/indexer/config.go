@@ -38,6 +38,9 @@ func GetFFMPEG() (*FFMPEG, error) {
 		Enabled: viper.GetBool("Indexer.FFMPEG.Enabled"),
 		Mime:    []ironmaiden.FFMPEGMime{},
 	}
+	if ffmpeg.FFProbe == "" {
+		return nil, errors.New("Indexer.FFMPEG not configured")
+	}
 	mimesInterface := viper.Get("Indexer.FFMPEG.Mime")
 	mimeSlice, ok := mimesInterface.([]any)
 	if !ok {
@@ -144,6 +147,9 @@ func GetImageMagick() (*ImageMagick, error) {
 		Online:   viper.GetBool("Indexer.ImageMagick.Online"),
 		Enabled:  viper.GetBool("Indexer.ImageMagick.Enabled"),
 	}
+	if im.Convert == "" {
+		return nil, errors.New("Indexer.ImageMagick is not configured")
+	}
 	return im, nil
 }
 
@@ -170,6 +176,9 @@ func GetTika() (*Tika, error) {
 		Timeout:               viper.GetString("Indexer.Tika.Timeout"),
 		Online:                viper.GetBool("Indexer.Tika.Online"),
 		Enabled:               viper.GetBool("Indexer.Tika.Enabled"),
+	}
+	if im.AddressMeta == "" {
+		return nil, errors.New("Indexer.Tika is not configured")
 	}
 	return im, nil
 }

@@ -125,12 +125,20 @@ To extract metadata from an OCFL Object, run the `extractmeta` command:
 gocfl extractmeta ./archive.zip --object-id 'id:abc123' --format json --output /temp/abc123.json
 ```
 
+```bash
+gocfl extractmeta ./storage_root --object-id 'id:abc123' --format json --output /temp/abc123.json
+```
+
 ## Extracting Information from an OCFL Storage Root or Object
 
 To extract information from an OCFL Object, run the `info` command:
 
 ```bash
 gocfl info ./archive.zip --object-id 'id:abc123' 
+```
+
+```bash
+gocfl info ./storage_root --object-id 'id:abc123' 
 ```
 
 This command prints information about the object `id:abc123` from the storage root `archive.zip` to the console.

@@ -55,6 +55,7 @@ helpful. It is an aid to reporting as well as to preservation management.
         * **ffprobe:** [ffmpeg](https://ffmpeg.org/) for audio/video metadata extraction
         * **identify:** [Image Magick](https://imagemagick.org/) for image metadata extraction
         * **tika:** [Tika](https://tika.apache.org/) for metadata extraction of office files, pdf etc.
+        * **fulltext:** [Tika](https://tika.apache.org/) for fulltext extraction of pdf files
         * **...**
     * **Type:** array of strings
     * **Default:**

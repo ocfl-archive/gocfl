@@ -2,15 +2,22 @@ package indexer
 
 import (
 	"emperror.dev/errors"
+	datasiegfried "github.com/je4/gocfl/v2/data/siegfried"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/op/go-logging"
+	"os"
 	"time"
 )
 
 func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger *logging.Logger) (*ironmaiden.ActionDispatcher, error) {
 	ad := ironmaiden.NewActionDispatcher(relevance)
-	_ = ironmaiden.NewActionSiegfried("siegfried", siegfried.Signature, siegfried.MimeMap, nil, ad)
-	if ffmpeg.Enabled {
+	signatureData, err := os.ReadFile(siegfried.Signature)
+	if err != nil {
+		logger.Warningf("no signature file provided. using default signature file. please provide a recent signature file.")
+		signatureData = datasiegfried.DefaultSig
+	}
+	_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, nil, ad)
+	if ffmpeg != nil && ffmpeg.Enabled {
 		timeout, err := time.ParseDuration(ffmpeg.Timeout)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse ffmpeg timeout '%s'", ffmpeg.Timeout)
@@ -25,20 +32,14 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 			nil,
 			ad)
 	}
-	if magick.Enabled {
+	if magick != nil && magick.Enabled {
 		timeout, err := time.ParseDuration(magick.Timeout)
-		/*
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
-			}
-			_ = ironmaiden.NewActionIdentify("identify", magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, nil)
-		*/
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
 		_ = ironmaiden.NewActionIdentifyV2("identify", magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, nil, ad)
 	}
-	if tika.Enabled {
+	if tika != nil && tika.Enabled {
 		timeout, err := time.ParseDuration(tika.Timeout)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
