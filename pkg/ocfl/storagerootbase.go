@@ -64,18 +64,18 @@ func (osr *StorageRootBase) setModified() {
 	osr.modified = true
 }
 
-func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
+func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fsRO)
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
-	addValidationErrors(osr.ctx, valError)
+	return errors.WithStack(addValidationErrors(osr.ctx, valError))
 }
 
-func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
+func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%s' ", osr.fsRO)
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
-	addValidationWarnings(osr.ctx, valError)
+	return errors.WithStack(addValidationWarnings(osr.ctx, valError))
 }
 
 func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, extensions []Extension) error {
@@ -93,18 +93,21 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		return errors.Wrap(err, "cannot read storage root directory")
 	}
 	if len(entities) > 0 {
-		osr.addValidationError(E069, "storage root not empty")
+		if err := osr.addValidationError(E069, "storage root not empty"); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %v", E069)
+		}
 		return errors.Wrapf(GetValidationError(version, E069), "storage root %v not empty", osr.fsRW)
 	}
 
 	rootConformanceDeclaration := "ocfl_" + string(osr.version)
 	rootConformanceDeclarationFile := "0=" + rootConformanceDeclaration
+
 	rcd, err := osr.fsRW.Create(rootConformanceDeclarationFile)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create %s", rootConformanceDeclarationFile)
 	}
 	if _, err := rcd.Write([]byte(rootConformanceDeclaration + "\n")); err != nil {
-		rcd.Close()
+		_ = rcd.Close()
 		return errors.Wrapf(err, "cannot write into '%s'", rootConformanceDeclarationFile)
 	}
 	if err := rcd.Close(); err != nil {
@@ -130,12 +133,16 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		if _, err := extDocFile.Write(extDocFileContent); err != nil {
 			return errors.Wrapf(err, "cannot write extension doc %s", extDoc.Name())
 		}
-		extDocFile.Close()
+		if err := extDocFile.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close extension doc %s", extDoc.Name())
+		}
 	}
 
 	for _, ext := range extensions {
 		if !ext.IsRegistered() {
-			osr.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+			if err := osr.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName()); err != nil {
+				return errors.Wrapf(err, "cannot add validation warning %v", W013)
+			}
 		}
 		if err := osr.extensionManager.Add(ext); err != nil {
 			return errors.Wrapf(err, "cannot add extension %s", ext.GetName())
@@ -164,13 +171,23 @@ func (osr *StorageRootBase) Load() error {
 	if err != nil {
 		switch err {
 		case errVersionNone:
-			osr.addValidationError(E003, "no version declaration file")
-			osr.addValidationError(E004, "no version declaration file")
-			osr.addValidationError(E005, "no version declaration file")
+			if err := osr.addValidationError(E003, "no version declaration file"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", E003)
+			}
+			if err := osr.addValidationError(E004, "no version declaration file"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", E004)
+			}
+			if err := osr.addValidationError(E005, "no version declaration file"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", E005)
+			}
 		case errVersionMultiple:
-			osr.addValidationError(E003, "multiple version declaration files")
+			if err := osr.addValidationError(E003, "multiple version declaration files"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", E003)
+			}
 		case errInvalidContent:
-			osr.addValidationError(E006, "invalid content")
+			if err := osr.addValidationError(E006, "invalid content"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", E006)
+			}
 		default:
 			return errors.WithStack(err)
 		}
@@ -193,11 +210,15 @@ func (osr *StorageRootBase) Load() error {
 		}
 
 		if ext, err := osr.extensionFactory.Create(subfs); err != nil {
-			osr.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder)
+			if err := osr.addValidationWarning(W000, "unknown extension in folder '%s'", extFolder); err != nil {
+				return errors.Wrapf(err, "cannot add validation warning %v", W000)
+			}
 			//return errors.Wrapf(err, "cannot create extension for config '%s'", extFolder)
 		} else {
 			if !ext.IsRegistered() {
-				osr.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+				if err := osr.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName()); err != nil {
+					return errors.Wrapf(err, "cannot add validation warning %v", W013)
+				}
 			}
 			if err := osr.extensionManager.Add(ext); err != nil {
 				return errors.Wrapf(err, "cannot add extension '%s' to manager", extFolder)
@@ -338,7 +359,9 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	version, err := getVersion(osr.ctx, osr.fsRO, folder, "ocfl_object_")
 	if err == errVersionNone {
-		osr.addValidationError(E003, "no version in folder '%s'", folder)
+		if err := osr.addValidationError(E003, "no version in folder '%s'", folder); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", E003)
+		}
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in '%s'", folder)
@@ -358,15 +381,21 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 
 	versionFloat, err := strconv.ParseFloat(string(version), 64)
 	if err != nil {
-		osr.addValidationError(E004, "invalid object version number '%s'", version)
+		if err := osr.addValidationError(E004, "invalid object version number '%s'", version); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", E004)
+		}
 	}
 	rootVersionFloat, err := strconv.ParseFloat(string(osr.version), 64)
 	if err != nil {
-		osr.addValidationError(E075, "invalid root version number '%s'", version)
+		if err := osr.addValidationError(E075, "invalid root version number '%s'", version); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", E075)
+		}
 	}
 	// TODO: check. could not find this rule in standard
 	if versionFloat > rootVersionFloat {
-		osr.addValidationError(E000, "root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version)
+		if err := osr.addValidationError(E000, "root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", E000)
+		}
 	}
 
 	return object, nil
@@ -441,7 +470,9 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
 				// more than one version file is confusing...
 				if version != "" {
-					osr.addValidationError(E076, "additional version file '%s' in storage root", file.Name())
+					if err := osr.addValidationError(E076, "additional version file '%s' in storage root", file.Name()); err != nil {
+						return errors.Wrapf(err, "cannot add validation error %s", E076)
+					}
 				} else {
 					version = OCFLVersion(matches[1])
 				}
@@ -452,8 +483,12 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 	}
 	// no version found
 	if version == "" {
-		osr.addValidationError(E076, "no version file in storage root")
-		osr.addValidationError(E077, "no version file in storage root")
+		if err := osr.addValidationError(E076, "no version file in storage root"); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", E076)
+		}
+		if err := osr.addValidationError(E077, "no version file in storage root"); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", E077)
+		}
 	} else {
 		osr.version = version
 	}
@@ -463,7 +498,9 @@ func (osr *StorageRootBase) CheckObjectByFolder(objectFolder string) error {
 	fmt.Printf("object folder '%s'\n", objectFolder)
 	object, err := osr.LoadObjectByFolder(objectFolder)
 	if err != nil {
-		osr.addValidationError(E001, "invalid folder '%s': %v", objectFolder, err)
+		if err := osr.addValidationError(E001, "invalid folder '%s': %v", objectFolder, err); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", E001)
+		}
 		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
 	} else {
 		if err := object.Check(); err != nil {
@@ -477,7 +514,9 @@ func (osr *StorageRootBase) CheckObjectByID(objectID string) error {
 	fmt.Printf("object id '%s'\n", objectID)
 	object, err := osr.LoadObjectByID(objectID)
 	if err != nil {
-		osr.addValidationError(E001, "invalid id '%s': %v", objectID, err)
+		if err := osr.addValidationError(E001, "invalid id '%s': %v", objectID, err); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", E001)
+		}
 		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
 	} else {
 		if err := object.Check(); err != nil {
@@ -501,17 +540,27 @@ func (osr *StorageRootBase) CheckObjects() error {
 }
 
 func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo []StatInfo) error {
-	fmt.Fprintf(w, "Storage Root\n")
-	fmt.Fprintf(w, "OCFL Version: %s\n", osr.GetVersion())
+	if _, err := fmt.Fprintf(w, "Storage Root\n"); err != nil {
+		return errors.Wrap(err, "cannot write to writer")
+	}
+	if _, err := fmt.Fprintf(w, "OCFL Version: %s\n", osr.GetVersion()); err != nil {
+		return errors.Wrap(err, "cannot write to writer")
+	}
 	if slices.Contains(statInfo, StatExtensionConfigs) || len(statInfo) == 0 {
 		data, err := json.MarshalIndent(osr.extensionManager.ExtensionManagerConfig, "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
 		}
-		fmt.Fprintf(w, "Initial Extension:\n---\n%s\n---\n", string(data))
-		fmt.Fprintf(w, "Extension Configurations:\n")
+		if _, err := fmt.Fprintf(w, "Initial Extension:\n---\n%s\n---\n", string(data)); err != nil {
+			return errors.Wrap(err, "cannot write to writer")
+		}
+		if _, err := fmt.Fprintf(w, "Extension Configurations:\n"); err != nil {
+			return errors.Wrap(err, "cannot write to writer")
+		}
 		for _, ext := range osr.extensionManager.extensions {
-			fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString())
+			if _, err := fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString()); err != nil {
+				return errors.Wrap(err, "cannot write to writer")
+			}
 		}
 	}
 
@@ -520,16 +569,24 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 		if err != nil {
 			return errors.Wrap(err, "cannot get object folders")
 		}
-		fmt.Fprintf(w, "Object Folders: %s\n", strings.Join(objectFolders, ", "))
+		if _, err := fmt.Fprintf(w, "Object Folders: %s\n", strings.Join(objectFolders, ", ")); err != nil {
+			return errors.Wrap(err, "cannot write to writer")
+		}
 		data, err := json.MarshalIndent(osr.extensionManager.ExtensionManagerConfig, "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerconfig")
 		}
 		if slices.Contains(statInfo, StatExtensionConfigs) || len(statInfo) == 0 {
-			fmt.Fprintf(w, "Initial Extension:\n---\n%s\n---\n", string(data))
-			fmt.Fprintf(w, "Extension Configurations:\n")
+			if _, err := fmt.Fprintf(w, "Initial Extension:\n---\n%s\n---\n", string(data)); err != nil {
+				return errors.Wrap(err, "cannot write to writer")
+			}
+			if _, err := fmt.Fprintf(w, "Extension Configurations:\n"); err != nil {
+				return errors.Wrap(err, "cannot write to writer")
+			}
 			for _, ext := range osr.extensionManager.extensions {
-				fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString())
+				if _, err := fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString()); err != nil {
+					return errors.Wrap(err, "cannot write to writer")
+				}
 			}
 		}
 		if slices.Contains(statInfo, StatObjects) || len(statInfo) == 0 {
@@ -538,7 +595,9 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 				if err != nil {
 					return errors.Wrapf(err, "cannot open object in folder '%s'", oFolder)
 				}
-				fmt.Fprintf(w, "Object: %s\n", oFolder)
+				if _, err := fmt.Fprintf(w, "Object: %s\n", oFolder); err != nil {
+					return errors.Wrap(err, "cannot write to writer")
+				}
 				if err := o.Stat(w, statInfo); err != nil {
 					return errors.Wrapf(err, "cannot show stats for object in folder '%s'", oFolder)
 				}
@@ -553,10 +612,14 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 			o, err = osr.LoadObjectByID(id)
 		}
 		if err != nil {
-			fmt.Fprintf(w, "cannot load object '%s%s': %v\n", path, id, err)
+			if _, err := fmt.Fprintf(w, "cannot load object '%s%s': %v\n", path, id, err); err != nil {
+				return errors.Wrap(err, "cannot write to writer")
+			}
 			return errors.Wrapf(err, "cannot load object '%s%s'", path, id)
 		}
-		fmt.Fprintf(w, "Object: %s%s\n", path, id)
+		if _, err := fmt.Fprintf(w, "Object: %s%s\n", path, id); err != nil {
+			return errors.Wrap(err, "cannot write to writer")
+		}
 		if err := o.Stat(w, statInfo); err != nil {
 			return errors.Wrapf(err, "cannot show stats for object '%s%s'", path, id)
 		}
