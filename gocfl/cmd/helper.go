@@ -317,6 +317,9 @@ func addObjectByPath(
 			}
 		}
 	}
+	if err := o.EndUpdate(); err != nil {
+		return false, errors.Wrapf(err, "cannot end update for object '%s'", id)
+	}
 
 	if err := o.Close(); err != nil {
 		return false, errors.Wrapf(err, "cannot close object '%s'", id)

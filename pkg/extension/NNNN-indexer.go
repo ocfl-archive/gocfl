@@ -254,12 +254,12 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	switch sl.StorageType {
 	case "area":
 		targetname := fmt.Sprintf("indexer_%s.jsonl%s", object.GetInventory().GetHead(), ext)
-		if err := object.AddReader(io.NopCloser(reader), targetname, sl.IndexerConfig.StorageName); err != nil {
+		if err := object.AddReader(io.NopCloser(reader), targetname, sl.IndexerConfig.StorageName, true); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
 		targetname := fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, object.GetInventory().GetHead(), ext)
-		if err := object.AddReader(io.NopCloser(reader), targetname, "content"); err != nil {
+		if err := object.AddReader(io.NopCloser(reader), targetname, "content", true); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
@@ -284,7 +284,9 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 }
 
 func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	var err error
 	var result = map[string]any{}
+
 	var ext string
 	switch sl.IndexerConfig.Compress {
 	case "brotli":
@@ -325,22 +327,29 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			return nil, errors.Errorf("unsupported storage type '%s'", sl.StorageType)
 		}
 
-		f, err := fs.Open(targetname)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot open '%s/%s'", fs.String(), targetname)
-		}
 		var reader io.Reader
-		switch sl.IndexerConfig.Compress {
-		case "brotli":
-			reader = brotli.NewReader(f)
-		case "gzip":
-			reader, err = gzip.NewReader(f)
+		var f io.ReadCloser
+		// if we are on the head and the buffer is not empty, we need to read from the buffer
+		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
+			// need a new reader on the buffer
+			reader = bytes.NewBuffer(sl.buffer.Bytes())
+		} else {
+			f, err = fs.Open(targetname)
 			if err != nil {
-				f.Close()
-				return nil, errors.Wrapf(err, "cannot open gzip reader on '%s'", targetname)
+				return nil, errors.Wrapf(err, "cannot open '%s/%s'", fs.String(), targetname)
 			}
-		case "none":
-			reader = f
+			switch sl.IndexerConfig.Compress {
+			case "brotli":
+				reader = brotli.NewReader(f)
+			case "gzip":
+				reader, err = gzip.NewReader(f)
+				if err != nil {
+					f.Close()
+					return nil, errors.Wrapf(err, "cannot open gzip reader on '%s'", targetname)
+				}
+			case "none":
+				reader = f
+			}
 		}
 		r := bufio.NewScanner(reader)
 		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
@@ -357,7 +366,9 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 		if err := r.Err(); err != nil {
 			return nil, errors.Wrapf(err, "cannot scan lines from '%s'", targetname)
 		}
-		f.Close()
+		if f != nil {
+			f.Close()
+		}
 	}
 	return result, nil
 }

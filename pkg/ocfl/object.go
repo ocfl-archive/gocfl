@@ -18,11 +18,12 @@ type Object interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
 	Load() error
 	StartUpdate(msg string, UserName string, UserAddress string, echo bool) error
+	EndUpdate() error
 	BeginArea(area string)
 	EndArea() error
 	AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error
-	AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string) error
-	AddReader(r io.ReadCloser, internalFilename string, area string) error
+	AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string, noExtensionHook bool) error
+	AddReader(r io.ReadCloser, path string, area string, noExtensionHook bool) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
