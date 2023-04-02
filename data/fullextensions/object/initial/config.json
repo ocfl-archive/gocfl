@@ -1,6 +1,10 @@
 {
   "extensionName": "NNNN-gocfl-extension-manager",
   "sort": {
+    "ObjectChange": [
+      "NNNN-indexer",
+      "NNNN-migration"
+    ],
     "ObjectContentPath": [
       "NNNN-direct-clean-path-layout",
       "NNNN-content-subpath"

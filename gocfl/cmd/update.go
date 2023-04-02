@@ -6,6 +6,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/indexer"
+	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -205,8 +206,15 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	mig, err := migration.GetMigrations()
+	if err != nil {
+		daLogger.Errorf("cannot get migrations: %v", err)
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, mig, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

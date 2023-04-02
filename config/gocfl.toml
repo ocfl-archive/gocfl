@@ -171,6 +171,48 @@ Format = "json"
 # --output
 Output = ""
 
+[Migration]
+# --with-migration
+Enable=true
+
+[Migration.Function.PDFA]
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 -sOutputFile=%stdout pdfa_def.ps -"
+Strategy = "replace"
+FilenameRegexp = "^(.+)$"
+FilenameReplacement = "$1"
+
+[Migration.Source]
+"fmt/14" = "PDFA" # Acrobat PDF 1.0 - Portable Document Format
+"fmt/15" = "PDFA" # Acrobat PDF 1.1 - Portable Document Format
+"fmt/16" = "PDFA" # Acrobat PDF 1.2 - Portable Document Format
+"fmt/17" = "PDFA" # Acrobat PDF 1.3 - Portable Document Format
+"fmt/18" = "PDFA" # Acrobat PDF 1.4 - Portable Document Format
+"fmt/19" = "PDFA" # Acrobat PDF 1.5 - Portable Document Format
+"fmt/20" = "PDFA" # Acrobat PDF 1.6 - Portable Document Format
+"fmt/276" = "PDFA" # Acrobat PDF 1.7 - Portable Document Format
+"fmt/95" = "PDFA" # Acrobat PDF/A - Portable Document Format	1a
+"fmt/354" = "PDFA" # Acrobat PDF/A - Portable Document Format	1b
+# "fmt/476" = "PDFA" # Acrobat PDF/A - Portable Document Format	2a
+# "fmt/477" = "PDFA" # Acrobat PDF/A - Portable Document Format	2b
+# "fmt/478" = "PDFA" # Acrobat PDF/A - Portable Document Format	2u
+# "fmt/479" = "PDFA" # Acrobat PDF/A - Portable Document Format	3a
+# "fmt/480" = "PDFA" # Acrobat PDF/A - Portable Document Format	3b
+# "fmt/481" = "PDFA" # Acrobat PDF/A - Portable Document Format	3u
+"fmt/493" = "PDFA" # Acrobat PDF/E - Portable Document Format for Engineering PDF/E-1
+"fmt/144" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 1:1999
+"fmt/145" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 2:2001
+"fmt/157" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 1a:2001
+"fmt/146" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 1a:2003
+"fmt/147" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 2:2002
+"fmt/158" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 3:2002
+"fmt/148" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange 3:2003
+"fmt/488" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4
+"fmt/489" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4p
+"fmt/490" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5g
+"fmt/492" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5n
+"fmt/491" = "PDFA" # Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
+"fmt/1129" = "PDFA" # PDF 2.0 - Portable Document Format - 2.0
+"fmt/1451" = "PDFA" # PDF Portfolio - 1.7
 
 [Indexer]
 # --with-indexer

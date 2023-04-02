@@ -13,6 +13,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/baseFS/s3fs"
 	"github.com/je4/gocfl/v2/pkg/baseFS/zipfs"
 	"github.com/je4/gocfl/v2/pkg/extension"
+	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -46,7 +47,7 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, sourceFS ocfl.OCFLFSRead, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, sourceFS ocfl.OCFLFSRead, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
 	logger.Debugf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
@@ -120,6 +121,11 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
 		}
 		return ext, nil
+	})
+
+	logger.Debugf("adding creator for extension %s", extension.MigrationName)
+	extensionFactory.AddCreator(extension.MigrationName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+		return extension.NewMigrationFS(fsys, migration)
 	})
 
 	return extensionFactory, nil

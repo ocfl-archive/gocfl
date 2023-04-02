@@ -1,9 +1,14 @@
 package extension
 
 import (
+	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
+	"fmt"
+	"github.com/andybalholm/brotli"
+	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"io"
 	"regexp"
 )
 
@@ -18,10 +23,11 @@ type MigrationConfig struct {
 }
 
 type MigrationTarget struct {
-	Name         string
-	CreationType string        // add or replace
-	TargetName   regexp.Regexp // target expression
-	Command      string        // command to execute (stdin --> stdout)
+	Name            string
+	Strategy        string        // add or replace
+	FilenameRegexp  regexp.Regexp // target expression
+	FilenameReplace string        // replacement string
+	Command         string        // command to execute (stdin --> stdout)
 }
 
 // map pronom to migration
@@ -33,9 +39,45 @@ type MigrationFiles map[string]*MigrationTarget
 type Migration struct {
 	*MigrationConfig
 	fs             ocfl.OCFLFSRead
-	migrationMap   MigrationMap
-	migrationFiles MigrationFiles
 	lastHead       string
+	migration      *migration.Migration
+	buffer         *bytes.Buffer
+	writer         *brotli.Writer
+	migrationFiles map[string]*migration.Function
+}
+
+func NewMigrationFS(fs ocfl.OCFLFSRead, migration *migration.Migration) (*Migration, error) {
+	fp, err := fs.Open("config.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot open config.json")
+	}
+	defer fp.Close()
+	data, err := io.ReadAll(fp)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read config.json")
+	}
+
+	var config = &MigrationConfig{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	ext, err := NewMigration(config, migration)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create new indexer")
+	}
+	return ext, nil
+}
+func NewMigration(config *MigrationConfig, migration *migration.Migration) (*Migration, error) {
+	sl := &Migration{
+		MigrationConfig: config,
+		migration:       migration,
+		buffer:          bytes.NewBuffer(nil),
+	}
+	sl.writer = brotli.NewWriter(sl.buffer)
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	}
+	return sl, nil
 }
 
 func (mi *Migration) GetConfigString() string {
@@ -102,9 +144,10 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 		if !ok {
 			continue
 		}
-		migration, ok := mi.migrationMap[pronom]
-		if !ok {
+		migration, err := mi.migration.GetFunctionByPronom(pronom)
+		if err != nil {
 			continue
+			//return errors.Wrapf(err, "cannot get migration function for pronom %s", pronom)
 		}
 		mi.migrationFiles[cs] = migration
 	}

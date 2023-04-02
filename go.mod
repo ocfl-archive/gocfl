@@ -8,6 +8,7 @@ require (
 	github.com/andybalholm/brotli v1.0.5
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
 	github.com/google/martian v2.1.0+incompatible
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
 	github.com/je4/indexer/v2 v2.0.0-20230324093516-1af9c038b02e
 	github.com/je4/utils/v2 v2.0.8-0.20230323112149-25d8c0f590af
