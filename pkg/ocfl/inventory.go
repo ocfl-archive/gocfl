@@ -20,12 +20,13 @@ type Inventory interface {
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
-	DeleteFile(virtualFilename string) error
+	DeleteFile(stateFilename string) error
 	//Rename(oldVirtualFilename, newVirtualFilename string) error
-	AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error
+	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	CopyFile(dest string, digest string) error
 
-	IterateExternalFiles(version string, fn func(internal, external, digest string) error) error
+	IterateStateFiles(version string, fn func(internal, external, digest string) error) error
+	GetStateFiles(version string, cs string) ([]string, error)
 
 	//GetContentDirectory() string
 	GetVersionStrings() []string
@@ -38,10 +39,10 @@ type Inventory interface {
 	GetFixityDigestAlgorithm() []checksum.DigestAlgorithm
 	IsWriteable() bool
 	IsModified() bool
-	BuildRealname(virtualFilename string) string
+	BuildManifestName(stateFilename string) string
 	NewVersion(msg, UserName, UserAddress string) error
 	GetDuplicates(checksum string) []string
-	AlreadyExists(virtualFilename, checksum string) (bool, error)
+	AlreadyExists(stateFilename, checksum string) (bool, error)
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)
 	Clean() error
 

@@ -260,6 +260,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	mig.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd)
 	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, mig, sourceFS, daLogger)

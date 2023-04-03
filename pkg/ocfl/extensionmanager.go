@@ -27,6 +27,7 @@ type ExtensionManager struct {
 	metadata           []ExtensionMetadata
 	area               []ExtensionArea
 	stream             []ExtensionStream
+	newVersion         []ExtensionNewVersion
 	fs                 OCFLFSRead
 }
 
@@ -100,6 +101,9 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	}
 	if stream, ok := ext.(ExtensionStream); ok {
 		manager.stream = append(manager.stream, stream)
+	}
+	if newversion, ok := ext.(ExtensionNewVersion); ok {
+		manager.newVersion = append(manager.newVersion, newversion)
 	}
 	return nil
 }
@@ -217,6 +221,7 @@ func (manager *ExtensionManager) Finalize() {
 	manager.metadata = organize(manager, manager.metadata, ExtensionMetadataName)
 	manager.area = organize(manager, manager.area, ExtensionAreaName)
 	manager.stream = organize(manager, manager.stream, ExtensionStreamName)
+	manager.newVersion = organize(manager, manager.newVersion, ExtensionNewVersionName)
 }
 
 // Extension
@@ -311,10 +316,10 @@ func (manager *ExtensionManager) SetParams(params map[string]string) error {
 }
 
 // ObjectContentPath
-func (manager *ExtensionManager) BuildObjectContentPath(object Object, originalPath string, area string) (string, error) {
+func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
-		p, err := ocp.BuildObjectContentPath(object, originalPath, area)
+		p, err := ocp.BuildObjectStatePath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -375,7 +380,7 @@ func (manager *ExtensionManager) DeleteFileBefore(object Object, dest string) er
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead, source, internalPath, digest string) error {
+func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead, source []string, internalPath, digest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest); err != nil {
@@ -487,8 +492,31 @@ func (manager *ExtensionManager) GetAreaPath(object Object, area string) (string
 	return "", errors.Combine(errs...)
 }
 
+// NewVersion
+func (manager *ExtensionManager) NeedNewVersion(object Object) (bool, error) {
+	for _, ext := range manager.newVersion {
+		need, err := ext.NeedNewVersion(object)
+		if err != nil {
+			return false, errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
+		}
+		if need {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (manager *ExtensionManager) DoNewVersion(object Object) error {
+	for _, ext := range manager.newVersion {
+		if err := ext.DoNewVersion(object); err != nil {
+			return errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
+		}
+	}
+	return nil
+}
+
 // Stream
-func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, source, dest string) error {
+func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(manager.stream) == 0 {
 		_, _ = io.Copy(io.Discard, reader)
 		return nil
@@ -502,7 +530,7 @@ func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, s
 		writer = append(writer, iou.NewWriteIgnoreCloser(pw))
 		go func(r io.Reader, extension ExtensionStream) {
 			defer wg.Done()
-			if err := extension.StreamObject(object, r, source, dest); err != nil {
+			if err := extension.StreamObject(object, r, stateFiles, dest); err != nil {
 				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", extension.GetName(), object.GetID())
 			}
 			// discard remaining data
@@ -550,4 +578,5 @@ var (
 	_ ExtensionMetadata           = (*ExtensionManager)(nil)
 	_ ExtensionArea               = (*ExtensionManager)(nil)
 	_ ExtensionStream             = (*ExtensionManager)(nil)
+	_ ExtensionNewVersion         = (*ExtensionManager)(nil)
 )

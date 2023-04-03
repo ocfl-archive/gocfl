@@ -20,3 +20,7 @@ func newObjectV1_1(ctx context.Context, fs OCFLFSRead, storageRoot StorageRoot, 
 	obv11 := &ObjectV1_1{ObjectBase: ob}
 	return obv11, nil
 }
+
+var (
+	_ Object = &ObjectV1_1{}
+)

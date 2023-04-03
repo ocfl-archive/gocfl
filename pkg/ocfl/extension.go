@@ -31,11 +31,12 @@ const (
 	ExtensionMetadataName           = "Metadata"
 	ExtensionAreaName               = "Area"
 	ExtensionStreamName             = "Stream"
+	ExtensionNewVersionName         = "NewVersion"
 )
 
 type ExtensionStream interface {
 	Extension
-	StreamObject(object Object, reader io.Reader, source, dest string) error
+	StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error
 }
 
 type ExtensionStorageRootPath interface {
@@ -46,7 +47,7 @@ type ExtensionStorageRootPath interface {
 
 type ExtensionObjectContentPath interface {
 	Extension
-	BuildObjectContentPath(object Object, originalPath string, area string) (string, error)
+	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
 }
 
 var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
@@ -66,7 +67,7 @@ type ExtensionContentChange interface {
 	AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
 	UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
 	DeleteFileBefore(object Object, dest string) error
-	AddFileAfter(object Object, sourceFS OCFLFSRead, source, internalPath, digest string) error
+	AddFileAfter(object Object, sourceFS OCFLFSRead, source []string, internalPath, digest string) error
 	UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error
 	DeleteFileAfter(object Object, dest string) error
 }
@@ -90,4 +91,10 @@ type ExtensionMetadata interface {
 type ExtensionArea interface {
 	Extension
 	GetAreaPath(object Object, area string) (string, error)
+}
+
+type ExtensionNewVersion interface {
+	Extension
+	NeedNewVersion(object Object) (bool, error)
+	DoNewVersion(object Object) error
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/indexer/v2/pkg/indexer"
 	"io"
 	"regexp"
 )
@@ -44,6 +45,8 @@ type Migration struct {
 	buffer         *bytes.Buffer
 	writer         *brotli.Writer
 	migrationFiles map[string]*migration.Function
+	migratedFiles  map[string]map[string]string
+	sourceFS       ocfl.OCFLFSRead
 }
 
 func NewMigrationFS(fs ocfl.OCFLFSRead, migration *migration.Migration) (*Migration, error) {
@@ -67,15 +70,20 @@ func NewMigrationFS(fs ocfl.OCFLFSRead, migration *migration.Migration) (*Migrat
 	}
 	return ext, nil
 }
-func NewMigration(config *MigrationConfig, migration *migration.Migration) (*Migration, error) {
+func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
 	sl := &Migration{
 		MigrationConfig: config,
-		migration:       migration,
+		migration:       mig,
 		buffer:          bytes.NewBuffer(nil),
+		migrationFiles:  map[string]*migration.Function{},
+		migratedFiles:   map[string]map[string]string{},
 	}
 	sl.writer = brotli.NewWriter(sl.buffer)
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	}
+	if mig != nil {
+		sl.sourceFS = mig.SourceFS
 	}
 	return sl, nil
 }
@@ -121,6 +129,15 @@ func (mi *Migration) UpdateObjectBefore(object ocfl.Object) error {
 	return nil
 }
 
+func (mi *Migration) alreadyMigrated(cs string) bool {
+	for _, mf := range mi.migratedFiles {
+		if _, ok := mf[cs]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 	// first get the metadata from the object
 	meta, err := object.GetMetadata()
@@ -128,27 +145,30 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.Wrapf(err, "cannot get metadata from object %s", object.GetID())
 	}
 	for cs, m := range meta.Files {
-		indexerMetaAny, ok := m.Extension["indexer"]
+		indexerMetaAny, ok := m.Extension[IndexerName]
 		if !ok {
 			continue
 		}
-		indexerMeta, ok := indexerMetaAny.(map[string]interface{})
+		indexerMeta, ok := indexerMetaAny.(*indexer.ResultV2)
 		if !ok {
 			continue
 		}
-		pronomAny, ok := indexerMeta["pronom"]
-		if !ok {
-			continue
-		}
-		pronom, ok := pronomAny.(string)
-		if !ok {
-			continue
-		}
-		migration, err := mi.migration.GetFunctionByPronom(pronom)
+		migration, err := mi.migration.GetFunctionByPronom(indexerMeta.Pronom)
 		if err != nil {
 			continue
 			//return errors.Wrapf(err, "cannot get migration function for pronom %s", pronom)
 		}
+		if mi.alreadyMigrated(cs) {
+			continue
+		}
+		if migrationMetaAny, ok := m.Extension[MigrationName]; ok {
+			if migrationMetaMap, ok := migrationMetaAny.(map[string]any); ok {
+				if _, ok := migrationMetaMap[cs]; ok {
+					continue
+				}
+			}
+		}
+
 		mi.migrationFiles[cs] = migration
 	}
 	inventory := object.GetInventory()
@@ -159,7 +179,92 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
+func (mi *Migration) NeedNewVersion(object ocfl.Object) (bool, error) {
+	return len(mi.migrationFiles) > 0, nil
+}
+
+func (mi *Migration) DoNewVersion(object ocfl.Object) error {
+	var err error
+	inventory := object.GetInventory()
+	//files := inventory.GetFiles()
+	head := inventory.GetHead()
+	manifest := inventory.GetManifest()
+	if _, ok := mi.migratedFiles[head]; !ok {
+		mi.migratedFiles[head] = map[string]string{}
+	}
+	for cs, mig := range mi.migrationFiles {
+		// todo: do it more efficient
+		var found = false
+		for _, mf := range mi.migratedFiles {
+			if _, ok := mf[cs]; ok {
+				found = true
+			}
+		}
+		if found {
+			continue
+		}
+
+		var targetNames = []string{}
+
+		manifestFiles, ok := manifest[cs]
+		if !ok {
+			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, object.GetID())
+		}
+		for _, f := range manifestFiles {
+			targetNames = append(targetNames, mig.GetDestinationName(f))
+		}
+
+		var file io.ReadCloser
+		fs := object.GetFS()
+		if fs != nil {
+			file, err = fs.Open(manifestFiles[0])
+			if err != nil {
+				file = nil
+			}
+		}
+		if file == nil {
+			if mi.sourceFS != nil {
+				stateFiles, err := inventory.GetStateFiles("", cs)
+				if err != nil {
+					return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+				}
+				if len(stateFiles) == 0 {
+					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, object.GetID())
+				}
+				external, err := object.GetExtensionManager().BuildObjectExternalPath(object, stateFiles[len(stateFiles)-1])
+				if err != nil {
+					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], object.GetID())
+				}
+				file, err = mi.sourceFS.Open(external)
+				if err != nil {
+					return errors.Wrapf(err, "cannot open file '%s/%s' in source filesystem", mi.sourceFS.String(), targetNames[len(targetNames)-1])
+				}
+			}
+		}
+		pr, pw := io.Pipe()
+		go func() {
+			if err := mig.Migrate(file, pw); err != nil {
+				pw.CloseWithError(err)
+			}
+			pw.Close()
+		}()
+		if err := object.AddReader(pr, targetNames, "", false); err != nil {
+			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+		}
+		if err := file.Close(); err != nil {
+			return errors.Wrap(err, "cannot close file")
+		}
+	}
+	return nil
+}
+
+func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	return map[string]any{MigrationName: nil}, nil
+}
+
 var (
 	_ ocfl.Extension             = &Migration{}
 	_ ocfl.ExtensionObjectChange = &Migration{}
+	_ ocfl.ExtensionMetadata     = &Migration{}
+	_ ocfl.ExtensionNewVersion   = &Migration{}
 )

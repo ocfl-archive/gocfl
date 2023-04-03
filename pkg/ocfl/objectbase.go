@@ -69,6 +69,10 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
+func (o ObjectBase) GetExtensionManager() *ExtensionManager {
+	return o.extensionManager
+}
+
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
@@ -602,9 +606,11 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 	}
 	object.extensionManager.SetFS(subfs)
 
-	if object.i.IsWriteable() {
-		return errors.New("object already writeable")
-	}
+	/*
+		if object.i.IsWriteable() {
+			return errors.New("object already writeable")
+		}
+	*/
 	if err := object.i.NewVersion(msg, UserName, UserAddress); err != nil {
 		return errors.Wrap(err, "cannot create new object version")
 	}
@@ -617,6 +623,19 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 func (object *ObjectBase) EndUpdate() error {
 	if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
+	}
+	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
+	} else if needVersion {
+		if err := object.StartUpdate("automated version", "gocfl", "https://github.com/je4/gocfl", false); err != nil {
+			return errors.Wrap(err, "cannot create new version")
+		}
+		if err := object.extensionManager.DoNewVersion(object); err != nil {
+			return errors.Wrapf(err, "cannot execute ext.DoNewVersion()")
+		}
+		if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
+			return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
+		}
 	}
 	return nil
 }
@@ -662,26 +681,30 @@ func (object *ObjectBase) AddFolder(fsys OCFLFSRead, checkDuplicate bool, area s
 	return nil
 }
 
-func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string, noExtensionHook bool) error {
-	object.logger.Infof("adding reader %s:%s", area, path)
+func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool) error {
+	object.logger.Infof("adding reader %v", files)
+
+	if len(files) == 0 {
+		return errors.New("no files given")
+	}
 
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
-	internalFilename, err := object.extensionManager.BuildObjectContentPath(object, path, area)
+	stateFilename, err := object.extensionManager.BuildObjectStatePath(object, files[0], area)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
+		return errors.Wrapf(err, "cannot create virtual filename for '%s'", files[0])
 	}
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, internalFilename); err != nil {
+		if err := object.extensionManager.AddFileBefore(object, nil, files[0], stateFilename); err != nil {
 			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
-	object.updateFiles = append(object.updateFiles, internalFilename)
+	object.updateFiles = append(object.updateFiles, stateFilename)
 
 	// file could be replaced by another file
 	defer r.Close()
@@ -691,10 +714,10 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string, n
 		digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
 	}
 
-	targetFilename := object.i.BuildRealname(internalFilename)
-	writer, err := object.fsRW.Create(targetFilename)
+	manifestFilename := object.i.BuildManifestName(stateFilename)
+	writer, err := object.fsRW.Create(manifestFilename)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
+		return errors.Wrapf(err, "cannot create '%s'", manifestFilename)
 	}
 	defer writer.Close()
 
@@ -702,7 +725,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string, n
 	if noExtensionHook {
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer)
 		if err != nil {
-			return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
+			return errors.Wrapf(err, "cannot copy '%s' -> '%s'", files[0], manifestFilename)
 		}
 	} else {
 		wg := sync.WaitGroup{}
@@ -711,14 +734,14 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string, n
 		extErrors := make(chan error, 1)
 		go func() {
 			defer wg.Done()
-			if err := object.extensionManager.StreamObject(object, pr, path, internalFilename); err != nil {
+			if err := object.extensionManager.StreamObject(object, pr, files, stateFilename); err != nil {
 				extErrors <- err
 			}
 		}()
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer, pw)
 		_ = pw.Close()
 		if err != nil {
-			return errors.Wrapf(err, "cannot copy '%s' -> '%s'", path, targetFilename)
+			return errors.Wrapf(err, "cannot copy '%s' -> '%s'", files[0], manifestFilename)
 		}
 		wg.Wait()
 		close(extErrors)
@@ -745,12 +768,12 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, path string, area string, n
 	} else {
 		checksums[object.i.GetDigestAlgorithm()] = digest
 	}
-	if err := object.i.AddFile(internalFilename, targetFilename, checksums); err != nil {
-		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", internalFilename, internalFilename)
+	if err := object.i.AddFile([]string{stateFilename}, manifestFilename, checksums); err != nil {
+		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", stateFilename, stateFilename)
 	}
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileAfter(object, nil, path, targetFilename, digest); err != nil {
+		if err := object.extensionManager.AddFileAfter(object, nil, files, manifestFilename, digest); err != nil {
 			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
@@ -766,7 +789,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
-	internalFilename, err := object.extensionManager.BuildObjectContentPath(object, path, area)
+	internalFilename, err := object.extensionManager.BuildObjectStatePath(object, path, area)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 	}
@@ -837,7 +860,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		}
 	}
 
-	targetFilename := object.i.BuildRealname(internalFilename)
+	targetFilename := object.i.BuildManifestName(internalFilename)
 	writer, err := object.fsRW.Create(targetFilename)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetFilename)
@@ -857,7 +880,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		extErrors := make(chan error, 1)
 		go func() {
 			defer wg.Done()
-			if err := object.extensionManager.StreamObject(object, pr, path, internalFilename); err != nil {
+			if err := object.extensionManager.StreamObject(object, pr, []string{path}, internalFilename); err != nil {
 				extErrors <- err
 			}
 		}()
@@ -891,12 +914,12 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	} else {
 		checksums[object.i.GetDigestAlgorithm()] = digest
 	}
-	if err := object.i.AddFile(newPath, targetFilename, checksums); err != nil {
+	if err := object.i.AddFile([]string{newPath}, targetFilename, checksums); err != nil {
 		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", path, internalFilename)
 	}
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileAfter(object, fsys, path, targetFilename, digest); err != nil {
+		if err := object.extensionManager.AddFileAfter(object, fsys, []string{path}, targetFilename, digest); err != nil {
 			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
@@ -1347,7 +1370,7 @@ func (object *ObjectBase) Extract(fs OCFLFS, version string, withManifest bool) 
 	var manifest strings.Builder
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()
-	if err := object.i.IterateExternalFiles(version, func(internal, external, digest string) error {
+	if err := object.i.IterateStateFiles(version, func(internal, external, digest string) error {
 		external, err = object.extensionManager.BuildObjectExternalPath(object, external)
 		if err != nil {
 			errCause := errors.Cause(err)

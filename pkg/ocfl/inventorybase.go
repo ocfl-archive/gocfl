@@ -211,8 +211,23 @@ func (i *InventoryBase) GetVersions() map[string]*Version {
 	return versions
 }
 
-func (i *InventoryBase) IterateExternalFiles(version string, fn func(internal, external, digest string) error) error {
-	if version == "latest" {
+func (i *InventoryBase) GetStateFiles(version string, cs string) ([]string, error) {
+	if version == "latest" || version == "" {
+		version = i.GetHead()
+	}
+	ver, err := i.Versions.GetVersion(version)
+	if err != nil {
+		return nil, errors.Errorf("invalid version '%s'", version)
+	}
+	files, ok := ver.State.State[cs]
+	if !ok {
+		return nil, errors.Errorf("no state for in version %s [%s]", version, cs)
+	}
+	return files, nil
+}
+
+func (i *InventoryBase) IterateStateFiles(version string, fn func(internal string, external string, digest string) error) error {
+	if version == "latest" || version == "" {
 		version = i.GetHead()
 	}
 	ver, err := i.Versions.GetVersion(version)
@@ -666,14 +681,16 @@ func (i *InventoryBase) GetFilesFlat() []string {
 	return result
 }
 
-func (i *InventoryBase) BuildRealname(virtualFilename string) string {
-	return filepath.ToSlash(filepath.Clean(filepath.Join(i.GetHead(), i.GetContentDir(), virtualFilename)))
+func (i *InventoryBase) BuildManifestName(stateFilename string) string {
+	return filepath.ToSlash(filepath.Clean(filepath.Join(i.GetHead(), i.GetContentDir(), stateFilename)))
 }
 
 func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
-	if i.IsWriteable() {
-		return errors.New(fmt.Sprintf("version '%s' already writeable", i.GetHead()))
-	}
+	/*
+		if i.IsWriteable() {
+			return errors.New(fmt.Sprintf("version '%s' already writeable", i.GetHead()))
+		}
+	*/
 	lastHead := i.Head.string
 	if lastHead == "" {
 		if i.paddingLength <= 0 {
@@ -747,10 +764,10 @@ func (i *InventoryBase) GetDuplicates(checksum string) []string {
 	}
 	return nil
 }
-func (i *InventoryBase) AlreadyExists(virtualFilename, checksum string) (bool, error) {
-	i.logger.Debugf("'%s' [%s]", virtualFilename, checksum)
+func (i *InventoryBase) AlreadyExists(stateFilename, checksum string) (bool, error) {
+	i.logger.Debugf("'%s' [%s]", stateFilename, checksum)
 	if checksum == "" {
-		i.logger.Debugf("'%s' - duplicate %v", virtualFilename, false)
+		i.logger.Debugf("'%s' - duplicate %v", stateFilename, false)
 		return false, nil
 	}
 
@@ -760,7 +777,7 @@ func (i *InventoryBase) AlreadyExists(virtualFilename, checksum string) (bool, e
 		for checksum, filenames := range version.State.State {
 			found := false
 			for _, filename := range filenames {
-				if filename == virtualFilename {
+				if filename == stateFilename {
 					cs[ver] = checksum
 					found = true
 				}
@@ -771,7 +788,7 @@ func (i *InventoryBase) AlreadyExists(virtualFilename, checksum string) (bool, e
 		}
 	}
 	if len(cs) == 0 {
-		i.logger.Debugf("'%s' - duplicate %v", virtualFilename, false)
+		i.logger.Debugf("'%s' - duplicate %v", stateFilename, false)
 		return false, nil
 	}
 	versions := []int{}
@@ -794,7 +811,7 @@ func (i *InventoryBase) AlreadyExists(virtualFilename, checksum string) (bool, e
 	if !ok {
 		return false, errors.New(fmt.Sprintf("could not get checksum for v%d", lastVersion))
 	}
-	i.logger.Debugf("'%s' - duplicate %v", virtualFilename, lastChecksum == checksum)
+	i.logger.Debugf("'%s' - duplicate %v", stateFilename, lastChecksum == checksum)
 	return lastChecksum == checksum, nil
 }
 
@@ -879,13 +896,13 @@ func (i *InventoryBase) echoDelete(existing []string, pathPrefix string) error {
 	return nil
 }
 
-func (i *InventoryBase) DeleteFile(virtualFilename string) error {
+func (i *InventoryBase) DeleteFile(stateFilename string) error {
 	var newState = map[string][]string{}
 	var found = false
 	for key, state := range i.Versions.Versions[i.GetHead()].State.State {
 		newState[key] = []string{}
 		for _, val := range state {
-			if val == virtualFilename {
+			if val == stateFilename {
 				found = true
 			} else {
 				newState[key] = append(newState[key], val)
@@ -895,7 +912,7 @@ func (i *InventoryBase) DeleteFile(virtualFilename string) error {
 	i.Versions.Versions[i.GetHead()].State.State = newState
 	if found {
 		i.modified = found
-		i.logger.Infof("[%s] removing '%s' from state", i.GetID(), virtualFilename)
+		i.logger.Infof("[%s] removing '%s' from state", i.GetID(), stateFilename)
 	}
 	return nil
 }
@@ -935,64 +952,68 @@ func (i *InventoryBase) CopyFile(dest string, digest string) error {
 	return nil
 }
 
-func (i *InventoryBase) AddFile(virtualFilename string, internalFilename string, checksums map[checksum.DigestAlgorithm]string) error {
-	i.logger.Debugf("[%s] adding '%s' -> '%s' [%s]", i.GetID(), virtualFilename, internalFilename, checksums)
+func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error {
+	i.logger.Debugf("[%s] adding '%s' -> '%s' [%s]", i.GetID(), stateFilenames, manifestFilename, checksums)
 	digest, ok := checksums[i.GetDigestAlgorithm()]
 	if !ok {
 		return errors.Errorf("no digest for '%s' in checksums", i.GetDigestAlgorithm())
 	}
 	digest = strings.ToLower(digest) // paranoia
-	dup, err := i.AlreadyExists(virtualFilename, digest)
-	if err != nil {
-		return errors.Wrapf(err, "cannot add for duplicate of '%s' [%s]", virtualFilename, digest)
-	}
-	if dup {
-		i.logger.Debugf("'%s' is a duplicate", virtualFilename)
-		// return nil
-	}
 
-	if internalFilename != "" {
-		if _, ok := i.Manifest.Manifest[digest]; !ok {
-			i.Manifest.Manifest[digest] = []string{}
+	for alg, fixityDigest := range checksums {
+		if alg == i.GetDigestAlgorithm() {
+			continue
 		}
-		i.Manifest.Manifest[digest] = append(i.Manifest.Manifest[digest], internalFilename)
-		for alg, fixityDigest := range checksums {
-			if alg == i.GetDigestAlgorithm() {
-				continue
-			}
-			if i.Fixity == nil {
-				i.Fixity = map[checksum.DigestAlgorithm]map[string][]string{}
-			}
-			if _, ok := i.Fixity[alg]; !ok {
-				i.Fixity[alg] = map[string][]string{}
-			}
-			if _, ok := i.Fixity[alg][fixityDigest]; !ok {
-				i.Fixity[alg][fixityDigest] = []string{}
-			}
-			if !slices.Contains(i.Fixity[alg][fixityDigest], internalFilename) {
-				i.Fixity[alg][fixityDigest] = append(i.Fixity[alg][fixityDigest], internalFilename)
-				i.modified = true
-			}
+		if i.Fixity == nil {
+			i.Fixity = map[checksum.DigestAlgorithm]map[string][]string{}
+		}
+		if _, ok := i.Fixity[alg]; !ok {
+			i.Fixity[alg] = map[string][]string{}
+		}
+		if _, ok := i.Fixity[alg][fixityDigest]; !ok {
+			i.Fixity[alg][fixityDigest] = []string{}
+		}
+		if !slices.Contains(i.Fixity[alg][fixityDigest], manifestFilename) {
+			i.Fixity[alg][fixityDigest] = append(i.Fixity[alg][fixityDigest], manifestFilename)
+			i.modified = true
 		}
 	}
 
-	if _, ok := i.Versions.Versions[i.Head.string].State.State[digest]; !ok {
-		i.Versions.Versions[i.Head.string].State.State[digest] = []string{}
-	}
+	for _, virtualFilename := range stateFilenames {
+		dup, err := i.AlreadyExists(virtualFilename, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot add for duplicate of '%s' [%s]", stateFilenames, digest)
+		}
+		if dup {
+			i.logger.Debugf("'%s' is a duplicate", stateFilenames)
+			// return nil
+		}
 
-	upd, err := i.IsUpdate(virtualFilename, digest)
-	if err != nil {
-		return errors.Wrapf(err, "cannot check for update of '%s' [%s]", virtualFilename, digest)
-	}
-	if upd {
-		i.logger.Debugf("'%s' is an update - removing old version", virtualFilename)
-		i.DeleteFile(virtualFilename)
-		i.modified = true
-	}
+		if manifestFilename != "" {
+			if _, ok := i.Manifest.Manifest[digest]; !ok {
+				i.Manifest.Manifest[digest] = []string{}
+			}
+			i.Manifest.Manifest[digest] = append(i.Manifest.Manifest[digest], manifestFilename)
+		}
 
-	if !dup {
-		i.Versions.Versions[i.Head.string].State.State[digest] = append(i.Versions.Versions[i.Head.string].State.State[digest], virtualFilename)
-		i.modified = true
+		if _, ok := i.Versions.Versions[i.Head.string].State.State[digest]; !ok {
+			i.Versions.Versions[i.Head.string].State.State[digest] = []string{}
+		}
+
+		upd, err := i.IsUpdate(virtualFilename, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot check for update of '%s' [%s]", stateFilenames, digest)
+		}
+		if upd {
+			i.logger.Debugf("'%s' is an update - removing old version", stateFilenames)
+			i.DeleteFile(virtualFilename)
+			i.modified = true
+		}
+
+		if !dup {
+			i.Versions.Versions[i.Head.string].State.State[digest] = append(i.Versions.Versions[i.Head.string].State.State[digest], virtualFilename)
+			i.modified = true
+		}
 	}
 
 	return nil

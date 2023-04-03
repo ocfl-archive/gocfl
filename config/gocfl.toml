@@ -176,7 +176,7 @@ Output = ""
 Enable=true
 
 [Migration.Function.PDFA]
-Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 -sOutputFile=%stdout pdfa_def.ps -"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read=C:/temp/srgb.icc -sOutputFile=%stdout C:/daten/go/dev/gocfl/data/migration/pdfa_def.ps -"
 Strategy = "replace"
 FilenameRegexp = "^(.+)$"
 FilenameReplacement = "$1"

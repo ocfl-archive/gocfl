@@ -116,7 +116,7 @@ func (sl *ContentSubPath) WriteConfig() error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectContentPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		return originalPath, nil
 	}
@@ -145,7 +145,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	buf := bytes.NewBuffer([]byte(readme.String()))
-	if err := object.AddReader(io.NopCloser(buf), "README.md", "", false); err != nil {
+	if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
 	return nil
@@ -159,7 +159,8 @@ func (sl *ContentSubPath) BuildObjectExternalPath(object ocfl.Object, originalPa
 	if !ok {
 		return "", errors.Errorf("invalid area '%s'", sl.area)
 	}
-	path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
+	path := strings.TrimLeft(originalPath, subpath.Path+"/")
+	//path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
 	return path, nil
 	/*
 		prefixPath := subpath.Path + "/"

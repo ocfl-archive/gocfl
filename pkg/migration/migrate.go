@@ -3,6 +3,7 @@ package migration
 import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
+	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/viper"
 	"io"
 	"os/exec"
@@ -30,6 +31,7 @@ func (f *Function) Migrate(r io.Reader, w io.Writer) error {
 type Migration struct {
 	Functions map[string]*Function
 	Sources   map[string]string
+	SourceFS  ocfl.OCFLFSRead
 }
 
 func anyToStringMapString(dataAny any) (map[string]string, error) {
@@ -68,7 +70,7 @@ func GetMigrations() (*Migration, error) {
 			return nil, errors.Errorf("Migration.Function.%s is empty", name)
 		}
 		cmd := exec.Command(parts[0], parts[1:]...)
-		re, err := regexp.Compile(cmdMap["regexp"])
+		re, err := regexp.Compile(cmdMap["filenameregexp"])
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
 		}
@@ -76,14 +78,14 @@ func GetMigrations() (*Migration, error) {
 			command:  cmd,
 			Strategy: cmdMap["strategy"],
 			regexp:   re,
-			replace:  cmdMap["replace"],
+			replace:  cmdMap["filenamereplacement"],
 		}
 	}
 	return m, nil
 }
 
 func (m *Migration) GetFunctionByName(name string) (*Function, error) {
-	if f, ok := m.Functions[name]; ok {
+	if f, ok := m.Functions[strings.ToLower(name)]; ok {
 		return f, nil
 	}
 	return nil, errors.Errorf("Migration.Function.%s does not exist", name)
@@ -94,4 +96,8 @@ func (m *Migration) GetFunctionByPronom(pronom string) (*Function, error) {
 		return m.GetFunctionByName(f)
 	}
 	return nil, errors.Errorf("Migration.Source.%s does not exist", pronom)
+}
+
+func (m *Migration) SetSourceFS(fs ocfl.OCFLFSRead) {
+	m.SourceFS = fs
 }

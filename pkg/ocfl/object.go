@@ -23,7 +23,7 @@ type Object interface {
 	EndArea() error
 	AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error
 	AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string, noExtensionHook bool) error
-	AddReader(r io.ReadCloser, path string, area string, noExtensionHook bool) error
+	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool) error
 	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
@@ -36,6 +36,7 @@ type Object interface {
 	Extract(fs OCFLFS, version string, manifest bool) error
 	GetMetadata() (*ObjectMetadata, error)
 	GetAreaPath(area string) (string, error)
+	GetExtensionManager() *ExtensionManager
 }
 
 func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion, err error) {
