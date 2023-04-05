@@ -1,31 +1,46 @@
 package migration
 
 import (
+	"context"
 	"emperror.dev/errors"
 	"github.com/google/shlex"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/viper"
-	"io"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Function struct {
-	command  *exec.Cmd
+	command  string
+	args     []string
 	Strategy string
 	regexp   *regexp.Regexp
 	replace  string
+	timeout  time.Duration
 }
 
 func (f *Function) GetDestinationName(src string) string {
 	return f.regexp.ReplaceAllString(src, f.replace)
 }
 
-func (f *Function) Migrate(r io.Reader, w io.Writer) error {
-	f.command.Stdin = r
-	f.command.Stdout = w
-	return errors.WithStack(f.command.Run())
+func (f *Function) Migrate(source string, dest string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
+	defer cancel()
+	args := []string{}
+	for _, arg := range f.args {
+		//		arg = strings.ReplaceAll(arg, "{source}", filepath.Base(source))
+		//		arg = strings.ReplaceAll(arg, "{destination}", filepath.Base(dest))
+		arg = strings.ReplaceAll(arg, "{source}", filepath.ToSlash(source))
+		arg = strings.ReplaceAll(arg, "{destination}", filepath.ToSlash(dest))
+
+		args = append(args, arg)
+	}
+	cmd := exec.CommandContext(ctx, f.command, args...)
+	cmd.Dir = filepath.Dir(source)
+	return errors.WithStack(cmd.Run())
 }
 
 type Migration struct {
@@ -45,7 +60,7 @@ func anyToStringMapString(dataAny any) (map[string]string, error) {
 		if !ok {
 			return nil, errors.Errorf("cannot convert '%s' to string", k)
 		}
-		result[k] = strings.ToLower(str)
+		result[strings.ToLower(k)] = str
 	}
 	return result, nil
 }
@@ -69,16 +84,22 @@ func GetMigrations() (*Migration, error) {
 		if len(parts) < 1 {
 			return nil, errors.Errorf("Migration.Function.%s is empty", name)
 		}
-		cmd := exec.Command(parts[0], parts[1:]...)
 		re, err := regexp.Compile(cmdMap["filenameregexp"])
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
 		}
+		timeoutString := cmdMap["timeout"]
+		timeout, err := time.ParseDuration(timeoutString)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot parse timeout of Migration.Function.%s", name)
+		}
 		m.Functions[name] = &Function{
-			command:  cmd,
+			command:  parts[0],
+			args:     parts[1:],
 			Strategy: cmdMap["strategy"],
 			regexp:   re,
 			replace:  cmdMap["filenamereplacement"],
+			timeout:  timeout,
 		}
 	}
 	return m, nil

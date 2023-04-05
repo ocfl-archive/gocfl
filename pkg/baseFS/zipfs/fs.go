@@ -263,17 +263,6 @@ func (zipFS *FS) Close() error {
 	if len(finalError) > 0 {
 		return errors.Combine(finalError...)
 	}
-	if zipFS.temp != zipFS.path {
-		if err := zipFS.factory.Rename(zipFS.temp, zipFS.path); err != nil {
-			return errors.Wrap(err, "cannot rename on close")
-		}
-
-		if zipFS.checksumAESWriter != nil {
-			if err := zipFS.factory.Rename(zipFS.temp+".aes", zipFS.path+".aes"); err != nil {
-				return errors.Wrap(err, "cannot rename on close")
-			}
-		}
-	}
 	for digestAlg, digest := range digests {
 		manifestName := fmt.Sprintf("%s.%s", zipFS.path, digestAlg)
 		fp, err := zipFS.factory.Create(manifestName)
@@ -324,6 +313,19 @@ func (zipFS *FS) Close() error {
 			}
 		}
 	}
+
+	if zipFS.temp != zipFS.path {
+		if err := zipFS.factory.Rename(zipFS.temp, zipFS.path); err != nil {
+			return errors.Wrap(err, "cannot rename on close")
+		}
+
+		if zipFS.checksumAESWriter != nil {
+			if err := zipFS.factory.Rename(zipFS.temp+".aes", zipFS.path+".aes"); err != nil {
+				return errors.Wrap(err, "cannot rename on close")
+			}
+		}
+	}
+
 	return errors.Combine(finalError...)
 }
 

@@ -10,6 +10,8 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 )
 
@@ -241,19 +243,41 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				}
 			}
 		}
-		pr, pw := io.Pipe()
-		go func() {
-			if err := mig.Migrate(file, pw); err != nil {
-				pw.CloseWithError(err)
-			}
-			pw.Close()
-		}()
-		if err := object.AddReader(pr, targetNames, "", false); err != nil {
-			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+		tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl*"+filepath.Ext(targetNames[len(targetNames)-1]))
+		if err != nil {
+			return errors.Wrap(err, "cannot create temp file")
+		}
+		if _, err := io.Copy(tmpFile, file); err != nil {
+			tmpFile.Close()
+			return errors.Wrap(err, "cannot copy file")
 		}
 		if err := file.Close(); err != nil {
 			return errors.Wrap(err, "cannot close file")
 		}
+		tmpFilename := filepath.ToSlash(tmpFile.Name())
+		targetFilename := filepath.ToSlash(filepath.Join(filepath.Dir(tmpFilename), "target."+filepath.Base(tmpFilename)))
+
+		if err := tmpFile.Close(); err != nil {
+			return errors.Wrap(err, "cannot close temp file")
+		}
+		if err := mig.Migrate(tmpFilename, targetFilename); err != nil {
+			os.Remove(tmpFilename)
+			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+		}
+		if err := os.Remove(tmpFilename); err != nil {
+			return errors.Wrapf(err, "cannot remove temp file '%s'", tmpFilename)
+		}
+		mFile, err := os.Open(targetFilename)
+		if err != nil {
+			return errors.Wrapf(err, "cannot open file '%s'", targetFilename)
+		}
+		if err := object.AddReader(mFile, targetNames, "", false); err != nil {
+			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+		}
+		if err := mFile.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close file '%s'", targetFilename)
+		}
+		os.Remove(targetFilename)
 	}
 	return nil
 }
