@@ -220,7 +220,7 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	//var err error
-	sl.active = false
+	//	sl.active = false
 	if err := sl.writer.Flush(); err != nil {
 		return errors.Wrap(err, "cannot flush brotli writer")
 	}

@@ -7,8 +7,8 @@ import (
 )
 
 type ReadSeekCloserStat interface {
+	fs.File
 	io.ReadSeekCloser
-	Stat() (fs.FileInfo, error)
 }
 
 type GenericReadSeekCloserStat struct {

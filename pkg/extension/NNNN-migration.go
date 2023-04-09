@@ -274,9 +274,11 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		if err := object.AddReader(mFile, targetNames, "", false); err != nil {
 			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
 		}
-		if err := mFile.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close file '%s'", targetFilename)
-		}
+		/*
+			if err := mFile.Close(); err != nil {
+				return errors.Wrapf(err, "cannot close file '%s'", targetFilename)
+			}
+		*/
 		os.Remove(targetFilename)
 	}
 	return nil

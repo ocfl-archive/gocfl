@@ -7,6 +7,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/op/go-logging"
 	"io"
+	"io/fs"
 	"strings"
 )
 
@@ -79,7 +80,7 @@ func (b BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	return f, nil
 }
 
-func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
+func (b *BaseFS) Open(path string) (fs.File, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}

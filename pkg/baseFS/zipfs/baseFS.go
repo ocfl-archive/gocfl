@@ -9,6 +9,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
+	"io/fs"
 	"path/filepath"
 	"strings"
 )
@@ -97,7 +98,7 @@ func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	return ocfs, nil
 }
 
-func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
+func (b *BaseFS) Open(path string) (fs.File, error) {
 	return nil, baseFS.ErrPathNotSupported
 }
 

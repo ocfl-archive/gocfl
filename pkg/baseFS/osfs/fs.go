@@ -15,17 +15,6 @@ import (
 	"syscall"
 )
 
-type FS struct {
-	folder string
-	logger *logging.Logger
-	//fs     fs.FS
-}
-
-func (osFS *FS) Delete(name string) error {
-	filename := filepath.ToSlash(filepath.Join(osFS.folder, name))
-	return os.Remove(filename)
-}
-
 func NewFS(folder string, clear bool, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	folder = strings.TrimRight(filepath.ToSlash(filepath.Clean(folder)), "/")
@@ -40,6 +29,17 @@ func NewFS(folder string, clear bool, logger *logging.Logger) (*FS, error) {
 		}
 	}
 	return osfs, nil
+}
+
+type FS struct {
+	folder string
+	logger *logging.Logger
+	//fs     fs.FS
+}
+
+func (osFS *FS) Delete(name string) error {
+	filename := filepath.ToSlash(filepath.Join(osFS.folder, name))
+	return os.Remove(filename)
 }
 
 func (osFS *FS) String() string {
@@ -201,6 +201,10 @@ func (osFS *FS) SubFS(name string) (ocfl.OCFLFSRead, error) {
 		return osFS, nil
 	}
 	return NewFS(filepath.Join(osFS.folder, name), false, osFS.logger)
+}
+
+func (osFS *FS) Sub(dir string) (fs.FS, error) {
+	return osFS.SubFS(dir)
 }
 
 func (osFS *FS) SubFSRW(name string) (ocfl.OCFLFS, error) {

@@ -15,12 +15,6 @@ import (
 	"syscall"
 )
 
-type FS struct {
-	folder string
-	logger *logging.Logger
-	fs     fs.FS
-}
-
 func NewFS(fsys fs.FS, folder string, logger *logging.Logger) (*FS, error) {
 	logger.Debug("instantiating FS")
 	folder = strings.Trim(filepath.ToSlash(filepath.Clean(folder)), "/")
@@ -30,6 +24,12 @@ func NewFS(fsys fs.FS, folder string, logger *logging.Logger) (*FS, error) {
 		logger: logger,
 	}
 	return osfs, nil
+}
+
+type FS struct {
+	folder string
+	logger *logging.Logger
+	fs     fs.FS
 }
 
 func (genericFS *FS) String() string {
@@ -158,7 +158,15 @@ func (genericFS *FS) SubFS(name string) (ocfl.OCFLFSRead, error) {
 	return NewFS(genericFS.fs, filepath.ToSlash(filepath.Join(genericFS.folder, name)), genericFS.logger)
 }
 
+func (genericFS *FS) Sub(dir string) (fs.FS, error) {
+	return genericFS.SubFS(dir)
+}
+
 // check interface satisfaction
 var (
-	_ ocfl.OCFLFSRead = &FS{}
+	_ fs.FS         = &FS{}
+	_ fs.StatFS     = &FS{}
+	_ fs.ReadFileFS = &FS{}
+	_ fs.ReadDirFS  = &FS{}
+	_ fs.SubFS      = &FS{}
 )

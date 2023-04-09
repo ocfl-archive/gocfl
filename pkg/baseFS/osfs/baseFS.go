@@ -68,7 +68,7 @@ func (b *BaseFS) GetFS(path string) (ocfl.OCFLFSRead, error) {
 	return NewFS(path, false, b.logger)
 }
 
-func (b *BaseFS) Open(path string) (baseFS.ReadSeekCloserStat, error) {
+func (b *BaseFS) Open(path string) (fs.File, error) {
 	if !b.valid(path) {
 		return nil, baseFS.ErrPathNotSupported
 	}
@@ -109,6 +109,11 @@ func (b *BaseFS) Delete(path string) error {
 	return errors.Wrapf(os.Remove(path), "cannot delete '%s'", path)
 }
 
+// check interface satisfaction
 var (
-	_ baseFS.FS = &BaseFS{}
+	_ fs.FS         = &FS{}
+	_ fs.StatFS     = &FS{}
+	_ fs.ReadFileFS = &FS{}
+	_ fs.ReadDirFS  = &FS{}
+	_ fs.SubFS      = &FS{}
 )
