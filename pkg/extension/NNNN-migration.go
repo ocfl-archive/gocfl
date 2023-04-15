@@ -1,6 +1,7 @@
 package extension
 
 import (
+	"bufio"
 	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
@@ -10,8 +11,6 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"io"
-	"os"
-	"path/filepath"
 	"regexp"
 )
 
@@ -33,6 +32,17 @@ type MigrationTarget struct {
 	Command         string        // command to execute (stdin --> stdout)
 }
 
+type migrationResult struct {
+	Source string `json:"source,omitempty"`
+	Error  string `json:"error,omitempty"`
+	ID     string `json:"id"`
+}
+
+type migrationLine struct {
+	Path      string           `json:"path"`
+	Migration *migrationResult `json:"migration"`
+}
+
 // map pronom to migration
 type MigrationMap map[string]*MigrationTarget
 
@@ -41,14 +51,16 @@ type MigrationFiles map[string]*MigrationTarget
 
 type Migration struct {
 	*MigrationConfig
-	fs             ocfl.OCFLFSRead
-	lastHead       string
-	migration      *migration.Migration
-	buffer         *bytes.Buffer
+	fs        ocfl.OCFLFSRead
+	lastHead  string
+	migration *migration.Migration
+	//buffer         *bytes.Buffer
+	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
 	migrationFiles map[string]*migration.Function
 	migratedFiles  map[string]map[string]string
 	sourceFS       ocfl.OCFLFSRead
+	currentHead    string
 }
 
 func NewMigrationFS(fs ocfl.OCFLFSRead, migration *migration.Migration) (*Migration, error) {
@@ -76,11 +88,11 @@ func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration
 	sl := &Migration{
 		MigrationConfig: config,
 		migration:       mig,
-		buffer:          bytes.NewBuffer(nil),
+		buffer:          map[string]*bytes.Buffer{},
 		migrationFiles:  map[string]*migration.Function{},
 		migratedFiles:   map[string]map[string]string{},
 	}
-	sl.writer = brotli.NewWriter(sl.buffer)
+	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
@@ -186,10 +198,20 @@ func (mi *Migration) NeedNewVersion(object ocfl.Object) (bool, error) {
 }
 
 func (mi *Migration) DoNewVersion(object ocfl.Object) error {
-	var err error
 	inventory := object.GetInventory()
-	//files := inventory.GetFiles()
 	head := inventory.GetHead()
+	extensionManager := object.GetExtensionManager()
+	if extensionManager == nil {
+		return errors.Errorf("extension manager is nil")
+	}
+	mi.buffer[head] = &bytes.Buffer{}
+	mi.writer = brotli.NewWriter(mi.buffer[head])
+	//files := inventory.GetFiles()
+
+	versions := inventory.GetVersionStrings()
+	if len(versions) < 2 {
+		return errors.Errorf("cannot migrate files in object '%s' - no previous version", object.GetID())
+	}
 	manifest := inventory.GetManifest()
 	if _, ok := mi.migratedFiles[head]; !ok {
 		mi.migratedFiles[head] = map[string]string{}
@@ -207,13 +229,21 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		}
 
 		var targetNames = []string{}
-
 		manifestFiles, ok := manifest[cs]
 		if !ok {
 			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, object.GetID())
 		}
-		for _, f := range manifestFiles {
-			targetNames = append(targetNames, mig.GetDestinationName(f))
+		/*
+			for _, f := range manifestFiles {
+				targetNames = append(targetNames, mig.GetDestinationName(f))
+			}
+		*/
+		stateFiles, err := inventory.GetStateFiles(versions[len(versions)-2], cs)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+		}
+		for _, sf := range stateFiles {
+			targetNames = append(targetNames, mig.GetDestinationName(sf))
 		}
 
 		var file io.ReadCloser
@@ -243,49 +273,130 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				}
 			}
 		}
-		tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl*"+filepath.Ext(targetNames[len(targetNames)-1]))
+		var ml *migrationLine
+		path, err := extensionManager.BuildObjectStatePath(object, targetNames[0], "content")
 		if err != nil {
-			return errors.Wrap(err, "cannot create temp file")
+			return errors.Wrapf(err, "cannot build state path for file '%s' in object '%s'", targetNames[0], object.GetID())
 		}
-		if _, err := io.Copy(tmpFile, file); err != nil {
-			tmpFile.Close()
-			return errors.Wrap(err, "cannot copy file")
-		}
-		if err := file.Close(); err != nil {
-			return errors.Wrap(err, "cannot close file")
-		}
-		tmpFilename := filepath.ToSlash(tmpFile.Name())
-		targetFilename := filepath.ToSlash(filepath.Join(filepath.Dir(tmpFilename), "target."+filepath.Base(tmpFilename)))
-
-		if err := tmpFile.Close(); err != nil {
-			return errors.Wrap(err, "cannot close temp file")
-		}
-		if err := mig.Migrate(tmpFilename, targetFilename); err != nil {
-			os.Remove(tmpFilename)
-			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
-		}
-		if err := os.Remove(tmpFilename); err != nil {
-			return errors.Wrapf(err, "cannot remove temp file '%s'", tmpFilename)
-		}
-		mFile, err := os.Open(targetFilename)
-		if err != nil {
-			return errors.Wrapf(err, "cannot open file '%s'", targetFilename)
-		}
-		if err := object.AddReader(mFile, targetNames, "", false); err != nil {
-			return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
-		}
-		/*
-			if err := mFile.Close(); err != nil {
-				return errors.Wrapf(err, "cannot close file '%s'", targetFilename)
+		path = inventory.BuildManifestName(path)
+		if err := migration.DoMigrate(object, mig, targetNames, file); err != nil {
+			ml = &migrationLine{
+				Path: path,
+				Migration: &migrationResult{
+					Source: manifestFiles[0],
+					Error:  err.Error(),
+					ID:     mig.GetID(),
+				},
 			}
-		*/
-		os.Remove(targetFilename)
+			//			return err
+		} else {
+			ml = &migrationLine{
+				Path: path,
+				Migration: &migrationResult{
+					Source: manifestFiles[0],
+					ID:     mig.GetID(),
+				},
+			}
+		}
+		data, err := json.Marshal(ml)
+		if err != nil {
+			return errors.Wrapf(err, "cannot marshal migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
+		}
+		if _, err := mi.writer.Write(append(data, []byte("\n")...)); err != nil {
+			return errors.Wrapf(err, "cannot write migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
+		}
+	}
+	if err := mi.writer.Flush(); err != nil {
+		return errors.Wrapf(err, "cannot flush migration line writer for object '%s'", object.GetID())
+	}
+	if err := mi.writer.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close migration line writer for object '%s'", object.GetID())
+	}
+	buffer, ok := mi.buffer[head]
+	if !ok {
+		return nil
+	}
+	if err := ocfl.WriteJsonL(
+		object,
+		"migration",
+		buffer.Bytes(),
+		mi.MigrationConfig.Compress,
+		mi.StorageType,
+		mi.StorageName,
+		mi.fs,
+	); err != nil {
+		return errors.Wrap(err, "cannot write jsonl")
 	}
 	return nil
 }
 
 func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
-	return map[string]any{MigrationName: nil}, nil
+	var err error
+	var result = map[string]any{}
+
+	inventory := object.GetInventory()
+	manifest := inventory.GetManifest()
+	path2digest := map[string]string{}
+	for checksum, names := range manifest {
+		for _, name := range names {
+			path2digest[name] = checksum
+		}
+	}
+	for v, _ := range inventory.GetVersions() {
+		var data []byte
+		if buf, ok := mi.buffer[v]; ok && buf.Len() > 0 {
+			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
+			// need a new reader on the buffer
+			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
+			data, err = io.ReadAll(reader)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+			}
+		} else {
+			data, err = ocfl.ReadJsonL(object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName, mi.fs)
+			if err != nil {
+				continue
+				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
+			}
+		}
+
+		reader := bytes.NewReader(data)
+		r := bufio.NewScanner(reader)
+		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
+		r.Split(bufio.ScanLines)
+		for r.Scan() {
+			line := r.Text()
+			var meta = migrationLine{}
+			if err := json.Unmarshal([]byte(line), &meta); err != nil {
+				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
+			}
+			var digest string
+			for cs, names := range manifest {
+				for _, name := range names {
+					if name == meta.Migration.Source {
+						digest = cs
+						break
+					}
+				}
+			}
+			if digest == "" {
+				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Migration.Source, object.GetID())
+			}
+			cs, ok := path2digest[meta.Path]
+			if !ok && meta.Migration.Error != "" {
+				cs, ok = path2digest[meta.Migration.Source]
+			}
+			if !ok {
+				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Path, object.GetID())
+			}
+			meta.Migration.Source = digest
+			result[cs] = meta.Migration
+		}
+		if err := r.Err(); err != nil {
+			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
+		}
+	}
+	return result, nil
 }
 
 var (

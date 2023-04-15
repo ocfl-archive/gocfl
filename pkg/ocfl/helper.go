@@ -1,10 +1,13 @@
 package ocfl
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/andybalholm/brotli"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	"io"
@@ -287,4 +290,133 @@ func CleanPath(fname string, MaxFilenameLength, MaxPathnameLength int) (string, 
 	}
 
 	return fname, nil
+}
+
+func ReadJsonL(object Object, name string, version string, compress string, storageType, storageName string, fs OCFLFSRead) ([]byte, error) {
+	var ext string
+	switch compress {
+	case "brotli":
+		ext = ".br"
+	case "gzip":
+		ext = ".gz"
+	case "none":
+	default:
+		return nil, errors.Errorf("invalid compression '%s'", compress)
+	}
+	var targetname string
+	switch storageType {
+	case "area":
+		path, err := object.GetAreaPath(storageName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get area path for '%s'", storageName)
+		}
+		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
+		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
+		fs = object.GetFS()
+	case "path":
+		path, err := object.GetAreaPath("content")
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get area path for '%s'", storageName)
+		}
+		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
+		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
+		fs = object.GetFS()
+	case "extension":
+		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", storageName, name, version, ext), "/")
+	default:
+		return nil, errors.Errorf("unsupported storage type '%s'", storageType)
+	}
+
+	var reader io.Reader
+	f, err := fs.Open(targetname)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open '%s/%s'", fs.String(), targetname)
+	}
+	switch compress {
+	case "brotli":
+		reader = brotli.NewReader(f)
+	case "gzip":
+		reader, err = gzip.NewReader(f)
+		if err != nil {
+			f.Close()
+			return nil, errors.Wrapf(err, "cannot open gzip reader on '%s'", targetname)
+		}
+	case "none":
+		reader = f
+	}
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		if f != nil {
+			f.Close()
+		}
+		return nil, errors.Wrapf(err, "cannot read '%s'", targetname)
+	}
+	if f != nil {
+		if err := f.Close(); err != nil {
+			return nil, errors.Wrapf(err, "cannot close '%s'", targetname)
+		}
+	}
+	return data, nil
+}
+
+func WriteJsonL(object Object, name string, brotliData []byte, compress string, storageType, storageName string, fs OCFLFSRead) error {
+	var bufReader = bytes.NewBuffer(brotliData)
+	var ext string
+	var reader io.Reader
+	switch compress {
+	case "brotli":
+		ext = ".br"
+		reader = bufReader
+	case "gzip":
+		ext = ".gz"
+		brotliReader := brotli.NewReader(bufReader)
+		pr, pw := io.Pipe()
+		go func() {
+			defer pw.Close()
+			gzipWriter := gzip.NewWriter(pw)
+			defer gzipWriter.Close()
+			if _, err := io.Copy(gzipWriter, brotliReader); err != nil {
+				pw.CloseWithError(errors.Wrapf(err, "error on gzip compressor"))
+			}
+		}()
+		reader = pr
+	case "none":
+		reader = brotli.NewReader(bufReader)
+	default:
+		return errors.Errorf("invalid compression '%s'", compress)
+	}
+
+	head := object.GetInventory().GetHead()
+	switch storageType {
+	case "area":
+		targetname := fmt.Sprintf("%s_%s.jsonl%s", name, head, ext)
+		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, storageName, true); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", targetname)
+		}
+	case "path":
+		targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
+		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, "", true); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", targetname)
+		}
+	case "extension":
+		fsRW, ok := fs.(OCFLFS)
+		if !ok {
+			return errors.Errorf("filesystem is read only - '%s'", fs.String())
+		}
+
+		targetname := strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext), "/")
+		fp, err := fsRW.Create(targetname)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create '%s/%s'", fs.String(), targetname)
+		}
+		defer fp.Close()
+		if _, err := io.Copy(fp, reader); err != nil {
+			return errors.Wrapf(err, "cannot write '%s/%s'", fs.String(), targetname)
+		}
+	default:
+		return errors.Errorf("unsupported storage type '%s'", storageType)
+	}
+
+	return nil
 }

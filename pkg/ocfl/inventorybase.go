@@ -197,9 +197,30 @@ func (i *InventoryBase) IsWriteable() bool { return i.writeable }
 func (i *InventoryBase) IsModified() bool  { return i.modified }
 
 func (i *InventoryBase) GetVersionStrings() []string {
+	if len(i.Versions.Versions) == 0 {
+		return []string{}
+	}
+
+	versionsInt := []int{}
+	versionString := map[int]string{}
+	for ver, _ := range i.Versions.Versions {
+		matches := vRegexp.FindStringSubmatch(ver)
+		if matches == nil {
+			return []string{}
+		}
+		versionInt, err := strconv.Atoi(matches[1])
+		if err != nil {
+			return []string{}
+		}
+		versionsInt = append(versionsInt, versionInt)
+		versionString[versionInt] = ver
+	}
+
+	// sort versions ascending
+	sort.Ints(versionsInt)
 	var versions = []string{}
-	for version, _ := range i.Versions.Versions {
-		versions = append(versions, version)
+	for _, versionInt := range versionsInt {
+		versions = append(versions, versionString[versionInt])
 	}
 	return versions
 }
@@ -682,7 +703,11 @@ func (i *InventoryBase) GetFilesFlat() []string {
 }
 
 func (i *InventoryBase) BuildManifestName(stateFilename string) string {
-	return filepath.ToSlash(filepath.Clean(filepath.Join(i.GetHead(), i.GetContentDir(), stateFilename)))
+	return i.BuildManifestNameVersion(stateFilename, i.GetHead())
+}
+
+func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version string) string {
+	return filepath.ToSlash(filepath.Clean(filepath.Join(version, i.GetContentDir(), stateFilename)))
 }
 
 func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {

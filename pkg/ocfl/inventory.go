@@ -40,6 +40,7 @@ type Inventory interface {
 	IsWriteable() bool
 	IsModified() bool
 	BuildManifestName(stateFilename string) string
+	BuildManifestNameVersion(stateFilename string, version string) string
 	NewVersion(msg, UserName, UserAddress string) error
 	GetDuplicates(checksum string) []string
 	AlreadyExists(stateFilename, checksum string) (bool, error)

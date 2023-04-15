@@ -3,7 +3,6 @@ package extension
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"crypto/tls"
 	"emperror.dev/errors"
 	"encoding/json"
@@ -235,60 +234,16 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	if !ok {
 		return nil
 	}
-	var reader io.Reader
-	var ext string
-	var bufReader = bytes.NewBuffer(buffer.Bytes())
-	switch sl.IndexerConfig.Compress {
-	case "brotli":
-		ext = ".br"
-		reader = bufReader
-	case "gzip":
-		ext = ".gz"
-		brotliReader := brotli.NewReader(bufReader)
-		pr, pw := io.Pipe()
-		go func() {
-			defer pw.Close()
-			gzipWriter := gzip.NewWriter(pw)
-			defer gzipWriter.Close()
-			if _, err := io.Copy(gzipWriter, brotliReader); err != nil {
-				pw.CloseWithError(errors.Wrapf(err, "error on gzip compressor"))
-			}
-		}()
-		reader = pr
-	case "none":
-		reader = brotli.NewReader(bufReader)
-	default:
-		return errors.Errorf("invalid compression '%s'", sl.IndexerConfig.Compress)
-	}
-
-	switch sl.StorageType {
-	case "area":
-		targetname := fmt.Sprintf("indexer_%s.jsonl%s", head, ext)
-		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, sl.StorageName, true); err != nil {
-			return errors.Wrapf(err, "cannot write '%s'", targetname)
-		}
-	case "path":
-		targetname := fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, head, ext)
-		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, "", true); err != nil {
-			return errors.Wrapf(err, "cannot write '%s'", targetname)
-		}
-	case "extension":
-		fsRW, ok := sl.fs.(ocfl.OCFLFS)
-		if !ok {
-			return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-		}
-
-		targetname := strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, head, ext), "/")
-		fp, err := fsRW.Create(targetname)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create '%s/%s'", sl.fs.String(), targetname)
-		}
-		defer fp.Close()
-		if _, err := io.Copy(fp, reader); err != nil {
-			return errors.Wrapf(err, "cannot write '%s/%s'", sl.fs.String(), targetname)
-		}
-	default:
-		return errors.Errorf("unsupported storage type '%s'", sl.StorageType)
+	if err := ocfl.WriteJsonL(
+		object,
+		"indexer",
+		buffer.Bytes(),
+		sl.IndexerConfig.Compress,
+		sl.StorageType,
+		sl.StorageName,
+		sl.fs,
+	); err != nil {
+		return errors.Wrap(err, "cannot write jsonl")
 	}
 	return nil
 }
@@ -296,17 +251,6 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
-
-	var ext string
-	switch sl.IndexerConfig.Compress {
-	case "brotli":
-		ext = ".br"
-	case "gzip":
-		ext = ".gz"
-	case "none":
-	default:
-		return nil, errors.Errorf("invalid compression '%s'", sl.IndexerConfig.Compress)
-	}
 
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
@@ -317,51 +261,23 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 		}
 	}
 	for v, _ := range inventory.GetVersions() {
-		var fs ocfl.OCFLFSRead
-		var targetname string
-		switch sl.StorageType {
-		case "area":
-			path, err := object.GetAreaPath(sl.IndexerConfig.StorageName)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot get area path for '%s'", sl.IndexerConfig.StorageName)
-			}
-			targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, path, v, ext)
-			fs = object.GetFS()
-		case "path":
-			targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
-			fs = object.GetFS()
-		case "extension":
-			targetname = strings.TrimLeft(fmt.Sprintf("%s/indexer_%s.jsonl%s", sl.IndexerConfig.StorageName, v, ext), "/")
-			fs = sl.fs
-		default:
-			return nil, errors.Errorf("unsupported storage type '%s'", sl.StorageType)
-		}
-
-		var reader io.Reader
-		var f io.ReadCloser
-		// if we are on the head and the buffer is not empty, we need to read from the buffer
+		var data []byte
 		if buf, ok := sl.buffer[v]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
 			// need a new reader on the buffer
-			reader = brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
-		} else {
-			f, err = fs.Open(targetname)
+			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
+			data, err = io.ReadAll(reader)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot open '%s/%s'", fs.String(), targetname)
+				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
-			switch sl.IndexerConfig.Compress {
-			case "brotli":
-				reader = brotli.NewReader(f)
-			case "gzip":
-				reader, err = gzip.NewReader(f)
-				if err != nil {
-					f.Close()
-					return nil, errors.Wrapf(err, "cannot open gzip reader on '%s'", targetname)
-				}
-			case "none":
-				reader = f
+		} else {
+			data, err = ocfl.ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fs)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
 			}
 		}
+
+		reader := bytes.NewReader(data)
 		r := bufio.NewScanner(reader)
 		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
 		r.Split(bufio.ScanLines)
@@ -369,16 +285,12 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			line := r.Text()
 			var meta = indexerLine{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				_ = f.Close()
-				return nil, errors.Wrapf(err, "cannot unmarshal line from '%s' - [%s]", targetname, line)
+				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
 			}
 			result[path2digest[meta.Path]] = meta.Indexer
 		}
 		if err := r.Err(); err != nil {
-			return nil, errors.Wrapf(err, "cannot scan lines from '%s'", targetname)
-		}
-		if f != nil {
-			f.Close()
+			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
 		}
 	}
 	return result, nil
@@ -407,17 +319,14 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 		return errors.Wrapf(err, "cannot index '%s'", stateFiles)
 	}
 	var indexerline = indexerLine{
-		Path:    filepath.ToSlash(filepath.Join(head, "content", dest)),
+		Path:    filepath.ToSlash(inventory.BuildManifestName(dest)),
 		Indexer: result,
 	}
 	data, err := json.Marshal(indexerline)
 	if err != nil {
 		return errors.Errorf("cannot marshal result %v", indexerline)
 	}
-	if _, err := sl.writer.Write(data); err != nil {
-		return errors.Errorf("cannot brotli %s", string(data))
-	}
-	if _, err := sl.writer.Write([]byte("\n")); err != nil {
+	if _, err := sl.writer.Write(append(data, []byte("\n")...)); err != nil {
 		return errors.Errorf("cannot brotli %s", string(data))
 	}
 	return nil
