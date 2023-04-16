@@ -681,43 +681,21 @@ func (object *ObjectBase) AddFolder(fsys OCFLFSRead, checkDuplicate bool, area s
 	return nil
 }
 
-func (object *ObjectBase) AddReader0(r io.ReadCloser, files []string, area string, noExtensionHook bool) error {
-	object.logger.Infof("adding reader %v", files)
-
-	if len(files) == 0 {
-		return errors.New("no files given")
-	}
-
-	if !object.i.IsWriteable() {
-		return errors.New("object not writeable")
-	}
-	stateFilename, err := object.extensionManager.BuildObjectInternalPath(object, files[0], area)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create virtual filename for '%s'", files[0])
-	}
-
-	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, files[0], stateFilename); err != nil {
-			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
-		}
-	}
+func (object *ObjectBase) addReader(r io.ReadCloser, names *namesStruct, noExtensionHook bool) (string, error) {
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
-	object.updateFiles = append(object.updateFiles, stateFilename)
-
-	// file could be replaced by another file
-	defer r.Close()
-
 	var digest string
+
+	object.updateFiles = append(object.updateFiles, names.externalPaths...)
+
 	if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
 		digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
 	}
 
-	manifestFilename := object.i.BuildManifestName(stateFilename)
-	writer, err := object.fsRW.Create(manifestFilename)
+	writer, err := object.fsRW.Create(names.manifestPath)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", manifestFilename)
+		return "", errors.Wrapf(err, "cannot create '%s'", names.manifestPath)
 	}
 	defer writer.Close()
 
@@ -725,7 +703,7 @@ func (object *ObjectBase) AddReader0(r io.ReadCloser, files []string, area strin
 	if noExtensionHook {
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer)
 		if err != nil {
-			return errors.Wrapf(err, "cannot copy '%s' -> '%s'", files[0], manifestFilename)
+			return "", errors.Wrapf(err, "cannot copy '%v' -> '%s'", names.externalPaths, names.manifestPath)
 		}
 	} else {
 		wg := sync.WaitGroup{}
@@ -734,93 +712,14 @@ func (object *ObjectBase) AddReader0(r io.ReadCloser, files []string, area strin
 		extErrors := make(chan error, 1)
 		go func() {
 			defer wg.Done()
-			if err := object.extensionManager.StreamObject(object, pr, files, stateFilename); err != nil {
+			if err := object.extensionManager.StreamObject(object, pr, names.externalPaths, names.internalPath); err != nil {
 				extErrors <- err
 			}
 		}()
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer, pw)
 		_ = pw.Close()
 		if err != nil {
-			return errors.Wrapf(err, "cannot copy '%s' -> '%s'", files[0], manifestFilename)
-		}
-		wg.Wait()
-		close(extErrors)
-		/*
-			if digest != "" && digest != checksums[object.i.GetDigestAlgorithm()] {
-				return fmt.Errorf("invalid checksum '%s'", digest)
-			}
-		*/
-		select {
-		case err, ok := <-extErrors:
-			if ok {
-				return errors.Wrapf(err, "error on StreamObject() extension hook for object '%s'", object.GetID())
-			}
-		default:
-		}
-	}
-
-	if digest == "" {
-		var ok bool
-		digest, ok = checksums[object.i.GetDigestAlgorithm()]
-		if !ok {
-			return errors.Errorf("digest '%s' not generated", object.i.GetDigestAlgorithm())
-		}
-	} else {
-		checksums[object.i.GetDigestAlgorithm()] = digest
-	}
-	if err := object.i.AddFile([]string{stateFilename}, manifestFilename, checksums); err != nil {
-		return errors.Wrapf(err, "cannot append '%s'/'%s' to inventory", stateFilename, stateFilename)
-	}
-
-	if !noExtensionHook {
-		if err := object.extensionManager.AddFileAfter(object, nil, files, manifestFilename, digest); err != nil {
-			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
-		}
-	}
-
-	return nil
-}
-
-func (object *ObjectBase) addReader(r io.ReadCloser, externalPaths []string, internalFilename string, noExtensionHook bool) (string, error) {
-
-	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
-	manifestFileName := object.i.BuildManifestName(internalFilename)
-
-	var digest string
-
-	object.updateFiles = append(object.updateFiles, externalPaths...)
-
-	if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
-		digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
-	}
-
-	writer, err := object.fsRW.Create(manifestFileName)
-	if err != nil {
-		return "", errors.Wrapf(err, "cannot create '%s'", manifestFileName)
-	}
-	defer writer.Close()
-
-	var checksums map[checksum.DigestAlgorithm]string
-	if noExtensionHook {
-		checksums, err = checksum.Copy(digestAlgorithms, r, writer)
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot copy '%v' -> '%s'", externalPaths, manifestFileName)
-		}
-	} else {
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		pr, pw := io.Pipe()
-		extErrors := make(chan error, 1)
-		go func() {
-			defer wg.Done()
-			if err := object.extensionManager.StreamObject(object, pr, externalPaths, internalFilename); err != nil {
-				extErrors <- err
-			}
-		}()
-		checksums, err = checksum.Copy(digestAlgorithms, r, writer, pw)
-		_ = pw.Close()
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot copy '%s' -> '%s'", externalPaths, manifestFileName)
+			return "", errors.Wrapf(err, "cannot copy '%s' -> '%s'", names.externalPaths, names.manifestPath)
 		}
 		wg.Wait()
 		close(extErrors)
@@ -842,51 +741,67 @@ func (object *ObjectBase) addReader(r io.ReadCloser, externalPaths []string, int
 	} else {
 		checksums[object.i.GetDigestAlgorithm()] = digest
 	}
-	if err := object.i.AddFile(externalPaths, manifestFileName, checksums); err != nil {
-		return "", errors.Wrapf(err, "cannot append '%v'/'%s' to inventory", externalPaths, internalFilename)
+	if err := object.i.AddFile(names.externalPaths, names.manifestPath, checksums); err != nil {
+		return "", errors.Wrapf(err, "cannot append '%v'/'%s' to inventory", names.externalPaths, names.internalPath)
 	}
 
 	return digest, nil
+}
+
+type namesStruct struct {
+	externalPaths []string
+	internalPath  string
+	manifestPath  string
+}
+
+func (object *ObjectBase) buildNames(files []string, area string) (*namesStruct, error) {
+	var err error
+	result := &namesStruct{
+		externalPaths: []string{},
+	}
+	for _, file := range files {
+		externalPath, err := object.extensionManager.BuildObjectExternalPath(object, file)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", file)
+		}
+		result.externalPaths = append(result.externalPaths, externalPath)
+	}
+	result.internalPath, err = object.extensionManager.BuildObjectInternalPath(object, files[0], area)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", files[0])
+	}
+	result.manifestPath = object.i.BuildManifestName(result.internalPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", result.internalPath)
+	}
+	return result, nil
 }
 
 func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool) error {
 	if len(files) == 0 {
 		return errors.New("no files given")
 	}
-	path := files[0]
-	object.logger.Infof("adding file %s:%v", area, files)
-
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
-	internalFilename, err := object.extensionManager.BuildObjectInternalPath(object, path, area)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
-	}
-	manifestFileName := object.i.BuildManifestName(internalFilename)
+	path := files[0]
+	names, err := object.buildNames(files, area)
 
-	var externalPaths []string
-	for _, file := range files {
-		externalPath, err := object.extensionManager.BuildObjectExternalPath(object, file)
-		if err != nil {
-			return errors.Wrapf(err, "cannot map external path '%s'", file)
-		}
-		externalPaths = append(externalPaths, externalPath)
-	}
+	object.logger.Infof("adding file %s:%v", area, files)
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, internalFilename); err != nil {
+		if err := object.extensionManager.AddFileBefore(object, nil, path, names.internalPath); err != nil {
 			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
 
-	digest, err := object.addReader(r, externalPaths, internalFilename, noExtensionHook)
+	digest, err := object.addReader(r, names, noExtensionHook)
 	if err != nil {
 		return errors.Wrapf(err, "cannot add file '%s' to object", path)
 	}
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileAfter(object, nil, externalPaths, manifestFileName, digest); err != nil {
+		if err := object.extensionManager.AddFileAfter(object, nil, names.externalPaths, names.manifestPath, digest); err != nil {
 			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
@@ -902,13 +817,11 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
-	internalFilename, err := object.extensionManager.BuildObjectInternalPath(object, path, area)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
-	}
+
+	names, err := object.buildNames([]string{path}, area)
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, internalFilename); err != nil {
+		if err := object.extensionManager.AddFileBefore(object, nil, path, names.internalPath); err != nil {
 			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
@@ -953,7 +866,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		// if file is already there we do nothing
 		dup, err := object.i.AlreadyExists(newPath, digest)
 		if err != nil {
-			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", internalFilename, digest)
+			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", names.internalPath, digest)
 		}
 		if dup {
 			object.logger.Infof("[%s] '%s' already exists. ignoring", object.GetID(), newPath)
@@ -963,7 +876,7 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
 			object.logger.Infof("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
 			if err := object.i.CopyFile(newPath, digest); err != nil {
-				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, internalFilename)
+				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, names.internalPath)
 			}
 			return nil
 		}
@@ -972,9 +885,9 @@ func (object *ObjectBase) AddFile(fsys OCFLFSRead, path string, checkDuplicate b
 			digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
 		}
 	}
-	targetFilename := object.i.BuildManifestName(internalFilename)
+	targetFilename := object.i.BuildManifestName(names.internalPath)
 
-	digest, err = object.addReader(file, []string{path}, internalFilename, noExtensionHook)
+	digest, err = object.addReader(file, names, noExtensionHook)
 	if err != nil {
 		return errors.Wrapf(err, "cannot add file '%s' to object", path)
 	}
