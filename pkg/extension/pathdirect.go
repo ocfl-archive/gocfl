@@ -108,7 +108,7 @@ func (sl *PathDirect) WriteConfig() error {
 func (sl *PathDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
-func (sl *PathDirect) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *PathDirect) BuildObjectInternalPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	return originalPath, nil
 }
 

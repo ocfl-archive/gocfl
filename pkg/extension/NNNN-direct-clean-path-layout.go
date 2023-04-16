@@ -178,7 +178,7 @@ func (sl *DirectClean) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id str
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *DirectClean) BuildObjectInternalPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	return sl.build(originalPath)
 }
 

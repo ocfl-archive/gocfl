@@ -116,7 +116,7 @@ func (sl *ContentSubPath) WriteConfig() error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectInternalPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		return originalPath, nil
 	}

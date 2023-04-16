@@ -11,10 +11,22 @@ import (
 	"time"
 )
 
+type Strategy string
+
+const (
+	StrategyReplace Strategy = "replace"
+	StrategyAdd     Strategy = "add"
+)
+
+var Strategies = map[string]Strategy{
+	"replace": StrategyReplace,
+	"add":     StrategyAdd,
+}
+
 type Function struct {
 	command  string
 	args     []string
-	Strategy string
+	Strategy Strategy
 	regexp   *regexp.Regexp
 	replace  string
 	timeout  time.Duration

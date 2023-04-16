@@ -47,7 +47,7 @@ type ExtensionStorageRootPath interface {
 
 type ExtensionObjectContentPath interface {
 	Extension
-	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
+	BuildObjectInternalPath(object Object, originalPath string, area string) (string, error)
 }
 
 var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")

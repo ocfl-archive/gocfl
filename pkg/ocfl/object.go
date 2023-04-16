@@ -24,7 +24,7 @@ type Object interface {
 	AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error
 	AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string, noExtensionHook bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool) error
-	DeleteFile(virtualFilename string, reader io.Reader, digest string) error
+	DeleteFile(virtualFilename string, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
 	Check() error

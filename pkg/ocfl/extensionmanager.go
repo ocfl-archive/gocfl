@@ -316,10 +316,10 @@ func (manager *ExtensionManager) SetParams(params map[string]string) error {
 }
 
 // ObjectContentPath
-func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPath string, area string) (string, error) {
+func (manager *ExtensionManager) BuildObjectInternalPath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
-		p, err := ocp.BuildObjectStatePath(object, originalPath, area)
+		p, err := ocp.BuildObjectInternalPath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue

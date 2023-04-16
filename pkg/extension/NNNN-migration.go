@@ -10,6 +10,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/indexer/v2/pkg/indexer"
+	"golang.org/x/exp/slices"
 	"io"
 	"regexp"
 )
@@ -238,6 +239,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				targetNames = append(targetNames, mig.GetDestinationName(f))
 			}
 		*/
+		// get the files from last version
 		stateFiles, err := inventory.GetStateFiles(versions[len(versions)-2], cs)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
@@ -274,7 +276,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			}
 		}
 		var ml *migrationLine
-		path, err := extensionManager.BuildObjectStatePath(object, targetNames[0], "content")
+		path, err := extensionManager.BuildObjectInternalPath(object, targetNames[0], "content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build state path for file '%s' in object '%s'", targetNames[0], object.GetID())
 		}
@@ -296,6 +298,17 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 					Source: manifestFiles[0],
 					ID:     mig.GetID(),
 				},
+			}
+			switch mig.Strategy {
+			case migration.StrategyReplace:
+				for _, n := range stateFiles {
+					if slices.Contains(targetNames, n) {
+						continue
+					}
+					if err := object.DeleteFile(n, cs); err != nil {
+						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", n, object.GetID())
+					}
+				}
 			}
 		}
 		data, err := json.Marshal(ml)

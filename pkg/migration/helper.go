@@ -62,12 +62,16 @@ func GetMigrations() (*Migration, error) {
 		for _, pro := range pros {
 			pronoms = append(pronoms, strings.TrimSpace(pro))
 		}
+		strategy, ok := Strategies[cmdMap["strategy"]]
+		if !ok {
+			return nil, errors.Errorf("unknown strategy '%s' in Migration.Function.%s", cmdMap["strategy"], name)
+		}
 		m.Functions[name] = &Function{
 			title:    cmdMap["title"],
 			id:       cmdMap["id"],
 			command:  parts[0],
 			args:     parts[1:],
-			Strategy: cmdMap["strategy"],
+			Strategy: strategy,
 			regexp:   re,
 			replace:  cmdMap["filenamereplacement"],
 			timeout:  timeout,
@@ -103,17 +107,15 @@ func DoMigrate(object ocfl.Object, mig *Function, targetNames []string, file io.
 		return errors.Wrapf(err, "cannot remove temp file '%s'", tmpFilename)
 	}
 
-	switch mig.Strategy {
-	case "replace":
-
-	}
-
 	mFile, err := os.Open(targetFilename)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open file '%s'", targetFilename)
 	}
 	if err := object.AddReader(mFile, targetNames, "content", false); err != nil {
 		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+	}
+	if err := mFile.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close file '%s'", targetFilename)
 	}
 	if err := os.Remove(targetFilename); err != nil {
 		return errors.Wrapf(err, "cannot remove temp file '%s'", targetFilename)
