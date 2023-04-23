@@ -116,7 +116,7 @@ func (sl *ContentSubPath) WriteConfig() error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectInternalPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		return originalPath, nil
 	}
@@ -151,7 +151,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectExternalPath(object ocfl.Object, originalPath string) (string, error) {
+func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string) (string, error) {
 	if sl.area == "full" {
 		return originalPath, nil
 	}
@@ -159,8 +159,8 @@ func (sl *ContentSubPath) BuildObjectExternalPath(object ocfl.Object, originalPa
 	if !ok {
 		return "", errors.Errorf("invalid area '%s'", sl.area)
 	}
-	path := strings.TrimLeft(originalPath, subpath.Path+"/")
-	//path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
+	//path := strings.TrimLeft(originalPath, subpath.Path+"/")
+	path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
 	return path, nil
 	/*
 		prefixPath := subpath.Path + "/"
@@ -198,10 +198,10 @@ func (sl *ContentSubPath) GetAreaPath(object ocfl.Object, area string) (string, 
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                   = &ContentSubPath{}
-	_ ocfl.ExtensionObjectContentPath  = &ContentSubPath{}
-	_ ocfl.ExtensionObjectChange       = &ContentSubPath{}
-	_ ocfl.ExtensionObjectExternalPath = &ContentSubPath{}
-	_ ocfl.ExtensionObjectExtractPath  = &ContentSubPath{}
-	_ ocfl.ExtensionArea               = &ContentSubPath{}
+	_ ocfl.Extension                  = &ContentSubPath{}
+	_ ocfl.ExtensionObjectContentPath = &ContentSubPath{}
+	_ ocfl.ExtensionObjectChange      = &ContentSubPath{}
+	_ ocfl.ExtensionObjectStatePath   = &ContentSubPath{}
+	_ ocfl.ExtensionObjectExtractPath = &ContentSubPath{}
+	_ ocfl.ExtensionArea              = &ContentSubPath{}
 )

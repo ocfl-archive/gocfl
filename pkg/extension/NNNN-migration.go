@@ -265,7 +265,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				if len(stateFiles) == 0 {
 					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, object.GetID())
 				}
-				external, err := object.GetExtensionManager().BuildObjectExternalPath(object, stateFiles[len(stateFiles)-1])
+				external, err := object.GetExtensionManager().BuildObjectExtractPath(object, stateFiles[len(stateFiles)-1])
 				if err != nil {
 					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], object.GetID())
 				}
@@ -276,7 +276,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			}
 		}
 		var ml *migrationLine
-		path, err := extensionManager.BuildObjectInternalPath(object, targetNames[0], "content")
+		path, err := extensionManager.BuildObjectManifestPath(object, targetNames[0], "content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build state path for file '%s' in object '%s'", targetNames[0], object.GetID())
 		}

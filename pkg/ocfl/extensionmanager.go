@@ -19,7 +19,7 @@ type ExtensionManager struct {
 	extensions         []Extension
 	storageRootPath    []ExtensionStorageRootPath
 	objectContentPath  []ExtensionObjectContentPath
-	objectExternalPath []ExtensionObjectExternalPath
+	objectExternalPath []ExtensionObjectStatePath
 	contentChange      []ExtensionContentChange
 	objectChange       []ExtensionObjectChange
 	fixityDigest       []ExtensionFixityDigest
@@ -87,7 +87,7 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	if occ, ok := ext.(ExtensionFixityDigest); ok {
 		manager.fixityDigest = append(manager.fixityDigest, occ)
 	}
-	if occ, ok := ext.(ExtensionObjectExternalPath); ok {
+	if occ, ok := ext.(ExtensionObjectStatePath); ok {
 		manager.objectExternalPath = append(manager.objectExternalPath, occ)
 	}
 	if occ, ok := ext.(ExtensionObjectExtractPath); ok {
@@ -316,10 +316,10 @@ func (manager *ExtensionManager) SetParams(params map[string]string) error {
 }
 
 // ObjectContentPath
-func (manager *ExtensionManager) BuildObjectInternalPath(object Object, originalPath string, area string) (string, error) {
+func (manager *ExtensionManager) BuildObjectManifestPath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
-		p, err := ocp.BuildObjectInternalPath(object, originalPath, area)
+		p, err := ocp.BuildObjectManifestPath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -333,10 +333,10 @@ func (manager *ExtensionManager) BuildObjectInternalPath(object Object, original
 }
 
 // ObjectExternalPath
-func (manager *ExtensionManager) BuildObjectExternalPath(object Object, originalPath string) (string, error) {
+func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPath string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectExternalPath {
-		p, err := ocp.BuildObjectExternalPath(object, originalPath)
+		p, err := ocp.BuildObjectStatePath(object, originalPath)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -449,7 +449,7 @@ func (manager *ExtensionManager) BuildObjectExtractPath(object Object, originalP
 	for _, ext := range manager.objectExtractPath {
 		originalPath, err = ext.BuildObjectExtractPath(object, originalPath)
 		if err != nil {
-			return "", errors.Wrapf(err, "cannot call BuildObjectExraPath")
+			return "", errors.Wrapf(err, "cannot call BuildObjectExtractPath")
 		}
 	}
 	return originalPath, nil
@@ -567,16 +567,16 @@ func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, s
 
 // check interface satisfaction
 var (
-	_ Extension                   = (*ExtensionManager)(nil)
-	_ ExtensionStorageRootPath    = (*ExtensionManager)(nil)
-	_ ExtensionObjectContentPath  = (*ExtensionManager)(nil)
-	_ ExtensionObjectExternalPath = (*ExtensionManager)(nil)
-	_ ExtensionContentChange      = (*ExtensionManager)(nil)
-	_ ExtensionObjectChange       = (*ExtensionManager)(nil)
-	_ ExtensionFixityDigest       = (*ExtensionManager)(nil)
-	_ ExtensionObjectExtractPath  = (*ExtensionManager)(nil)
-	_ ExtensionMetadata           = (*ExtensionManager)(nil)
-	_ ExtensionArea               = (*ExtensionManager)(nil)
-	_ ExtensionStream             = (*ExtensionManager)(nil)
-	_ ExtensionNewVersion         = (*ExtensionManager)(nil)
+	_ Extension                  = (*ExtensionManager)(nil)
+	_ ExtensionStorageRootPath   = (*ExtensionManager)(nil)
+	_ ExtensionObjectContentPath = (*ExtensionManager)(nil)
+	_ ExtensionObjectStatePath   = (*ExtensionManager)(nil)
+	_ ExtensionContentChange     = (*ExtensionManager)(nil)
+	_ ExtensionObjectChange      = (*ExtensionManager)(nil)
+	_ ExtensionFixityDigest      = (*ExtensionManager)(nil)
+	_ ExtensionObjectExtractPath = (*ExtensionManager)(nil)
+	_ ExtensionMetadata          = (*ExtensionManager)(nil)
+	_ ExtensionArea              = (*ExtensionManager)(nil)
+	_ ExtensionStream            = (*ExtensionManager)(nil)
+	_ ExtensionNewVersion        = (*ExtensionManager)(nil)
 )
