@@ -1,3 +1,5 @@
+//go:build exclude
+
 package baseFS
 
 import (
@@ -26,16 +28,6 @@ type RWFS interface {
 type FS interface {
 	// fs.FS
 	Open(path string) (fs.File, error)
-	/*
-		// fs.ReadDirFS
-		ReadDir(name string) ([]fs.DirEntry, error)
-
-		// fs.ReadFileFS
-		ReadFile(name string) ([]byte, error)
-
-		// fs.SubFS
-		Sub(name string) (fs.FS, error)
-	*/
 
 	SetFSFactory(factory *Factory)
 	GetFSRW(path string, clear bool) (ocfl.OCFLFS, error)

@@ -2,123 +2,45 @@ package baseFS
 
 import (
 	"emperror.dev/errors"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"io"
 	"io/fs"
+	"strings"
 )
 
+type CreateFS func(path string) (fs.FS, error)
+
 type Factory struct {
-	fss []FS
+	fss map[string]CreateFS
 }
 
 func NewFactory() (*Factory, error) {
-	f := &Factory{fss: []FS{}}
+	f := &Factory{fss: map[string]CreateFS{}}
 	return f, nil
 }
 
-func (f *Factory) Add(fs FS) {
-	fs.SetFSFactory(f)
-	f.fss = append(f.fss, fs)
+func (f *Factory) Add(fun CreateFS, prefix string) {
+	f.fss[prefix] = fun
 }
 
-func (f *Factory) GetFSRW(path string, clear bool) (ocfl.OCFLFS, error) {
-	for _, fsys := range f.fss {
-		ret, err := fsys.GetFSRW(path, clear)
-		if ErrNotSupported(err) {
-			continue
+func (f *Factory) Get(path string) (fs.FS, error) {
+	if strings.HasSuffix(path, ".zip") {
+		create, ok := f.fss["zip://"]
+		if !ok {
+			return nil, errors.Errorf("%s - zip not supported", path)
 		}
-		return ret, err
-	}
-	return nil, ErrPathNotSupported
-}
-
-func (f *Factory) GetFS(path string) (ocfl.OCFLFSRead, error) {
-	for _, fsys := range f.fss {
-		ret, err := fsys.GetFS(path)
-		if ErrNotSupported(err) {
-			continue
+		fsys, err := create(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create filesystem for '%s'", path)
 		}
-		return ret, err
+		return fsys, nil
 	}
-	return nil, ErrPathNotSupported
-}
-
-func (f *Factory) Open(path string) (fs.File, error) {
-	for _, fsys := range f.fss {
-		ret, err := fsys.Open(path)
-		if ErrNotSupported(err) {
-			continue
-		}
-		return ret, err
-	}
-	return nil, ErrPathNotSupported
-}
-
-func (f *Factory) Create(path string) (io.WriteCloser, error) {
-	for _, fsys := range f.fss {
-		ret, err := fsys.Create(path)
-		if ErrNotSupported(err) {
-			continue
-		}
-		return ret, err
-	}
-	return nil, ErrPathNotSupported
-}
-
-func (f *Factory) Delete(path string) error {
-	for _, fsys := range f.fss {
-		if err := fsys.Delete(path); err != nil {
-			if ErrNotSupported(err) {
-				continue
+	for prefix, create := range f.fss {
+		if strings.HasPrefix(path, prefix) {
+			fsys, err := create(path)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot create filesystem for '%s'", path)
 			}
-			return errors.Wrapf(err, "cannot delete '%s'", path)
+			return fsys, nil
 		}
-		return nil
 	}
-	return ErrPathNotSupported
-}
-
-func (f *Factory) Rename(src, dest string) error {
-	for _, fsys := range f.fss {
-		if err := fsys.Rename(src, dest); err != nil {
-			if ErrNotSupported(err) {
-				continue
-			}
-			return errors.Wrapf(err, "error renaming '%s' --> '%s'", src, dest)
-		}
-		return nil
-	}
-	srcFP, err := f.Open(src)
-	if err != nil {
-		return errors.Wrapf(err, "cannot open '%s'", src)
-	}
-	destFP, err := f.Create(dest)
-	if err != nil {
-		srcFP.Close()
-		return errors.Wrapf(err, "cannot create '%s'", dest)
-	}
-	defer destFP.Close()
-	if _, err := io.Copy(destFP, srcFP); err != nil {
-		srcFP.Close()
-		return errors.Wrapf(err, "cannot copy '%s' --> '%s'", src, dest)
-	}
-	if err := srcFP.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", src)
-	}
-	if err := f.Delete(src); err != nil {
-		return errors.Wrapf(err, "cannot delete '%s'", src)
-	}
-	return nil
-}
-
-func (f *Factory) WriteFile(path string, data []byte) error {
-	fp, err := f.Create(path)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create '%s'", path)
-	}
-	defer fp.Close()
-	if _, err := fp.Write(data); err != nil {
-		return errors.Wrapf(err, "cannot write '%s'", path)
-	}
-	return nil
+	return nil, errors.Errorf("path %s not supported", path)
 }

@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"emperror.dev/errors"
 	"encoding/json"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
 	"golang.org/x/exp/slices"
 	"io"
+	"io/fs"
 	"sync"
 )
 
@@ -28,7 +30,7 @@ type ExtensionManager struct {
 	area               []ExtensionArea
 	stream             []ExtensionStream
 	newVersion         []ExtensionNewVersion
-	fs                 OCFLFSRead
+	fsys               fs.FS
 }
 
 func (manager *ExtensionManager) GetConfigString() string {
@@ -108,33 +110,18 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	return nil
 }
 
-func (manager *ExtensionManager) SetFS(subFSRO OCFLFSRead) {
-	if subfs, ok := subFSRO.(OCFLFS); ok {
-		for _, ext := range manager.extensions {
-			extFS, err := subfs.SubFSRW(ext.GetName())
-			if err != nil {
-				panic(err)
-			}
-			ext.SetFS(extFS)
-		}
-		var err error
-		manager.fs, err = subfs.SubFSRW("initial")
+func (manager *ExtensionManager) SetFS(fsys fs.FS) {
+	for _, ext := range manager.extensions {
+		extFS, err := fs.Sub(fsys, ext.GetName())
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		for _, ext := range manager.extensions {
-			extFS, err := subFSRO.SubFS(ext.GetName())
-			if err != nil {
-				panic(err)
-			}
-			ext.SetFS(extFS)
-		}
-		var err error
-		manager.fs, err = subFSRO.SubFS("initial")
-		if err != nil {
-			panic(err)
-		}
+		ext.SetFS(extFS)
+	}
+	var err error
+	manager.fsys, err = fs.Sub(fsys, "initial")
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -232,10 +219,6 @@ func (manager *ExtensionManager) GetName() string {
 	return ExtensionManagerName
 }
 func (manager *ExtensionManager) WriteConfig() error {
-	fsRW, ok := manager.fs.(OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", manager.fs.String())
-	}
 	for _, ext := range manager.extensions {
 		if err := ext.WriteConfig(); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
@@ -243,7 +226,7 @@ func (manager *ExtensionManager) WriteConfig() error {
 	}
 
 	if len(manager.Exclusion) != 0 || len(manager.Sort) != 0 {
-		configWriter, err := fsRW.Create("config.json")
+		configWriter, err := writefs.Create(manager.fsys, "config.json")
 		if err != nil {
 			return errors.Wrap(err, "cannot open config.json")
 		}
@@ -258,9 +241,9 @@ func (manager *ExtensionManager) WriteConfig() error {
 }
 
 // StorageRootPath
-func (manager *ExtensionManager) StoreRootLayout(fs OCFLFS) error {
+func (manager *ExtensionManager) StoreRootLayout(fsys fs.FS) error {
 	for _, ext := range manager.storageRootPath {
-		if err := ext.WriteLayout(fs); err != nil {
+		if err := ext.WriteLayout(fsys); err != nil {
 			return errors.Wrapf(err, "cannot store '%v'", ext)
 		}
 	}
@@ -280,14 +263,14 @@ func (manager *ExtensionManager) BuildStorageRootPath(storageRoot StorageRoot, i
 	}
 	return id, errors.Combine(errs...)
 }
-func (manager *ExtensionManager) WriteLayout(fs OCFLFS) error {
+func (manager *ExtensionManager) WriteLayout(fsys fs.FS) error {
 	if len(manager.storageRootPath) == 0 {
 		return nil
 	}
 	if len(manager.storageRootPath) == 1 {
-		return manager.storageRootPath[0].WriteLayout(fs)
+		return manager.storageRootPath[0].WriteLayout(fsys)
 	}
-	configWriter, err := fs.Create("ocfl_layout.json")
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}
@@ -350,7 +333,7 @@ func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPat
 }
 
 // ContentChange
-func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error {
+func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS fs.FS, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileBefore(object, sourceFS, source, dest); err != nil {
@@ -360,7 +343,7 @@ func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS OCFLFSRea
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error {
+func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS fs.FS, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest); err != nil {
@@ -380,7 +363,7 @@ func (manager *ExtensionManager) DeleteFileBefore(object Object, dest string) er
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead, source []string, internalPath, digest string) error {
+func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest); err != nil {
@@ -390,7 +373,7 @@ func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error {
+func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS fs.FS, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest); err != nil {

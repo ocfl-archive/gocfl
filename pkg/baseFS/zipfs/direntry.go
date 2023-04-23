@@ -1,3 +1,5 @@
+//go:build exclude
+
 package zipfs
 
 import "io/fs"

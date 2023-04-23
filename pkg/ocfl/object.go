@@ -7,6 +7,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
+	"io/fs"
 )
 
 type Object interface {
@@ -21,26 +22,25 @@ type Object interface {
 	EndUpdate() error
 	BeginArea(area string)
 	EndArea() error
-	AddFolder(fsys OCFLFSRead, checkDuplicate bool, area string) error
-	AddFile(fsys OCFLFSRead, path string, checkDuplicate bool, area string, noExtensionHook bool) error
+	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
+	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool) error
 	DeleteFile(virtualFilename string, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
 	Check() error
 	Close() error
-	GetFS() OCFLFSRead
-	GetFSRW() OCFLFS
+	GetFS() fs.FS
 	IsModified() bool
 	Stat(w io.Writer, statInfo []StatInfo) error
-	Extract(fs OCFLFS, version string, manifest bool) error
+	Extract(fs fs.FS, version string, manifest bool) error
 	GetMetadata() (*ObjectMetadata, error)
 	GetAreaPath(area string) (string, error)
 	GetExtensionManager() *ExtensionManager
 }
 
-func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion, err error) {
-	files, err := ofs.ReadDir(".")
+func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err error) {
+	files, err := fs.ReadDir(ofs, ".")
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get files")
 	}
@@ -54,7 +54,7 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion,
 				return "", errVersionMultiple
 			}
 			version = OCFLVersion(matches[1])
-			cnt, err := ofs.ReadFile(file.Name())
+			cnt, err := fs.ReadFile(ofs, file.Name())
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot read %s", file.Name())
 			}
@@ -66,13 +66,13 @@ func GetObjectVersion(ctx context.Context, ofs OCFLFSRead) (version OCFLVersion,
 		}
 	}
 	if version == "" {
-		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in '%s'", ofs.String()).AppendContext("object folder '%s'", ofs))
+		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in '%v'", ofs).AppendContext("object folder '%s'", ofs))
 		return "", nil
 	}
 	return version, nil
 }
 
-func newObject(ctx context.Context, fsys OCFLFSRead, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
+func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)

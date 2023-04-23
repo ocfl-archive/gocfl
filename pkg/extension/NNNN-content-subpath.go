@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/atsushinee/go-markdown-generator/doc"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
+	"io/fs"
 	"path/filepath"
 	"strings"
 )
@@ -26,7 +28,7 @@ type ContentSubPathConfig struct {
 }
 type ContentSubPath struct {
 	*ContentSubPathConfig
-	fs   ocfl.OCFLFSRead
+	fsys fs.FS
 	area string
 }
 
@@ -42,7 +44,7 @@ func GetContentSubPathParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewContentSubPathFS(fsys ocfl.OCFLFSRead) (*ContentSubPath, error) {
+func NewContentSubPathFS(fsys fs.FS) (*ContentSubPath, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -73,8 +75,8 @@ func (sl *ContentSubPath) IsRegistered() bool {
 	return false
 }
 
-func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *ContentSubPath) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *ContentSubPath) SetParams(params map[string]string) error {
@@ -94,15 +96,10 @@ func (sl *ContentSubPath) GetConfigString() string {
 }
 
 func (sl *ContentSubPath) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

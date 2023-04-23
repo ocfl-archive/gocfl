@@ -84,7 +84,7 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflFS, err := fsFactory.GetFS(ocflPath)
+	ocflFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -101,9 +101,6 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	if !ocflFS.HasContent() {
-
-	}
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)

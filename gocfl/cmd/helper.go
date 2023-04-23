@@ -1,17 +1,19 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/tink/go/core/registry"
+	"github.com/google/tink/go/tink"
+	"github.com/je4/filesystem/v2/pkg/osfsrw"
+	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v2/pkg/zipfs"
+	"github.com/je4/filesystem/v2/pkg/zipfsrw"
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/je4/gocfl/v2/pkg/baseFS"
-	genericfs "github.com/je4/gocfl/v2/pkg/baseFS/genericFS"
-	"github.com/je4/gocfl/v2/pkg/baseFS/osfs"
-	"github.com/je4/gocfl/v2/pkg/baseFS/s3fs"
-	"github.com/je4/gocfl/v2/pkg/baseFS/zipfs"
 	"github.com/je4/gocfl/v2/pkg/extension"
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -21,8 +23,8 @@ import (
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,7 +49,7 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, sourceFS ocfl.OCFLFSRead, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, sourceFS fs.FS, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
 	logger.Debugf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
@@ -55,67 +57,67 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	}
 
 	logger.Debugf("adding creator for extension %s", extension.DigestAlgorithmsName)
-	extensionFactory.AddCreator(extension.DigestAlgorithmsName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.DigestAlgorithmsName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewDigestAlgorithmsFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutFlatDirectName)
-	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutFlatDirectFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutHashAndIdNTupleName)
-	extensionFactory.AddCreator(extension.StorageLayoutHashAndIdNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutHashAndIdNTupleName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashAndIdNTupleFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutHashedNTupleName)
-	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashedNTupleFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.FlatOmitPrefixStorageLayoutName)
-	extensionFactory.AddCreator(extension.FlatOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.FlatOmitPrefixStorageLayoutName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewFlatOmitPrefixStorageLayoutFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.NTupleOmitPrefixStorageLayoutName)
-	extensionFactory.AddCreator(extension.NTupleOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.NTupleOmitPrefixStorageLayoutName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewNTupleOmitPrefixStorageLayoutFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.DirectCleanName)
-	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewDirectCleanFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.PathDirectName)
-	extensionFactory.AddCreator(extension.PathDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.PathDirectName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewPathDirectFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutPairTreeName)
-	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutPairTreeFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", ocfl.ExtensionManagerName)
-	extensionFactory.AddCreator(ocfl.ExtensionManagerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(ocfl.ExtensionManagerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return ocfl.NewInitialDummyFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.ContentSubPathName)
-	extensionFactory.AddCreator(extension.ContentSubPathName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.ContentSubPathName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewContentSubPathFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.MetaFileName)
-	extensionFactory.AddCreator(extension.MetaFileName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.MetaFileName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewMetaFileFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.IndexerName)
-	extensionFactory.AddCreator(extension.IndexerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
@@ -124,7 +126,7 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.MigrationName)
-	extensionFactory.AddCreator(extension.MigrationName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.MigrationName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewMigrationFS(fsys, migration)
 	})
 
@@ -158,34 +160,48 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
 	} else {
-		dStorageRootExtDirFS = os.DirFS(storageRootExtensionsFolder)
-	}
-	osrfs, err := genericfs.NewFS(dStorageRootExtDirFS, ".", logger)
-	if err != nil {
-		err = errors.Wrapf(err, "cannot create generic fs for %v", dStorageRootExtDirFS)
-		return
+		dStorageRootExtDirFS = osfsrw.NewFS(storageRootExtensionsFolder)
 	}
 	if objectExtensionsFolder == "" {
 		dObjectExtDirFS = defaultextensions_object.DefaultObjectExtensionFS
 	} else {
-		dObjectExtDirFS = os.DirFS(objectExtensionsFolder)
+		dObjectExtDirFS = osfsrw.NewFS(objectExtensionsFolder)
 	}
-	oofs, err := genericfs.NewFS(dObjectExtDirFS, ".", logger)
+	storageRootExtensions, err = extensionFactory.LoadExtensions(dStorageRootExtDirFS)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot create generic fs for %v", dObjectExtDirFS)
+		err = errors.Wrapf(err, "cannot load extension folder %v", dStorageRootExtDirFS)
 		return
 	}
-	storageRootExtensions, err = extensionFactory.LoadExtensions(osrfs)
+	objectExtensions, err = extensionFactory.LoadExtensions(dObjectExtDirFS)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot load extension folder %v", osrfs)
-		return
-	}
-	objectExtensions, err = extensionFactory.LoadExtensions(oofs)
-	if err != nil {
-		err = errors.Wrapf(err, "cannot load extension folder %v", oofs)
+		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
 	}
 	return
+}
+
+func NewZipFSCreator(factory *baseFS.Factory, zipDigests []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aead tink.AEAD, aad []byte, clear bool) baseFS.CreateFS {
+	return func(path string) (fs.FS, error) {
+		parts := strings.Split(path, "/")
+		if len(parts) < 2 {
+			return nil, errors.Errorf("invalid path %s", path)
+		}
+		folder := strings.Join(parts[0:len(parts)-2], "/")
+		zipFile := parts[len(parts)-1]
+		baseFSys, err := factory.Get(folder)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get filesystem for folder %s", folder)
+		}
+		if RW {
+
+		} else {
+			fp, err := baseFSys.Open(zipFile)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot open file %s", zipFile)
+			}
+			zfs, err := zipfs.NewFS()
+		}
+	}
 }
 
 func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*baseFS.Factory, error) {
@@ -219,7 +235,37 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 
 	flagNoCompression := viper.GetBool(prefix + "NoCompression")
 
-	zipFS, err := zipfs.NewBaseFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
+	// ----------------------------------------------------
+	var fpat io.ReaderAt
+	var size int64
+	var fp fs.File
+	var ok bool
+	newpath := path
+	// if target file exists, open it and create a zipfs
+	stat, err := fs.Stat(baseFS, path)
+	if err == nil {
+		size = stat.Size()
+		fp, err = baseFS.Open(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot open zip file '%s'", path)
+		}
+		fpat, ok = fp.(io.ReaderAt)
+		if !ok {
+			return nil, errors.Errorf("cannot cast file '%s' to io.WriterAt", path)
+		}
+		newpath = newpath + ".tmp"
+	}
+	// create new file
+	newfp, err := writefs.Create(baseFS, newpath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create zip file '%s'", newpath)
+	}
+	// add a buffer to the file
+	newFPBuffer := bufio.NewWriterSize(newfp, 1024*1024)
+
+	// ----------------------------------------------------
+	zipFS, err := zipfsrw.NewZipFSRW().NewFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
+	//zipFS, err := zipfs.NewBaseFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
 	}
@@ -290,8 +336,8 @@ func addObjectByPath(
 	defaultExtensions []ocfl.Extension,
 	checkDuplicates bool,
 	id, userName, userAddress, message string,
-	sourceFS ocfl.OCFLFSRead, area string,
-	areaPaths map[string]ocfl.OCFLFSRead,
+	sourceFS fs.FS, area string,
+	areaPaths map[string]fs.FS,
 	echo bool) (bool, error) {
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)

@@ -8,9 +8,11 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/andybalholm/brotli"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	"io"
+	"io/fs"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -111,13 +113,13 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
-func getVersion(ctx context.Context, fs OCFLFSRead, folder, prefix string) (version OCFLVersion, err error) {
+func getVersion(ctx context.Context, fsys fs.FS, folder, prefix string) (version OCFLVersion, err error) {
 	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot compile %s", rString)
 	}
-	files, err := fs.ReadDir(folder)
+	files, err := fs.ReadDir(fsys, folder)
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot get %s files", folder)
 	}
@@ -131,7 +133,7 @@ func getVersion(ctx context.Context, fs OCFLFSRead, folder, prefix string) (vers
 				return "", errVersionMultiple
 			}
 			version = OCFLVersion(matches[1])
-			r, err := fs.Open(fmt.Sprintf("%s/%s", folder, file.Name()))
+			r, err := fsys.Open(fmt.Sprintf("%s/%s", folder, file.Name()))
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot open %s/%s", prefix, file.Name())
 			}
@@ -157,8 +159,8 @@ func getVersion(ctx context.Context, fs OCFLFSRead, folder, prefix string) (vers
 	return version, nil
 }
 
-func validVersion(ctx context.Context, fs OCFLFS, version OCFLVersion, folder, prefix string) bool {
-	v, _ := getVersion(ctx, fs, folder, prefix)
+func validVersion(ctx context.Context, fsys fs.FS, version OCFLVersion, folder, prefix string) bool {
+	v, _ := getVersion(ctx, fsys, folder, prefix)
 	return v == version
 }
 
@@ -292,7 +294,7 @@ func CleanPath(fname string, MaxFilenameLength, MaxPathnameLength int) (string, 
 	return fname, nil
 }
 
-func ReadJsonL(object Object, name string, version string, compress string, storageType, storageName string, fs OCFLFSRead) ([]byte, error) {
+func ReadJsonL(object Object, name, version, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	var ext string
 	switch compress {
 	case "brotli":
@@ -312,7 +314,7 @@ func ReadJsonL(object Object, name string, version string, compress string, stor
 		}
 		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
-		fs = object.GetFS()
+		fsys = object.GetFS()
 	case "path":
 		path, err := object.GetAreaPath("content")
 		if err != nil {
@@ -320,7 +322,7 @@ func ReadJsonL(object Object, name string, version string, compress string, stor
 		}
 		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
-		fs = object.GetFS()
+		fsys = object.GetFS()
 	case "extension":
 		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", storageName, name, version, ext), "/")
 	default:
@@ -328,9 +330,9 @@ func ReadJsonL(object Object, name string, version string, compress string, stor
 	}
 
 	var reader io.Reader
-	f, err := fs.Open(targetname)
+	f, err := fsys.Open(targetname)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open '%s/%s'", fs.String(), targetname)
+		return nil, errors.Wrapf(err, "cannot open '%v/%s'", fsys, targetname)
 	}
 	switch compress {
 	case "brotli":
@@ -360,7 +362,7 @@ func ReadJsonL(object Object, name string, version string, compress string, stor
 	return data, nil
 }
 
-func WriteJsonL(object Object, name string, brotliData []byte, compress string, storageType, storageName string, fs OCFLFSRead) error {
+func WriteJsonL(object Object, name string, brotliData []byte, compress, storageType, storageName string, fsys fs.FS) error {
 	var bufReader = bytes.NewBuffer(brotliData)
 	var ext string
 	var reader io.Reader
@@ -400,19 +402,14 @@ func WriteJsonL(object Object, name string, brotliData []byte, compress string, 
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
-		fsRW, ok := fs.(OCFLFS)
-		if !ok {
-			return errors.Errorf("filesystem is read only - '%s'", fs.String())
-		}
-
 		targetname := strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext), "/")
-		fp, err := fsRW.Create(targetname)
+		fp, err := writefs.Create(fsys, targetname)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create '%s/%s'", fs.String(), targetname)
+			return errors.Wrapf(err, "cannot create '%v/%s'", fsys, targetname)
 		}
 		defer fp.Close()
 		if _, err := io.Copy(fp, reader); err != nil {
-			return errors.Wrapf(err, "cannot write '%s/%s'", fs.String(), targetname)
+			return errors.Wrapf(err, "cannot write '%v/%s'", fsys, targetname)
 		}
 	default:
 		return errors.Errorf("unsupported storage type '%s'", storageType)

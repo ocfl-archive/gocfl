@@ -6,11 +6,7 @@
 // https://ocfl.io
 package ocfl
 
-import (
-	"io"
-	"io/fs"
-)
-
+/*
 type FileSeeker interface {
 	io.Seeker
 	fs.File
@@ -45,3 +41,4 @@ type OCFLFS interface {
 	SubFSRW(subfolder string) (OCFLFS, error)
 	Rename(src, dest string) error
 }
+*/

@@ -5,6 +5,7 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -14,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"io/fs"
 	"path/filepath"
 	"strings"
 )
@@ -145,8 +147,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 	daLogger.Infof("source path '%s:%s'", area, srcPath)
 
-	flagForce, _ := cmd.Flags().GetBool("force")
-
 	if len(notSet) > 0 {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("required flag(s) %s not set", strings.Join(notSet, ", ")))
@@ -225,20 +225,20 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	sourceFS, err := fsFactory.GetFS(srcPath)
+	sourceFS, err := fsFactory.Get(srcPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", srcPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	destFS, err := fsFactory.GetFSRW(ocflPath, flagForce)
+	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	var areaPaths = map[string]ocfl.OCFLFSRead{}
+	var areaPaths = map[string]fs.FS{}
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
@@ -246,7 +246,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 			continue
 		}
 		daLogger.Infof("additional path '%s:%s'", matches[1], matches[2])
-		areaPaths[matches[1]], err = fsFactory.GetFS(matches[2])
+		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
 		if err != nil {
 			daLogger.Errorf("cannot get filesystem for '%s': %v", args[i], err)
 			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -287,8 +287,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 	defer showStatus(ctx)
 	storageRoot, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagAddDigest), daLogger)
 	if err != nil {
-		if err := destFS.Discard(); err != nil {
-			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS.String(), err)
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("cannot discard filesystem '%v': %v", destFS, err)
 		}
 		daLogger.Errorf("cannot create new storageroot: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -313,7 +313,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
 
-	if err := destFS.Close(); err != nil {
+	if err := writefs.Close(destFS); err != nil {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}

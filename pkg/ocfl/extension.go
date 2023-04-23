@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"io"
+	"io/fs"
 )
 
 type ExtensionConfig struct {
@@ -12,7 +13,7 @@ type ExtensionConfig struct {
 
 type Extension interface {
 	GetName() string
-	SetFS(fs OCFLFSRead)
+	SetFS(fsys fs.FS)
 	SetParams(params map[string]string) error
 	WriteConfig() error
 	GetConfigString() string
@@ -41,7 +42,7 @@ type ExtensionStream interface {
 
 type ExtensionStorageRootPath interface {
 	Extension
-	WriteLayout(fs OCFLFS) error
+	WriteLayout(fsys fs.FS) error
 	BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)
 }
 
@@ -64,11 +65,11 @@ type ExtensionObjectStatePath interface {
 
 type ExtensionContentChange interface {
 	Extension
-	AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
-	UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error
+	AddFileBefore(object Object, sourceFS fs.FS, source, dest string) error
+	UpdateFileBefore(object Object, sourceFS fs.FS, source, dest string) error
 	DeleteFileBefore(object Object, dest string) error
-	AddFileAfter(object Object, sourceFS OCFLFSRead, source []string, internalPath, digest string) error
-	UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error
+	AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest string) error
+	UpdateFileAfter(object Object, sourceFS fs.FS, source, dest string) error
 	DeleteFileAfter(object Object, dest string) error
 }
 

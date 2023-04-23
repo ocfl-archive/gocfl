@@ -7,11 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andybalholm/brotli"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"golang.org/x/exp/slices"
 	"io"
+	"io/fs"
 	"regexp"
 )
 
@@ -52,7 +54,7 @@ type MigrationFiles map[string]*MigrationTarget
 
 type Migration struct {
 	*MigrationConfig
-	fs        ocfl.OCFLFSRead
+	fsys      fs.FS
 	lastHead  string
 	migration *migration.Migration
 	//buffer         *bytes.Buffer
@@ -60,12 +62,12 @@ type Migration struct {
 	writer         *brotli.Writer
 	migrationFiles map[string]*migration.Function
 	migratedFiles  map[string]map[string]string
-	sourceFS       ocfl.OCFLFSRead
+	sourceFS       fs.FS
 	currentHead    string
 }
 
-func NewMigrationFS(fs ocfl.OCFLFSRead, migration *migration.Migration) (*Migration, error) {
-	fp, err := fs.Open("config.json")
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration) (*Migration, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}
@@ -112,22 +114,17 @@ func (mi *Migration) IsRegistered() bool { return false }
 
 func (mi *Migration) GetName() string { return MigrationName }
 
-func (mi *Migration) SetFS(fs ocfl.OCFLFSRead) { mi.fs = fs }
+func (mi *Migration) SetFS(fsys fs.FS) { mi.fsys = fsys }
 
 func (mi *Migration) SetParams(params map[string]string) error {
 	return nil
 }
 
 func (mi *Migration) WriteConfig() error {
-	if mi.fs == nil {
+	if mi.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := mi.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", mi.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(mi.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -234,11 +231,6 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		if !ok {
 			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, object.GetID())
 		}
-		/*
-			for _, f := range manifestFiles {
-				targetNames = append(targetNames, mig.GetDestinationName(f))
-			}
-		*/
 		// get the files from last version
 		stateFiles, err := inventory.GetStateFiles(versions[len(versions)-2], cs)
 		if err != nil {
@@ -271,7 +263,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				}
 				file, err = mi.sourceFS.Open(external)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open file '%s/%s' in source filesystem", mi.sourceFS.String(), targetNames[len(targetNames)-1])
+					return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", mi.sourceFS, targetNames[len(targetNames)-1])
 				}
 			}
 		}
@@ -336,7 +328,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		mi.MigrationConfig.Compress,
 		mi.StorageType,
 		mi.StorageName,
-		mi.fs,
+		mi.fsys,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
@@ -366,7 +358,7 @@ func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ocfl.ReadJsonL(object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName, mi.fs)
+			data, err = ocfl.ReadJsonL(object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName, mi.fsys)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
