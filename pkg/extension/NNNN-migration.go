@@ -240,6 +240,8 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			targetNames = append(targetNames, mig.GetDestinationName(sf))
 		}
 
+		mi.migratedFiles[head][cs] = manifestFiles[0]
+
 		var file io.ReadCloser
 		fs := object.GetFS()
 		if fs != nil {
@@ -257,7 +259,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				if len(stateFiles) == 0 {
 					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, object.GetID())
 				}
-				external, err := object.GetExtensionManager().BuildObjectExtractPath(object, stateFiles[len(stateFiles)-1])
+				external, err := object.GetExtensionManager().BuildObjectExtractPath(object, stateFiles[len(stateFiles)-1], "")
 				if err != nil {
 					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], object.GetID())
 				}
@@ -268,12 +270,26 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			}
 		}
 		var ml *migrationLine
-		path, err := extensionManager.BuildObjectManifestPath(object, targetNames[0], "content")
-		if err != nil {
-			return errors.Wrapf(err, "cannot build state path for file '%s' in object '%s'", targetNames[0], object.GetID())
+		/*
+			path, err := extensionManager.BuildObjectManifestPath(object, targetNames[0], "content")
+			if err != nil {
+				return errors.Wrapf(err, "cannot build state path for file '%s' in object '%s'", targetNames[0], object.GetID())
+			}
+		*/
+		extractTargetNames := []string{}
+		for _, targetName := range targetNames {
+			extractTargetName, err := extensionManager.BuildObjectExtractPath(object, targetName, "")
+			if err != nil {
+				return errors.Wrapf(err, "cannot build extract path for file '%s' in object '%s'", targetName, object.GetID())
+			}
+			extractTargetNames = append(extractTargetNames, extractTargetName)
 		}
-		path = inventory.BuildManifestName(path)
-		if err := migration.DoMigrate(object, mig, targetNames, file); err != nil {
+		manifestName, err := object.GetExtensionManager().BuildObjectManifestPath(object, extractTargetNames[0], "content")
+		if err != nil {
+			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
+		}
+		path := inventory.BuildManifestName(manifestName)
+		if err := migration.DoMigrate(object, mig, extractTargetNames, file); err != nil {
 			ml = &migrationLine{
 				Path: path,
 				Migration: &migrationResult{
@@ -311,6 +327,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot write migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
 		}
 	}
+	mi.migrationFiles = map[string]*migration.Function{}
 	if err := mi.writer.Flush(); err != nil {
 		return errors.Wrapf(err, "cannot flush migration line writer for object '%s'", object.GetID())
 	}

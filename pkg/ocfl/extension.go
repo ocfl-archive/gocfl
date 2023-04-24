@@ -55,12 +55,12 @@ var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
 
 type ExtensionObjectExtractPath interface {
 	Extension
-	BuildObjectExtractPath(object Object, originalPath string) (string, error)
+	BuildObjectExtractPath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionObjectStatePath interface {
 	Extension
-	BuildObjectStatePath(object Object, originalPath string) (string, error)
+	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionContentChange interface {

@@ -3,7 +3,7 @@ package migration
 import (
 	"context"
 	"emperror.dev/errors"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"io/fs"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -63,7 +63,7 @@ func (f *Function) GetID() string {
 type Migration struct {
 	Functions map[string]*Function
 	//Sources   map[string]string
-	SourceFS ocfl.OCFLFSRead
+	SourceFS fs.FS
 }
 
 func (m *Migration) GetFunctionByName(name string) (*Function, error) {
@@ -84,6 +84,6 @@ func (m *Migration) GetFunctionByPronom(pronom string) (*Function, error) {
 	return nil, errors.Errorf("Migration.Source.%s does not exist", pronom)
 }
 
-func (m *Migration) SetSourceFS(fs ocfl.OCFLFSRead) {
+func (m *Migration) SetSourceFS(fs fs.FS) {
 	m.SourceFS = fs
 }

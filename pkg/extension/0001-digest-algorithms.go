@@ -4,9 +4,11 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"io"
+	"io/fs"
 )
 
 const DigestAlgorithmsName = "0001-digest-algorithms"
@@ -28,10 +30,10 @@ type DigestAlgorithmsConfig struct {
 }
 type DigestAlgorithms struct {
 	*DigestAlgorithmsConfig
-	fs ocfl.OCFLFSRead
+	fsys fs.FS
 }
 
-func NewDigestAlgorithmsFS(fsys ocfl.OCFLFSRead) (*DigestAlgorithms, error) {
+func NewDigestAlgorithmsFS(fsys fs.FS) (*DigestAlgorithms, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -70,8 +72,8 @@ func (sl *DigestAlgorithms) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *DigestAlgorithms) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *DigestAlgorithms) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *DigestAlgorithms) SetParams(params map[string]string) error {
@@ -80,14 +82,10 @@ func (sl *DigestAlgorithms) SetParams(params map[string]string) error {
 
 func (sl *DigestAlgorithms) GetName() string { return DigestAlgorithmsName }
 func (sl *DigestAlgorithms) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

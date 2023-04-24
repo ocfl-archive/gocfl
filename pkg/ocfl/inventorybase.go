@@ -978,7 +978,7 @@ func (i *InventoryBase) CopyFile(dest string, digest string) error {
 }
 
 func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error {
-	i.logger.Debugf("[%s] adding '%s' -> '%s' [%s]", i.GetID(), stateFilenames, manifestFilename, checksums)
+	i.logger.Debugf("[%s] adding '%s' -> '%s'", i.GetID(), stateFilenames, manifestFilename)
 	digest, ok := checksums[i.GetDigestAlgorithm()]
 	if !ok {
 		return errors.Errorf("no digest for '%s' in checksums", i.GetDigestAlgorithm())

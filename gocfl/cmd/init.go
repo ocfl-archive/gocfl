@@ -4,6 +4,7 @@ import (
 	"context"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
@@ -92,7 +93,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.GetFSRW(ocflPath, false)
+	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -116,7 +117,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
 	if _, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), daLogger); err != nil {
-		if err := destFS.Discard(); err != nil {
+		if err := writefs.Close(destFS); err != nil {
 			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS, err)
 		}
 		daLogger.Errorf("cannot create new storageroot: %v", err)
@@ -124,7 +125,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := destFS.Close(); err != nil {
+	if err := writefs.Close(destFS); err != nil {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return

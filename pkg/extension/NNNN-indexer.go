@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andybalholm/brotli"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"golang.org/x/exp/slices"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -49,7 +51,7 @@ type IndexerConfig struct {
 }
 type Indexer struct {
 	*IndexerConfig
-	fs             ocfl.OCFLFSRead
+	fsys           fs.FS
 	indexerURL     *url.URL
 	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
@@ -58,8 +60,8 @@ type Indexer struct {
 	currentHead    string
 }
 
-func NewIndexerFS(fs ocfl.OCFLFSRead, urlString string, indexerActions *ironmaiden.ActionDispatcher) (*Indexer, error) {
-	fp, err := fs.Open("config.json")
+func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher) (*Indexer, error) {
+	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
 	}
@@ -129,7 +131,7 @@ func (sl *Indexer) IsRegistered() bool { return false }
 
 func (sl *Indexer) GetName() string { return IndexerName }
 
-func (sl *Indexer) SetFS(fs ocfl.OCFLFSRead) { sl.fs = fs }
+func (sl *Indexer) SetFS(fsys fs.FS) { sl.fsys = fsys }
 
 func (sl *Indexer) SetParams(params map[string]string) error {
 	var err error
@@ -188,15 +190,10 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 }
 
 func (sl *Indexer) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -241,7 +238,7 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 		sl.IndexerConfig.Compress,
 		sl.StorageType,
 		sl.StorageName,
-		sl.fs,
+		sl.fsys,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
@@ -271,7 +268,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ocfl.ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fs)
+			data, err = ocfl.ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
 			}

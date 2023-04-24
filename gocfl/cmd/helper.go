@@ -1,19 +1,16 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/tink/go/core/registry"
-	"github.com/google/tink/go/tink"
 	"github.com/je4/filesystem/v2/pkg/osfsrw"
+	"github.com/je4/filesystem/v2/pkg/s3fsrw"
 	"github.com/je4/filesystem/v2/pkg/writefs"
-	"github.com/je4/filesystem/v2/pkg/zipfs"
 	"github.com/je4/filesystem/v2/pkg/zipfsrw"
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
-	"github.com/je4/gocfl/v2/pkg/baseFS"
 	"github.com/je4/gocfl/v2/pkg/extension"
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -23,7 +20,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -160,12 +156,18 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
 	} else {
-		dStorageRootExtDirFS = osfsrw.NewFS(storageRootExtensionsFolder)
+		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot create filesystem for storage root extensions folder %v", storageRootExtensionsFolder)
+		}
 	}
 	if objectExtensionsFolder == "" {
 		dObjectExtDirFS = defaultextensions_object.DefaultObjectExtensionFS
 	} else {
-		dObjectExtDirFS = osfsrw.NewFS(objectExtensionsFolder)
+		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot create filesystem for object extensions folder %v", objectExtensionsFolder)
+		}
 	}
 	storageRootExtensions, err = extensionFactory.LoadExtensions(dStorageRootExtDirFS)
 	if err != nil {
@@ -180,37 +182,13 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	return
 }
 
-func NewZipFSCreator(factory *baseFS.Factory, zipDigests []checksum.DigestAlgorithm, RW bool, noCompression bool, aes bool, aead tink.AEAD, aad []byte, clear bool) baseFS.CreateFS {
-	return func(path string) (fs.FS, error) {
-		parts := strings.Split(path, "/")
-		if len(parts) < 2 {
-			return nil, errors.Errorf("invalid path %s", path)
-		}
-		folder := strings.Join(parts[0:len(parts)-2], "/")
-		zipFile := parts[len(parts)-1]
-		baseFSys, err := factory.Get(folder)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot get filesystem for folder %s", folder)
-		}
-		if RW {
-
-		} else {
-			fp, err := baseFSys.Open(zipFile)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot open file %s", zipFile)
-			}
-			zfs, err := zipfs.NewFS()
-		}
-	}
-}
-
-func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*baseFS.Factory, error) {
+func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*writefs.Factory, error) {
 	if zipDigests == nil {
 		zipDigests = []checksum.DigestAlgorithm{}
 	}
 	prefix = strings.TrimRight(prefix, ".") + "."
 
-	fsFactory, err := baseFS.NewFactory()
+	fsFactory, err := writefs.NewFactory()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
@@ -219,6 +197,7 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 
 	keePassFile := viper.GetString(prefix + "KeePassFile")
 	keePassEntry := viper.GetString(prefix + "KeePassEntry")
+	_ = keePassEntry
 	keePassKey := viper.GetString(prefix + "KeePassKey")
 	// todo: allow different KMS clients
 	if flagAES {
@@ -235,58 +214,27 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 
 	flagNoCompression := viper.GetBool(prefix + "NoCompression")
 
-	// ----------------------------------------------------
-	var fpat io.ReaderAt
-	var size int64
-	var fp fs.File
-	var ok bool
-	newpath := path
-	// if target file exists, open it and create a zipfs
-	stat, err := fs.Stat(baseFS, path)
-	if err == nil {
-		size = stat.Size()
-		fp, err = baseFS.Open(path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot open zip file '%s'", path)
-		}
-		fpat, ok = fp.(io.ReaderAt)
-		if !ok {
-			return nil, errors.Errorf("cannot cast file '%s' to io.WriterAt", path)
-		}
-		newpath = newpath + ".tmp"
-	}
-	// create new file
-	newfp, err := writefs.Create(baseFS, newpath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create zip file '%s'", newpath)
-	}
-	// add a buffer to the file
-	newFPBuffer := bufio.NewWriterSize(newfp, 1024*1024)
-
-	// ----------------------------------------------------
-	zipFS, err := zipfsrw.NewZipFSRW().NewFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
-	//zipFS, err := zipfs.NewBaseFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
-	}
-	fsFactory.Add(zipFS)
-
-	// do S3 FS base instance
-	endpoint := viper.GetString("S3Endpoint")
-	accessKeyID := viper.GetString("S3AccessKeyID")
-	secretAccessKey := viper.GetString("S3SecretAccessKey")
-	region := viper.GetString("S3Region")
-	s3FS, err := s3fs.NewBaseFS(endpoint, accessKeyID, secretAccessKey, region, true, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create s3 base filesystem factory")
-	}
-	fsFactory.Add(s3FS)
-
-	osFS, err := osfs.NewBaseFS(logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create os base filesystem factory")
-	}
-	fsFactory.Add(osFS)
+	fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS)
+	fsFactory.Register(zipfsrw.NewCreateFSFunc(flagNoCompression), "\\.zip$", writefs.HighFS)
+	s3Endpoint := viper.GetString("S3Endpoint")
+	s3AccessKeyID := viper.GetString("S3AccessKeyID")
+	s3SecretAccessKey := viper.GetString("S3SecretAccessKey")
+	fsFactory.Register(
+		s3fsrw.NewCreateFSFunc(
+			map[string]*s3fsrw.S3Access{
+				"switch": {
+					s3AccessKeyID,
+					s3SecretAccessKey,
+					s3Endpoint,
+					true,
+				},
+			},
+			s3fsrw.ARNRegexStr,
+			logger,
+		),
+		s3fsrw.ARNRegexStr,
+		writefs.MediumFS,
+	)
 
 	return fsFactory, nil
 }

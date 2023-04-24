@@ -316,10 +316,10 @@ func (manager *ExtensionManager) BuildObjectManifestPath(object Object, original
 }
 
 // ObjectExternalPath
-func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPath string) (string, error) {
+func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectExternalPath {
-		p, err := ocp.BuildObjectStatePath(object, originalPath)
+		p, err := ocp.BuildObjectStatePath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -427,10 +427,10 @@ func (manager *ExtensionManager) GetFixityDigests() []checksum.DigestAlgorithm {
 	return digests
 }
 
-func (manager *ExtensionManager) BuildObjectExtractPath(object Object, originalPath string) (string, error) {
+func (manager *ExtensionManager) BuildObjectExtractPath(object Object, originalPath string, area string) (string, error) {
 	var err error
 	for _, ext := range manager.objectExtractPath {
-		originalPath, err = ext.BuildObjectExtractPath(object, originalPath)
+		originalPath, err = ext.BuildObjectExtractPath(object, originalPath, area)
 		if err != nil {
 			return "", errors.Wrapf(err, "cannot call BuildObjectExtractPath")
 		}

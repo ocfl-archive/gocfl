@@ -4,10 +4,12 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"hash"
 	"io"
+	"io/fs"
 	"strings"
 )
 
@@ -17,7 +19,7 @@ const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 type StorageLayoutHashedNTuple struct {
 	*StorageLayoutHashedNTupleConfig
 	hash hash.Hash
-	fs   ocfl.OCFLFSRead
+	fsys fs.FS
 }
 
 type StorageLayoutHashedNTupleConfig struct {
@@ -28,7 +30,7 @@ type StorageLayoutHashedNTupleConfig struct {
 	ShortObjectRoot bool   `json:"shortObjectRoot"`
 }
 
-func NewStorageLayoutHashedNTupleFS(fsys ocfl.OCFLFSRead) (*StorageLayoutHashedNTuple, error) {
+func NewStorageLayoutHashedNTupleFS(fsys fs.FS) (*StorageLayoutHashedNTuple, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -79,8 +81,8 @@ func (sl *StorageLayoutHashedNTuple) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *StorageLayoutHashedNTuple) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *StorageLayoutHashedNTuple) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *StorageLayoutHashedNTuple) SetParams(params map[string]string) error {
@@ -88,15 +90,10 @@ func (sl *StorageLayoutHashedNTuple) SetParams(params map[string]string) error {
 }
 
 func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -131,8 +128,8 @@ func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot ocfl.Stora
 	return strings.Join(dirparts, "/"), nil
 }
 
-func (sl *StorageLayoutHashedNTuple) WriteLayout(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("ocfl_layout.json")
+func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys fs.FS) error {
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}

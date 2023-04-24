@@ -5,6 +5,7 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/indexer"
 	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -14,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -193,13 +195,13 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	sourceFS, err := fsFactory.GetFS(srcPath)
+	sourceFS, err := fsFactory.Get(srcPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", srcPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	destFS, err := fsFactory.GetFSRW(ocflPath, false)
+	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -227,13 +229,13 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var areaPaths = map[string]ocfl.OCFLFSRead{}
+	var areaPaths = map[string]fs.FS{}
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
 			continue
 		}
-		areaPaths[matches[1]], err = fsFactory.GetFS(matches[2])
+		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
 		if err != nil {
 			daLogger.Errorf("cannot get filesystem for '%s': %v", args[i], err)
 			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -243,7 +245,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	defer showStatus(ctx)
-	if !destFS.HasContent() {
+	if !writefs.HasContent(destFS) {
 
 	}
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
@@ -282,7 +284,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
 
-	if err := destFS.Close(); err != nil {
+	if err := writefs.Close(destFS); err != nil {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}

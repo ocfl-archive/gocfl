@@ -329,7 +329,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	return inventory, inventory.Finalize(false)
 }
 
-func (object *ObjectBase) StoreInventory() error {
+func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 	if object.fsys == nil {
 		return errors.Errorf("read only filesystem '%v'", object.fsys)
 	}
@@ -355,53 +355,57 @@ func (object *ObjectBase) StoreInventory() error {
 	}
 	checksumBytes := h.Sum(nil)
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
-	iWriter, err := writefs.Create(object.fsys, iFileName)
-	if err != nil {
-		iWriter.Close()
-		return errors.Wrap(err, "cannot create inventory.json")
-	}
-	if _, err := iWriter.Write(jsonBytes); err != nil {
-		return errors.Wrap(err, "cannot write to inventory.json")
-	}
-	if err := iWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, iFileName)
-	}
 
-	iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
-	iWriter, err = writefs.Create(object.fsys, iFileName)
-	if err != nil {
-		return errors.Wrap(err, "cannot create inventory.json")
+	if objectRoot {
+		iWriter, err := writefs.Create(object.fsys, iFileName)
+		if err != nil {
+			iWriter.Close()
+			return errors.Wrap(err, "cannot create inventory.json")
+		}
+		if _, err := iWriter.Write(jsonBytes); err != nil {
+			return errors.Wrap(err, "cannot write to inventory.json")
+		}
+		if err := iWriter.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, iFileName)
+		}
+		csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
+		iCSWriter, err := writefs.Create(object.fsys, csFileName)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
+		}
+		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
+			iCSWriter.Close()
+			return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
+		}
+		if err := iCSWriter.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
+		}
 	}
-	if _, err := iWriter.Write(jsonBytes); err != nil {
-		iWriter.Close()
-		return errors.Wrap(err, "cannot write to inventory.json")
-	}
-	if err := iWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, iFileName)
-	}
-	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
-	iCSWriter, err := writefs.Create(object.fsys, csFileName)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
-	}
-	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-		iCSWriter.Close()
-		return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
-	}
-	if err := iCSWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
-	}
-	csFileName = fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
-	iCSWriter, err = writefs.Create(object.fsys, csFileName)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
-	}
-	if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-		iCSWriter.Close()
-		return errors.Wrapf(err, "cannot write to '%s'", csFileName)
-	}
-	if err := iCSWriter.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
+	if version {
+		iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
+		iWriter, err := writefs.Create(object.fsys, iFileName)
+		if err != nil {
+			return errors.Wrap(err, "cannot create inventory.json")
+		}
+		if _, err := iWriter.Write(jsonBytes); err != nil {
+			iWriter.Close()
+			return errors.Wrap(err, "cannot write to inventory.json")
+		}
+		if err := iWriter.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, iFileName)
+		}
+		csFileName := fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
+		iCSWriter, err := writefs.Create(object.fsys, csFileName)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
+		}
+		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
+			iCSWriter.Close()
+			return errors.Wrapf(err, "cannot write to '%s'", csFileName)
+		}
+		if err := iCSWriter.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
+		}
 	}
 	return nil
 }
@@ -539,7 +543,7 @@ func (object *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 func (object *ObjectBase) echoDelete() error {
 	slices.Sort(object.updateFiles)
 	object.updateFiles = slices.Compact(object.updateFiles)
-	basePath, err := object.extensionManager.BuildObjectStatePath(object, ".")
+	basePath, err := object.extensionManager.BuildObjectStatePath(object, ".", "")
 	if err != nil {
 		return errors.Wrap(err, "cannot build external path for '.'")
 	}
@@ -570,7 +574,7 @@ func (object *ObjectBase) Close() error {
 	if err := object.i.Clean(); err != nil {
 		return errors.Wrap(err, "cannot clean inventory")
 	}
-	if err := object.StoreInventory(); err != nil {
+	if err := object.StoreInventory(false, true); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
 	}
 	if err := object.StoreExtensions(); err != nil {
@@ -602,6 +606,13 @@ func (object *ObjectBase) EndUpdate() error {
 	if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
 	}
+	if err := object.i.Clean(); err != nil {
+		return errors.Wrap(err, "cannot clean inventory")
+	}
+	if err := object.StoreInventory(true, false); err != nil {
+		return errors.Wrap(err, "cannot store inventory")
+	}
+
 	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
@@ -611,8 +622,13 @@ func (object *ObjectBase) EndUpdate() error {
 		if err := object.extensionManager.DoNewVersion(object); err != nil {
 			return errors.Wrapf(err, "cannot execute ext.DoNewVersion()")
 		}
-		if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
-			return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
+		/*
+			if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
+				return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
+			}
+		*/
+		if err := object.EndUpdate(); err != nil {
+			return errors.Wrap(err, "cannot end update")
 		}
 	}
 	return nil
@@ -732,7 +748,7 @@ func (object *ObjectBase) buildNames(files []string, area string) (*namesStruct,
 		externalPaths: []string{},
 	}
 	for _, file := range files {
-		externalPath, err := object.extensionManager.BuildObjectStatePath(object, file)
+		externalPath, err := object.extensionManager.BuildObjectStatePath(object, file, area)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", file)
 		}
@@ -809,7 +825,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 		file.Close()
 	}()
 	var digest string
-	newPath, err := object.extensionManager.BuildObjectStatePath(object, path)
+	newPath, err := object.extensionManager.BuildObjectStatePath(object, path, "")
 	if err != nil {
 		return errors.Wrapf(err, "cannot map external path '%s'", path)
 	}
@@ -1312,7 +1328,7 @@ func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool)
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()
 	if err := object.i.IterateStateFiles(version, func(internal, external, digest string) error {
-		external, err = object.extensionManager.BuildObjectExtractPath(object, external)
+		external, err = object.extensionManager.BuildObjectExtractPath(object, external, "")
 		if err != nil {
 			errCause := errors.Cause(err)
 			if errCause == ExtensionObjectExtractPathWrongAreaError {

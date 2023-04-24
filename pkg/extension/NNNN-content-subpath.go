@@ -148,38 +148,35 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string) (string, error) {
-	if sl.area == "full" {
+func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
+	if area == "" {
+		area = sl.area
+	}
+	if area == "full" {
 		return originalPath, nil
 	}
-	subpath, ok := sl.Paths[sl.area]
+	subpath, ok := sl.Paths[area]
 	if !ok {
-		return "", errors.Errorf("invalid area '%s'", sl.area)
+		return "", errors.Errorf("invalid area '%s'", area)
 	}
-	//path := strings.TrimLeft(originalPath, subpath.Path+"/")
 	path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
 	return path, nil
-	/*
-		prefixPath := subpath.Path + "/"
-		if !strings.HasPrefix(originalPath, prefixPath) {
-			return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "invalid area '%s' for '%s'", sl.area, originalPath)
-		}
-		path := strings.TrimPrefix(originalPath, prefixPath)
-		return path, nil
-	*/
 }
 
-func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string) (string, error) {
-	if sl.area == "full" {
+func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string, area string) (string, error) {
+	if area == "" {
+		area = sl.area
+	}
+	if area == "full" {
 		return originalPath, nil
 	}
-	subpath, ok := sl.Paths[sl.area]
+	subpath, ok := sl.Paths[area]
 	if !ok {
-		return "", errors.Errorf("invalid area '%s'", sl.area)
+		return "", errors.Errorf("invalid area '%s'", area)
 	}
 	originalPath = strings.TrimLeft(originalPath, "/")
 	if !strings.HasPrefix(originalPath, subpath.Path) {
-		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, sl.area)
+		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, area)
 	}
 	originalPath = strings.TrimLeft(strings.TrimPrefix(originalPath, subpath.Path), "/")
 	return originalPath, nil
