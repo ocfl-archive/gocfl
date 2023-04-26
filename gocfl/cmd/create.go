@@ -284,7 +284,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
 	storageRoot, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagAddDigest), daLogger)
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {
@@ -317,4 +316,5 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
+	showStatus(ctx)
 }

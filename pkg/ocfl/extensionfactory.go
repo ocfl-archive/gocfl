@@ -1,11 +1,9 @@
 package ocfl
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
 	"github.com/op/go-logging"
-	"io"
 	"io/fs"
 )
 
@@ -41,14 +39,11 @@ func (f *ExtensionFactory) AddObjectDefaultExtension(ext Extension) {
 }
 
 func (f *ExtensionFactory) Create(fsys fs.FS) (Extension, error) {
-	fp, err := fsys.Open("config.json")
+	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open config.json")
+		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
 	}
-	defer fp.Close()
-	data := bytes.NewBuffer(nil)
-	io.Copy(data, fp)
-	return f.create(fsys, data.Bytes())
+	return f.create(fsys, data)
 }
 
 func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (Extension, error) {

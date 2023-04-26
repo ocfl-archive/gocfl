@@ -151,10 +151,31 @@ func (mi *Migration) alreadyMigrated(cs string) bool {
 }
 
 func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
+	inventory := object.GetInventory()
+	if inventory == nil {
+		return errors.Errorf("inventory is nil")
+	}
+
 	// first get the metadata from the object
 	meta, err := object.GetMetadata()
 	if err != nil {
 		return errors.Wrapf(err, "cannot get metadata from object %s", object.GetID())
+	}
+	for _, m := range meta.Files {
+		// check whether already migrated
+		migrationMetaAny, ok := m.Extension[MigrationName]
+		if !ok {
+			continue
+		}
+		migrationMeta, ok := migrationMetaAny.(*migrationResult)
+		if !ok {
+			continue
+		}
+		if _, ok := mi.migratedFiles[inventory.GetHead()]; !ok {
+			mi.migratedFiles[inventory.GetHead()] = map[string]string{}
+		}
+		mi.migratedFiles[inventory.GetHead()][migrationMeta.Source] = migrationMeta.ID
+
 	}
 	for cs, m := range meta.Files {
 		indexerMetaAny, ok := m.Extension[IndexerName]
@@ -173,20 +194,9 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 		if mi.alreadyMigrated(cs) {
 			continue
 		}
-		if migrationMetaAny, ok := m.Extension[MigrationName]; ok {
-			if migrationMetaMap, ok := migrationMetaAny.(map[string]any); ok {
-				if _, ok := migrationMetaMap[cs]; ok {
-					continue
-				}
-			}
-		}
-
 		mi.migrationFiles[cs] = migration
 	}
-	inventory := object.GetInventory()
-	if inventory == nil {
-		return errors.Errorf("inventory is nil")
-	}
+
 	mi.lastHead = inventory.GetHead()
 	return nil
 }

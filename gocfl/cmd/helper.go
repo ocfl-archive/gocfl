@@ -184,7 +184,7 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 
 func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*writefs.Factory, error) {
 	if zipDigests == nil {
-		zipDigests = []checksum.DigestAlgorithm{}
+		zipDigests = []checksum.DigestAlgorithm{checksum.DigestSHA512}
 	}
 	prefix = strings.TrimRight(prefix, ".") + "."
 
@@ -193,11 +193,12 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
 
+	flagNoCompression := viper.GetBool(prefix + "NoCompression")
+
 	flagAES := viper.GetBool(prefix + "AES")
 
 	keePassFile := viper.GetString(prefix + "KeePassFile")
 	keePassEntry := viper.GetString(prefix + "KeePassEntry")
-	_ = keePassEntry
 	keePassKey := viper.GetString(prefix + "KeePassKey")
 	// todo: allow different KMS clients
 	if flagAES {
@@ -210,12 +211,13 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 			return nil, errors.Wrap(err, "cannot create keepass2kms client")
 		}
 		registry.RegisterKMSClient(client)
+
+		fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS)
+	} else {
+		fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS)
 	}
 
-	flagNoCompression := viper.GetBool(prefix + "NoCompression")
-
 	fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS)
-	fsFactory.Register(zipfsrw.NewCreateFSFunc(flagNoCompression), "\\.zip$", writefs.HighFS)
 	s3Endpoint := viper.GetString("S3Endpoint")
 	s3AccessKeyID := viper.GetString("S3AccessKeyID")
 	s3SecretAccessKey := viper.GetString("S3SecretAccessKey")

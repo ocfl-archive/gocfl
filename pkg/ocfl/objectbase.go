@@ -277,19 +277,12 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
-	iFp, err := object.fsys.Open(filename)
-
-	if errors.Cause(err) == fs.ErrNotExist {
-		return nil, err
-	}
+	inventoryBytes, err := fs.ReadFile(object.fsys, filename)
 	if err != nil {
+		if errors.Cause(err) == fs.ErrNotExist {
+			return nil, err
+		}
 		return newInventory(object.ctx, object, folder, object.version, object.logger)
-	}
-	// read inventory into memory
-	inventoryBytes, err := io.ReadAll(iFp)
-	iFp.Close()
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read '%s'", filename)
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {

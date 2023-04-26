@@ -342,8 +342,8 @@ func (i *InventoryBase) check() error {
 	return nil
 }
 func (i *InventoryBase) checkManifest() error {
-	i.logger.Debugf("[%s] checkManifest", i.object.GetID())
-	defer i.logger.Debugf("[%s] checkManifest done", i.object.GetID())
+	i.logger.Debugf("[%s] checkManifest", i.GetID())
+	defer i.logger.Debugf("[%s] checkManifest done", i.GetID())
 	versionDigests := []string{}
 	for _, version := range i.Versions.Versions {
 		for digest, _ := range version.State.State {
@@ -388,7 +388,7 @@ func (i *InventoryBase) checkManifest() error {
 		}
 
 	}
-	i.logger.Debugf("[%s] checkManifest prefix", i.object.GetID())
+	i.logger.Debugf("[%s] checkManifest prefix", i.GetID())
 	slices.Sort(allPaths)
 	for j := 0; j < len(allPaths)-1; j++ {
 		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
@@ -400,8 +400,8 @@ func (i *InventoryBase) checkManifest() error {
 }
 
 func (i *InventoryBase) checkFixity() error {
-	i.logger.Debugf("[%s] checkFixity", i.object.GetID())
-	defer i.logger.Debugf("[%s] checkFixity done", i.object.GetID())
+	i.logger.Debugf("[%s] checkFixity", i.GetID())
+	defer i.logger.Debugf("[%s] checkFixity done", i.GetID())
 	for digestAlg, digestMap := range i.Fixity {
 		digests := []string{}
 		for digest, paths := range digestMap {
@@ -437,8 +437,8 @@ func (i *InventoryBase) checkFixity() error {
 }
 
 func (i *InventoryBase) checkVersions() error {
-	i.logger.Debugf("[%s] checkVersions", i.object.GetID())
-	defer i.logger.Debugf("[%s] checkVersions done", i.object.GetID())
+	i.logger.Debugf("[%s] checkVersions", i.GetID())
+	defer i.logger.Debugf("[%s] checkVersions done", i.GetID())
 	var paddingLength int = -1
 	var versions = []int{}
 	if len(i.Versions.Versions) == 0 {
@@ -454,7 +454,7 @@ func (i *InventoryBase) checkVersions() error {
 	slices.Sort(manifestDigestsLower)
 
 	for ver, version := range i.Versions.Versions {
-		i.logger.Debugf("[%s] checkVersions '%s'", i.object.GetID(), ver)
+		i.logger.Debugf("[%s] checkVersions '%s'", i.GetID(), ver)
 		vInt, ok := i.versionValue[ver]
 		if !ok {
 			//			i.addValidationError(E104, "invalid ver format '%s'", ver)
@@ -521,7 +521,7 @@ func (i *InventoryBase) checkVersions() error {
 		if version.State.err != nil {
 			i.addValidationError(E050, "invalid state format in version '%s': %v", ver, version.State.err.Error())
 		}
-		i.logger.Debugf("[%s] checkVersions %s state", i.object.GetID(), ver)
+		i.logger.Debugf("[%s] checkVersions %s state", i.GetID(), ver)
 		for digest, paths := range version.State.State {
 			// massive performance boost by using sorted manifest
 			if _, found := slices.BinarySearch(manifestDigests, digest); !found {
@@ -550,8 +550,8 @@ func (i *InventoryBase) checkVersions() error {
 				}
 			}
 		}
-		i.logger.Debugf("[%s] checkVersions '%s' state done", i.object.GetID(), ver)
-		i.logger.Debugf("[%s] checkVersions '%s' done", i.object.GetID(), ver)
+		i.logger.Debugf("[%s] checkVersions '%s' state done", i.GetID(), ver)
+		i.logger.Debugf("[%s] checkVersions '%s' done", i.GetID(), ver)
 	}
 	slices.Sort(versions)
 	for key, val := range versions {
@@ -604,8 +604,8 @@ func (i *InventoryBase) checkVersions() error {
 }
 
 func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
-	i.logger.Debugf("[%s] checkFiles", i.object.GetID())
-	defer i.logger.Debugf("[%s] checkFiles done", i.object.GetID())
+	i.logger.Debugf("[%s] checkFiles", i.GetID())
+	defer i.logger.Debugf("[%s] checkFiles done", i.GetID())
 	csFiles, ok := fileManifest[i.GetDigestAlgorithm()]
 	if !ok {
 		if len(fileManifest) == 0 {
