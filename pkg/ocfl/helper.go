@@ -133,17 +133,9 @@ func getVersion(ctx context.Context, fsys fs.FS, folder, prefix string) (version
 				return "", errVersionMultiple
 			}
 			version = OCFLVersion(matches[1])
-			r, err := fsys.Open(fmt.Sprintf("%s/%s", folder, file.Name()))
+			cnt, err := fs.ReadFile(fsys, fmt.Sprintf("%s/%s", folder, file.Name()))
 			if err != nil {
-				return "", errors.Wrapf(err, "cannot open %s/%s", prefix, file.Name())
-			}
-			cnt, err := io.ReadAll(r)
-			if err != nil {
-				r.Close()
-				return "", errors.Wrapf(err, "cannot read %s/%s", prefix, file.Name())
-			}
-			if err := r.Close(); err != nil {
-				return "", errors.Wrapf(err, "cannot close '%s/%s'", prefix, file.Name())
+				return "", errors.Wrapf(err, "cannot read %s/%s", folder, file.Name())
 			}
 
 			t := fmt.Sprintf("%s%s", prefix, version)

@@ -177,7 +177,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagDigest))
 	}
 
-	fsFactory, err := initializeFSFactory("Add", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, daLogger)
+	fsFactory, err := initializeFSFactory("Add", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -196,6 +196,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	area := viper.GetString("Add.DefaultArea")
 	if area == "" {
@@ -238,7 +244,6 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)
@@ -281,11 +286,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
 	}
-
-	if err := writefs.Close(destFS); err != nil {
-		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-	}
+	showStatus(ctx)
 
 }

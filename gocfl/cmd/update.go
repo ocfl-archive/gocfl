@@ -188,7 +188,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagDigest))
 	}
 
-	fsFactory, err := initializeFSFactory("Update", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, daLogger)
+	fsFactory, err := initializeFSFactory("Update", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -207,6 +207,12 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("cannot close filesystem: %v", err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	mig, err := migration.GetMigrations()
 	if err != nil {
@@ -282,11 +288,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
-
-	if err := writefs.Close(destFS); err != nil {
-		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-	}
-	defer showStatus(ctx)
+	showStatus(ctx)
 
 }

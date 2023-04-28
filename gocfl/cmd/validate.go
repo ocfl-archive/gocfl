@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"emperror.dev/errors"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
@@ -54,7 +55,7 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory("Validate", cmd, nil, daLogger)
+	fsFactory, err := initializeFSFactory("Validate", cmd, nil, true, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -67,9 +68,14 @@ func validate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("cannot close filesystem: %v", err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot load storageroot: %v", err)
@@ -101,4 +107,5 @@ func validate(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
+	showStatus(ctx)
 }

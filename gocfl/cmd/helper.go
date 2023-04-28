@@ -8,6 +8,7 @@ import (
 	"github.com/je4/filesystem/v2/pkg/osfsrw"
 	"github.com/je4/filesystem/v2/pkg/s3fsrw"
 	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v2/pkg/zipfs"
 	"github.com/je4/filesystem/v2/pkg/zipfsrw"
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
@@ -182,7 +183,7 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	return
 }
 
-func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*writefs.Factory, error) {
+func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, readOnly bool, logger *logging.Logger) (*writefs.Factory, error) {
 	if zipDigests == nil {
 		zipDigests = []checksum.DigestAlgorithm{checksum.DigestSHA512}
 	}
@@ -193,30 +194,34 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
 
-	flagNoCompression := viper.GetBool(prefix + "NoCompression")
-
-	flagAES := viper.GetBool(prefix + "AES")
-
-	keePassFile := viper.GetString(prefix + "KeePassFile")
-	keePassEntry := viper.GetString(prefix + "KeePassEntry")
-	keePassKey := viper.GetString(prefix + "KeePassKey")
-	// todo: allow different KMS clients
-	if flagAES {
-		db, err := keepass2kms.LoadKeePassDBFromFile(keePassFile, keePassKey)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot load keepass file '%s'", keePassFile)
-		}
-		client, err := keepass2kms.NewClient(db, filepath.Base(keePassFile))
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create keepass2kms client")
-		}
-		registry.RegisterKMSClient(client)
-
-		fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS)
+	if readOnly {
+		fsFactory.Register(zipfs.NewCreateFSFunc(), "\\.zip$", writefs.HighFS)
 	} else {
-		fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS)
-	}
 
+		flagNoCompression := viper.GetBool(prefix + "NoCompression")
+
+		flagAES := viper.GetBool(prefix + "AES")
+
+		keePassFile := viper.GetString(prefix + "KeePassFile")
+		keePassEntry := viper.GetString(prefix + "KeePassEntry")
+		keePassKey := viper.GetString(prefix + "KeePassKey")
+		// todo: allow different KMS clients
+		if flagAES {
+			db, err := keepass2kms.LoadKeePassDBFromFile(keePassFile, keePassKey)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot load keepass file '%s'", keePassFile)
+			}
+			client, err := keepass2kms.NewClient(db, filepath.Base(keePassFile))
+			if err != nil {
+				return nil, errors.Wrap(err, "cannot create keepass2kms client")
+			}
+			registry.RegisterKMSClient(client)
+
+			fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS)
+		} else {
+			fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS)
+		}
+	}
 	fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS)
 	s3Endpoint := viper.GetString("S3Endpoint")
 	s3AccessKeyID := viper.GetString("S3AccessKeyID")

@@ -85,7 +85,7 @@ func doStat(cmd *cobra.Command, args []string) {
 
 	daLogger.Infof("opening '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory("Stat", cmd, nil, daLogger)
+	fsFactory, err := initializeFSFactory("Stat", cmd, nil, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -98,6 +98,12 @@ func doStat(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("cannot close filesystem: %v", err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	extensionParams := GetExtensionParamValues(cmd)
 	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, daLogger)
@@ -108,7 +114,6 @@ func doStat(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
 	if !writefs.HasContent(destFS) {
 
 	}
@@ -124,5 +129,5 @@ func doStat(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-
+	showStatus(ctx)
 }

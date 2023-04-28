@@ -72,14 +72,14 @@ func (o ObjectBase) GetExtensionManager() *ExtensionManager {
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fsys, object.GetID())
+	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationErrors(object.ctx, valError)
 }
 
 func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%s' - '%s'", object.fsys, object.GetID())
+	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
 	addValidationWarnings(object.ctx, valError)
@@ -555,11 +555,6 @@ func (object *ObjectBase) Close() error {
 		return nil
 	}
 
-	if object.echo {
-		if err := object.echoDelete(); err != nil {
-			return errors.Wrap(err, "cannot delete files")
-		}
-	}
 	if !object.i.IsModified() {
 		return nil
 	}
@@ -596,9 +591,15 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 }
 
 func (object *ObjectBase) EndUpdate() error {
+	if object.echo {
+		if err := object.echoDelete(); err != nil {
+			return errors.Wrap(err, "cannot delete files")
+		}
+	}
 	if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
 	}
+
 	if err := object.i.Clean(); err != nil {
 		return errors.Wrap(err, "cannot clean inventory")
 	}

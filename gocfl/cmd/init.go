@@ -86,7 +86,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagDigest))
 	}
-	fsFactory, err := initializeFSFactory("Init", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, daLogger)
+	fsFactory, err := initializeFSFactory("Init", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -99,6 +99,12 @@ func doInit(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("cannot close filesystem: %v", err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	extensionParams := GetExtensionParamValues(cmd)
 	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, daLogger)
@@ -115,7 +121,6 @@ func doInit(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
 	if _, err := ocfl.CreateStorageRoot(ctx, destFS, ocfl.OCFLVersion(flagVersion), extensionFactory, storageRootExtensions, checksum.DigestAlgorithm(flagInitDigest), daLogger); err != nil {
 		if err := writefs.Close(destFS); err != nil {
 			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS, err)
@@ -125,9 +130,5 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := writefs.Close(destFS); err != nil {
-		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		return
-	}
+	showStatus(ctx)
 }
