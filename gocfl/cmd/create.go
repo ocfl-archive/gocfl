@@ -90,7 +90,7 @@ func initCreate() {
 	createCmd.Flags().String("keypass-key", "", "key to use for keypass2 database decryption")
 	emperror.Panic(viper.BindPFlag("Create.KeyPassKey", createCmd.Flags().Lookup("keypass-key")))
 
-	createCmd.Flags().Bool("force", false, "force overwrite of existing files")
+	//createCmd.Flags().Bool("force", false, "force overwrite of existing files")
 }
 
 // initCreate executes the gocfl create command
@@ -231,12 +231,19 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	var areaPaths = map[string]fs.FS{}
 	for i := 2; i < len(args); i++ {
@@ -310,11 +317,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
 	}
 
-	if err := writefs.Close(destFS); err != nil {
-		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-	}
 	showStatus(ctx)
 }

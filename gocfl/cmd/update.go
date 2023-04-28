@@ -244,7 +244,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
 	if !writefs.HasContent(destFS) {
 
 	}
@@ -288,4 +287,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 	}
+	defer showStatus(ctx)
+
 }

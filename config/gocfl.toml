@@ -27,11 +27,7 @@ StoragerootExtensions="./data/fullextensions/storageroot" # default "": use buil
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
-AES=false
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
 KeePassFile="C:/temp/test.kdbx"
 KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
@@ -55,11 +51,7 @@ ObjectExtensions="./data/fullextensions/object" # default "": use built in exten
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
-#AES=true
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
 KeePassFile="C:/temp/test.kdbx"
 KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
@@ -89,16 +81,13 @@ DigestAlgorithm="sha512"
 # --default-area
 DefaultArea="content"
 # --no-compress
-#NoCompress=true
+NoCompress=true
 # --encrypt-aes
-#AES=true
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
 KeePassFile="C:/temp/test.kdbx"
-KeePassEntry="keepass2://test.kdbx/keepass2://test.kdbx/Root/gocfl/test"
+KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
+
 
 
 [Update.ext.NNNN-metadata]
@@ -118,13 +107,9 @@ ObjectExtensions="./data/fullextensions/object" # default "": use built in exten
 # --default-storageroot-extensions
 StoragerootExtensions="./data/fullextensions/storageroot" # default "": use built in extensions
 # --no-compress
-#NoCompress=true
+NoCompress=true
 # --encrypt-aes
 AES=true
-# --aes-key
-AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-AESIV="8594552261cb956949b661aa163fac4f"
 KeePassFile="C:/temp/test.kdbx"
 KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
