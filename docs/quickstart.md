@@ -21,11 +21,11 @@ go install github.com/je4/gocfl/v2/gocfl@latest
 To initialize a new storage on an existing empty folder root, run the `init` command:
 
 ```bash
-gocfl init C:/temp/test/storage_root
+gocfl init ./storage_root
 ```
 
 ```bash
-gocfl init C:/temp/test/ocfl.zip
+gocfl init ./ocfl.zip
 ```
 
 ## Add a new object to an existing storage root
@@ -33,7 +33,11 @@ gocfl init C:/temp/test/ocfl.zip
 To add a new object to an existing storage root, run the `add` command:
 
 ```bash
-gocfl add C:/temp/test/storage_root ./ocfltest1 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
+gocfl add ./storage_root C:/temp/ocfltest1 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
+```
+
+```bash
+gocfl add ./ocfl.zip C:/temp/ocfltest1 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
 ```
 
 ## Adding a new version to an existing OCFL Repository
@@ -41,11 +45,11 @@ gocfl add C:/temp/test/storage_root ./ocfltest1 -u 'Jane Doe' -a 'mailto:user@do
 To add a new version to an existing OCFL Object, run the `update` command:
 
 ```bash
-gocfl update ./archive.zip /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
+gocfl update ./storage_root /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
 ```
 
 ```bash
-gocfl update ./storage_root /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
+gocfl update ./ocfl.zip /temp/ocfltest2 -u 'Jane Doe' -a 'mailto:user@domain' -m 'some new data' --object-id 'id:abc123'
 ```
 
 This command adds a new version to the object `id:abc123` located in the storage root `archive.zip`.
@@ -61,7 +65,11 @@ the `--no-deduplicate` flag (less I/O, faster).
 To create a new OCFL repository, run the `create` command:
 
 ```bash
-gocfl create ./archive.zip /temp/ocfltest1 --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
+gocfl create ./storage_root_create /temp/ocfltest1 --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
+```
+
+```bash
+gocfl create ./ocfl_create.zip /temp/ocfltest1 --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
 ```
 This command creates a zip file containing an ocfl storageroot with one object.
 The object-id is `id:abc`. The object contains the files from the directory `/temp/ocfltest1`. 
@@ -82,18 +90,28 @@ To validate an OCFL Storage Root with all objects, run the `validate`
 command on the target folder or zip file
 
 ```bash
-gocfl validate ./archive.zip
+gocfl validate ./ocfl.zip
 ```
+
+```bash
+gocfl validate ./storage_root
+```
+
+```bash
+gocfl validate ./ocfl_create.zip
+```
+
+```bash
+gocfl validate ./storage_root_create
+```
+
+
 
 To validate a single OCFL Object, run the `validate` command on the
 target folder or zip file and specify the object-id:
 
 ```bash
-gocfl validate ./archive.zip --object-id 'id:abc123'
-```
-
-```bash
-gocfl validate ./storage_root
+gocfl validate ./ocfl.zip --object-id 'id:abc123'
 ```
 
 ## Extracting an Object from an OCFL Repository
@@ -101,27 +119,33 @@ gocfl validate ./storage_root
 To extract an object from an OCFL Repository, run the `extract` command:
 
 ```bash
-gocfl extract ./archive.zip /temp/abc123 --object-id 'id:abc123' --with-manifest
+gocfl extract ./ocfl.zip ./extract --object-id 'id:abc123' --with-manifest
 ```
 
 ```bash
-gocfl extract ./storage_root /temp/abc123 --object-id 'id:abc123' --with-manifest
+gocfl extract ./storage_root ./extract --object-id 'id:abc123' --with-manifest
 ```
 
 This command extracts the object `id:abc123` from the storage root `archive.zip` to the directory `/temp/abc123`.
 The `--with-manifest` flag adds the manifest file `manifest.XXX` to the extracted object 
 where `XXX`is the digest algorithm used for the manifest. The target directory must be empty.
 
+With sha512sum, you can check the integrity of the extracted object
+```bash
+cd extract; sha512sum -c manifest.sha512; cd ..
+```
+
+
 ## Extracting Metadata from an OCFL Object
 
 To extract metadata from an OCFL Object, run the `extractmeta` command:
 
 ```bash
-gocfl extractmeta ./archive.zip --object-id 'id:abc123' --format json --output /temp/abc123.json
+gocfl extractmeta ./ocfl.zip --object-id 'id:abc123' --format json --output ./meta.json
 ```
 
 ```bash
-gocfl extractmeta ./storage_root --object-id 'id:abc123' --format json --output /temp/abc123.json
+gocfl extractmeta ./storage_root --object-id 'id:abc123' --format json --output ./meta.json
 ```
 
 ## Extracting Information from an OCFL Storage Root or Object
@@ -129,7 +153,7 @@ gocfl extractmeta ./storage_root --object-id 'id:abc123' --format json --output 
 To extract information from an OCFL Object, run the `info` command:
 
 ```bash
-gocfl info ./archive.zip --object-id 'id:abc123' 
+gocfl info ./ocfl.zip --object-id 'id:abc123' 
 ```
 
 ```bash

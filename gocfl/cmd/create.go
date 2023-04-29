@@ -97,8 +97,8 @@ func initCreate() {
 func doCreate(cmd *cobra.Command, args []string) {
 	var err error
 	notSet := []string{}
-	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
-	srcPath := filepath.ToSlash(filepath.Clean(args[1]))
+	ocflPath := filepath.ToSlash(args[0])
+	srcPath := filepath.ToSlash(args[1])
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {

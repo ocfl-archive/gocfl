@@ -271,8 +271,8 @@ github.com/jcmturner/dnsutils/v2 v2.0.0 h1:lltnkeZGL0wILNvrNiVCR6Ro5PGU/SeBvVO/8
 github.com/jcmturner/gofork v1.7.6 h1:QH0l3hzAU1tfT3rZCnW5zXl+orbkNMMRGJfdJjHVETg=
 github.com/jcmturner/gokrb5/v8 v8.4.4 h1:x1Sv4HaTpepFkXbt2IkL29DXRf8sOfZXo8eRKh687T8=
 github.com/jcmturner/rpc/v2 v2.0.3 h1:7FXXj8Ti1IaVFpSAziCZWNzbNuZmnvw/i6CqLNdWfZY=
-github.com/je4/filesystem/v2 v2.0.0-20230429094710-0106ce0d6530 h1:dbtkWlHS725dSCP9HokU9ycIlO9wWzCjWDxhjQhcvGo=
-github.com/je4/filesystem/v2 v2.0.0-20230429094710-0106ce0d6530/go.mod h1:xglZscdh7JBlPYIMd7e+6UaUhTNZoeqOxbdBZtAHYs8=
+github.com/je4/filesystem/v2 v2.0.0-20230429100914-eb78ed71b7a4 h1:ipl89eDzGO1I09vzhcq4D4d7wcUu8k3JzZLZpLTcybY=
+github.com/je4/filesystem/v2 v2.0.0-20230429100914-eb78ed71b7a4/go.mod h1:xglZscdh7JBlPYIMd7e+6UaUhTNZoeqOxbdBZtAHYs8=
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d h1:elX95ncLvCbNgkfD03bfTUhm0cdqdVYuuo5ETIOftoA=
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d/go.mod h1:AU6NEns8+WYmI/UYzllN8CWM2jsIVO7jDz2FeCf7Ssw=
 github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4 h1:cDt3TzCmVaBw8TpZYKEQEOz7cWABvnP8INztQbWnAe0=

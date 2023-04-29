@@ -42,7 +42,7 @@ func initExtractMeta() {
 }
 
 func doExtractMeta(cmd *cobra.Command, args []string) {
-	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	ocflPath := filepath.ToSlash(args[0])
 
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))

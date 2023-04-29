@@ -10,7 +10,7 @@ require (
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
-	github.com/je4/filesystem/v2 v2.0.0-20230429094710-0106ce0d6530
+	github.com/je4/filesystem/v2 v2.0.0-20230429100914-eb78ed71b7a4
 	github.com/je4/indexer/v2 v2.0.0-20230414134245-b93645c820b9
 	github.com/je4/utils/v2 v2.0.8-0.20230429090351-3cef63b41e76
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7

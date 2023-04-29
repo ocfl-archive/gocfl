@@ -39,8 +39,8 @@ func initExtract() {
 }
 
 func doExtract(cmd *cobra.Command, args []string) {
-	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
-	destPath := filepath.ToSlash(filepath.Clean(args[1]))
+	ocflPath := filepath.ToSlash(args[0])
+	destPath := filepath.ToSlash(args[1])
 
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
