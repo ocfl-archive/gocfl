@@ -32,7 +32,8 @@ var objectPath string
 var objectID string
 
 func validate(cmd *cobra.Command, args []string) {
-	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	//	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	ocflPath := filepath.ToSlash(args[0])
 	persistentFlagLogfile := viper.GetString("LogFile")
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
@@ -51,27 +52,27 @@ func validate(cmd *cobra.Command, args []string) {
 	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	fsFactory, err := initializeFSFactory("Validate", cmd, nil, true, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
 			daLogger.Errorf("cannot close filesystem: %v", err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		}
 	}()
 
@@ -79,7 +80,7 @@ func validate(cmd *cobra.Command, args []string) {
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot load storageroot: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	if objectID != "" && objectPath != "" {
@@ -89,20 +90,20 @@ func validate(cmd *cobra.Command, args []string) {
 	if objectID == "" && objectPath == "" {
 		if err := storageRoot.Check(); err != nil {
 			daLogger.Errorf("ocfl not valid: %v", err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			return
 		}
 	} else {
 		if objectID != "" {
 			if err := storageRoot.CheckObjectByID(objectID); err != nil {
 				daLogger.Errorf("ocfl object '%s' not valid: %v", objectID, err)
-				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 				return
 			}
 		} else {
 			if err := storageRoot.CheckObjectByFolder(objectPath); err != nil {
 				daLogger.Errorf("ocfl object '%s' not valid: %v", objectPath, err)
-				daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 				return
 			}
 		}

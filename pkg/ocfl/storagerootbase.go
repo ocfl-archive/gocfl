@@ -84,7 +84,7 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 
 	entities, err := fs.ReadDir(osr.fsys, ".")
 	if err != nil {
-		return errors.Wrap(err, "cannot read storage root directory")
+		return errors.Wrapf(err, "cannot read storage root directory '%v'", osr.fsys)
 	}
 	if len(entities) > 0 {
 		if err := osr.addValidationError(E069, "storage root not empty"); err != nil {
@@ -291,6 +291,9 @@ func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 	}
 	dirs, err := fs.ReadDir(subFS, "")
 	if err != nil {
+		if err == fs.ErrNotExist {
+			return false, nil
+		}
 		return false, errors.Wrapf(err, "cannot read content of %s", folder)
 	}
 	return len(dirs) > 0, nil

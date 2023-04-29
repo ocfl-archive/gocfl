@@ -49,7 +49,8 @@ func initInit() {
 }
 
 func doInit(cmd *cobra.Command, args []string) {
-	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	//ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	ocflPath := filepath.ToSlash(args[0])
 	persistentFlagLogfile := viper.GetString("LogFile")
 
 	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
@@ -89,20 +90,20 @@ func doInit(cmd *cobra.Command, args []string) {
 	fsFactory, err := initializeFSFactory("Init", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
 			daLogger.Errorf("cannot close filesystem: %v", err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		}
 	}()
 
@@ -110,13 +111,13 @@ func doInit(cmd *cobra.Command, args []string) {
 	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, "")
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
@@ -126,7 +127,7 @@ func doInit(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS, err)
 		}
 		daLogger.Errorf("cannot create new storageroot: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
