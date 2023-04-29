@@ -113,7 +113,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, "", daLogger)
+	storageRootExtensions, _, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, "")
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))

@@ -87,7 +87,7 @@ func DoMigrate(object ocfl.Object, mig *Function, targetNames []string, file io.
 		return errors.Wrap(err, "cannot create temp file")
 	}
 	if _, err := io.Copy(tmpFile, file); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return errors.Wrap(err, "cannot copy file")
 	}
 	if err := file.Close(); err != nil {
@@ -100,7 +100,7 @@ func DoMigrate(object ocfl.Object, mig *Function, targetNames []string, file io.
 		return errors.Wrap(err, "cannot close temp file")
 	}
 	if err := mig.Migrate(tmpFilename, targetFilename); err != nil {
-		os.Remove(tmpFilename)
+		_ = os.Remove(tmpFilename)
 		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
 	}
 	if err := os.Remove(tmpFilename); err != nil {

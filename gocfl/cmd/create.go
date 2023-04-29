@@ -6,9 +6,9 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
-	"github.com/je4/gocfl/v2/pkg/indexer"
-	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	indexer2 "github.com/je4/gocfl/v2/pkg/subsystem/indexer"
+	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
@@ -155,34 +155,34 @@ func doCreate(cmd *cobra.Command, args []string) {
 	var indexerActions *ironmaiden.ActionDispatcher
 	var addr string
 	if viper.GetBool("Indexer.Enable") {
-		siegfried, err := indexer.GetSiegfried()
+		siegfried, err := indexer2.GetSiegfried()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer Siegfried: %v", err)
 			//return
 		}
-		mimeRelevance, err := indexer.GetMimeRelevance()
+		mimeRelevance, err := indexer2.GetMimeRelevance()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer MimeRelevance: %v", err)
 			// return
 		}
 
-		ffmpeg, err := indexer.GetFFMPEG()
+		ffmpeg, err := indexer2.GetFFMPEG()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer FFMPEG: %v", err)
 			//			return
 		}
-		imageMagick, err := indexer.GetImageMagick()
+		imageMagick, err := indexer2.GetImageMagick()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer ImageMagick: %v", err)
 			//return
 		}
-		tika, err := indexer.GetTika()
+		tika, err := indexer2.GetTika()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer Tika: %v", err)
 			//return
 		}
 
-		indexerActions, err = indexer.InitActions(mimeRelevance, siegfried, ffmpeg, imageMagick, tika, daLogger)
+		indexerActions, err = indexer2.InitActions(mimeRelevance, siegfried, ffmpeg, imageMagick, tika, daLogger)
 
 	}
 
@@ -277,7 +277,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, flagObjectExtensionFolder, daLogger)
+	storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, flagStorageRootExtensionFolder, flagObjectExtensionFolder)
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -320,5 +320,5 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	showStatus(ctx)
+	_ = showStatus(ctx)
 }

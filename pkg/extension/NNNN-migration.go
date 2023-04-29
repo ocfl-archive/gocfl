@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v2/pkg/writefs"
-	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	migration2 "github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"golang.org/x/exp/slices"
 	"io"
@@ -56,17 +56,17 @@ type Migration struct {
 	*MigrationConfig
 	fsys      fs.FS
 	lastHead  string
-	migration *migration.Migration
+	migration *migration2.Migration
 	//buffer         *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
-	migrationFiles map[string]*migration.Function
+	migrationFiles map[string]*migration2.Function
 	migratedFiles  map[string]map[string]string
 	sourceFS       fs.FS
 	currentHead    string
 }
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration2.Migration) (*Migration, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -87,12 +87,12 @@ func NewMigrationFS(fsys fs.FS, migration *migration.Migration) (*Migration, err
 	}
 	return ext, nil
 }
-func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
+func NewMigration(config *MigrationConfig, mig *migration2.Migration) (*Migration, error) {
 	sl := &Migration{
 		MigrationConfig: config,
 		migration:       mig,
 		buffer:          map[string]*bytes.Buffer{},
-		migrationFiles:  map[string]*migration.Function{},
+		migrationFiles:  map[string]*migration2.Function{},
 		migratedFiles:   map[string]map[string]string{},
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
@@ -116,7 +116,7 @@ func (mi *Migration) GetName() string { return MigrationName }
 
 func (mi *Migration) SetFS(fsys fs.FS) { mi.fsys = fsys }
 
-func (mi *Migration) SetParams(params map[string]string) error {
+func (mi *Migration) SetParams(map[string]string) error {
 	return nil
 }
 
@@ -137,7 +137,7 @@ func (mi *Migration) WriteConfig() error {
 	return nil
 }
 
-func (mi *Migration) UpdateObjectBefore(object ocfl.Object) error {
+func (mi *Migration) UpdateObjectBefore(ocfl.Object) error {
 	return nil
 }
 
@@ -201,7 +201,7 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (mi *Migration) NeedNewVersion(object ocfl.Object) (bool, error) {
+func (mi *Migration) NeedNewVersion(ocfl.Object) (bool, error) {
 	return len(mi.migrationFiles) > 0, nil
 }
 
@@ -253,9 +253,9 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		mi.migratedFiles[head][cs] = manifestFiles[0]
 
 		var file io.ReadCloser
-		fs := object.GetFS()
-		if fs != nil {
-			file, err = fs.Open(manifestFiles[0])
+		fsys := object.GetFS()
+		if fsys != nil {
+			file, err = fsys.Open(manifestFiles[0])
 			if err != nil {
 				file = nil
 			}
@@ -299,7 +299,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
 		}
 		path := inventory.BuildManifestName(manifestName)
-		if err := migration.DoMigrate(object, mig, extractTargetNames, file); err != nil {
+		if err := migration2.DoMigrate(object, mig, extractTargetNames, file); err != nil {
 			ml = &migrationLine{
 				Path: path,
 				Migration: &migrationResult{
@@ -318,7 +318,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				},
 			}
 			switch mig.Strategy {
-			case migration.StrategyReplace:
+			case migration2.StrategyReplace:
 				for _, n := range stateFiles {
 					if slices.Contains(targetNames, n) {
 						continue
@@ -337,7 +337,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot write migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
 		}
 	}
-	mi.migrationFiles = map[string]*migration.Function{}
+	mi.migrationFiles = map[string]*migration2.Function{}
 	if err := mi.writer.Flush(); err != nil {
 		return errors.Wrapf(err, "cannot flush migration line writer for object '%s'", object.GetID())
 	}
@@ -374,7 +374,7 @@ func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			path2digest[name] = checksum
 		}
 	}
-	for v, _ := range inventory.GetVersions() {
+	for v := range inventory.GetVersions() {
 		var data []byte
 		if buf, ok := mi.buffer[v]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {

@@ -13,8 +13,8 @@ import (
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/je4/gocfl/v2/pkg/extension"
-	"github.com/je4/gocfl/v2/pkg/migration"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
@@ -152,7 +152,7 @@ func GetExtensionParamValues(cmd *cobra.Command) map[string]string {
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger *logging.Logger) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
+func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -195,7 +195,9 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 	}
 
 	if readOnly {
-		fsFactory.Register(zipfs.NewCreateFSFunc(), "\\.zip$", writefs.HighFS)
+		if err := fsFactory.Register(zipfs.NewCreateFSFunc(), "\\.zip$", writefs.HighFS); err != nil {
+			return nil, errors.Wrap(err, "cannot register zipfs")
+		}
 	} else {
 
 		flagNoCompression := viper.GetBool(prefix + "NoCompression")
@@ -217,16 +219,22 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 			}
 			registry.RegisterKMSClient(client)
 
-			fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS)
+			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS); err != nil {
+				return nil, errors.Wrap(err, "cannot register FSEncryptedChecksum")
+			}
 		} else {
-			fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS)
+			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS); err != nil {
+				return nil, errors.Wrap(err, "cannot register FSChecksum")
+			}
 		}
 	}
-	fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS)
+	if err := fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS); err != nil {
+		return nil, errors.Wrap(err, "cannot register osfs")
+	}
 	s3Endpoint := viper.GetString("S3Endpoint")
 	s3AccessKeyID := viper.GetString("S3AccessKeyID")
 	s3SecretAccessKey := viper.GetString("S3SecretAccessKey")
-	fsFactory.Register(
+	if err := fsFactory.Register(
 		s3fsrw.NewCreateFSFunc(
 			map[string]*s3fsrw.S3Access{
 				"switch": {
@@ -241,7 +249,9 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 		),
 		s3fsrw.ARNRegexStr,
 		writefs.MediumFS,
-	)
+	); err != nil {
+		return nil, errors.Wrap(err, "cannot register s3fs")
+	}
 
 	return fsFactory, nil
 }
@@ -252,15 +262,15 @@ func showStatus(ctx context.Context) error {
 		return errors.Wrap(err, "cannot get status of validation")
 	}
 	status.Compact()
-	context := ""
+	contextString := ""
 	errs := 0
 	for _, err := range status.Errors {
 		if err.Code[0] == 'E' {
 			errs++
 		}
-		if err.Context != context {
+		if err.Context != contextString {
 			fmt.Printf("\n[%s]\n", err.Context)
-			context = err.Context
+			contextString = err.Context
 		}
 		fmt.Printf("   #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
 		//logger.Infof("ERROR: %v", err)
@@ -270,18 +280,6 @@ func showStatus(ctx context.Context) error {
 	} else {
 		fmt.Printf("\nno errors found\n")
 	}
-	/*
-		for _, err := range status.Warnings {
-			if err.Context != context {
-				fmt.Printf("\n[%s]\n", err.Context)
-				context = err.Context
-			}
-			fmt.Printf("   Validation Warning #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
-			//logger.Infof("WARN:  %v", err)
-		}
-		fmt.Println("\n")
-
-	*/
 	return nil
 }
 
