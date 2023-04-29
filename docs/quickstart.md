@@ -21,7 +21,11 @@ go install github.com/je4/gocfl/v2/gocfl@latest
 To initialize a new storage on an existing empty folder root, run the `init` command:
 
 ```bash
-gocfl init ./storage_root
+gocfl init C:/temp/test/storage_root
+```
+
+```bash
+gocfl init C:/temp/test/ocfl.zip
 ```
 
 ## Add a new object to an existing storage root
@@ -29,7 +33,7 @@ gocfl init ./storage_root
 To add a new object to an existing storage root, run the `add` command:
 
 ```bash
-gocfl add ./storage_root ./ocfltest1 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
+gocfl add C:/temp/test/storage_root ./ocfltest1 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' --object-id 'id:abc123'
 ```
 
 ## Adding a new version to an existing OCFL Repository

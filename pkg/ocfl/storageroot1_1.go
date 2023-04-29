@@ -3,8 +3,6 @@ package ocfl
 import (
 	"context"
 	"emperror.dev/errors"
-	"github.com/je4/filesystem/v2/pkg/writefs"
-	"github.com/je4/gocfl/v2/data/specs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io/fs"
@@ -27,17 +25,20 @@ func NewStorageRootV1_1(ctx context.Context, fsys fs.FS, extensionFactory *Exten
 }
 
 func (osr *StorageRootV1_1) Init(version OCFLVersion, digest checksum.DigestAlgorithm, extensions []Extension) error {
-	specFile := "ocfl_1.1.md"
-	spec, err := writefs.Create(osr.fsys, specFile)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", specFile)
-	}
-	if _, err := spec.Write(specs.OCFL1_1); err != nil {
-		_ = spec.Close()
-		return errors.Wrapf(err, "cannot write into '%s'", specFile)
-	}
-	if err := spec.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", specFile)
-	}
+	/*
+		specFile := "ocfl_1.1.md"
+		spec, err := writefs.Create(osr.fsys, specFile)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create %s", specFile)
+		}
+		if _, err := spec.Write(specs.OCFL1_1); err != nil {
+			_ = spec.Close()
+			return errors.Wrapf(err, "cannot write into '%s'", specFile)
+		}
+		if err := spec.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close '%s'", specFile)
+		}
+
+	*/
 	return osr.StorageRootBase.Init(version, digest, extensions)
 }
