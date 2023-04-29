@@ -96,16 +96,8 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 	rootConformanceDeclaration := "ocfl_" + string(osr.version)
 	rootConformanceDeclarationFile := "0=" + rootConformanceDeclaration
 
-	rcd, err := writefs.Create(osr.fsys, rootConformanceDeclarationFile)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create %s", rootConformanceDeclarationFile)
-	}
-	if _, err := rcd.Write([]byte(rootConformanceDeclaration + "\n")); err != nil {
-		_ = rcd.Close()
-		return errors.Wrapf(err, "cannot write into '%s'", rootConformanceDeclarationFile)
-	}
-	if err := rcd.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close '%s'", rootConformanceDeclarationFile)
+	if err := writefs.WriteFile(osr.fsys, rootConformanceDeclarationFile, []byte(rootConformanceDeclaration+"\n")); err != nil {
+		return errors.Wrapf(err, "cannot write %s", rootConformanceDeclarationFile)
 	}
 
 	extDocs, err := docs.ExtensionDocs.ReadDir(".")

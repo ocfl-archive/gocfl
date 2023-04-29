@@ -1,6 +1,0 @@
-{
-  "extensionName": "NNNN-indexer",
-  "storageType": "extension",
-  "actions": ["siegfried"],
-  "compress": "gzip"
-}
