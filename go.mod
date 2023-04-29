@@ -11,12 +11,12 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
 	github.com/je4/filesystem/v2 v2.0.0-20230429085333-5a12ff53f92d
-	github.com/je4/indexer/v2 v2.0.0-20230324093516-1af9c038b02e
+	github.com/je4/indexer/v2 v2.0.0-20230414134245-b93645c820b9
 	github.com/je4/utils/v2 v2.0.8-0.20230429085248-7c25d073caf9
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 )
 
 require (
@@ -44,7 +44,7 @@ require (
 	github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d // indirect
 	github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.4 // indirect
+	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -61,22 +61,22 @@ require (
 	github.com/richardlehane/match v1.0.5 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.3 // indirect
-	github.com/richardlehane/siegfried v1.9.6 // indirect
+	github.com/richardlehane/siegfried v1.10.1 // indirect
 	github.com/richardlehane/xmldetect v1.0.2 // indirect
 	github.com/ross-spencer/spargo v0.4.1 // indirect
 	github.com/ross-spencer/wikiprov v0.2.0 // indirect
-	github.com/rs/xid v1.4.0 // indirect
+	github.com/rs/xid v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
-	github.com/tobischo/gokeepasslib/v3 v3.5.0 // indirect
+	github.com/tobischo/gokeepasslib/v3 v3.5.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.8.0 // indirect
-	golang.org/x/image v0.6.0 // indirect
+	golang.org/x/image v0.7.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
