@@ -5,15 +5,16 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/tink/go/core/registry"
+	"github.com/je4/filesystem/v2/pkg/osfsrw"
+	"github.com/je4/filesystem/v2/pkg/s3fsrw"
+	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v2/pkg/zipfs"
+	"github.com/je4/filesystem/v2/pkg/zipfsrw"
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
-	"github.com/je4/gocfl/v2/pkg/baseFS"
-	genericfs "github.com/je4/gocfl/v2/pkg/baseFS/genericFS"
-	"github.com/je4/gocfl/v2/pkg/baseFS/osfs"
-	"github.com/je4/gocfl/v2/pkg/baseFS/s3fs"
-	"github.com/je4/gocfl/v2/pkg/baseFS/zipfs"
 	"github.com/je4/gocfl/v2/pkg/extension"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
@@ -21,7 +22,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -46,7 +46,7 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, sourceFS ocfl.OCFLFSRead, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, sourceFS fs.FS, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
 	logger.Debugf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
@@ -54,72 +54,77 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	}
 
 	logger.Debugf("adding creator for extension %s", extension.DigestAlgorithmsName)
-	extensionFactory.AddCreator(extension.DigestAlgorithmsName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.DigestAlgorithmsName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewDigestAlgorithmsFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutFlatDirectName)
-	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutFlatDirectName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutFlatDirectFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutHashAndIdNTupleName)
-	extensionFactory.AddCreator(extension.StorageLayoutHashAndIdNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutHashAndIdNTupleName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashAndIdNTupleFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutHashedNTupleName)
-	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutHashedNTupleName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutHashedNTupleFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.FlatOmitPrefixStorageLayoutName)
-	extensionFactory.AddCreator(extension.FlatOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.FlatOmitPrefixStorageLayoutName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewFlatOmitPrefixStorageLayoutFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.NTupleOmitPrefixStorageLayoutName)
-	extensionFactory.AddCreator(extension.NTupleOmitPrefixStorageLayoutName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.NTupleOmitPrefixStorageLayoutName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewNTupleOmitPrefixStorageLayoutFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.DirectCleanName)
-	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.DirectCleanName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewDirectCleanFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.PathDirectName)
-	extensionFactory.AddCreator(extension.PathDirectName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.PathDirectName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewPathDirectFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.StorageLayoutPairTreeName)
-	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.StorageLayoutPairTreeName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewStorageLayoutPairTreeFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", ocfl.ExtensionManagerName)
-	extensionFactory.AddCreator(ocfl.ExtensionManagerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(ocfl.ExtensionManagerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return ocfl.NewInitialDummyFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.ContentSubPathName)
-	extensionFactory.AddCreator(extension.ContentSubPathName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.ContentSubPathName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewContentSubPathFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.MetaFileName)
-	extensionFactory.AddCreator(extension.MetaFileName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.MetaFileName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewMetaFileFS(fsys)
 	})
 
 	logger.Debugf("adding creator for extension %s", extension.IndexerName)
-	extensionFactory.AddCreator(extension.IndexerName, func(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
 		}
 		return ext, nil
+	})
+
+	logger.Debugf("adding creator for extension %s", extension.MigrationName)
+	extensionFactory.AddCreator(extension.MigrationName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewMigrationFS(fsys, migration)
 	})
 
 	return extensionFactory, nil
@@ -147,94 +152,106 @@ func GetExtensionParamValues(cmd *cobra.Command) map[string]string {
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger *logging.Logger) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
+func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string) (storageRootExtensions, objectExtensions []ocfl.Extension, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
 	} else {
-		dStorageRootExtDirFS = os.DirFS(storageRootExtensionsFolder)
-	}
-	osrfs, err := genericfs.NewFS(dStorageRootExtDirFS, ".", logger)
-	if err != nil {
-		err = errors.Wrapf(err, "cannot create generic fs for %v", dStorageRootExtDirFS)
-		return
+		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot create filesystem for storage root extensions folder %v", storageRootExtensionsFolder)
+		}
 	}
 	if objectExtensionsFolder == "" {
 		dObjectExtDirFS = defaultextensions_object.DefaultObjectExtensionFS
 	} else {
-		dObjectExtDirFS = os.DirFS(objectExtensionsFolder)
+		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "cannot create filesystem for object extensions folder %v", objectExtensionsFolder)
+		}
 	}
-	oofs, err := genericfs.NewFS(dObjectExtDirFS, ".", logger)
+	storageRootExtensions, err = extensionFactory.LoadExtensions(dStorageRootExtDirFS)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot create generic fs for %v", dObjectExtDirFS)
+		err = errors.Wrapf(err, "cannot load extension folder %v", dStorageRootExtDirFS)
 		return
 	}
-	storageRootExtensions, err = extensionFactory.LoadExtensions(osrfs)
+	objectExtensions, err = extensionFactory.LoadExtensions(dObjectExtDirFS)
 	if err != nil {
-		err = errors.Wrapf(err, "cannot load extension folder %v", osrfs)
-		return
-	}
-	objectExtensions, err = extensionFactory.LoadExtensions(oofs)
-	if err != nil {
-		err = errors.Wrapf(err, "cannot load extension folder %v", oofs)
+		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
 	}
 	return
 }
 
-func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, logger *logging.Logger) (*baseFS.Factory, error) {
+func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, readOnly bool, logger *logging.Logger) (*writefs.Factory, error) {
 	if zipDigests == nil {
-		zipDigests = []checksum.DigestAlgorithm{}
+		zipDigests = []checksum.DigestAlgorithm{checksum.DigestSHA512}
 	}
 	prefix = strings.TrimRight(prefix, ".") + "."
 
-	fsFactory, err := baseFS.NewFactory()
+	fsFactory, err := writefs.NewFactory()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create filesystem factory")
 	}
 
-	flagAES := viper.GetBool(prefix + "AES")
-
-	keePassFile := viper.GetString(prefix + "KeePassFile")
-	keePassEntry := viper.GetString(prefix + "KeePassEntry")
-	keePassKey := viper.GetString(prefix + "KeePassKey")
-	// todo: allow different KMS clients
-	if flagAES {
-		db, err := keepass2kms.LoadKeePassDBFromFile(keePassFile, keePassKey)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot load keepass file '%s'", keePassFile)
+	if readOnly {
+		if err := fsFactory.Register(zipfs.NewCreateFSFunc(), "\\.zip$", writefs.HighFS); err != nil {
+			return nil, errors.Wrap(err, "cannot register zipfs")
 		}
-		client, err := keepass2kms.NewClient(db, filepath.Base(keePassFile))
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create keepass2kms client")
+	} else {
+
+		flagNoCompression := viper.GetBool(prefix + "NoCompression")
+
+		flagAES := viper.GetBool(prefix + "AES")
+
+		keePassFile := viper.GetString(prefix + "KeePassFile")
+		keePassEntry := viper.GetString(prefix + "KeePassEntry")
+		keePassKey := viper.GetString(prefix + "KeePassKey")
+		// todo: allow different KMS clients
+		if flagAES {
+			db, err := keepass2kms.LoadKeePassDBFromFile(keePassFile, keePassKey)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot load keepass file '%s'", keePassFile)
+			}
+			client, err := keepass2kms.NewClient(db, filepath.Base(keePassFile))
+			if err != nil {
+				return nil, errors.Wrap(err, "cannot create keepass2kms client")
+			}
+			registry.RegisterKMSClient(client)
+
+			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS); err != nil {
+				return nil, errors.Wrap(err, "cannot register FSEncryptedChecksum")
+			}
+		} else {
+			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS); err != nil {
+				return nil, errors.Wrap(err, "cannot register FSChecksum")
+			}
 		}
-		registry.RegisterKMSClient(client)
 	}
-
-	flagNoCompression := viper.GetBool(prefix + "NoCompression")
-
-	zipFS, err := zipfs.NewBaseFS(zipDigests, flagNoCompression, flagAES, keePassEntry, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create zip base filesystem factory")
+	if err := fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS); err != nil {
+		return nil, errors.Wrap(err, "cannot register osfs")
 	}
-	fsFactory.Add(zipFS)
-
-	// do S3 FS base instance
-	endpoint := viper.GetString("S3Endpoint")
-	accessKeyID := viper.GetString("S3AccessKeyID")
-	secretAccessKey := viper.GetString("S3SecretAccessKey")
-	region := viper.GetString("S3Region")
-	s3FS, err := s3fs.NewBaseFS(endpoint, accessKeyID, secretAccessKey, region, true, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create s3 base filesystem factory")
+	s3Endpoint := viper.GetString("S3Endpoint")
+	s3AccessKeyID := viper.GetString("S3AccessKeyID")
+	s3SecretAccessKey := viper.GetString("S3SecretAccessKey")
+	if err := fsFactory.Register(
+		s3fsrw.NewCreateFSFunc(
+			map[string]*s3fsrw.S3Access{
+				"switch": {
+					s3AccessKeyID,
+					s3SecretAccessKey,
+					s3Endpoint,
+					true,
+				},
+			},
+			s3fsrw.ARNRegexStr,
+			logger,
+		),
+		s3fsrw.ARNRegexStr,
+		writefs.MediumFS,
+	); err != nil {
+		return nil, errors.Wrap(err, "cannot register s3fs")
 	}
-	fsFactory.Add(s3FS)
-
-	osFS, err := osfs.NewBaseFS(logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create os base filesystem factory")
-	}
-	fsFactory.Add(osFS)
 
 	return fsFactory, nil
 }
@@ -245,15 +262,15 @@ func showStatus(ctx context.Context) error {
 		return errors.Wrap(err, "cannot get status of validation")
 	}
 	status.Compact()
-	context := ""
+	contextString := ""
 	errs := 0
 	for _, err := range status.Errors {
 		if err.Code[0] == 'E' {
 			errs++
 		}
-		if err.Context != context {
+		if err.Context != contextString {
 			fmt.Printf("\n[%s]\n", err.Context)
-			context = err.Context
+			contextString = err.Context
 		}
 		fmt.Printf("   #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
 		//logger.Infof("ERROR: %v", err)
@@ -263,18 +280,6 @@ func showStatus(ctx context.Context) error {
 	} else {
 		fmt.Printf("\nno errors found\n")
 	}
-	/*
-		for _, err := range status.Warnings {
-			if err.Context != context {
-				fmt.Printf("\n[%s]\n", err.Context)
-				context = err.Context
-			}
-			fmt.Printf("   Validation Warning #%s - %s [%s]\n", err.Code, err.Description, err.Description2)
-			//logger.Infof("WARN:  %v", err)
-		}
-		fmt.Println("\n")
-
-	*/
 	return nil
 }
 
@@ -284,8 +289,8 @@ func addObjectByPath(
 	defaultExtensions []ocfl.Extension,
 	checkDuplicates bool,
 	id, userName, userAddress, message string,
-	sourceFS ocfl.OCFLFSRead, area string,
-	areaPaths map[string]ocfl.OCFLFSRead,
+	sourceFS fs.FS, area string,
+	areaPaths map[string]fs.FS,
 	echo bool) (bool, error) {
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)
@@ -316,6 +321,9 @@ func addObjectByPath(
 				return false, errors.Wrapf(err, "cannot add area '%s' folder '%s' to '%s'", a, aPath, id)
 			}
 		}
+	}
+	if err := o.EndUpdate(); err != nil {
+		return false, errors.Wrapf(err, "cannot end update for object '%s'", id)
 	}
 
 	if err := o.Close(); err != nil {

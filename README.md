@@ -79,7 +79,8 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
   - [x] [NNNN-direct-clean-path-layout](docs/NNNN-direct-clean-path-layout.md)
   - [x] [NNNN-content-subpath](docs/NNNN-content-subpath.md) (integration of non-payload files in content)
   - [ ] NNNN-metafile (integration of one file into extension folder)
-  - [x] [NNNN-indexer](docs/NNNN-indexer.md) (technical metadata indexing) 
+  - [x] [NNNN-indexer](docs/NNNN-indexer.md) (technical metadata indexing)
+  - [x] [NNNN-migration](docs/NNNN-migration.md) (migration of file formats)
   - [x] [NNNN-gocfl-extension-manager](docs/NNNN-gocfl-extension-manager.md) (initial extension for sorted exclusion and sorted execution)
 
 ## Command Line Interface

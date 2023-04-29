@@ -7,6 +7,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"io"
+	"io/fs"
 	"regexp"
 )
 
@@ -22,7 +23,7 @@ type StorageRoot interface {
 	LoadObjectByFolder(folder string) (Object, error)
 	LoadObjectByID(id string) (Object, error)
 	CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, defaultExtensions []Extension) (Object, error)
-	CreateExtension(fs OCFLFSRead) (Extension, error)
+	CreateExtension(fsys fs.FS) (Extension, error)
 	Check() error
 	CheckObjectByFolder(objectFolder string) error
 	CheckObjectByID(objectID string) error
@@ -32,22 +33,22 @@ type StorageRoot interface {
 	setModified()
 	GetVersion() OCFLVersion
 	Stat(w io.Writer, path string, id string, statInfo []StatInfo) error
-	Extract(fs OCFLFS, path, id, version string, withManifest bool) error
+	Extract(fs fs.FS, path, id, version string, withManifest bool) error
 	ExtractMeta(path, id string) (*StorageRootMetadata, error)
 }
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
-func newStorageRoot(ctx context.Context, fs OCFLFSRead, version OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+func newStorageRoot(ctx context.Context, fsys fs.FS, version OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
 	switch version {
 	case Version1_0:
-		sr, err := NewStorageRootV1_0(ctx, fs, extensionFactory, logger)
+		sr, err := NewStorageRootV1_0(ctx, fsys, extensionFactory, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	case Version1_1:
-		sr, err := NewStorageRootV1_1(ctx, fs, extensionFactory, logger)
+		sr, err := NewStorageRootV1_1(ctx, fsys, extensionFactory, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -68,8 +69,8 @@ func ValidVersion(version OCFLVersion) bool {
 	}
 }
 
-func CreateStorageRoot(ctx context.Context, fs OCFLFS, version OCFLVersion, extensionFactory *ExtensionFactory, defaultExtensions []Extension, digest checksum.DigestAlgorithm, logger *logging.Logger) (StorageRoot, error) {
-	storageRoot, err := newStorageRoot(ctx, fs, version, extensionFactory, logger)
+func CreateStorageRoot(ctx context.Context, fsys fs.FS, version OCFLVersion, extensionFactory *ExtensionFactory, defaultExtensions []Extension, digest checksum.DigestAlgorithm, logger *logging.Logger) (StorageRoot, error) {
+	storageRoot, err := newStorageRoot(ctx, fsys, version, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate storage root")
 	}
@@ -81,20 +82,24 @@ func CreateStorageRoot(ctx context.Context, fs OCFLFS, version OCFLVersion, exte
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, fs OCFLFSRead, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
-	version, err := getVersion(ctx, fs, ".", "ocfl_")
+func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+	version, err := getVersion(ctx, fsys, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
 	}
 	if version == "" {
-		if fs.HasContent() {
-			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fs)
+		dirs, err := fs.ReadDir(fsys, ".")
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if len(dirs) > 0 {
+			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fsys)
 			addValidationErrors(ctx, err)
 			//			return nil, err
 		}
 		version = Version1_1
 	}
-	storageRoot, err := newStorageRoot(ctx, fs, version, extensionFactory, logger)
+	storageRoot, err := newStorageRoot(ctx, fsys, version, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate storage root")
 	}
@@ -105,20 +110,24 @@ func LoadStorageRoot(ctx context.Context, fs OCFLFSRead, extensionFactory *Exten
 	return storageRoot, nil
 }
 
-func LoadStorageRootRO(ctx context.Context, fs OCFLFSRead, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
-	version, err := getVersion(ctx, fs, ".", "ocfl_")
+func LoadStorageRootRO(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, logger *logging.Logger) (StorageRoot, error) {
+	version, err := getVersion(ctx, fsys, ".", "ocfl_")
 	if err != nil && err != errVersionNone {
 		return nil, errors.WithStack(err)
 	}
 	if version == "" {
-		if fs.HasContent() {
-			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fs)
+		dirs, err := fs.ReadDir(fsys, ".")
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if len(dirs) > 0 {
+			err := GetValidationError(Version1_1, E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fsys)
 			addValidationErrors(ctx, err)
 			//			return nil, err
 		}
 		version = Version1_1
 	}
-	storageRoot, err := newStorageRoot(ctx, fs, version, extensionFactory, logger)
+	storageRoot, err := newStorageRoot(ctx, fsys, version, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate storage root")
 	}

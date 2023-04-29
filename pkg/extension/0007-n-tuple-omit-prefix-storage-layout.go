@@ -4,8 +4,10 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
+	"io/fs"
 	"strings"
 )
 
@@ -38,10 +40,10 @@ type NTupleOmitPrefixStorageLayoutConfig struct {
 
 type NTupleOmitPrefixStorageLayout struct {
 	*NTupleOmitPrefixStorageLayoutConfig
-	fs ocfl.OCFLFSRead
+	fsys fs.FS
 }
 
-func NewNTupleOmitPrefixStorageLayoutFS(fsys ocfl.OCFLFSRead) (*NTupleOmitPrefixStorageLayout, error) {
+func NewNTupleOmitPrefixStorageLayoutFS(fsys fs.FS) (*NTupleOmitPrefixStorageLayout, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -79,8 +81,8 @@ func (sl *NTupleOmitPrefixStorageLayout) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *NTupleOmitPrefixStorageLayout) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) SetParams(params map[string]string) error {
@@ -89,15 +91,10 @@ func (sl *NTupleOmitPrefixStorageLayout) SetParams(params map[string]string) err
 
 func (sl *NTupleOmitPrefixStorageLayout) GetName() string { return NTupleOmitPrefixStorageLayoutName }
 func (sl *NTupleOmitPrefixStorageLayout) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -110,8 +107,8 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteConfig() error {
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("ocfl_layout.json")
+func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}

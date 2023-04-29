@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/atsushinee/go-markdown-generator/doc"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
+	"io/fs"
 	"path/filepath"
 	"strings"
 )
@@ -26,7 +28,7 @@ type ContentSubPathConfig struct {
 }
 type ContentSubPath struct {
 	*ContentSubPathConfig
-	fs   ocfl.OCFLFSRead
+	fsys fs.FS
 	area string
 }
 
@@ -42,7 +44,7 @@ func GetContentSubPathParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewContentSubPathFS(fsys ocfl.OCFLFSRead) (*ContentSubPath, error) {
+func NewContentSubPathFS(fsys fs.FS) (*ContentSubPath, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -73,8 +75,8 @@ func (sl *ContentSubPath) IsRegistered() bool {
 	return false
 }
 
-func (sl *ContentSubPath) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *ContentSubPath) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *ContentSubPath) SetParams(params map[string]string) error {
@@ -94,15 +96,10 @@ func (sl *ContentSubPath) GetConfigString() string {
 }
 
 func (sl *ContentSubPath) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -116,7 +113,7 @@ func (sl *ContentSubPath) WriteConfig() error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectContentPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		return originalPath, nil
 	}
@@ -145,43 +142,41 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	buf := bytes.NewBuffer([]byte(readme.String()))
-	if err := object.AddReader(io.NopCloser(buf), "README.md", ""); err != nil {
+	if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectExternalPath(object ocfl.Object, originalPath string) (string, error) {
-	if sl.area == "full" {
+func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
+	if area == "" {
+		area = sl.area
+	}
+	if area == "full" {
 		return originalPath, nil
 	}
-	subpath, ok := sl.Paths[sl.area]
+	subpath, ok := sl.Paths[area]
 	if !ok {
-		return "", errors.Errorf("invalid area '%s'", sl.area)
+		return "", errors.Errorf("invalid area '%s'", area)
 	}
 	path := filepath.ToSlash(filepath.Join(subpath.Path, originalPath))
 	return path, nil
-	/*
-		prefixPath := subpath.Path + "/"
-		if !strings.HasPrefix(originalPath, prefixPath) {
-			return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "invalid area '%s' for '%s'", sl.area, originalPath)
-		}
-		path := strings.TrimPrefix(originalPath, prefixPath)
-		return path, nil
-	*/
 }
 
-func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string) (string, error) {
-	if sl.area == "full" {
+func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string, area string) (string, error) {
+	if area == "" {
+		area = sl.area
+	}
+	if area == "full" {
 		return originalPath, nil
 	}
-	subpath, ok := sl.Paths[sl.area]
+	subpath, ok := sl.Paths[area]
 	if !ok {
-		return "", errors.Errorf("invalid area '%s'", sl.area)
+		return "", errors.Errorf("invalid area '%s'", area)
 	}
 	originalPath = strings.TrimLeft(originalPath, "/")
 	if !strings.HasPrefix(originalPath, subpath.Path) {
-		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, sl.area)
+		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, area)
 	}
 	originalPath = strings.TrimLeft(strings.TrimPrefix(originalPath, subpath.Path), "/")
 	return originalPath, nil
@@ -197,10 +192,10 @@ func (sl *ContentSubPath) GetAreaPath(object ocfl.Object, area string) (string, 
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                   = &ContentSubPath{}
-	_ ocfl.ExtensionObjectContentPath  = &ContentSubPath{}
-	_ ocfl.ExtensionObjectChange       = &ContentSubPath{}
-	_ ocfl.ExtensionObjectExternalPath = &ContentSubPath{}
-	_ ocfl.ExtensionObjectExtractPath  = &ContentSubPath{}
-	_ ocfl.ExtensionArea               = &ContentSubPath{}
+	_ ocfl.Extension                  = &ContentSubPath{}
+	_ ocfl.ExtensionObjectContentPath = &ContentSubPath{}
+	_ ocfl.ExtensionObjectChange      = &ContentSubPath{}
+	_ ocfl.ExtensionObjectStatePath   = &ContentSubPath{}
+	_ ocfl.ExtensionObjectExtractPath = &ContentSubPath{}
+	_ ocfl.ExtensionArea              = &ContentSubPath{}
 )

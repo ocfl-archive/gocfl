@@ -23,15 +23,11 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --default-storageroot-extensions
-StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="./data/fullextensions/storageroot" # default "": use built in extensions
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
-AES=false
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
 KeePassFile="C:/temp/test.kdbx"
 KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
@@ -49,17 +45,13 @@ DigestAlgorithm="sha512"
 # --message
 Message="Initial commit"
 # --object-extensions
-ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+ObjectExtensions="./data/fullextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
-#AES=true
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
 KeePassFile="C:/temp/test.kdbx"
 KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
@@ -89,16 +81,13 @@ DigestAlgorithm="sha512"
 # --default-area
 DefaultArea="content"
 # --no-compress
-#NoCompress=true
+NoCompress=true
 # --encrypt-aes
-#AES=true
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
 KeePassFile="C:/temp/test.kdbx"
-KeePassEntry="keepass2://test.kdbx/keepass2://test.kdbx/Root/gocfl/test"
+KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
+
 
 
 [Update.ext.NNNN-metadata]
@@ -114,17 +103,13 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --object-extensions
-ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
+ObjectExtensions="./data/fullextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="./data/fullextensions/storageroot" # default "": use built in extensions
 # --no-compress
-#NoCompress=true
+NoCompress=true
 # --encrypt-aes
 AES=true
-# --aes-key
-AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-AESIV="8594552261cb956949b661aa163fac4f"
 KeePassFile="C:/temp/test.kdbx"
 KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeePassKey="test"
@@ -171,6 +156,52 @@ Format = "json"
 # --output
 Output = ""
 
+[Migration]
+# --with-migration
+Enable=true
+
+[Migration.Function.PDFA]
+ID = "PDFA#01"
+Title = "Convert Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}"
+Timeout = "2m"
+Pronoms = "fmt/14,fmt/15,fmt/16,fmt/17,fmt/18,fmt/19,fmt/20,fmt/276,fmt/95,fmt/354,fmt/493,fmt/144,fmt/145,fmt/157,fmt/146,fmt/147,fmt/158,fmt/148,fmt/488,fmt/489,fmt/490,fmt/492,fmt/491,fmt/1129,fmt/1451"
+# "fmt/14": Acrobat PDF 1.0 - Portable Document Format
+# "fmt/15": Acrobat PDF 1.1 - Portable Document Format
+# "fmt/16": Acrobat PDF 1.2 - Portable Document Format
+# "fmt/17": Acrobat PDF 1.3 - Portable Document Format
+# "fmt/18": Acrobat PDF 1.4 - Portable Document Format
+# "fmt/19": Acrobat PDF 1.5 - Portable Document Format
+# "fmt/20": Acrobat PDF 1.6 - Portable Document Format
+# "fmt/276": Acrobat PDF 1.7 - Portable Document Format
+# "fmt/95": Acrobat PDF/A - Portable Document Format	1a
+# "fmt/354": Acrobat PDF/A - Portable Document Format	1b
+# "fmt/476": Acrobat PDF/A - Portable Document Format	2a
+# "fmt/477": Acrobat PDF/A - Portable Document Format	2b
+# "fmt/478": Acrobat PDF/A - Portable Document Format	2u
+# "fmt/479": Acrobat PDF/A - Portable Document Format	3a
+# "fmt/480": Acrobat PDF/A - Portable Document Format	3b
+# "fmt/481": Acrobat PDF/A - Portable Document Format	3u
+# "fmt/493": Acrobat PDF/E - Portable Document Format for Engineering PDF/E-1
+# "fmt/144": Acrobat PDF/X - Portable Document Format - Exchange 1:1999
+# "fmt/145": Acrobat PDF/X - Portable Document Format - Exchange 2:2001
+# "fmt/157": Acrobat PDF/X - Portable Document Format - Exchange 1a:2001
+# "fmt/146": Acrobat PDF/X - Portable Document Format - Exchange 1a:2003
+# "fmt/147": Acrobat PDF/X - Portable Document Format - Exchange 2:2002
+# "fmt/158": Acrobat PDF/X - Portable Document Format - Exchange 3:2002
+# "fmt/148": Acrobat PDF/X - Portable Document Format - Exchange 3:2003
+# "fmt/488": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4
+# "fmt/489": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4p
+# "fmt/490": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5g
+# "fmt/492": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5n
+# "fmt/491": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
+# "fmt/1129": PDF 2.0 - Portable Document Format - 2.0
+# "fmt/1451": PDF Portfolio - 1.7
 
 [Indexer]
 # --with-indexer

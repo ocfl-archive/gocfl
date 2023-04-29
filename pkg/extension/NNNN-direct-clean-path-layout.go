@@ -5,11 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"golang.org/x/exp/constraints"
 	"hash"
 	"io"
+	"io/fs"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -31,7 +33,7 @@ var directCleanErrPathnameTooLong = errors.New("pathname too long")
 
 type DirectClean struct {
 	*DirectCleanConfig
-	fs        ocfl.OCFLFSRead
+	fsys      fs.FS
 	hash      hash.Hash  `json:"-"`
 	hashMutex sync.Mutex `json:"-"`
 }
@@ -62,7 +64,7 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectCleanFS(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+func NewDirectCleanFS(fsys fs.FS) (ocfl.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -123,8 +125,8 @@ func (sl *DirectClean) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *DirectClean) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *DirectClean) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *DirectClean) SetParams(params map[string]string) error {
@@ -132,15 +134,10 @@ func (sl *DirectClean) SetParams(params map[string]string) error {
 }
 
 func (sl *DirectClean) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -153,8 +150,8 @@ func (sl *DirectClean) WriteConfig() error {
 	return nil
 }
 
-func (sl *DirectClean) WriteLayout(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("ocfl_layout.json")
+func (sl *DirectClean) WriteLayout(fsys fs.FS) error {
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}
@@ -178,7 +175,7 @@ func (sl *DirectClean) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id str
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectContentPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *DirectClean) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	return sl.build(originalPath)
 }
 

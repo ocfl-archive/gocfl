@@ -4,10 +4,12 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"hash"
 	"io"
+	"io/fs"
 	"math"
 	"strings"
 )
@@ -29,15 +31,15 @@ var convert = map[rune]rune{
 type StorageLayoutPairTree struct {
 	*StorageLayoutPairTreeConfig
 	hash hash.Hash
-	fs   ocfl.OCFLFSRead
+	fsys fs.FS
 }
 
 func (sl *StorageLayoutPairTree) IsRegistered() bool {
 	return false
 }
 
-func (sl *StorageLayoutPairTree) WriteLayout(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("ocfl_layout.json")
+func (sl *StorageLayoutPairTree) WriteLayout(fsys fs.FS) error {
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}
@@ -56,8 +58,8 @@ func (sl *StorageLayoutPairTree) WriteLayout(fs ocfl.OCFLFS) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 type StorageLayoutPairTreeConfig struct {
@@ -68,7 +70,7 @@ type StorageLayoutPairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewStorageLayoutPairTreeFS(fsys ocfl.OCFLFSRead) (*StorageLayoutPairTree, error) {
+func NewStorageLayoutPairTreeFS(fsys fs.FS) (*StorageLayoutPairTree, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -112,15 +114,10 @@ func (sl *StorageLayoutPairTree) SetParams(params map[string]string) error {
 }
 
 func (sl *StorageLayoutPairTree) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

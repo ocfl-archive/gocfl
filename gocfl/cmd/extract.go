@@ -5,11 +5,13 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"io/fs"
 	"path/filepath"
 	"strings"
 )
@@ -68,29 +70,35 @@ func doExtract(cmd *cobra.Command, args []string) {
 
 	daLogger.Infof("extracting '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory("Extract", cmd, nil, daLogger)
+	fsFactory, err := initializeFSFactory("Extract", cmd, nil, true, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	ocflFS, err := fsFactory.GetFS(ocflPath)
+	ocflFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	destFS, err := fsFactory.GetFSRW(destPath, false)
+	destFS, err := fsFactory.Get(destPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", destPath, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("cannot close filesystem: %v", err)
+			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -98,10 +106,6 @@ func doExtract(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
-	if !ocflFS.HasContent() {
-
-	}
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)
@@ -109,7 +113,13 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if destFS.HasContent() {
+	dirs, err := fs.ReadDir(destFS, ".")
+	if err != nil {
+		daLogger.Errorf("cannot read target folder '%v': %v", destFS, err)
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	if len(dirs) > 0 {
 		fmt.Printf("target folder '%s' is not empty\n", destFS)
 		daLogger.Debugf("target folder '%s' is not empty", destFS)
 		return
@@ -122,4 +132,5 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Printf("extraction done without errors\n")
+	showStatus(ctx)
 }

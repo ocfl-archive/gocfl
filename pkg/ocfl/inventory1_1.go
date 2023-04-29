@@ -33,3 +33,7 @@ func (i *InventoryV1_1) IsEqual(i2 Inventory) bool {
 	}
 	return i.InventoryBase.isEqual(i11_2.InventoryBase)
 }
+
+var (
+	_ Inventory = &InventoryV1_1{}
+)

@@ -1,0 +1,6 @@
+{
+  "extensionName": "NNNN-migration",
+  "storageType": "area",
+  "storageName": "metadata",
+  "compress": "gzip"
+}

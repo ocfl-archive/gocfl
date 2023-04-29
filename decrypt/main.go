@@ -8,7 +8,7 @@ import (
 	"flag"
 	"github.com/google/tink/go/keyset"
 	"github.com/google/tink/go/streamingaead"
-	"github.com/je4/gocfl/v2/pkg/encrypt"
+	"github.com/je4/utils/v2/pkg/encrypt"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"io"
 	"os"

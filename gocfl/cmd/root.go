@@ -14,7 +14,7 @@ import (
 	"regexp"
 )
 
-const VERSION = "v1.0-beta.4"
+const VERSION = "v1.0-beta.5"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
@@ -149,18 +149,6 @@ func setExtensionFlags(commands ...*cobra.Command) {
 			param.SetParam(cmd)
 		}
 	}
-}
-
-func getExtensionFlags(command *cobra.Command) map[string]string {
-	var result = map[string]string{}
-	extensionParams := GetExtensionParams()
-	for _, param := range extensionParams {
-		name, value := param.GetParam(command)
-		if name != "" {
-			result[name] = value
-		}
-	}
-	return result
 }
 
 func init() {

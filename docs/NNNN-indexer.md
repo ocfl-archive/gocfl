@@ -73,76 +73,73 @@ Every entry whithin the [OCFL Object Manifest](https://ocfl.io/1.1/spec/#manifes
 is represented by a JSON line in a file called  `indexer_<version>.jsonl[.gz|.br]`.
 Since this file is immutable, every version of the ocfl object gets its own indexer file.
 
-```json
-{
-  "Digest": "5cb8c60eb3c7641561df988493acdd0fbc6b6325ec396a6eaf6a9cbc329e1790b006d61b4465371c21a105b0fb5a77dff9a219ed57ead6cd074d6b8a6e2be896",
-  "Metadata": {
-    "errors": {},
-    "mimetype": "image/x-canon-cr2",
-    "mimetypes": [
-      "image/x-canon-cr2",
-      "application/octet-stream"
-    ],
-    "pronom": "fmt/592",
-    "pronoms": [
-      "fmt/592"
-    ],
-    "width": 8736,
-    "height": 5856,
-    "size": 67127952,
-    "metadata": {
-      "<subsystem>": {[...]}
-    }
-  }
-}
-```
-
 ## Examples
 
 JSON Entry for an Image
 ```json
 {
-  "Digest": "f2b2660694b24f17026721cc1fc9246277629666e68e54519630baee6c33bfe10be79ca88706a73e3d23584b37ecf6296894868e04f2f3a106d301def86734e4",
+  "Path": "v1/content/data/together.png",
   "Indexer": {
-    "mimetype": "image/x-canon-cr2",
+    "mimetype": "image/png",
     "mimetypes": [
-      "image/x-canon-cr2",
-      "application/octet-stream"
+      "image/png"
     ],
-    "pronom": "fmt/592",
+    "pronom": "fmt/12",
     "pronoms": [
-      "fmt/592"
+      "fmt/12"
     ],
-    "width": 8736,
-    "height": 5856,
-    "size": 67127952,
+    "width": 1920,
+    "height": 1080,
+    "size": 645553,
     "metadata": {
       "identify": {
-        "frames": [
-          {
-            "height": 5856,
-            "width": 8736
-          }
-        ],
         "magick": {
+          "version": "1.0",
           "image": {
-            "backgroundColor": "#FFFFFFFFFFFF",
-            "baseDepth": 16,
-            "baseName": "-",
+            "name": "together.png",
+            "permissions": 666,
+            "format": "PNG",
+            "formatDescription": "Portable Network Graphics",
+            "mimeType": "image/png",
+            "class": "DirectClass",
+            "geometry": {
+              "width": 1920,
+              "height": 1080
+            },
+            "resolution": {
+              "x": 37.79,
+              "y": 37.79
+            },
+            "printSize": {
+              "x": 50.8071,
+              "y": 28.579
+            },
+            "units": "PixelsPerCentimeter",
+            "type": "TrueColor",
             "baseType": "Undefined",
-            "borderColor": "#DFDFDFDFDFDF",
+            "endianness": "Undefined",
+            "colorspace": "sRGB",
+            "depth": 8,
+            "baseDepth": 8,
             "channelDepth": {
               "blue": 1,
-              "green": 16,
-              "red": 16
+              "green": 8,
+              "red": 8
+            },
+            "pixels": 6220800,
+            "imageStatistics": {
+              "Overall": {
+                "max": 255,
+                "mean": 205.498,
+                "median": 219,
+                "standardDeviation": 69.5403,
+                "kurtosis": 3.43043,
+                "skewness": -2.16984,
+                "entropy": 0.369045
+              }
             },
             "channelStatistics": {
-              "blue": {
-                "entropy": 0.872713,
-                "kurtosis": 3.73131,
-                "max": 65535,
-                "mean": 18144.4,
-[...]
+            [...]
 ```
 
 ### Result

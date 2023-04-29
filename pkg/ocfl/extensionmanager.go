@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"emperror.dev/errors"
 	"encoding/json"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
 	"golang.org/x/exp/slices"
 	"io"
+	"io/fs"
 	"sync"
 )
 
@@ -19,7 +21,7 @@ type ExtensionManager struct {
 	extensions         []Extension
 	storageRootPath    []ExtensionStorageRootPath
 	objectContentPath  []ExtensionObjectContentPath
-	objectExternalPath []ExtensionObjectExternalPath
+	objectExternalPath []ExtensionObjectStatePath
 	contentChange      []ExtensionContentChange
 	objectChange       []ExtensionObjectChange
 	fixityDigest       []ExtensionFixityDigest
@@ -27,7 +29,8 @@ type ExtensionManager struct {
 	metadata           []ExtensionMetadata
 	area               []ExtensionArea
 	stream             []ExtensionStream
-	fs                 OCFLFSRead
+	newVersion         []ExtensionNewVersion
+	fsys               fs.FS
 }
 
 func (manager *ExtensionManager) GetConfigString() string {
@@ -86,7 +89,7 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	if occ, ok := ext.(ExtensionFixityDigest); ok {
 		manager.fixityDigest = append(manager.fixityDigest, occ)
 	}
-	if occ, ok := ext.(ExtensionObjectExternalPath); ok {
+	if occ, ok := ext.(ExtensionObjectStatePath); ok {
 		manager.objectExternalPath = append(manager.objectExternalPath, occ)
 	}
 	if occ, ok := ext.(ExtensionObjectExtractPath); ok {
@@ -101,36 +104,24 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 	if stream, ok := ext.(ExtensionStream); ok {
 		manager.stream = append(manager.stream, stream)
 	}
+	if newversion, ok := ext.(ExtensionNewVersion); ok {
+		manager.newVersion = append(manager.newVersion, newversion)
+	}
 	return nil
 }
 
-func (manager *ExtensionManager) SetFS(subFSRO OCFLFSRead) {
-	if subfs, ok := subFSRO.(OCFLFS); ok {
-		for _, ext := range manager.extensions {
-			extFS, err := subfs.SubFSRW(ext.GetName())
-			if err != nil {
-				panic(err)
-			}
-			ext.SetFS(extFS)
-		}
-		var err error
-		manager.fs, err = subfs.SubFSRW("initial")
+func (manager *ExtensionManager) SetFS(fsys fs.FS) {
+	for _, ext := range manager.extensions {
+		extFS, err := fs.Sub(fsys, ext.GetName())
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		for _, ext := range manager.extensions {
-			extFS, err := subFSRO.SubFS(ext.GetName())
-			if err != nil {
-				panic(err)
-			}
-			ext.SetFS(extFS)
-		}
-		var err error
-		manager.fs, err = subFSRO.SubFS("initial")
-		if err != nil {
-			panic(err)
-		}
+		ext.SetFS(extFS)
+	}
+	var err error
+	manager.fsys, err = fs.Sub(fsys, "initial")
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -217,6 +208,7 @@ func (manager *ExtensionManager) Finalize() {
 	manager.metadata = organize(manager, manager.metadata, ExtensionMetadataName)
 	manager.area = organize(manager, manager.area, ExtensionAreaName)
 	manager.stream = organize(manager, manager.stream, ExtensionStreamName)
+	manager.newVersion = organize(manager, manager.newVersion, ExtensionNewVersionName)
 }
 
 // Extension
@@ -227,10 +219,6 @@ func (manager *ExtensionManager) GetName() string {
 	return ExtensionManagerName
 }
 func (manager *ExtensionManager) WriteConfig() error {
-	fsRW, ok := manager.fs.(OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", manager.fs.String())
-	}
 	for _, ext := range manager.extensions {
 		if err := ext.WriteConfig(); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
@@ -238,7 +226,7 @@ func (manager *ExtensionManager) WriteConfig() error {
 	}
 
 	if len(manager.Exclusion) != 0 || len(manager.Sort) != 0 {
-		configWriter, err := fsRW.Create("config.json")
+		configWriter, err := writefs.Create(manager.fsys, "config.json")
 		if err != nil {
 			return errors.Wrap(err, "cannot open config.json")
 		}
@@ -253,9 +241,9 @@ func (manager *ExtensionManager) WriteConfig() error {
 }
 
 // StorageRootPath
-func (manager *ExtensionManager) StoreRootLayout(fs OCFLFS) error {
+func (manager *ExtensionManager) StoreRootLayout(fsys fs.FS) error {
 	for _, ext := range manager.storageRootPath {
-		if err := ext.WriteLayout(fs); err != nil {
+		if err := ext.WriteLayout(fsys); err != nil {
 			return errors.Wrapf(err, "cannot store '%v'", ext)
 		}
 	}
@@ -275,14 +263,14 @@ func (manager *ExtensionManager) BuildStorageRootPath(storageRoot StorageRoot, i
 	}
 	return id, errors.Combine(errs...)
 }
-func (manager *ExtensionManager) WriteLayout(fs OCFLFS) error {
+func (manager *ExtensionManager) WriteLayout(fsys fs.FS) error {
 	if len(manager.storageRootPath) == 0 {
 		return nil
 	}
 	if len(manager.storageRootPath) == 1 {
-		return manager.storageRootPath[0].WriteLayout(fs)
+		return manager.storageRootPath[0].WriteLayout(fsys)
 	}
-	configWriter, err := fs.Create("ocfl_layout.json")
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}
@@ -311,10 +299,10 @@ func (manager *ExtensionManager) SetParams(params map[string]string) error {
 }
 
 // ObjectContentPath
-func (manager *ExtensionManager) BuildObjectContentPath(object Object, originalPath string, area string) (string, error) {
+func (manager *ExtensionManager) BuildObjectManifestPath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
-		p, err := ocp.BuildObjectContentPath(object, originalPath, area)
+		p, err := ocp.BuildObjectManifestPath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -328,10 +316,10 @@ func (manager *ExtensionManager) BuildObjectContentPath(object Object, originalP
 }
 
 // ObjectExternalPath
-func (manager *ExtensionManager) BuildObjectExternalPath(object Object, originalPath string) (string, error) {
+func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectExternalPath {
-		p, err := ocp.BuildObjectExternalPath(object, originalPath)
+		p, err := ocp.BuildObjectStatePath(object, originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -345,7 +333,7 @@ func (manager *ExtensionManager) BuildObjectExternalPath(object Object, original
 }
 
 // ContentChange
-func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error {
+func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS fs.FS, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileBefore(object, sourceFS, source, dest); err != nil {
@@ -355,7 +343,7 @@ func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS OCFLFSRea
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS OCFLFSRead, source, dest string) error {
+func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS fs.FS, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest); err != nil {
@@ -375,7 +363,7 @@ func (manager *ExtensionManager) DeleteFileBefore(object Object, dest string) er
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead, source, internalPath, digest string) error {
+func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest); err != nil {
@@ -385,7 +373,7 @@ func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS OCFLFSRead
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS OCFLFSRead, source, dest string) error {
+func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS fs.FS, source, dest string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest); err != nil {
@@ -439,12 +427,12 @@ func (manager *ExtensionManager) GetFixityDigests() []checksum.DigestAlgorithm {
 	return digests
 }
 
-func (manager *ExtensionManager) BuildObjectExtractPath(object Object, originalPath string) (string, error) {
+func (manager *ExtensionManager) BuildObjectExtractPath(object Object, originalPath string, area string) (string, error) {
 	var err error
 	for _, ext := range manager.objectExtractPath {
-		originalPath, err = ext.BuildObjectExtractPath(object, originalPath)
+		originalPath, err = ext.BuildObjectExtractPath(object, originalPath, area)
 		if err != nil {
-			return "", errors.Wrapf(err, "cannot call BuildObjectExraPath")
+			return "", errors.Wrapf(err, "cannot call BuildObjectExtractPath")
 		}
 	}
 	return originalPath, nil
@@ -487,8 +475,31 @@ func (manager *ExtensionManager) GetAreaPath(object Object, area string) (string
 	return "", errors.Combine(errs...)
 }
 
+// NewVersion
+func (manager *ExtensionManager) NeedNewVersion(object Object) (bool, error) {
+	for _, ext := range manager.newVersion {
+		need, err := ext.NeedNewVersion(object)
+		if err != nil {
+			return false, errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
+		}
+		if need {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (manager *ExtensionManager) DoNewVersion(object Object) error {
+	for _, ext := range manager.newVersion {
+		if err := ext.DoNewVersion(object); err != nil {
+			return errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
+		}
+	}
+	return nil
+}
+
 // Stream
-func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, source, dest string) error {
+func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(manager.stream) == 0 {
 		_, _ = io.Copy(io.Discard, reader)
 		return nil
@@ -502,7 +513,7 @@ func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, s
 		writer = append(writer, iou.NewWriteIgnoreCloser(pw))
 		go func(r io.Reader, extension ExtensionStream) {
 			defer wg.Done()
-			if err := extension.StreamObject(object, r, source, dest); err != nil {
+			if err := extension.StreamObject(object, r, stateFiles, dest); err != nil {
 				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", extension.GetName(), object.GetID())
 			}
 			// discard remaining data
@@ -539,15 +550,16 @@ func (manager *ExtensionManager) StreamObject(object Object, reader io.Reader, s
 
 // check interface satisfaction
 var (
-	_ Extension                   = (*ExtensionManager)(nil)
-	_ ExtensionStorageRootPath    = (*ExtensionManager)(nil)
-	_ ExtensionObjectContentPath  = (*ExtensionManager)(nil)
-	_ ExtensionObjectExternalPath = (*ExtensionManager)(nil)
-	_ ExtensionContentChange      = (*ExtensionManager)(nil)
-	_ ExtensionObjectChange       = (*ExtensionManager)(nil)
-	_ ExtensionFixityDigest       = (*ExtensionManager)(nil)
-	_ ExtensionObjectExtractPath  = (*ExtensionManager)(nil)
-	_ ExtensionMetadata           = (*ExtensionManager)(nil)
-	_ ExtensionArea               = (*ExtensionManager)(nil)
-	_ ExtensionStream             = (*ExtensionManager)(nil)
+	_ Extension                  = (*ExtensionManager)(nil)
+	_ ExtensionStorageRootPath   = (*ExtensionManager)(nil)
+	_ ExtensionObjectContentPath = (*ExtensionManager)(nil)
+	_ ExtensionObjectStatePath   = (*ExtensionManager)(nil)
+	_ ExtensionContentChange     = (*ExtensionManager)(nil)
+	_ ExtensionObjectChange      = (*ExtensionManager)(nil)
+	_ ExtensionFixityDigest      = (*ExtensionManager)(nil)
+	_ ExtensionObjectExtractPath = (*ExtensionManager)(nil)
+	_ ExtensionMetadata          = (*ExtensionManager)(nil)
+	_ ExtensionArea              = (*ExtensionManager)(nil)
+	_ ExtensionStream            = (*ExtensionManager)(nil)
+	_ ExtensionNewVersion        = (*ExtensionManager)(nil)
 )

@@ -1,0 +1,8 @@
+{
+  "extensionName": "NNNN-direct-clean-path-layout",
+  "maxPathnameLen": 32000,
+  "maxFilenameLen": 127,
+  "replacementString": "_",
+  "whitespaceReplacementString": " ",
+  "utfEncode": false
+}

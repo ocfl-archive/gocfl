@@ -1,14 +1,13 @@
 package ocfl
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
 	"github.com/op/go-logging"
-	"io"
+	"io/fs"
 )
 
-type creatorFunc func(fs OCFLFSRead) (Extension, error)
+type creatorFunc func(fsys fs.FS) (Extension, error)
 
 type ExtensionFactory struct {
 	creators           map[string]creatorFunc
@@ -39,18 +38,15 @@ func (f *ExtensionFactory) AddObjectDefaultExtension(ext Extension) {
 	f.defaultObject = append(f.defaultObject, ext)
 }
 
-func (f *ExtensionFactory) Create(fsys OCFLFSRead) (Extension, error) {
-	fp, err := fsys.Open("config.json")
+func (f *ExtensionFactory) Create(fsys fs.FS) (Extension, error) {
+	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open config.json")
+		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
 	}
-	defer fp.Close()
-	data := bytes.NewBuffer(nil)
-	io.Copy(data, fp)
-	return f.create(fsys, data.Bytes())
+	return f.create(fsys, data)
 }
 
-func (f *ExtensionFactory) create(fsys OCFLFSRead, data []byte) (Extension, error) {
+func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -77,8 +73,8 @@ func (f *ExtensionFactory) create(fsys OCFLFSRead, data []byte) (Extension, erro
 	return ext, nil
 }
 
-func (f *ExtensionFactory) CreateExtensions(fsys OCFLFSRead) ([]Extension, error) {
-	files, err := fsys.ReadDir(".")
+func (f *ExtensionFactory) CreateExtensions(fsys fs.FS) ([]Extension, error) {
+	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folder storageroot")
 	}
@@ -87,7 +83,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys OCFLFSRead) ([]Extension, error
 		if !file.IsDir() {
 			continue
 		}
-		sub, err := fsys.SubFS(file.Name())
+		sub, err := fs.Sub(fsys, file.Name())
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
 		}
@@ -101,7 +97,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys OCFLFSRead) ([]Extension, error
 	return result, nil
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys OCFLFSRead) ([]Extension, error) {
+func (f *ExtensionFactory) LoadExtensions(fsys fs.FS) ([]Extension, error) {
 	extensions, err := f.CreateExtensions(fsys)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")

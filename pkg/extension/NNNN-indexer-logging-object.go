@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
+	"io/fs"
 	"net/url"
 )
 
@@ -23,7 +24,7 @@ func (sl *LoggingIndexer) IsRegistered() bool {
 	return false
 }
 
-func (li *LoggingIndexer) SetFS(fs ocfl.OCFLFSRead) {
+func (li *LoggingIndexer) SetFS(fsys fs.FS) {
 	//TODO implement me
 	panic("implement me")
 }

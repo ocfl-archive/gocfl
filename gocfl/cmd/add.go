@@ -5,14 +5,17 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/indexer"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	indexer2 "github.com/je4/gocfl/v2/pkg/subsystem/indexer"
+	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -111,34 +114,34 @@ func doAdd(cmd *cobra.Command, args []string) {
 	var indexerActions *ironmaiden.ActionDispatcher
 	var addr string
 	if viper.GetBool("Indexer.Enable") {
-		siegfried, err := indexer.GetSiegfried()
+		siegfried, err := indexer2.GetSiegfried()
 		if err != nil {
 			daLogger.Errorf("cannot load indexer Siegfried: %v", err)
 			return
 		}
-		mimeRelevance, err := indexer.GetMimeRelevance()
+		mimeRelevance, err := indexer2.GetMimeRelevance()
 		if err != nil {
 			daLogger.Errorf("cannot load indexer MimeRelevance: %v", err)
 			return
 		}
 
-		ffmpeg, err := indexer.GetFFMPEG()
+		ffmpeg, err := indexer2.GetFFMPEG()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer FFMPEG: %v", err)
 			//			return
 		}
-		imageMagick, err := indexer.GetImageMagick()
+		imageMagick, err := indexer2.GetImageMagick()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer ImageMagick: %v", err)
 			//return
 		}
-		tika, err := indexer.GetTika()
+		tika, err := indexer2.GetTika()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer Tika: %v", err)
 			//return
 		}
 
-		indexerActions, err = indexer.InitActions(mimeRelevance, siegfried, ffmpeg, imageMagick, tika, daLogger)
+		indexerActions, err = indexer2.InitActions(mimeRelevance, siegfried, ffmpeg, imageMagick, tika, daLogger)
 	}
 
 	t := startTimer()
@@ -174,38 +177,44 @@ func doAdd(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", flagDigest))
 	}
 
-	fsFactory, err := initializeFSFactory("Add", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, daLogger)
+	fsFactory, err := initializeFSFactory("Add", cmd, []checksum.DigestAlgorithm{checksum.DigestAlgorithm(flagDigest)}, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
 
-	sourceFS, err := fsFactory.GetFS(srcPath)
+	sourceFS, err := fsFactory.Get(srcPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", srcPath, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	destFS, err := fsFactory.GetFSRW(ocflPath, false)
+	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
 		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := writefs.Close(destFS); err != nil {
+			daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		}
+	}()
 
 	area := viper.GetString("Add.DefaultArea")
 	if area == "" {
 		area = "content"
 	}
-	var areaPaths = map[string]ocfl.OCFLFSRead{}
+	var areaPaths = map[string]fs.FS{}
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
 			daLogger.Errorf("no area given in areapath '%s'", args[i])
 			continue
 		}
-		areaPaths[matches[1]], err = fsFactory.GetFS(matches[2])
+		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
 		if err != nil {
 			daLogger.Errorf("cannot get filesystem for '%s': %v", args[i], err)
 			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -213,14 +222,21 @@ func doAdd(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	mig, err := migration.GetMigrations()
+	if err != nil {
+		daLogger.Errorf("cannot get migrations: %v", err)
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, mig, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
-	_, objectExtensions, err := initDefaultExtensions(extensionFactory, "", flagObjectExtensionFolder, daLogger)
+	_, objectExtensions, err := initDefaultExtensions(extensionFactory, "", flagObjectExtensionFolder)
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -228,10 +244,6 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	defer showStatus(ctx)
-	if !destFS.HasContent() {
-
-	}
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot open storage root: %v", err)
@@ -274,11 +286,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		daLogger.Errorf("error adding content to storageroot filesystem '%s': %v", destFS, err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
 	}
-
-	if err := destFS.Close(); err != nil {
-		daLogger.Errorf("error closing filesystem '%s': %v", destFS, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-	}
+	_ = showStatus(ctx)
 
 }

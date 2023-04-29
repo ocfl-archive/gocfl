@@ -4,22 +4,24 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"io"
+	"io/fs"
 )
 
 const PathDirectName = "NNNN-direct-path-layout"
 
 type PathDirectConfig struct {
 	*Config
-	fs ocfl.OCFLFSRead
+	fsys fs.FS
 }
 
 type PathDirect struct {
 	*PathDirectConfig
 }
 
-func NewPathDirectFS(fsys ocfl.OCFLFSRead) (ocfl.Extension, error) {
+func NewPathDirectFS(fsys fs.FS) (ocfl.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -48,8 +50,8 @@ func (sl *PathDirect) IsRegistered() bool {
 	return false
 }
 
-func (sl *PathDirectConfig) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *PathDirectConfig) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *PathDirect) SetParams(params map[string]string) error {
@@ -63,8 +65,8 @@ func (sl *PathDirect) GetConfigString() string {
 	return string(str)
 }
 
-func (sl *PathDirect) WriteLayout(fs ocfl.OCFLFS) error {
-	configWriter, err := fs.Create("ocfl_layout.json")
+func (sl *PathDirect) WriteLayout(fsys fs.FS) error {
+	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}
@@ -84,15 +86,10 @@ func (sl *PathDirect) WriteLayout(fs ocfl.OCFLFS) error {
 }
 
 func (sl *PathDirect) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -108,7 +105,7 @@ func (sl *PathDirect) WriteConfig() error {
 func (sl *PathDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
-func (sl *PathDirect) BuildObjectContentPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *PathDirect) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	return originalPath, nil
 }
 

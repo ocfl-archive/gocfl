@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 )
 
 type InitialDummy struct {
 	*ExtensionManagerConfig
 }
 
-func NewInitialDummyFS(fsys OCFLFSRead) (Extension, error) {
+func NewInitialDummyFS(fsys fs.FS) (Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -57,7 +58,7 @@ func (dummy *InitialDummy) WriteConfig() error {
 	panic("never call me")
 }
 
-func (dummy *InitialDummy) SetFS(fs OCFLFSRead) {
+func (dummy *InitialDummy) SetFS(fsys fs.FS) {
 	panic("never call me")
 }
 

@@ -5,9 +5,11 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	checksum2 "github.com/je4/utils/v2/pkg/checksum"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -45,10 +47,10 @@ type MetaFileConfig struct {
 type MetaFile struct {
 	*MetaFileConfig
 	metadataSource *url.URL
-	fs             ocfl.OCFLFSRead
+	fsys           fs.FS
 }
 
-func NewMetaFileFS(fsys ocfl.OCFLFSRead) (*MetaFile, error) {
+func NewMetaFileFS(fsys fs.FS) (*MetaFile, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -96,8 +98,8 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *MetaFile) SetFS(fs ocfl.OCFLFSRead) {
-	sl.fs = fs
+func (sl *MetaFile) SetFS(fsys fs.FS) {
+	sl.fsys = fsys
 }
 
 func (sl *MetaFile) GetName() string { return MetaFileName }
@@ -108,15 +110,10 @@ func (sl *MetaFile) GetConfigString() string {
 }
 
 func (sl *MetaFile) WriteConfig() error {
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
-	}
-
-	configWriter, err := fsRW.Create("config.json")
+	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -162,12 +159,8 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		return nil
 	}
-	if sl.fs == nil {
+	if sl.fsys == nil {
 		return errors.New("no filesystem set")
-	}
-	fsRW, ok := sl.fs.(ocfl.OCFLFS)
-	if !ok {
-		return errors.Errorf("filesystem is read only - '%s'", sl.fs.String())
 	}
 	var rc io.ReadCloser
 	switch sl.metadataSource.Scheme {
@@ -206,9 +199,9 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.Errorf("url scheme '%s' not supported", sl.metadataSource.Scheme)
 	}
 
-	entries, err := sl.fs.ReadDir(".")
+	entries, err := fs.ReadDir(sl.fsys, ".")
 	if err != nil {
-		return errors.Wrapf(err, "cannot read directory of '%s'", sl.fs)
+		return errors.Wrapf(err, "cannot read directory of '%s'", sl.fsys)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -217,14 +210,14 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 		if entry.Name() == "config.json" {
 			continue
 		}
-		if err := fsRW.Delete(entry.Name()); err != nil {
-			return errors.Wrapf(err, "cannot delete '%s' from '%s'", entry.Name(), sl.fs)
+		if err := writefs.Remove(sl.fsys, entry.Name()); err != nil {
+			return errors.Wrapf(err, "cannot delete '%s' from '%s'", entry.Name(), sl.fsys)
 		}
 	}
 
 	// complex writes to prevent simultaneous writes on filesystems, which do not support that
 	targetBase := filepath.Base(sl.metadataSource.Path)
-	w2, err := fsRW.Create(targetBase)
+	w2, err := writefs.Create(sl.fsys, targetBase)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetBase)
 	}
@@ -249,7 +242,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	targetBaseSidecar := fmt.Sprintf("%s.%s", targetBase, inventory.GetDigestAlgorithm())
-	w2Sidecar, err := fsRW.Create(targetBaseSidecar)
+	w2Sidecar, err := writefs.Create(sl.fsys, targetBaseSidecar)
 	if err != nil {
 		return errors.Wrapf(err, "cannot create '%s'", targetBaseSidecar)
 	}
@@ -261,7 +254,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 
 	if sl.Versioned {
 		targetVersioned := fmt.Sprintf("%s/%s", inventory.GetHead(), targetBase)
-		w, err := fsRW.Create(targetVersioned)
+		w, err := writefs.Create(sl.fsys, targetVersioned)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%s'", targetVersioned)
 		}
@@ -271,7 +264,7 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		w.Close()
 		targetVersionedSidecar := fmt.Sprintf("%s.%s", targetVersioned, inventory.GetDigestAlgorithm())
-		wSidecar, err := fsRW.Create(targetVersionedSidecar)
+		wSidecar, err := writefs.Create(sl.fsys, targetVersionedSidecar)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%s'", targetVersionedSidecar)
 		}
