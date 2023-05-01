@@ -1,0 +1,6 @@
+{
+  "extensionName": "NNNN-filesystem",
+  "storageType": "area",
+  "storageName": "metadata",
+  "compress": "gzip"
+}

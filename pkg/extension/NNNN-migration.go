@@ -67,12 +67,7 @@ type Migration struct {
 }
 
 func NewMigrationFS(fsys fs.FS, migration *migration2.Migration) (*Migration, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
-	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
+	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
@@ -124,15 +119,9 @@ func (mi *Migration) WriteConfig() error {
 	if mi.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	configWriter, err := writefs.Create(mi.fsys, "config.json")
+	err := writefs.WriteFile(mi.fsys, "config.json", []byte(mi.GetConfigString()))
 	if err != nil {
-		return errors.Wrap(err, "cannot open config.json")
-	}
-	defer configWriter.Close()
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(mi.MigrationConfig); err != nil {
-		return errors.Wrapf(err, "cannot encode config to file")
+		return errors.Wrap(err, "cannot write config.json")
 	}
 	return nil
 }

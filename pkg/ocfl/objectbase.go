@@ -772,7 +772,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 	object.logger.Infof("adding file %s:%v", area, files)
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, names.internalPath); err != nil {
+		if err := object.extensionManager.AddFileBefore(object, nil, path, names.internalPath, area); err != nil {
 			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
@@ -783,7 +783,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 	}
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileAfter(object, nil, names.externalPaths, names.manifestPath, digest); err != nil {
+		if err := object.extensionManager.AddFileAfter(object, nil, names.externalPaths, names.manifestPath, digest, area); err != nil {
 			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
@@ -803,7 +803,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 	names, err := object.buildNames([]string{path}, area)
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, names.internalPath); err != nil {
+		if err := object.extensionManager.AddFileBefore(object, nil, path, names.internalPath, area); err != nil {
 			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
@@ -875,7 +875,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 	}
 
 	if !noExtensionHook {
-		if err := object.extensionManager.AddFileAfter(object, fsys, []string{path}, targetFilename, digest); err != nil {
+		if err := object.extensionManager.AddFileAfter(object, fsys, []string{path}, targetFilename, digest, area); err != nil {
 			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
