@@ -36,7 +36,7 @@ func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	}
 	unixPerms := fileMode & os.ModePerm
 	fsm.Attr = unixPerms.String()
-	fsm.OSStat = stat_t
+	fsm.SystemStat = stat_t
 
 	return nil
 }

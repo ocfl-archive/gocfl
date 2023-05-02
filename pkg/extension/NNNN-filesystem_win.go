@@ -40,7 +40,7 @@ func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 		}
 	}
 
-	fsm.OSStat = win32FileAttributeData
+	fsm.SystemStat = win32FileAttributeData
 
 	return nil
 }

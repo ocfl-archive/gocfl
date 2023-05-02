@@ -247,7 +247,7 @@ func (i *InventoryBase) GetStateFiles(version string, cs string) ([]string, erro
 	return files, nil
 }
 
-func (i *InventoryBase) IterateStateFiles(version string, fn func(internal string, external string, digest string) error) error {
+func (i *InventoryBase) IterateStateFiles(version string, fn StateFileCallback) error {
 	if version == "latest" || version == "" {
 		version = i.GetHead()
 	}
@@ -258,16 +258,13 @@ func (i *InventoryBase) IterateStateFiles(version string, fn func(internal strin
 	for digest, externalNames := range ver.State.State {
 		internalNames, ok := i.Manifest.Manifest[digest]
 		if !ok {
-			return errors.Errorf("no manifest for [%s]%s", digest, externalNames[0])
+			return errors.Errorf("no manifest for [%s]%v", digest, externalNames)
 		}
 		if len(internalNames) == 0 {
 			return errors.Errorf("invalid manifest for digest [%s]", digest)
 		}
-		internalName := internalNames[0]
-		for _, externalName := range externalNames {
-			if err := errors.WithStack(fn(internalName, externalName, digest)); err != nil {
-				return errors.WithStack(err)
-			}
+		if err := errors.WithStack(fn(internalNames, externalNames, digest)); err != nil {
+			return errors.WithStack(err)
 		}
 	}
 	return nil
@@ -965,6 +962,7 @@ func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) er
 
 func (i *InventoryBase) CopyFile(dest string, digest string) error {
 	i.logger.Infof("[%s] copying '%s' -> '%s'", i.GetID(), digest, dest)
+
 	if _, ok := i.Manifest.Manifest[digest]; !ok {
 		return errors.Errorf("cannot find file with digest '%s'", digest)
 	}

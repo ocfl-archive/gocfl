@@ -142,7 +142,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	buf := bytes.NewBuffer([]byte(readme.String()))
-	if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false); err != nil {
+	if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false, false); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
 	return nil

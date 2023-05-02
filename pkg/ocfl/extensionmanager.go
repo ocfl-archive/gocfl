@@ -333,20 +333,20 @@ func (manager *ExtensionManager) BuildObjectStatePath(object Object, originalPat
 }
 
 // ContentChange
-func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS fs.FS, source, dest, area string) error {
+func (manager *ExtensionManager) AddFileBefore(object Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.AddFileBefore(object, sourceFS, source, dest, area); err != nil {
+		if err := ocp.AddFileBefore(object, sourceFS, source, dest, area, isDir); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS fs.FS, source, dest, area string) error {
+func (manager *ExtensionManager) UpdateFileBefore(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest, area); err != nil {
+		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest, area, isDir); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -363,20 +363,20 @@ func (manager *ExtensionManager) DeleteFileBefore(object Object, dest string, ar
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest, area string) error {
+func (manager *ExtensionManager) AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest, area); err != nil {
+		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest, area, isDir); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS fs.FS, source, dest, area string) error {
+func (manager *ExtensionManager) UpdateFileAfter(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest, area); err != nil {
+		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest, area, isDir); err != nil {
 			errs = append(errs, err)
 			continue
 		}

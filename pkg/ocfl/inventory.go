@@ -9,6 +9,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type StateFileCallback func(internal []string, external []string, digest string) error
+
 type Inventory interface {
 	Finalize(inCreation bool) error
 	IsEqual(i2 Inventory) bool
@@ -25,7 +27,7 @@ type Inventory interface {
 	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	CopyFile(dest string, digest string) error
 
-	IterateStateFiles(version string, fn func(internal, external, digest string) error) error
+	IterateStateFiles(version string, fn StateFileCallback) error
 	GetStateFiles(version string, cs string) ([]string, error)
 
 	//GetContentDirectory() string

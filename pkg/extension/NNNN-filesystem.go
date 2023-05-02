@@ -9,9 +9,12 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -47,13 +50,13 @@ func NewFilesystem(config *FilesystemConfig) (*Filesystem, error) {
 }
 
 type filesystemMeta struct {
-	ATime   time.Time `json:"atime"`
-	MTime   time.Time `json:"mtime"`
-	CTime   time.Time `json:"ctime"`
-	Attr    string    `json:"attr,omitempty"`
-	Symlink string    `json:"symlink,omitempty"`
-	OS      string    `json:"os"`
-	OSStat  any       `json:"osstat,omitempty"`
+	ATime      time.Time `json:"aTime"`
+	MTime      time.Time `json:"mTime"`
+	CTime      time.Time `json:"cTime"`
+	Attr       string    `json:"attr,omitempty"`
+	Symlink    string    `json:"symlink,omitempty"`
+	OS         string    `json:"os"`
+	SystemStat any       `json:"sysStat,omitempty"`
 }
 
 type fileSystemLine struct {
@@ -63,9 +66,10 @@ type fileSystemLine struct {
 
 type FilesystemConfig struct {
 	*ocfl.ExtensionConfig
-	StorageType string
-	StorageName string
-	Compress    string
+	Folders     string `json:"folders"`
+	StorageType string `json:"storageType"`
+	StorageName string `json:"storageName"`
+	Compress    string `json:"compress"`
 }
 
 type Filesystem struct {
@@ -77,11 +81,11 @@ type Filesystem struct {
 	writer      *brotli.Writer
 }
 
-func (extFS *Filesystem) AddFileBefore(object ocfl.Object, sourceFS fs.FS, source, dest, area string) error {
+func (extFS *Filesystem) AddFileBefore(object ocfl.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileBefore(object ocfl.Object, sourceFS fs.FS, source, dest, area string) error {
+func (extFS *Filesystem) UpdateFileBefore(object ocfl.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
@@ -89,8 +93,25 @@ func (extFS *Filesystem) DeleteFileBefore(object ocfl.Object, dest string, area 
 	return nil
 }
 
-func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source []string, internalPath, digest, area string) error {
+func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+	if isDir && extFS.Folders == "" {
+		return nil
+	}
+
 	inventory := object.GetInventory()
+
+	var err error
+	var emptyChecksum string
+	var emptyExists bool
+	if isDir && extFS.Folders != "" {
+		emptyChecksum, err = checksum.Checksum(bytes.NewReader([]byte{}), inventory.GetDigestAlgorithm())
+		if err != nil {
+			return errors.Wrap(err, "cannot calculate checksum for empty file")
+		}
+		manifest := inventory.GetManifest()
+		_, emptyExists = manifest[emptyChecksum]
+	}
+
 	head := inventory.GetHead()
 	if _, ok := extFS.buffer[head]; !ok {
 		extFS.buffer[head] = &bytes.Buffer{}
@@ -121,6 +142,30 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 		if err != nil {
 			return errors.Wrapf(err, "cannot build object extract path for '%s'", src)
 		}
+
+		if isDir {
+			newEmptyFile := filepath.ToSlash(filepath.Join(src, extFS.Folders))
+			if !emptyExists {
+				if err := object.AddReader(io.NopCloser(bytes.NewReader([]byte{})), []string{newEmptyFile}, area, true, false); err != nil {
+					return errors.Wrapf(err, "cannot add empty file '%s'", newEmptyFile)
+				}
+				emptyExists = true
+			} else {
+				// todo: make it more elegant
+				names, err := object.BuildNames([]string{newEmptyFile}, area)
+				if err != nil {
+					return errors.Wrapf(err, "cannot build names for '%s'", newEmptyFile)
+				}
+				if len(names.ExternalPaths) == 0 {
+					return errors.Errorf("cannot build external names for '%s'", newEmptyFile)
+				}
+				if err := inventory.CopyFile(names.ExternalPaths[0], emptyChecksum); err != nil {
+					return errors.Wrapf(err, "cannot copy empty file to '%s'", newEmptyFile)
+				}
+			}
+			newSrc = newEmptyFile
+		}
+
 		fsLine := &fileSystemLine{
 			Path: newSrc,
 			Meta: fsMeta,
@@ -136,9 +181,9 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileAfter(object ocfl.Object, sourceFS fs.FS, source, dest, area string) error {
+func (extFS *Filesystem) UpdateFileAfter(object ocfl.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return errors.WithStack(
-		extFS.AddFileAfter(object, sourceFS, []string{source}, "", "", ""),
+		extFS.AddFileAfter(object, sourceFS, []string{source}, "", "", area, isDir),
 	)
 
 }
@@ -157,7 +202,7 @@ func (extFS *Filesystem) DoNewVersion(object ocfl.Object) error {
 
 func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	var err error
-	var result = map[string]any{}
+	var result = map[string]map[string]*fileSystemLine{}
 
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
@@ -198,13 +243,13 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 			}
 			lines = append(lines, meta)
 		}
-		if err := inventory.IterateStateFiles(v, func(internal, external, digest string) error {
+		if err := inventory.IterateStateFiles(v, func(internals, externals []string, digest string) error {
 			for _, line := range lines {
-				if line.Path == external {
+				if slices.Contains(externals, line.Path) {
 					if _, ok := result[digest]; !ok {
-						result[digest] = []*fileSystemLine{}
+						result[digest] = map[string]*fileSystemLine{}
 					}
-					result[digest] = append(result[digest].([]*fileSystemLine), line)
+					result[digest][line.Path] = line
 				}
 			}
 			return nil
@@ -212,7 +257,11 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 			return nil, errors.Wrapf(err, "cannot iterate state files for '%s' version '%s'", object.GetID(), v)
 		}
 	}
-	return result, nil
+	var retResult = map[string]any{}
+	for digest, lines := range result {
+		retResult[digest] = lines
+	}
+	return retResult, nil
 }
 
 func (extFS *Filesystem) UpdateObjectBefore(object ocfl.Object) error {
