@@ -50,13 +50,14 @@ func NewFilesystem(config *FilesystemConfig) (*Filesystem, error) {
 }
 
 type filesystemMeta struct {
-	ATime      time.Time `json:"aTime"`
-	MTime      time.Time `json:"mTime"`
-	CTime      time.Time `json:"cTime"`
-	Attr       string    `json:"attr,omitempty"`
-	Symlink    string    `json:"symlink,omitempty"`
-	OS         string    `json:"os"`
-	SystemStat any       `json:"sysStat,omitempty"`
+	ATime        time.Time `json:"aTime"`
+	MTime        time.Time `json:"mTime"`
+	CTime        time.Time `json:"cTime"`
+	Attr         string    `json:"attr,omitempty"`
+	Symlink      string    `json:"symlink,omitempty"`
+	OS           string    `json:"os"`
+	SystemStat   any       `json:"sysStat,omitempty"`
+	StateVersion string    `json:"stateVersion"`
 }
 
 type fileSystemLine struct {
@@ -129,7 +130,7 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 			}
 			return errors.Wrapf(err, "cannot get fullpath for '%v/%s'", sourceFS, src)
 		}
-		fsMeta := &filesystemMeta{}
+		fsMeta := &filesystemMeta{StateVersion: inventory.GetHead()}
 		// we work only on local filesystems with this extension
 		stat, err := os.Stat(fullpath)
 		if err != nil {
@@ -159,6 +160,7 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 				if len(names.ExternalPaths) == 0 {
 					return errors.Errorf("cannot build external names for '%s'", newEmptyFile)
 				}
+				newEmptyFile = names.ExternalPaths[0]
 				if err := inventory.CopyFile(names.ExternalPaths[0], emptyChecksum); err != nil {
 					return errors.Wrapf(err, "cannot copy empty file to '%s'", newEmptyFile)
 				}
@@ -202,7 +204,7 @@ func (extFS *Filesystem) DoNewVersion(object ocfl.Object) error {
 
 func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	var err error
-	var result = map[string]map[string]*fileSystemLine{}
+	var result = map[string]map[string][]*fileSystemLine{}
 
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
@@ -247,9 +249,12 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 			for _, line := range lines {
 				if slices.Contains(externals, line.Path) {
 					if _, ok := result[digest]; !ok {
-						result[digest] = map[string]*fileSystemLine{}
+						result[digest] = map[string][]*fileSystemLine{}
 					}
-					result[digest][line.Path] = line
+					if _, ok := result[digest][line.Meta.StateVersion]; !ok {
+						result[digest][line.Meta.StateVersion] = []*fileSystemLine{}
+					}
+					result[digest][line.Meta.StateVersion] = append(result[digest][line.Meta.StateVersion], line)
 				}
 			}
 			return nil
