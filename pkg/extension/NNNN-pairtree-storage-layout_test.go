@@ -33,7 +33,7 @@ func TestPairtreeIDEncode(t *testing.T) {
 
 	/* wrong example????
 	sourceID = "http://n2t.info/urn:nbn:se:kb:repos-1"
-	testResult = "ht/tp/+=/=n/2t/,i/nf/o=/ur/n+/n/bn/+s/e+/kb/+/re/p/os/-1"
+	testResult = "ht/tp/+=/=n/2t/,i/nf/o=/ur/n+/n/bn/+s/e+/kb/+/re/p/OS/-1"
 	dest = ptsl.idToDirpath(sourceID)
 	if dest != testResult {
 		t.Errorf("IDEncode(%s) => %s != %s", sourceID, dest, testResult)

@@ -111,7 +111,7 @@ func DoMigrate(object ocfl.Object, mig *Function, targetNames []string, file io.
 	if err != nil {
 		return errors.Wrapf(err, "cannot open file '%s'", targetFilename)
 	}
-	if err := object.AddReader(mFile, targetNames, "content", false); err != nil {
+	if err := object.AddReader(mFile, targetNames, "content", false, false); err != nil {
 		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
 	}
 	if err := mFile.Close(); err != nil {

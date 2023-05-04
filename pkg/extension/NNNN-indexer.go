@@ -215,6 +215,9 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.New("Please enable indexer in config file")
 	}
 
+	if sl.writer == nil {
+		return nil
+	}
 	//var err error
 	//	sl.active = false
 	if err := sl.writer.Flush(); err != nil {

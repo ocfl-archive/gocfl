@@ -65,12 +65,12 @@ type ExtensionObjectStatePath interface {
 
 type ExtensionContentChange interface {
 	Extension
-	AddFileBefore(object Object, sourceFS fs.FS, source, dest string) error
-	UpdateFileBefore(object Object, sourceFS fs.FS, source, dest string) error
-	DeleteFileBefore(object Object, dest string) error
-	AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest string) error
-	UpdateFileAfter(object Object, sourceFS fs.FS, source, dest string) error
-	DeleteFileAfter(object Object, dest string) error
+	AddFileBefore(object Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error
+	UpdateFileBefore(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error
+	DeleteFileBefore(object Object, dest string, area string) error
+	AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error
+	UpdateFileAfter(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error
+	DeleteFileAfter(object Object, dest string, area string) error
 }
 
 type ExtensionObjectChange interface {

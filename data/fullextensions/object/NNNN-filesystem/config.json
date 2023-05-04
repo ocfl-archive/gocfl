@@ -1,0 +1,7 @@
+{
+  "extensionName": "NNNN-filesystem",
+  "folders": ".keep",
+  "storageType": "area",
+  "storageName": "metadata",
+  "compress": "gzip"
+}

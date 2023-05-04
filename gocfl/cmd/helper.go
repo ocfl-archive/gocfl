@@ -127,6 +127,11 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 		return extension.NewMigrationFS(fsys, migration)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.FilesystemName)
+	extensionFactory.AddCreator(extension.FilesystemName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewFilesystemFS(fsys)
+	})
+
 	return extensionFactory, nil
 }
 

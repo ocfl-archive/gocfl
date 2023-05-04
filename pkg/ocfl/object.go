@@ -10,6 +10,12 @@ import (
 	"io/fs"
 )
 
+type NamesStruct struct {
+	ExternalPaths []string
+	InternalPath  string
+	ManifestPath  string
+}
+
 type Object interface {
 	LoadInventory(folder string) (Inventory, error)
 	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
@@ -23,8 +29,8 @@ type Object interface {
 	BeginArea(area string)
 	EndArea() error
 	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
-	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool) error
-	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool) error
+	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
+	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) error
 	DeleteFile(virtualFilename string, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
@@ -37,6 +43,7 @@ type Object interface {
 	GetMetadata() (*ObjectMetadata, error)
 	GetAreaPath(area string) (string, error)
 	GetExtensionManager() *ExtensionManager
+	BuildNames(files []string, area string) (*NamesStruct, error)
 }
 
 func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err error) {
