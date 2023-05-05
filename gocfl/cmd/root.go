@@ -189,9 +189,10 @@ func init() {
 	initStat()
 	initExtract()
 	initExtractMeta()
+	initDisplay()
 
-	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd)
-	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd)
+	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd, displayCmd)
+	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd, displayCmd)
 }
 
 func Execute() {
