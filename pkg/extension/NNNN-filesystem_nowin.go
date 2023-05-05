@@ -4,10 +4,10 @@ package extension
 
 import (
 	"emperror.dev/errors"
-	syscall "golang.org/x/sys/unix"
 	"io/fs"
 	"os"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -21,9 +21,9 @@ func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	if !ok {
 		return errors.New("fileInfo.Sys() is not *syscall.Stat_t")
 	}
-	fsm.ATime = time.Unix(stat_t.Atim.Sec, stat_t.Atim.NSec)
-	fsm.CTime = time.Unix(stat_t.Ctim.Sec, stat_t.Ctim.NSec)
-	fsm.MTime = time.Unix(stat_t.Mtim.Sec, stat_t.Mtim.NSec)
+	fsm.ATime = time.Unix(stat_t.Atim.Sec, stat_t.Atim.Nsec)
+	fsm.CTime = time.Unix(stat_t.Ctim.Sec, stat_t.Ctim.Nsec)
+	fsm.MTime = time.Unix(stat_t.Mtim.Sec, stat_t.Mtim.Nsec)
 	fi, err := os.Lstat(fullpath)
 	if err != nil {
 		return errors.WithStack(err)
@@ -34,7 +34,7 @@ func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 			return errors.Wrapf(err, "cannot read Symlink %s", fullpath)
 		}
 	}
-	unixPerms := fileMode & os.ModePerm
+	unixPerms := fi.Mode() & os.ModePerm
 	fsm.Attr = unixPerms.String()
 	fsm.SystemStat = stat_t
 
