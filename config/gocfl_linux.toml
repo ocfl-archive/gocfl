@@ -84,14 +84,17 @@ Addr=""
 OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
+# --object-extensions
+ObjectExtensions="./data/fullextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-# StoragerootExtensions="./data/defaultextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="./data/fullextensions/storageroot" # default "": use built in extensions
+# --no-compress
+NoCompress=true
 # --encrypt-aes
-#AES=true
-# --aes-key
-#AESKey="327352e4b5ef3e76e16528c1f4a866d51633d7cefcc49e4a6101faf22c7d29b9"
-# --aes-iv
-#AESIV="8594552261cb956949b661aa163fac4f"
+AES=true
+KeePassFile="/mnt/c/temp/test.kdbx"
+KeePassEntry="keepass2://test.kdbx/Root/gocfl/test"
+KeePassKey="test"
 
 # --user-name
 UserName="Jürgen Enge"
@@ -100,12 +103,8 @@ UserAddress="mailto:juergen@info-age.net"
 # --fixity
 #Fixity="md5,sha256"
 Fixity="md5,sha256,blake2b-384"
-# --digest
-DigestAlgorithm="sha512"
 # --message
 Message="Initial commit"
-# --object-extensions
-# ObjectExtensions="./data/defaultextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
 
@@ -142,80 +141,102 @@ Output = ""
 
 
 [Indexer]
-# -- with-indexer
-Local=true
+# --with-indexer
+Enable=true
 
-Addr="http://localhost:1234/"
+[Indexer.Siegfried]
+#Signature = "/usr/share/siegfried/default.sig"
+Signature = "/mnt/c/Users/micro/siegfried/default.sig"
 
-    [Indexer.Siegfried]
-    Signature = "/usr/share/siegfried/default.sig"
-    #Signature = "C:/Users/micro/siegfried/default.sig"
+# mapping of pronom id to mimetype if not found in siegfried
+[Indexer.Siegfried.MimeMap]
+"x-fmt/92" = "image/psd"
+"fmt/134" = "audio/mp3"
+"x-fmt/184" = "image/x-sun-raster"
+"fmt/202" = "image/x-nikon-nef"
+"fmt/211" = "image/x-photo-cd"
+"x-fmt/383" = "image/fits"
+"fmt/405" = "image/x-portable-anymap"
+"fmt/406" = "image/x-portable-graymap"
+"fmt/408" = "image/x-portable-pixmap"
+"fmt/436" = "image/x-adobe-dng"
+"fmt/437" = "image/x-adobe-dng"
+"fmt/592" = "image/x-canon-cr2"
+"fmt/642" = "image/x-raw-fuji"
+"fmt/662" = "image/x-raw-panasonic"
+"fmt/668" = "image/x-olympus-orf"
+"fmt/986" = "text/xmp"
+"fmt/1001" = "image/x-exr"
+"fmt/1040" = "image/vnd.ms-dds"
+"fmt/1781" = "image/x-pentax-pef"
 
-    [Indexer.Siegfried.MimeMap]
-    "fmt/134" = "audio/mp3"
+# relevance of mimetype for sorting
+# relevance < 100: rate down
+# relevance > 100: rate up
+# default = 100
+[Indexer.MimeRelevance.1]
+Regexp = "^application/octet-stream$"
+Weight = 1
+[Indexer.MimeRelevance.2]
+Regexp = "^text/plain$"
+Weight = 3
+[Indexer.MimeRelevance.3]
+Regexp = "^audio/mpeg$"
+Weight = 6
+[Indexer.MimeRelevance.4]
+Regexp = "^video/mpeg$"
+Weight = 5
+[Indexer.MimeRelevance.5]
+Regexp = "^text/.+$"
+Weight = 4
+[Indexer.MimeRelevance.6]
+Regexp = "^application/vnd\\..+"
+Weight = 4
+[Indexer.MimeRelevance.7]
+Regexp = "^application/.+"
+Weight = 2
+[Indexer.MimeRelevance.8]
+Regexp = "^.+/x-.+"
+Weight = 80
 
-    # relevance < 100: rate down
-    # relevance > 100: rate up
-    # default = 100
-    [Indexer.MimeRelevance.1]
-    Regexp = "^application/octet-stream$"
-    Weight = 1
-    [Indexer.MimeRelevance.2]
-    Regexp = "^text/plain$"
-    Weight = 3
-    [Indexer.MimeRelevance.3]
-    Regexp = "^audio/mpeg$"
-    Weight = 6
-    [Indexer.MimeRelevance.4]
-    Regexp = "^video/mpeg$"
-    Weight = 5
-    [Indexer.MimeRelevance.5]
-    Regexp = "^text/.+$"
-    Weight = 4
-    [Indexer.MimeRelevance.6]
-    Regexp = "^application/vnd\\..+"
-    Weight = 4
-    [Indexer.MimeRelevance.7]
-    Regexp = "^application/.+"
-    Weight = 2
-    [Indexer.MimeRelevance.8]
-    Regexp = "^.+/x-.+"
-    Weight = 80
+[Indexer.FFMPEG]
+ffprobe = "ffprobe"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "25s"
+online = true
+enabled = true
+[[Indexer.FFMPEG.Mime]]
+video = false
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "audio/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = false
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
 
-    [Indexer.FFMPEG]
-        ffprobe = "C:/Users/micro/Downloads/ffmpeg-5.1.2-full_build/bin/ffprobe.exe"
-        wsl = false  # true, if executable is within linux subsystem on windows
-        timeout = "25s"
-        online = true
-        enabled = true
-        [[Indexer.FFMPEG.Mime]]
-            video = false
-            audio = true
-            format = "mov,mp4,m4a,3gp,3g2,mj2"
-            mime = "audio/mp4"
-        [[Indexer.FFMPEG.Mime]]
-            video = true
-            audio = true
-            format = "mov,mp4,m4a,3gp,3g2,mj2"
-            mime = "video/mp4"
-        [[Indexer.FFMPEG.Mime]]
-            video = true
-            audio = false
-            format = "mov,mp4,m4a,3gp,3g2,mj2"
-            mime = "video/mp4"
+[Indexer.ImageMagick]
+identify = "identify"
+convert = "convert"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "480s"
+online = true
+enabled = true
 
-    [Indexer.ImageMagick]
-        identify = "C:/Program Files/ImageMagick-7.1.0-Q16/identify.exe"
-        convert = "C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe"
-        wsl = false  # true, if executable is within linux subsystem on windows
-        timeout = "10s"
-        online = true
-        enabled = true
-
-    [Indexer.Tika]
-        address = "http://localhost:9998/rmeta/text"
-        #address = "http://localhost:9998/rmeta/text"
-        timeout = "10s"
-        regexpMime = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
-        online = true
-        enabled = true
+[Indexer.Tika]
+addressMeta = "http://localhost:9998/meta"
+addressFulltext = "http://localhost:9998/tika"
+#address = "http://localhost:9998/rmeta/text"
+timeout = "10s"
+regexpMimeFulltext = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+regexpMimeFulltextNot = "" # "^.*$" # ""^application/.*$"
+regexpMimeMeta = ""
+regexpMimeMetaNot = "^(image|video|audio)/.*$"
+online = true
+enabled = true

@@ -10,7 +10,7 @@
 ## Overview
 
 This object extension integrates technical metadata extraction during the ingest process.
-It uses an external indexer service that provides the required functionality. The technical 
+It uses an apps for different media types, that provides the required functionality. The technical 
 metadata is stored as newline delimited JSON format. 
 
 ### Usage Scenario

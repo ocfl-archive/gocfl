@@ -82,6 +82,7 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
   - [x] [NNNN-indexer](docs/NNNN-indexer.md) (technical metadata indexing)
   - [x] [NNNN-migration](docs/NNNN-migration.md) (migration of file formats)
   - [x] [NNNN-gocfl-extension-manager](docs/NNNN-gocfl-extension-manager.md) (initial extension for sorted exclusion and sorted execution)
+  - [x] [NNNN-filesystem](docs/NNNN-filesystem.md) (filesystem metadata extension)
 
 ## Command Line Interface
 
