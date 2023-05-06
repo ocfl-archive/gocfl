@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
 	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"os/signal"
@@ -32,10 +33,29 @@ var displayCmd = &cobra.Command{
 	Run:     doDisplay,
 }
 
+/*
+[Display]
+# --display-addr
+Addr = "localhost:8080"
+# --display-external-addr
+ExternalAddr = "http://localhost:8080"
+# --display-templates
+Templates = "./data/displaydata/templates"
+*/
+
 func initDisplay() {
 	displayCmd.Flags().StringP("object-path", "p", "", "object path to show statistics for")
 
 	displayCmd.Flags().StringP("object-id", "i", "", "object id to show statistics for")
+
+	displayCmd.Flags().StringP("display-addr", "a", "localhost:8080", "address to listen on")
+	emperror.Panic(viper.BindPFlag("Display.Addr", displayCmd.Flags().Lookup("display-addr")))
+
+	displayCmd.Flags().StringP("display-external-addr", "e", "http://localhost:8080", "external address to access the server")
+	emperror.Panic(viper.BindPFlag("Display.ExternalAddr", displayCmd.Flags().Lookup("display-external-addr")))
+
+	displayCmd.Flags().StringP("display-templates", "t", "", "path to templates")
+	emperror.Panic(viper.BindPFlag("Display.Templates", displayCmd.Flags().Lookup("display-templates")))
 }
 
 func doDisplay(cmd *cobra.Command, args []string) {
@@ -105,8 +125,20 @@ func doDisplay(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	urlC, _ := url.Parse("http://localhost:8080")
-	srv, err := display.NewServer(storageRoot, "gocfl", "localhost:8080", urlC, displaydata.Webroot, daLogger, io.Discard)
+	urlC, _ := url.Parse(viper.GetString("Display.ExternalAddr"))
+	templateDir := viper.GetString("Display.Templates")
+	var templateFS fs.FS
+	if templateDir == "" {
+		templateFS, err = fs.Sub(displaydata.TemplateRoot, "templates")
+		if err != nil {
+			daLogger.Errorf("cannot get templates: %v", err)
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			return
+		}
+	} else {
+		templateFS = os.DirFS(templateDir)
+	}
+	srv, err := display.NewServer(storageRoot, "gocfl", viper.GetString("Display.Addr"), urlC, displaydata.WebRoot, templateFS, daLogger, io.Discard)
 	if err != nil {
 		daLogger.Errorf("cannot create server: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

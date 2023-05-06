@@ -7,12 +7,12 @@ require (
 	emperror.dev/errors v0.8.1
 	github.com/andybalholm/brotli v1.0.5
 	github.com/atsushinee/go-markdown-generator v0.0.0-20191121114853-83f9e1f68504
+	github.com/gin-contrib/multitemplate v0.0.0-20230212012517-45920c92c271
 	github.com/gin-gonic/gin v1.9.0
 	github.com/gomiran/volmgmt v0.0.0-20221201020756-5e535b6f4941
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
-	github.com/gorilla/handlers v1.5.1
 	github.com/je4/filesystem/v2 v2.0.0-20230501160938-77a3222c20b1
 	github.com/je4/indexer/v2 v2.0.0-20230414134245-b93645c820b9
 	github.com/je4/utils/v2 v2.0.8-0.20230429090351-3cef63b41e76
@@ -47,6 +47,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v23.3.3+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

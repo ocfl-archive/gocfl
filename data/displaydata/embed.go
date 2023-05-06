@@ -26,7 +26,8 @@ import (
 //go:embed AdminLTE3.2/plugins/fontawesome-free/webfonts/*
 //go:embed AdminLTE3.2/plugins/jquery/jquery.min.js
 //go:embed AdminLTE3.2/plugins/jquery/jquery.min.map
-var Webroot embed.FS
+//go:embed css/sidebar.css
+var WebRoot embed.FS
 
 //go:embed templates/dashboard.gohtml
-var DashboardTemplate string
+var TemplateRoot embed.FS

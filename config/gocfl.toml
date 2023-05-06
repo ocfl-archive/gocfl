@@ -17,6 +17,14 @@ S3Endpoint="s3-zh.os.switch.ch"
 # --s3-region
 S3Region=""
 
+[Display]
+# --display-addr
+Addr = "localhost:8080"
+# --display-external-addr
+ExternalAddr = "http://localhost:8080"
+# --display-templates
+Templates = "./data/displaydata/templates"
+
 [Init]
 # --ocfl-version
 OCFLVersion="1.1" # supported versions 1.0 1.1

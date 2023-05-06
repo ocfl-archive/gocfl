@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
-	"github.com/je4/gocfl/v2/data/displaydata"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	dcert "github.com/je4/utils/v2/pkg/cert"
 	"github.com/op/go-logging"
@@ -34,9 +34,10 @@ type Server struct {
 	storageRoot    ocfl.StorageRoot
 	object         ocfl.Object
 	metadata       *ocfl.ObjectMetadata
+	templateFS     fs.FS
 }
 
-func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, log *logging.Logger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log *logging.Logger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
@@ -48,6 +49,7 @@ func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.U
 		port:        port,
 		urlExt:      urlExt,
 		dataFS:      dataFS,
+		templateFS:  templateFS,
 		log:         log,
 		accessLog:   accessLog,
 		storageRoot: storageRoot,
@@ -63,16 +65,30 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		c.String(http.StatusOK, "pong")
 	})
 
-	tpl, err := template.New("dashboard.tmpl").Funcs(template.FuncMap{
+	mt := multitemplate.New()
+
+	tpl, err := template.New("dashboard.gohtml").Funcs(template.FuncMap{
 		"formatTime": func(t time.Time) string {
 			return t.Format(time.RFC3339)
 		},
-	}).Parse(displaydata.DashboardTemplate)
+	}).ParseFS(s.templateFS, "dashboard.gohtml")
 	if err != nil {
 		return errors.Wrap(err, "cannot parse dashboard template")
 	}
-	route.SetHTMLTemplate(tpl)
-	route.GET("/", s.dashboard)
+	mt.Add("dashboard.gohtml", tpl)
+	tpl, err = template.New("storageroot.gohtml").Funcs(template.FuncMap{
+		"formatTime": func(t time.Time) string {
+			return t.Format(time.RFC3339)
+		},
+	}).ParseFS(s.templateFS, "storageroot.gohtml")
+	if err != nil {
+		return errors.Wrap(err, "cannot parse dashboard template")
+	}
+	mt.Add("storageroot.gohtml", tpl)
+
+	route.HTMLRender = mt
+	route.GET("/", s.storageroot)
+	route.GET("/:id", s.dashboard)
 	route.GET("/load/id/:id", s.loadObjectID)
 	route.GET("/load/path/:path", s.loadObjectPath)
 
@@ -103,8 +119,25 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 
 func (s *Server) dashboard(c *gin.Context) {
 
-	c.HTML(http.StatusOK, "dashboard.tmpl", gin.H{
-		"title": "Dashboard",
+	var id string
+	if s.object != nil {
+		id = s.object.GetID()
+	}
+	c.HTML(http.StatusOK, "dashboard.gohtml", gin.H{
+		"title": "gocfl",
+		"id":    id,
+	})
+}
+
+func (s *Server) storageroot(c *gin.Context) {
+
+	var id string
+	if s.object != nil {
+		id = s.object.GetID()
+	}
+	c.HTML(http.StatusOK, "storageroot.gohtml", gin.H{
+		"title": "gocfl",
+		"id":    id,
 	})
 }
 
