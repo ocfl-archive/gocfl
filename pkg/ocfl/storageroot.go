@@ -14,6 +14,7 @@ import (
 type OCFLVersion string
 
 type StorageRoot interface {
+	fmt.Stringer
 	GetDigest() checksum.DigestAlgorithm
 	SetDigest(digest checksum.DigestAlgorithm)
 	GetFiles() ([]string, error)

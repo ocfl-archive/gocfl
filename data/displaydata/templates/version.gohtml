@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{{ $root := . }}<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ .title }}</title>
 
-    <link rel="stylesheet" href="static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../../../static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
 
     <style>
         .bd-placeholder-img {
@@ -24,10 +24,10 @@
         }
     </style>
 
-    <link href="static/css/sidebar.css" rel="stylesheet">
+    <link href="../../../../static/css/sidebar.css" rel="stylesheet">
 </head>
 
-<body class="">
+<body class="py-4">
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="bootstrap" viewBox="0 0 118 94">
         <title>Bootstrap</title>
@@ -88,29 +88,55 @@
 </svg>
 
 
-<main class="w-100">
-    <h1 class="visually-hidden">{{ .title }}</h1>
-        <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-white w-100" style="">
-            <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
-                <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
-                <span class="fs-5 fw-semibold">{{ .title }}: {{ .storageroot }}</span>
-            </a>
-            <div class="list-group list-group-flush border-bottom scrollarea">
-                {{ range $folder :=  .folders }}
-                <a href="/object/folder/{{ $folder }}" class="list-group-item list-group-item-action py-3 lh-tight">
-                    <div class="d-flex w-100 align-items-center justify-content-between">
-                        <strong class="mb-1">{{ $folder }}</strong>
-                        <!-- <small class="text-muted">Tues</small> -->
-                    </div>
-                    <!-- <div class="col-10 mb-1 small">Some placeholder content in a paragraph below the heading and date.</div> -->
+    <main class="overflow-visible">
+        <h1 class="visually-hidden">{{ .title }}</h1>
+
+        <aside class="bd-aside sticky-xl-top text-muted align-self-start mb-3 mb-xl-5 px-2">
+            <div class="flex-shrink-0 p-3 bg-white" style="width: 280px;">
+                <a href="/" class="d-flex align-items-center pb-3 mb-3 link-dark text-decoration-none border-bottom">
+                    <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
+                    <span class="fs-5 fw-semibold">{{ .title }}</span>
                 </a>
+                <ul class="nav nav-pills flex-column mb-auto">
+                    <li class="nav-item"><a href="../../{{ $root.id }}" class="nav-link rounded">Object</a></li>
+                    <li class="nav-item"><a href="../../{{ $root.id }}/manifest" class="nav-link rounded">Manifest</a></li>
+                    {{ range $ver, $content := .versions }}
+                    <li class="nav-item"><a href="../../{{ $root.id }}/version/{{ $ver }}" class="nav-link {{ if (eq $ver $root.version) }}active{{ end }} rounded">Version {{ $ver }}</a></li>
+                    {{ end }}
+                </ul>
+            </div>
+        </aside>
+        <div class="container-fluid bg-body">
+            <h1>{{ .id }}</h1>
+            <ul class="list-group">
+                {{ range $name, $checksum := .files }}
+                <li class="list-group-item">
+                    <div class="strong">{{ $name }}</div>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detail" data-bs-id="{{ $root.id }}" data-bs-checksum="{{ $checksum }}">
+                        {{ $checksum }}
+                    </button>
+                </li>
                 {{ end }}
+            </ul>
+        </div>
+        <div class="modal fade" id="detail" tabindex="-1" aria-labelledby="detailLabel" style="display: none;" aria-hidden="true">
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title h4" id="detailLabel">Full screen modal</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ...
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
-
-
-<script src="static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../../../static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

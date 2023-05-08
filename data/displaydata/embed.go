@@ -29,5 +29,8 @@ import (
 //go:embed css/sidebar.css
 var WebRoot embed.FS
 
-//go:embed templates/dashboard.gohtml
+//go:embed templates/object.gohtml
+//go:embed templates/storageroot.gohtml
+//go:embed templates/manifest.gohtml
+//go:embed templates/version.gohtml
 var TemplateRoot embed.FS

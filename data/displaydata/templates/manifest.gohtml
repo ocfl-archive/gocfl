@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{{ $root := . }}<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ .title }}</title>
 
-    <link rel="stylesheet" href="static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../../static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
 
     <style>
         .bd-placeholder-img {
@@ -24,10 +24,10 @@
         }
     </style>
 
-    <link href="static/css/sidebar.css" rel="stylesheet">
+    <link href="../../../static/css/sidebar.css" rel="stylesheet">
 </head>
 
-<body class="">
+<body class="py-4">
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="bootstrap" viewBox="0 0 118 94">
         <title>Bootstrap</title>
@@ -88,7 +88,7 @@
 </svg>
 
 
-    <main>
+    <main class="overflow-visible">
         <h1 class="visually-hidden">{{ .title }}</h1>
 
         <aside class="bd-aside sticky-xl-top text-muted align-self-start mb-3 mb-xl-5 px-2">
@@ -97,52 +97,46 @@
                     <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
                     <span class="fs-5 fw-semibold">{{ .title }}</span>
                 </a>
-                <ul class="list-unstyled ps-0">
-                    <li class="mb-1">
-                        <button class="btn btn-toggle align-items-center rounded collapsed" data-bs-toggle="collapse" data-bs-target="#home-collapse" aria-expanded="true">
-                            Home
-                        </button>
-                        <div class="collapse show" id="home-collapse">
-                            <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                                <li><a href="#" class="link-dark rounded">Overview</a></li>
-                                <li><a href="#" class="link-dark rounded">Updates</a></li>
-                                <li><a href="#" class="link-dark rounded">Reports</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="mb-1">
-                        <button class="btn btn-toggle align-items-center rounded collapsed" data-bs-toggle="collapse" data-bs-target="#dashboard-collapse" aria-expanded="false">
-                            Dashboard
-                        </button>
-                        <div class="collapse" id="dashboard-collapse">
-                            <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                                <li><a href="#" class="link-dark rounded">Overview</a></li>
-                                <li><a href="#" class="link-dark rounded">Weekly</a></li>
-                                <li><a href="#" class="link-dark rounded">Monthly</a></li>
-                                <li><a href="#" class="link-dark rounded">Annually</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="mb-1">
-                        <button class="btn btn-toggle align-items-center rounded collapsed" data-bs-toggle="collapse" data-bs-target="#orders-collapse" aria-expanded="false">
-                            Orders
-                        </button>
-                        <div class="collapse" id="orders-collapse">
-                            <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                                <li><a href="#" class="link-dark rounded">New</a></li>
-                                <li><a href="#" class="link-dark rounded">Processed</a></li>
-                                <li><a href="#" class="link-dark rounded">Shipped</a></li>
-                                <li><a href="#" class="link-dark rounded">Returned</a></li>
-                            </ul>
-                        </div>
-                    </li>
+                <ul class="nav nav-pills flex-column mb-auto">
+                    <li class="nav-item"><a href="../{{ $root.id }}" class="nav-link rounded">Object</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link active rounded">Manifest</a></li>
+                    {{ range $ver, $content := .versions }}
+                    <li class="nav-item"><a href="../{{ $root.id }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
+                    {{ end }}
                 </ul>
             </div>
         </aside>
+        <div class="container-fluid bg-body">
+            <h1>{{ .id }}</h1>
+            <ul class="list-group">
+                {{ range $name, $checksum := .files }}
+                <li class="list-group-item">
+                    <div class="strong">{{ $name }}</div>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detail" data-bs-id="{{ $root.id }}" data-bs-checksum="{{ $checksum }}">
+                        {{ $checksum }}
+                    </button>
+                </li>
+                {{ end }}
+            </ul>
+        </div>
+        <div class="modal fade" id="detail" tabindex="-1" aria-labelledby="detailLabel" style="display: none;" aria-hidden="true">
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title h4" id="detailLabel">Full screen modal</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ...
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
-
-
-<script src="static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../../static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

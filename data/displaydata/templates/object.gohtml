@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{{ $root := . }}<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ .title }}</title>
 
-    <link rel="stylesheet" href="static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
 
     <style>
         .bd-placeholder-img {
@@ -24,10 +24,10 @@
         }
     </style>
 
-    <link href="static/css/sidebar.css" rel="stylesheet">
+    <link href="../../static/css/sidebar.css" rel="stylesheet">
 </head>
 
-<body class="">
+<body class="py-4">
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="bootstrap" viewBox="0 0 118 94">
         <title>Bootstrap</title>
@@ -88,29 +88,110 @@
 </svg>
 
 
-<main class="w-100">
-    <h1 class="visually-hidden">{{ .title }}</h1>
-        <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-white w-100" style="">
-            <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
-                <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
-                <span class="fs-5 fw-semibold">{{ .title }}: {{ .storageroot }}</span>
-            </a>
-            <div class="list-group list-group-flush border-bottom scrollarea">
-                {{ range $folder :=  .folders }}
-                <a href="/object/folder/{{ $folder }}" class="list-group-item list-group-item-action py-3 lh-tight">
-                    <div class="d-flex w-100 align-items-center justify-content-between">
-                        <strong class="mb-1">{{ $folder }}</strong>
-                        <!-- <small class="text-muted">Tues</small> -->
-                    </div>
-                    <!-- <div class="col-10 mb-1 small">Some placeholder content in a paragraph below the heading and date.</div> -->
+    <main class="overflow-visible">
+        <h1 class="visually-hidden">{{ .title }}</h1>
+
+        <aside class="bd-aside sticky-xl-top text-muted align-self-start mb-3 mb-xl-5 px-2">
+            <div class="flex-shrink-0 p-3 bg-white" style="width: 280px;">
+                <a href="/" class="d-flex align-items-center pb-3 mb-3 link-dark text-decoration-none border-bottom">
+                    <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
+                    <span class="fs-5 fw-semibold">{{ .title }}</span>
                 </a>
-                {{ end }}
+                <ul class="nav nav-pills flex-column mb-auto">
+                    <li class="nav-item"><a href="#" class="nav-link active rounded">Object</a></li>
+                    <li class="nav-item"><a href="../id/{{ .id }}/manifest" class="nav-link rounded">Manifest</a></li>
+                    {{ range $ver, $content := .versions }}
+                    <li class="nav-item"><a href="../id/{{ $root.id }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
+                    {{ end }}
+                </ul>
+            </div>
+        </aside>
+        <div class="container-fluid bg-body">
+            <h1>{{ .id }}</h1>
+
+            <div class="container px-4 py-5" id="featured-3">
+                <h2 class="pb-2 border-bottom">Versions</h2>
+                <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+                    {{ range $ver, $content := .versions }}
+                    <div class="col">
+                        <div class="card mb-4 rounded-3 shadow-sm">
+                            <div class="card-header py-3">
+                                <h4 class="my-0 fw-normal">{{ $ver }}: {{ $content.Name }}</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>{{ $content.Created }}</p>
+                                <p>{{ $content.Address }}</p>
+                                <p>{{ $content.Message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+                </div>
+            </div>
+
+            <div class="container px-4 py-5" id="featured-3">
+                <h2 class="pb-2 border-bottom">Statistics</h2>
+                <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+                    <div class="col">
+                        <div class="card mb-4 rounded-3 shadow-sm">
+                            <div class="card-header py-3">
+                                <h4 class="my-0 fw-normal">Quantities</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>Number of Files: {{ .numFiles }}</p>
+                                <p>Number of different Files: {{ .differentFiles }}</p>
+                                {{ if .size }}<p>Size of Data: {{ .size }}</p>{{ end }}
+                                {{ if .noSizeFiles }}<p>Files without size data: {{ .noSizeFiles }}</p>{{ end }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {{ if .pronoms }}
+                    <div class="col">
+                        <div class="card mb-4 rounded-3 shadow-sm">
+                            <div class="card-header py-3">
+                                <h4 class="my-0 fw-normal">Pronoms</h4>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    {{ range $pronom, $count := .pronoms }}
+                                    <li class="list-group-item d-flex align-items-start">
+                                        <span class="badge bg-primary rounded-pill">{{ $count }}</span>&nbsp;
+                                        <a href="https://www.nationalarchives.gov.uk/PRONOM/{{ $pronom }}">{{ $pronom }}</a>
+                                    </li>
+                                    {{ end }}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+
+
+                    {{ if .mimeTypes }}
+                    <div class="col">
+                        <div class="card mb-4 rounded-3 shadow-sm">
+                            <div class="card-header py-3">
+                                <h4 class="my-0 fw-normal">Mimetypes</h4>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    {{ range $mime, $count := .mimeTypes }}
+                                        <li class="list-group-item d-flex align-items-start">
+                                            <span class="badge bg-primary rounded-pill">{{ $count }}</span>&nbsp;
+                                            {{ $mime }}
+                                        </li>
+                                    {{ end }}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+
+                </div>
             </div>
         </div>
     </main>
 
-
-
-<script src="static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

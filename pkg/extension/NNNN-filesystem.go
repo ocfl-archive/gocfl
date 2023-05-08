@@ -58,6 +58,7 @@ type filesystemMeta struct {
 	OS           string    `json:"os"`
 	SystemStat   any       `json:"sysStat,omitempty"`
 	StateVersion string    `json:"stateVersion"`
+	Size         uint64    `json:"size"`
 }
 
 type fileSystemLine struct {
