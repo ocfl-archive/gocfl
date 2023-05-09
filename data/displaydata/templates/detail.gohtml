@@ -1,12 +1,14 @@
 {{ $root := . }}<!DOCTYPE html>
-
+{{ $status := $root.status }}
+{{ $metadata := $root.metadata }}
+{{ $file := $root.file }}
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ .title }}</title>
 
-    <link rel="stylesheet" href="../../static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../../../static/bootstrap-5.3.0-alpha3-dist/css/bootstrap.min.css">
 
     <style>
         .bd-placeholder-img {
@@ -22,9 +24,17 @@
                 font-size: 3.5rem;
             }
         }
+        .bd-border {
+            position: relative;
+            padding: 1rem;
+            margin: 1rem -.75rem 0;
+            border: solid #dee2e6;
+            border-width: 1px 0 0;
+            background-color: lightgray;
+        }
     </style>
 
-    <link href="../../static/css/sidebar.css" rel="stylesheet">
+    <link href="../../../../static/css/sidebar.css" rel="stylesheet">
 </head>
 
 <body class="py-4">
@@ -88,110 +98,187 @@
 </svg>
 
 
-    <main class="overflow-visible">
-        <h1 class="visually-hidden">{{ .title }}</h1>
-
-        <aside class="bd-aside sticky-xl-top text-muted align-self-start mb-3 mb-xl-5 px-2">
-            <div class="flex-shrink-0 p-3 bg-white" style="width: 280px;">
-                <a href="/" class="d-flex align-items-center pb-3 mb-3 link-dark text-decoration-none border-bottom">
-                    <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
-                    <span class="fs-5 fw-semibold">{{ .title }}</span>
-                </a>
-                <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item"><a href="#" class="nav-link active rounded">Object</a></li>
-                    <li class="nav-item"><a href="../id/{{ .id }}/manifest" class="nav-link rounded">Manifest</a></li>
-                    {{ range $ver, $content := .versions }}
-                    <li class="nav-item"><a href="../id/{{ $root.id }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
-                    {{ end }}
-                </ul>
-            </div>
-        </aside>
-        <div class="container-fluid bg-body">
-            <h1>{{ .id }}</h1>
-
-            <div class="container px-4 py-5" id="featured-3">
-                <h2 class="pb-2 border-bottom">Versions</h2>
-                <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
-                    {{ range $ver, $content := .versions }}
-                    <div class="col">
-                        <div class="card mb-4 rounded-3 shadow-sm">
-                            <div class="card-header py-3">
-                                <h4 class="my-0 fw-normal">{{ $ver }}: {{ $content.Name }}</h4>
-                            </div>
-                            <div class="card-body">
-                                <p>{{ $content.Created }}</p>
-                                <p>{{ $content.Address }}</p>
-                                <p>{{ $content.Message }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    {{ end }}
-                </div>
-            </div>
-
-            <div class="container px-4 py-5" id="featured-3">
-                <h2 class="pb-2 border-bottom">Statistics</h2>
-                <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
-                    <div class="col">
-                        <div class="card mb-4 rounded-3 shadow-sm">
-                            <div class="card-header py-3">
-                                <h4 class="my-0 fw-normal">Quantities</h4>
-                            </div>
-                            <div class="card-body">
-                                <p>Number of Files: {{ .numFiles }}</p>
-                                <p>Number of different Files: {{ .differentFiles }}</p>
-                                {{ if .size }}<p>Size of Data: {{ .size }}</p>{{ end }}
-                                {{ if .noSizeFiles }}<p>Files without size data: {{ .noSizeFiles }}</p>{{ end }}
-                            </div>
-                        </div>
-                    </div>
-
-                    {{ if .pronoms }}
-                    <div class="col">
-                        <div class="card mb-4 rounded-3 shadow-sm">
-                            <div class="card-header py-3">
-                                <h4 class="my-0 fw-normal">Pronoms</h4>
-                            </div>
-                            <div class="card-body">
-                                <ul class="list-group">
-                                    {{ range $pronom, $count := .pronoms }}
-                                    <li class="list-group-item d-flex align-items-start">
-                                        <span class="badge bg-primary rounded-pill">{{ $count }}</span>&nbsp;
-                                        <a href="https://www.nationalarchives.gov.uk/PRONOM/{{ $pronom }}" target="_blank">{{ $pronom }}</a>
-                                    </li>
-                                    {{ end }}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    {{ end }}
-
-
-                    {{ if .mimeTypes }}
-                    <div class="col">
-                        <div class="card mb-4 rounded-3 shadow-sm">
-                            <div class="card-header py-3">
-                                <h4 class="my-0 fw-normal">Mimetypes</h4>
-                            </div>
-                            <div class="card-body">
-                                <ul class="list-group">
-                                    {{ range $mime, $count := .mimeTypes }}
-                                        <li class="list-group-item d-flex align-items-start">
-                                            <span class="badge bg-primary rounded-pill">{{ $count }}</span>&nbsp;
-                                            {{ $mime }}
-                                        </li>
-                                    {{ end }}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    {{ end }}
-
-                </div>
-            </div>
+<main class="overflow-visible">
+    <h1 class="visually-hidden">{{ .title }}</h1>
+    <div class="container-fluid bg-body">
+        <div class="col bd-border">
+        <table class="table">
+            <thead>
+            <tr>
+                <th colspan="2">Checksums</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="table-active text-end"><strong>{{ $status.DigestAlgorithm }}</strong></td>
+                <td>{{ $status.Checksum }}</td>
+            </tr>
+            {{ range $alg, $digest := $status.Fixity }}
+                <tr>
+                    <td class="table-active text-end">{{ $alg }}</td>
+                    <td>{{ $digest }}</td>
+                </tr>
+            {{ end }}
+            </tbody>
+        </table>
         </div>
-    </main>
+        <div class="col bd-border">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th colspan="1">Internal Names</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{ range $name := $status.InternalNames }}
+                    <tr>
+                        <td>{{ $name }}</td>
+                    </tr>
+                {{ end }}
+                </tbody>
+            </table>
+        </div>
+        <div class="col bd-border">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th colspan="10">External Names</th>
+                </tr>
+                <tr>
+                    <td>Version</td>
+                    <td>Name</td>
+                    <td>Time</td>
+                    <td>Size</td>
+                    <td>Attr</td>
+                    <td>OS</td>
+                    <td>Sys</td>
+                </tr>
+                </thead>
+                <tbody>
+                {{ range $ver, $names := $status.ExternalNames }}
+                    {{ range $name := $names }}
+                    <tr>
+                        <td>{{ $ver }}</td>
+                        <td>
+                            <a download="{{ basename $name.Name }}" href="../download/{{ $status.Checksum }}/{{ basename $name.Name }}" target="_blank">
+                                {{ $name.Name }}
+                            </a>
+                        </td>
+                        <td>{{ if $name.OS }}
+                            C: {{ $name.CTime }}<br />
+                            A: {{ $name.ATime }}<br />
+                            M: {{ $name.MTime }}
+                            {{ end }}
+                        </td>
+                        <td>{{ $name.Size }}</td>
+                        <td>{{ $name.Attr }}</td>
+                        <td>{{ $name.OS }}</td>
+                        <td>
+                            {{ if $name.Sys }}
+                                <json-viewer>{{ $name.Sys }}</json-viewer>
+                            {{ end }}
+                        </td>
+                    </tr>
+                    {{ end }}
+                {{ end }}
+                </tbody>
+            </table>
+        </div>
+        {{ if $status.Indexer }}
+        <div class="col bd-border">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th colspan="2">Indexer</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{ if $status.Indexer.Errors }}
+                    {{ range $errT, $err := $status.Indexer.Errors }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Error - {{ $errT }}</strong></td>
+                        <td>{{ $err }}</td>
+                    </tr>
+                    {{ end }}
+                {{ end }}
+                {{ if $status.Indexer.Mimetypes }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Mimetypes</strong></td>
+                        <td>
+                            <ul>
+                            {{ range $mime := $status.Indexer.Mimetypes }}
+                                <li>{{ $mime }}</li>
+                            {{ end }}
+                            </ul>
+                    </tr>
+                {{ end }}
+                {{ if $status.Indexer.Pronoms }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Pronom PUIDs</strong></td>
+                        <td>
+                            <ul>
+                                {{ range $pronom := $status.Indexer.Pronoms }}
+                                    <li><a href="https://www.nationalarchives.gov.uk/PRONOM/{{ $pronom }}" target="_blank">{{ $pronom }}</a></li>
+                                {{ end }}
+                            </ul>
+                    </tr>
+                {{ end }}
+                {{ if $status.Indexer.Width }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Dimension</strong></td>
+                        <td>
+                            {{ $status.Indexer.Width | toString }} x {{ $status.Indexer.Height | toString }}px
+                        <td>
+                    </tr>
+                {{ end }}
+                {{ if $status.Indexer.Duration }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Duration</strong></td>
+                        <td>{{ $status.Indexer.Duration | toString }}sec<td>
+                    </tr>
+                {{ end }}
+                {{ if $status.IndexerJSON }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Full Metadata</strong></td>
+                        <td><json-viewer>{{ $status.IndexerJSON }}</json-viewer><td>
+                    </tr>
+                {{ end }}
 
-<script src="../../static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+                </tbody>
+            </table>
+        </div>
+        {{ end }}
+        {{ if $status.Migration }}
+        <div class="col bd-border">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th colspan="2">Migration</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td class="table-active text-end"><strong>Migration Process</strong></td>
+                    <td>{{ $status.Migration.ID }}</td>
+                </tr>
+                {{ if $status.Migration.Error }}
+                <tr>
+                    <td class="table-active text-end"><strong>Migration Error</strong></td>
+                    <td>{{ $status.Migration.Error }}</td>
+                </tr>
+                {{ end }}
+                <tr>
+                    <td class="table-active text-end"><strong>Source</strong></td>
+                    <td><a href="{{ $status.Migration.Source }}">{{ $status.Migration.Source }}</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        {{ end }}
+        </div>
+</main>
+
+<script src="../../../../static/bootstrap-5.3.0-alpha3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../../../static/js/json-viewer.bundle.js"></script>
 </body>
 </html>

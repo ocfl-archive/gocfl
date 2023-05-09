@@ -7,6 +7,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	dcert "github.com/je4/utils/v2/pkg/cert"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/op/go-logging"
 	"html/template"
 	"io"
@@ -21,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"time"
 )
 
@@ -72,45 +75,25 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 
 	mt := multitemplate.New()
 
-	tpl, err := template.New("object.gohtml").Funcs(template.FuncMap{
-		"formatTime": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
-	}).ParseFS(s.templateFS, "object.gohtml")
-	if err != nil {
-		return errors.Wrap(err, "cannot parse object template")
+	var tplfiles []string = []string{
+		"object.gohtml",
+		"storageroot.gohtml",
+		"manifest.gohtml",
+		"version.gohtml",
+		"detail.gohtml",
 	}
-	mt.Add("object.gohtml", tpl)
 
-	tpl, err = template.New("storageroot.gohtml").Funcs(template.FuncMap{
-		"formatTime": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
-	}).ParseFS(s.templateFS, "storageroot.gohtml")
-	if err != nil {
-		return errors.Wrap(err, "cannot parse storageroot template")
+	for _, tplfile := range tplfiles {
+		funcMap := sprig.FuncMap()
+		funcMap["basename"] = func(str string) string {
+			return filepath.Base(str)
+		}
+		tpl, err := template.New(tplfile).Funcs(funcMap).ParseFS(s.templateFS, tplfile)
+		if err != nil {
+			return errors.Wrapf(err, "cannot parse template %s", tplfile)
+		}
+		mt.Add(tplfile, tpl)
 	}
-	mt.Add("storageroot.gohtml", tpl)
-
-	tpl, err = template.New("manifest.gohtml").Funcs(template.FuncMap{
-		"formatTime": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
-	}).ParseFS(s.templateFS, "manifest.gohtml")
-	if err != nil {
-		return errors.Wrap(err, "cannot parse manifest template")
-	}
-	mt.Add("manifest.gohtml", tpl)
-
-	tpl, err = template.New("version.gohtml").Funcs(template.FuncMap{
-		"formatTime": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
-	}).ParseFS(s.templateFS, "version.gohtml")
-	if err != nil {
-		return errors.Wrap(err, "cannot parse version template")
-	}
-	mt.Add("version.gohtml", tpl)
 
 	route.HTMLRender = mt
 	route.GET("/", s.storageroot)
@@ -119,6 +102,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id/manifest", s.manifest)
 	route.GET("/object/id/:id/version/:version", s.version)
 	route.GET("/object/id/:id/detail/:checksum", s.detail)
+	route.GET("/object/id/:id/download/:checksum/:filename", s.download)
 	route.GET("/object/folder/:path", s.loadObjectPath)
 
 	route.StaticFS("/static", http.FS(s.dataFS))
@@ -144,6 +128,60 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		s.log.Infof("starting gocfl viewer at %v - http://%s:%v/", s.urlExt.String(), s.host, s.port)
 		return errors.WithStack(s.srv.ListenAndServe())
 	}
+}
+
+func (s *Server) download(c *gin.Context) {
+	var err error
+	type idParam struct {
+		ID       string `uri:"id" binding:"required"`
+		Checksum string `uri:"checksum" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if s.object != nil && s.object.GetID() == iop.ID {
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+	}
+
+	file, ok := s.metadata.Files[iop.Checksum]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("no file with checksum %s found", iop.Checksum).Error()})
+		return
+	}
+
+	fp, err := s.object.GetFS().Open(file.InternalName[0])
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	defer fp.Close()
+	fi, err := fp.Stat()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.DataFromReader(http.StatusOK, fi.Size(), "application/octet-stream", fp, map[string]string{})
+
 }
 
 func (s *Server) detail(c *gin.Context) {
@@ -195,15 +233,22 @@ func (s *Server) detail(c *gin.Context) {
 		Sys   string
 	}
 	type detailStatus struct {
-		Checksum      string                  `json:"checksum"`
-		InternalNames []string                `json:"internalNames"`
-		ExternalNames map[string][]*extFEntry `json:"externalNames"`
+		Checksum        string                              `json:"checksum"`
+		DigestAlgorithm checksum.DigestAlgorithm            `json:"digestAlgorithm"`
+		InternalNames   []string                            `json:"internalNames"`
+		ExternalNames   map[string][]*extFEntry             `json:"externalNames"`
+		Fixity          map[checksum.DigestAlgorithm]string `json:"fixity"`
+		Indexer         *indexer.ResultV2                   `json:"indexer"`
+		IndexerJSON     string
+		Migration       *extension.MigrationResult
 	}
 
 	status := &detailStatus{
-		Checksum:      iop.Checksum,
-		InternalNames: file.InternalName,
-		ExternalNames: map[string][]*extFEntry{},
+		Checksum:        iop.Checksum,
+		DigestAlgorithm: s.metadata.DigestAlgorithm,
+		InternalNames:   file.InternalName,
+		ExternalNames:   map[string][]*extFEntry{},
+		Fixity:          file.Checksums,
 	}
 
 	extFilesystemAny, _ := file.Extension[extension.FilesystemName]
@@ -224,9 +269,9 @@ func (s *Server) detail(c *gin.Context) {
 			if extFilesystemVersion != nil {
 				for _, fs := range extFilesystemVersion {
 					if fs.Path == name {
-						efe.ATime = fs.Meta.ATime.Format(time.RFC3339)
-						efe.CTime = fs.Meta.CTime.Format(time.RFC3339)
-						efe.MTime = fs.Meta.MTime.Format(time.RFC3339)
+						efe.ATime = fs.Meta.ATime.Format(time.DateTime)
+						efe.CTime = fs.Meta.CTime.Format(time.DateTime)
+						efe.MTime = fs.Meta.MTime.Format(time.DateTime)
 						efe.Size = humanize.Bytes(uint64(fs.Meta.Size))
 						efe.Attr = fs.Meta.Attr
 						efe.OS = fs.Meta.OS
@@ -239,6 +284,41 @@ func (s *Server) detail(c *gin.Context) {
 			status.ExternalNames[ver] = append(status.ExternalNames[ver], efe)
 		}
 	}
+
+	extIndexerAny, _ := file.Extension[extension.IndexerName]
+	var extIndexer *indexer.ResultV2
+	if extIndexerAny != nil {
+		extIndexer, _ = extIndexerAny.(*indexer.ResultV2)
+	}
+
+	if extIndexer != nil {
+		iData, err := json.MarshalIndent(extIndexer.Metadata, "", "  ")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot marshal indexer metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+		//	extIndexer.Metadata = nil
+		status.Indexer = extIndexer
+		status.IndexerJSON = string(iData)
+	}
+
+	extMigrationAny, _ := file.Extension[extension.MigrationName]
+	var extMigration *extension.MigrationResult
+	if extMigrationAny != nil {
+		extMigration, _ = extMigrationAny.(*extension.MigrationResult)
+	}
+	if extMigration != nil {
+		status.Migration = extMigration
+	}
+	var params = map[string]any{
+		"title":  "Detail",
+		"id":     s.object.GetID(),
+		"status": status,
+		//		"metadata": s.metadata,
+		"file": file,
+	}
+
+	c.HTML(http.StatusOK, "detail.gohtml", gin.H(params))
 
 }
 

@@ -35,7 +35,7 @@ type MigrationTarget struct {
 	Command         string        // command to execute (stdin --> stdout)
 }
 
-type migrationResult struct {
+type MigrationResult struct {
 	Source string `json:"source,omitempty"`
 	Error  string `json:"error,omitempty"`
 	ID     string `json:"id"`
@@ -43,7 +43,7 @@ type migrationResult struct {
 
 type migrationLine struct {
 	Path      string           `json:"path"`
-	Migration *migrationResult `json:"migration"`
+	Migration *MigrationResult `json:"migration"`
 }
 
 // map pronom to migration
@@ -156,7 +156,7 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 		if !ok {
 			continue
 		}
-		migrationMeta, ok := migrationMetaAny.(*migrationResult)
+		migrationMeta, ok := migrationMetaAny.(*MigrationResult)
 		if !ok {
 			continue
 		}
@@ -195,6 +195,10 @@ func (mi *Migration) NeedNewVersion(ocfl.Object) (bool, error) {
 }
 
 func (mi *Migration) DoNewVersion(object ocfl.Object) error {
+	defer func() {
+		mi.migrationFiles = map[string]*migration2.Function{}
+	}()
+
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	extensionManager := object.GetExtensionManager()
@@ -291,7 +295,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		if err := migration2.DoMigrate(object, mig, extractTargetNames, file); err != nil {
 			ml = &migrationLine{
 				Path: path,
-				Migration: &migrationResult{
+				Migration: &MigrationResult{
 					Source: manifestFiles[0],
 					Error:  err.Error(),
 					ID:     mig.GetID(),
@@ -301,7 +305,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		} else {
 			ml = &migrationLine{
 				Path: path,
-				Migration: &migrationResult{
+				Migration: &MigrationResult{
 					Source: manifestFiles[0],
 					ID:     mig.GetID(),
 				},
@@ -326,7 +330,6 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot write migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
 		}
 	}
-	mi.migrationFiles = map[string]*migration2.Function{}
 	if err := mi.writer.Flush(); err != nil {
 		return errors.Wrapf(err, "cannot flush migration line writer for object '%s'", object.GetID())
 	}

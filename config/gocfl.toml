@@ -168,6 +168,16 @@ Output = ""
 # --with-migration
 Enable=true
 
+[Migration.Function.CR2]
+ID = "CR2#01"
+Title = "Convert Canon CR2 to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' '{destination}' "
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}.png"
+Timeout = "2m"
+Pronoms = "fmt/202,fmt/592,fmt/436,fmt/437,x-fmt/367,fmt/528,fmt/662"
+
 [Migration.Function.PDFA]
 ID = "PDFA#01"
 Title = "Convert Acrobat PDF to PDF/A - Portable Document Format 2a"

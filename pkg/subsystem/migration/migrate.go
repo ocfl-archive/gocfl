@@ -53,7 +53,7 @@ func (f *Function) Migrate(source string, dest string) error {
 	}
 	cmd := exec.CommandContext(ctx, f.command, args...)
 	cmd.Dir = filepath.Dir(source)
-	return errors.WithStack(cmd.Run())
+	return errors.Wrapf(cmd.Run(), "cannot run command '%s %s'", f.command, strings.Join(args, " "))
 }
 
 func (f *Function) GetID() string {

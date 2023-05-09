@@ -27,10 +27,12 @@ import (
 //go:embed AdminLTE3.2/plugins/jquery/jquery.min.js
 //go:embed AdminLTE3.2/plugins/jquery/jquery.min.map
 //go:embed css/sidebar.css
+//go:embed js/json-viewer.bundle.js
 var WebRoot embed.FS
 
 //go:embed templates/object.gohtml
 //go:embed templates/storageroot.gohtml
 //go:embed templates/manifest.gohtml
 //go:embed templates/version.gohtml
+//go:embed templates/detail.gohtml
 var TemplateRoot embed.FS
