@@ -5,9 +5,12 @@ import (
 	"crypto/tls"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
+	"encoding/json"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
+	"github.com/je4/gocfl/v2/pkg/extension"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	dcert "github.com/je4/utils/v2/pkg/cert"
@@ -115,6 +118,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id", s.loadObjectID)
 	route.GET("/object/id/:id/manifest", s.manifest)
 	route.GET("/object/id/:id/version/:version", s.version)
+	route.GET("/object/id/:id/detail/:checksum", s.detail)
 	route.GET("/object/folder/:path", s.loadObjectPath)
 
 	route.StaticFS("/static", http.FS(s.dataFS))
@@ -140,6 +144,102 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		s.log.Infof("starting gocfl viewer at %v - http://%s:%v/", s.urlExt.String(), s.host, s.port)
 		return errors.WithStack(s.srv.ListenAndServe())
 	}
+}
+
+func (s *Server) detail(c *gin.Context) {
+	var err error
+	type idParam struct {
+		ID       string `uri:"id" binding:"required"`
+		Checksum string `uri:"checksum" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if s.object != nil && s.object.GetID() == iop.ID {
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+	}
+
+	file, ok := s.metadata.Files[iop.Checksum]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("no file with checksum %s found", iop.Checksum).Error()})
+		return
+	}
+	type extFEntry struct {
+		Name  string
+		ATime string
+		CTime string
+		MTime string
+		Size  string
+		Attr  string
+		OS    string
+		Sys   string
+	}
+	type detailStatus struct {
+		Checksum      string                  `json:"checksum"`
+		InternalNames []string                `json:"internalNames"`
+		ExternalNames map[string][]*extFEntry `json:"externalNames"`
+	}
+
+	status := &detailStatus{
+		Checksum:      iop.Checksum,
+		InternalNames: file.InternalName,
+		ExternalNames: map[string][]*extFEntry{},
+	}
+
+	extFilesystemAny, _ := file.Extension[extension.FilesystemName]
+	var extFilesystem map[string][]*extension.FileSystemLine
+	if extFilesystemAny != nil {
+		extFilesystem, _ = extFilesystemAny.(map[string][]*extension.FileSystemLine)
+	}
+
+	for ver, names := range file.VersionName {
+		extFilesystemVersion, _ := extFilesystem[ver]
+		if status.ExternalNames[ver] == nil {
+			status.ExternalNames[ver] = []*extFEntry{}
+		}
+		for _, name := range names {
+			efe := &extFEntry{
+				Name: name,
+			}
+			if extFilesystemVersion != nil {
+				for _, fs := range extFilesystemVersion {
+					if fs.Path == name {
+						efe.ATime = fs.Meta.ATime.Format(time.RFC3339)
+						efe.CTime = fs.Meta.CTime.Format(time.RFC3339)
+						efe.MTime = fs.Meta.MTime.Format(time.RFC3339)
+						efe.Size = humanize.Bytes(uint64(fs.Meta.Size))
+						efe.Attr = fs.Meta.Attr
+						efe.OS = fs.Meta.OS
+						sys, _ := json.MarshalIndent(fs.Meta.SystemStat, "", "  ")
+						efe.Sys = string(sys)
+						break
+					}
+				}
+			}
+			status.ExternalNames[ver] = append(status.ExternalNames[ver], efe)
+		}
+	}
+
 }
 
 func (s *Server) dashboard(c *gin.Context) {
@@ -212,12 +312,32 @@ func (s *Server) manifest(c *gin.Context) {
 		}
 	}
 
-	var files = map[string]string{}
+	type fEntry struct {
+		Checksum string
+		Pronom   string
+		Mimetype string
+		IdxSize  string
+	}
+	var files = map[string]*fEntry{}
 	var filenames = []string{}
 
-	for checksum, filename := range s.metadata.Files {
-		for _, name := range filename.InternalName {
-			files[name] = checksum
+	for checksum, file := range s.metadata.Files {
+		extIndexerAny, _ := file.Extension[extension.IndexerName]
+		var extIndexer *indexer.ResultV2
+		if extIndexerAny != nil {
+			extIndexer, _ = extIndexerAny.(*indexer.ResultV2)
+		}
+
+		for _, name := range file.InternalName {
+			fe := &fEntry{
+				Checksum: checksum,
+			}
+			if extIndexer != nil {
+				fe.Pronom = extIndexer.Pronom
+				fe.Mimetype = extIndexer.Mimetype
+				fe.IdxSize = humanize.Bytes(extIndexer.Size)
+			}
+			files[name] = fe
 			filenames = append(filenames, name)
 		}
 	}
@@ -267,13 +387,53 @@ func (s *Server) version(c *gin.Context) {
 		}
 	}
 
-	var files = map[string]string{}
+	type fEntry struct {
+		CTime    string
+		Size     string
+		Checksum string
+		Pronom   string
+		Mimetype string
+		IdxSize  string
+		Attr     string
+		OS       string
+	}
+	var files = map[string]*fEntry{}
 	var filenames = []string{}
 
 	for checksum, file := range s.metadata.Files {
+		extIndexerAny, _ := file.Extension[extension.IndexerName]
+		var extIndexer *indexer.ResultV2
+		if extIndexerAny != nil {
+			extIndexer, _ = extIndexerAny.(*indexer.ResultV2)
+		}
+		extFilesystemAny, _ := file.Extension[extension.FilesystemName]
+		var extFilesystem map[string][]*extension.FileSystemLine
+		if extFilesystemAny != nil {
+			extFilesystem, _ = extFilesystemAny.(map[string][]*extension.FileSystemLine)
+		}
+		extFilesystemVersion, _ := extFilesystem[iop.Version]
 		if vNames, ok := file.VersionName[iop.Version]; ok {
 			for _, name := range vNames {
-				files[name] = checksum
+				fe := &fEntry{
+					Checksum: checksum,
+				}
+				if extFilesystemVersion != nil {
+					for _, fsLine := range extFilesystemVersion {
+						if fsLine.Path == name {
+							fe.Size = humanize.Bytes(fsLine.Meta.Size)
+							fe.CTime = fsLine.Meta.CTime.Format(time.RFC3339)
+							fe.OS = fsLine.Meta.OS
+							fe.Attr = fsLine.Meta.Attr
+							break
+						}
+					}
+				}
+				if extIndexer != nil {
+					fe.Pronom = extIndexer.Pronom
+					fe.Mimetype = extIndexer.Mimetype
+					fe.IdxSize = humanize.Bytes(extIndexer.Size)
+				}
+				files[name] = fe
 				filenames = append(filenames, name)
 			}
 		}
@@ -377,8 +537,8 @@ func (s *Server) displayObject(c *gin.Context) {
 	var pronoms = make(map[string]int)
 	for _, v := range s.metadata.Files {
 		numFiles += len(v.InternalName)
-		_fs, _ := v.Extension["NNNN-filesystem"]
-		_idx, _ := v.Extension["NNNN-indexer"]
+		_fs, _ := v.Extension[extension.FilesystemName]
+		_idx, _ := v.Extension[extension.IndexerName]
 		var fs map[string]any
 		var idx *indexer.ResultV2
 		var ok bool

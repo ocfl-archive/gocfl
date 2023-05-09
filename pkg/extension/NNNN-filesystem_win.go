@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
+func (fsm *FilesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	fsm.OS = runtime.GOOS
 	sys := fileInfo.Sys()
 	if sys == nil {
