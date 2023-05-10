@@ -99,9 +99,9 @@
                 </a>
                 <ul class="nav nav-pills flex-column mb-auto">
                     <li class="nav-item"><a href="#" class="nav-link active rounded">Object</a></li>
-                    <li class="nav-item"><a href="../id/{{ .id }}/manifest" class="nav-link rounded">Manifest</a></li>
+                    <li class="nav-item"><a href="../id/{{ .id | PathEscape }}/manifest" class="nav-link rounded">Manifest</a></li>
                     {{ range $ver, $content := .versions }}
-                    <li class="nav-item"><a href="../id/{{ $root.id }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
+                    <li class="nav-item"><a href="../id/{{ $root.id | PathEscape }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
                     {{ end }}
                 </ul>
             </div>

@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -68,6 +69,8 @@ func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.U
 
 func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route := gin.Default()
+	route.UseRawPath = true
+	route.UnescapePathValues = false
 
 	route.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
@@ -76,8 +79,8 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	mt := multitemplate.New()
 
 	var tplfiles []string = []string{
-		"object.gohtml",
 		"storageroot.gohtml",
+		"object.gohtml",
 		"manifest.gohtml",
 		"version.gohtml",
 		"detail.gohtml",
@@ -88,6 +91,10 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		funcMap["basename"] = func(str string) string {
 			return filepath.Base(str)
 		}
+		funcMap["PathEscape"] = func(str string) string {
+			return url.PathEscape(str)
+		}
+
 		tpl, err := template.New(tplfile).Funcs(funcMap).ParseFS(s.templateFS, tplfile)
 		if err != nil {
 			return errors.Wrapf(err, "cannot parse template %s", tplfile)
@@ -103,7 +110,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id/version/:version", s.version)
 	route.GET("/object/id/:id/detail/:checksum", s.detail)
 	route.GET("/object/id/:id/download/:checksum/:filename", s.download)
-	route.GET("/object/folder/:path", s.loadObjectPath)
+	route.GET("/object/folder/*path", s.loadObjectPath)
 
 	route.StaticFS("/static", http.FS(s.dataFS))
 
@@ -139,6 +146,11 @@ func (s *Server) download(c *gin.Context) {
 	var iop idParam
 	if err = c.ShouldBindUri(&iop); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
 		return
 	}
 
@@ -193,6 +205,11 @@ func (s *Server) detail(c *gin.Context) {
 	var iop idParam
 	if err = c.ShouldBindUri(&iop); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
 		return
 	}
 
@@ -370,6 +387,11 @@ func (s *Server) manifest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
@@ -393,15 +415,21 @@ func (s *Server) manifest(c *gin.Context) {
 	}
 
 	type fEntry struct {
-		Checksum string
-		Pronom   string
-		Mimetype string
-		IdxSize  string
+		Checksum  string
+		Pronom    string
+		Mimetype  string
+		IdxSize   string
+		Migration map[string]string
 	}
 	var files = map[string]*fEntry{}
 	var filenames = []string{}
 
 	for checksum, file := range s.metadata.Files {
+		extMigrationAny, _ := file.Extension[extension.MigrationName]
+		var extMigration *extension.MigrationResult
+		if extMigrationAny != nil {
+			extMigration = extMigrationAny.(*extension.MigrationResult)
+		}
 		extIndexerAny, _ := file.Extension[extension.IndexerName]
 		var extIndexer *indexer.ResultV2
 		if extIndexerAny != nil {
@@ -410,12 +438,16 @@ func (s *Server) manifest(c *gin.Context) {
 
 		for _, name := range file.InternalName {
 			fe := &fEntry{
-				Checksum: checksum,
+				Checksum:  checksum,
+				Migration: map[string]string{},
 			}
 			if extIndexer != nil {
 				fe.Pronom = extIndexer.Pronom
 				fe.Mimetype = extIndexer.Mimetype
 				fe.IdxSize = humanize.Bytes(extIndexer.Size)
+			}
+			if extMigration != nil {
+				fe.Migration[extMigration.ID] = extMigration.Source
 			}
 			files[name] = fe
 			filenames = append(filenames, name)
@@ -445,6 +477,11 @@ func (s *Server) version(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
@@ -468,19 +505,25 @@ func (s *Server) version(c *gin.Context) {
 	}
 
 	type fEntry struct {
-		CTime    string
-		Size     string
-		Checksum string
-		Pronom   string
-		Mimetype string
-		IdxSize  string
-		Attr     string
-		OS       string
+		CTime     string
+		Size      string
+		Checksum  string
+		Pronom    string
+		Mimetype  string
+		IdxSize   string
+		Attr      string
+		OS        string
+		Migration map[string]string
 	}
 	var files = map[string]*fEntry{}
 	var filenames = []string{}
 
 	for checksum, file := range s.metadata.Files {
+		extMigrationAny, _ := file.Extension[extension.MigrationName]
+		var extMigration *extension.MigrationResult
+		if extMigrationAny != nil {
+			extMigration = extMigrationAny.(*extension.MigrationResult)
+		}
 		extIndexerAny, _ := file.Extension[extension.IndexerName]
 		var extIndexer *indexer.ResultV2
 		if extIndexerAny != nil {
@@ -495,7 +538,11 @@ func (s *Server) version(c *gin.Context) {
 		if vNames, ok := file.VersionName[iop.Version]; ok {
 			for _, name := range vNames {
 				fe := &fEntry{
-					Checksum: checksum,
+					Checksum:  checksum,
+					Migration: map[string]string{},
+				}
+				if extMigration != nil {
+					fe.Migration[extMigration.ID] = extMigration.Source
 				}
 				if extFilesystemVersion != nil {
 					for _, fsLine := range extFilesystemVersion {
@@ -542,7 +589,11 @@ func (s *Server) loadObjectID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
 	if s.object != nil && s.object.GetID() == iop.ID {
 		// already loaded
 		if s.metadata == nil {
@@ -577,7 +628,7 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	s.object, err = s.storageRoot.LoadObjectByFolder(iop.Path)
+	s.object, err = s.storageRoot.LoadObjectByFolder(strings.Trim(iop.Path, "/"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -587,24 +638,11 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 		return
 	}
-	s.displayObject(c)
+	c.Redirect(http.StatusPermanentRedirect, s.urlExt.String()+fmt.Sprintf("/object/id/%s", url.PathEscape(s.object.GetID())))
+	//	s.displayObject(c)
 }
 
 func (s *Server) displayObject(c *gin.Context) {
-
-	ByteCountIEC := func(b int64) string {
-		const unit = 1024
-		if b < unit {
-			return fmt.Sprintf("%d B", b)
-		}
-		div, exp := int64(unit), 0
-		for n := b / unit; n >= unit; n /= unit {
-			div *= unit
-			exp++
-		}
-		return fmt.Sprintf("%.1f %ciB",
-			float64(b)/float64(div), "KMGTPE"[exp])
-	}
 
 	if s.metadata == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no metadata loaded"})
@@ -661,7 +699,7 @@ func (s *Server) displayObject(c *gin.Context) {
 		"versions":       s.metadata.Versions,
 		"differentFiles": len(s.metadata.Files),
 		"numFiles":       numFiles,
-		"size":           ByteCountIEC(int64(size)),
+		"size":           humanize.Bytes(size),
 		"noSizeFiles":    noSizeFiles,
 		"mimeTypes":      mimeTypes,
 		"pronoms":        pronoms,

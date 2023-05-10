@@ -653,9 +653,6 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool, area string
 	object.logger.Debugf("walking '%v'", fsys)
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
-		if !strings.Contains(path, "werke/1") {
-			return nil
-		}
 		if err := object.AddFile(fsys, path, checkDuplicate, area, false, info.IsDir()); err != nil {
 			return errors.Wrapf(err, "cannot add file '%s'", path)
 		}

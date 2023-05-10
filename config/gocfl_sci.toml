@@ -23,7 +23,7 @@ Addr = "localhost:8080"
 # --display-external-addr
 ExternalAddr = "http://localhost:8080"
 # --display-templates
-#Templates = "./data/displaydata/templates"
+#Templates = "c:/daten/go/dev/gocfl/data/displaydata/templates"
 
 [Init]
 # --ocfl-version
@@ -31,7 +31,7 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --default-storageroot-extensions
-StoragerootExtensions="./data/fullextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="c:/daten/go/dev/gocfl/data/scicoreextensions/storageroot" # default "": use built in extensions
 # --no-compress
 #NoCompress=true
 # --encrypt-aes
@@ -53,7 +53,7 @@ DigestAlgorithm="sha512"
 # --message
 Message="Initial commit"
 # --object-extensions
-ObjectExtensions="./data/fullextensions/object" # default "": use built in extensions
+ObjectExtensions="c:/daten/go/dev/gocfl/data/scicoreextensions/object" # default "": use built in extensions
 # --deduplicate
 # Deduplicate=true # default false: true = check before ingest for checksum
 # --no-compress
@@ -111,9 +111,9 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --object-extensions
-ObjectExtensions="c:/daten/go/dev/gocfl/data/fullextensions/object" # default "": use built in extensions
+ObjectExtensions="c:/daten/go/dev/gocfl/data/scicoreextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-StoragerootExtensions="c:/daten/go/dev/gocfl/data/fullextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="c:/daten/go/dev/gocfl/data/scicoreextensions/storageroot" # default "": use built in extensions
 # --no-compress
 NoCompress=true
 # --encrypt-aes

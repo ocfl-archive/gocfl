@@ -81,8 +81,8 @@ func GetMigrations() (*Migration, error) {
 	return m, nil
 }
 
-func DoMigrate(object ocfl.Object, mig *Function, targetNames []string, file io.ReadCloser) error {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+filepath.Ext(targetNames[len(targetNames)-1]))
+func DoMigrate(object ocfl.Object, mig *Function, ext string, targetNames []string, file io.ReadCloser) error {
+	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return errors.Wrap(err, "cannot create temp file")
 	}
@@ -94,7 +94,7 @@ func DoMigrate(object ocfl.Object, mig *Function, targetNames []string, file io.
 		return errors.Wrap(err, "cannot close file")
 	}
 	tmpFilename := filepath.ToSlash(tmpFile.Name())
-	targetFilename := filepath.ToSlash(filepath.Join(filepath.Dir(tmpFilename), "target."+filepath.Base(tmpFilename)))
+	targetFilename := filepath.ToSlash(filepath.Join(filepath.Dir(tmpFilename), "target."+filepath.Base(tmpFilename)+filepath.Ext(targetNames[0])))
 
 	if err := tmpFile.Close(); err != nil {
 		return errors.Wrap(err, "cannot close temp file")

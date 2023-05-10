@@ -9,11 +9,12 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	migration2 "github.com/je4/gocfl/v2/pkg/subsystem/migration"
+	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
+	"path/filepath"
 	"regexp"
 )
 
@@ -56,17 +57,18 @@ type Migration struct {
 	*MigrationConfig
 	fsys      fs.FS
 	lastHead  string
-	migration *migration2.Migration
+	migration *migration.Migration
 	//buffer         *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
-	migrationFiles map[string]*migration2.Function
+	migrationFiles map[string]*migration.Function
 	migratedFiles  map[string]map[string]string
 	sourceFS       fs.FS
 	currentHead    string
+	done           bool
 }
 
-func NewMigrationFS(fsys fs.FS, migration *migration2.Migration) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration) (*Migration, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -82,12 +84,12 @@ func NewMigrationFS(fsys fs.FS, migration *migration2.Migration) (*Migration, er
 	}
 	return ext, nil
 }
-func NewMigration(config *MigrationConfig, mig *migration2.Migration) (*Migration, error) {
+func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
 	sl := &Migration{
 		MigrationConfig: config,
 		migration:       mig,
 		buffer:          map[string]*bytes.Buffer{},
-		migrationFiles:  map[string]*migration2.Function{},
+		migrationFiles:  map[string]*migration.Function{},
 		migratedFiles:   map[string]map[string]string{},
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
@@ -175,7 +177,7 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 		if !ok {
 			continue
 		}
-		migration, err := mi.migration.GetFunctionByPronom(indexerMeta.Pronom)
+		migrationFunctions, err := mi.migration.GetFunctionByPronom(indexerMeta.Pronom)
 		if err != nil {
 			continue
 			//return errors.Wrapf(err, "cannot get migration function for pronom %s", pronom)
@@ -183,7 +185,7 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 		if mi.alreadyMigrated(cs) {
 			continue
 		}
-		mi.migrationFiles[cs] = migration
+		mi.migrationFiles[cs] = migrationFunctions
 	}
 
 	mi.lastHead = inventory.GetHead()
@@ -191,12 +193,13 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 }
 
 func (mi *Migration) NeedNewVersion(ocfl.Object) (bool, error) {
-	return len(mi.migrationFiles) > 0, nil
+	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
 func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 	defer func() {
-		mi.migrationFiles = map[string]*migration2.Function{}
+		mi.migrationFiles = map[string]*migration.Function{}
+		mi.done = true
 	}()
 
 	inventory := object.GetInventory()
@@ -246,12 +249,14 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		mi.migratedFiles[head][cs] = manifestFiles[0]
 
 		var file io.ReadCloser
+		var ext string
 		fsys := object.GetFS()
 		if fsys != nil {
 			file, err = fsys.Open(manifestFiles[0])
 			if err != nil {
 				file = nil
 			}
+			ext = filepath.Ext(manifestFiles[0])
 		}
 		if file == nil {
 			if mi.sourceFS != nil {
@@ -270,6 +275,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				if err != nil {
 					return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", mi.sourceFS, targetNames[len(targetNames)-1])
 				}
+				ext = filepath.Ext(external)
 			}
 		}
 		var ml *migrationLine
@@ -292,7 +298,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
 		}
 		path := inventory.BuildManifestName(manifestName)
-		if err := migration2.DoMigrate(object, mig, extractTargetNames, file); err != nil {
+		if err := migration.DoMigrate(object, mig, ext, extractTargetNames, file); err != nil {
 			ml = &migrationLine{
 				Path: path,
 				Migration: &MigrationResult{
@@ -311,7 +317,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 				},
 			}
 			switch mig.Strategy {
-			case migration2.StrategyReplace:
+			case migration.StrategyReplace:
 				for _, n := range stateFiles {
 					if slices.Contains(targetNames, n) {
 						continue

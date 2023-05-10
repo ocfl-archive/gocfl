@@ -98,10 +98,10 @@
                     <span class="fs-5 fw-semibold">{{ .title }}</span>
                 </a>
                 <ul class="nav nav-pills flex-column mb-auto">
-                    <li class="nav-item"><a href="../{{ $root.id }}" class="nav-link rounded">Object</a></li>
+                    <li class="nav-item"><a href="../{{ $root.id | PathEscape }}" class="nav-link rounded">Object</a></li>
                     <li class="nav-item"><a href="#" class="nav-link active rounded">Manifest</a></li>
                     {{ range $ver, $content := .versions }}
-                    <li class="nav-item"><a href="../{{ $root.id }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
+                    <li class="nav-item"><a href="../{{ $root.id | PathEscape }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
                     {{ end }}
                 </ul>
             </div>
@@ -111,13 +111,16 @@
             <ul class="list-group">
                 {{ range $name, $file := .files }}
                 <li class="list-group-item list-group-item-light">
-                    <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#detail" data-bs-id="{{ $root.id }}" data-bs-checksum="{{ $file.Checksum }}">
+                    <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#detail" data-bs-id="{{ $root.id | PathEscape }}" data-bs-checksum="{{ $file.Checksum }}">
                         {{ $name }}
                     </button>
                     <div class="small">
                         {{ if $file.Pronom }}<span class="badge rounded-pill bg-info text-dark">{{ $file.Pronom }}</span>{{ end }}
                         {{ if $file.Mimetype }}<span class="badge rounded-pill bg-info text-dark">{{ $file.Mimetype }}</span>{{ end }}
                         {{ if $file.IdxSize }}<span class="badge rounded-pill bg-info text-dark">{{ $file.IdxSize }}</span>{{ end }}
+                        {{ range $migName, $source := $file.Migration }}
+                            <span class="badge rounded-pill bg-{{ if (eq $source $file.Checksum ) }}danger{{ else }}secondary{{ end }} text-dark">{{ $migName }}</span>
+                        {{ end }}
                     </div>
                 </li>
                 {{ end }}
@@ -162,7 +165,7 @@
         // Update the modal's content.
         var modalTitle = detailModal.querySelector('.modal-title')
         var modalIFrame = detailModal.querySelector('.modal-body iframe')
-        modalIFrame.src = '../../' + id + '/detail/' + checksum
+        modalIFrame.src = '../../id/' + id + '/detail/' + checksum
         modalTitle.textContent = id
     })
 </script>

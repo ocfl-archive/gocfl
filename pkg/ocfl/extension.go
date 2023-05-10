@@ -35,11 +35,6 @@ const (
 	ExtensionNewVersionName         = "NewVersion"
 )
 
-type ExtensionStream interface {
-	Extension
-	StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error
-}
-
 type ExtensionStorageRootPath interface {
 	Extension
 	WriteLayout(fsys fs.FS) error
@@ -61,6 +56,16 @@ type ExtensionObjectExtractPath interface {
 type ExtensionObjectStatePath interface {
 	Extension
 	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
+}
+
+type ExtensionArea interface {
+	Extension
+	GetAreaPath(object Object, area string) (string, error)
+}
+
+type ExtensionStream interface {
+	Extension
+	StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error
 }
 
 type ExtensionContentChange interface {
@@ -87,11 +92,6 @@ type ExtensionFixityDigest interface {
 type ExtensionMetadata interface {
 	Extension
 	GetMetadata(object Object) (map[string]any, error)
-}
-
-type ExtensionArea interface {
-	Extension
-	GetAreaPath(object Object, area string) (string, error)
 }
 
 type ExtensionNewVersion interface {

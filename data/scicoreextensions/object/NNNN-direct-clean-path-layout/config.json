@@ -4,8 +4,5 @@
   "maxFilenameLen": 127,
   "replacementString": "_",
   "whitespaceReplacementString": " ",
-  "utfEncode": false
+  "utfEncode": true
 }
-
-
-
