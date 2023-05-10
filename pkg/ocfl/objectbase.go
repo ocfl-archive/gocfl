@@ -273,6 +273,8 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 	return inventory, inventory.Finalize(false)
 }
 
+var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
+
 // loadInventory loads inventory from existing Object
 func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	// load inventory file
@@ -302,10 +304,13 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 		//		object.addValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
-		if !strings.HasSuffix(digestString, " inventory.json") {
+		//if !strings.HasSuffix(digestString, " inventory.json") {
+		matches := inventorySideCarFormat.FindStringSubmatch(digestString)
+		if /* matches == nil || */ len(matches) == 0 {
 			object.addValidationError(E061, "no suffix \" inventory.json\" in '%v/%s'", object.fsys, sidecarPath)
 		} else {
-			digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
+			//digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
+			digestString = matches[1]
 			h, err := checksum.GetHash(digest)
 			if err != nil {
 				return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
@@ -648,6 +653,9 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool, area string
 	object.logger.Debugf("walking '%v'", fsys)
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
+		if !strings.Contains(path, "werke/1") {
+			return nil
+		}
 		if err := object.AddFile(fsys, path, checkDuplicate, area, false, info.IsDir()); err != nil {
 			return errors.Wrapf(err, "cannot add file '%s'", path)
 		}
