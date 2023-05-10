@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
+func (fsm *FilesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	fsm.OS = runtime.GOOS
 	sys := fileInfo.Sys()
 	if sys == nil {
@@ -25,6 +25,7 @@ func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	fsm.CTime = time.Unix(0, win32FileAttributeData.CreationTime.Nanoseconds())
 	fsm.MTime = time.Unix(0, win32FileAttributeData.LastWriteTime.Nanoseconds())
 	fsm.ATime = time.Unix(0, win32FileAttributeData.LastAccessTime.Nanoseconds())
+	fsm.Size = uint64(win32FileAttributeData.FileSizeLow)
 
 	attr := fileattr.Value(win32FileAttributeData.FileAttributes)
 	fsm.Attr = attr.String()

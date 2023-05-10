@@ -54,6 +54,10 @@ var errVersionMultiple = errors.New("multiple version files found")
 var errVersionNone = errors.New("no version file found")
 var errInvalidContent = errors.New("content of version declaration does not equal filename")
 
+func (osr *StorageRootBase) String() string {
+	return fmt.Sprintf("StorageRootBase: %v", osr.fsys)
+}
+
 func (osr *StorageRootBase) IsModified() bool {
 	return osr.modified
 }

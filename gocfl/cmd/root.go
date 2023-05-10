@@ -14,7 +14,7 @@ import (
 	"regexp"
 )
 
-const VERSION = "v1.0-beta.6"
+const VERSION = "v1.0-beta.7"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
@@ -189,9 +189,10 @@ func init() {
 	initStat()
 	initExtract()
 	initExtractMeta()
+	initDisplay()
 
-	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd)
-	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd)
+	setExtensionFlags(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd, displayCmd)
+	rootCmd.AddCommand(validateCmd, initCmd, createCmd, addCmd, updateCmd, statCmd, extractCmd, extractMetaCmd, displayCmd)
 }
 
 func Execute() {

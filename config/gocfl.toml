@@ -17,6 +17,14 @@ S3Endpoint="s3-zh.os.switch.ch"
 # --s3-region
 S3Region=""
 
+[Display]
+# --display-addr
+Addr = "localhost:8080"
+# --display-external-addr
+ExternalAddr = "http://localhost:8080"
+# --display-templates
+#Templates = "./data/displaydata/templates"
+
 [Init]
 # --ocfl-version
 OCFLVersion="1.1" # supported versions 1.0 1.1
@@ -103,9 +111,9 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --object-extensions
-ObjectExtensions="./data/fullextensions/object" # default "": use built in extensions
+ObjectExtensions="c:/daten/go/dev/gocfl/data/fullextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-StoragerootExtensions="./data/fullextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="c:/daten/go/dev/gocfl/data/fullextensions/storageroot" # default "": use built in extensions
 # --no-compress
 NoCompress=true
 # --encrypt-aes
@@ -159,6 +167,26 @@ Output = ""
 [Migration]
 # --with-migration
 Enable=true
+
+[Migration.Function.CR2]
+ID = "CR2#01"
+Title = "Convert Canon CR2 to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' '{destination}' "
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}.png"
+Timeout = "2m"
+Pronoms = "fmt/592"
+
+[Migration.Function.Image]
+ID = "Image#01"
+Title = "Convert Canon CR2 to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' '{destination}' "
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}.png"
+Timeout = "2m"
+Pronoms = "fmt/202,fmt/436,fmt/437,x-fmt/367,fmt/528,fmt/662"
 
 [Migration.Function.PDFA]
 ID = "PDFA#01"

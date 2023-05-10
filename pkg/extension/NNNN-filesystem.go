@@ -49,7 +49,7 @@ func NewFilesystem(config *FilesystemConfig) (*Filesystem, error) {
 	return sl, nil
 }
 
-type filesystemMeta struct {
+type FilesystemMeta struct {
 	ATime        time.Time `json:"aTime"`
 	MTime        time.Time `json:"mTime"`
 	CTime        time.Time `json:"cTime"`
@@ -58,11 +58,12 @@ type filesystemMeta struct {
 	OS           string    `json:"os"`
 	SystemStat   any       `json:"sysStat,omitempty"`
 	StateVersion string    `json:"stateVersion"`
+	Size         uint64    `json:"size"`
 }
 
-type fileSystemLine struct {
+type FileSystemLine struct {
 	Path string          `json:"path"`
-	Meta *filesystemMeta `json:"meta"`
+	Meta *FilesystemMeta `json:"meta"`
 }
 
 type FilesystemConfig struct {
@@ -130,7 +131,7 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 			}
 			return errors.Wrapf(err, "cannot get fullpath for '%v/%s'", sourceFS, src)
 		}
-		fsMeta := &filesystemMeta{StateVersion: inventory.GetHead()}
+		fsMeta := &FilesystemMeta{StateVersion: inventory.GetHead()}
 		// we work only on local filesystems with this extension
 		stat, err := os.Stat(fullpath)
 		if err != nil {
@@ -168,7 +169,7 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 			newSrc = newEmptyFile
 		}
 
-		fsLine := &fileSystemLine{
+		fsLine := &FileSystemLine{
 			Path: newSrc,
 			Meta: fsMeta,
 		}
@@ -204,7 +205,7 @@ func (extFS *Filesystem) DoNewVersion(object ocfl.Object) error {
 
 func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	var err error
-	var result = map[string]map[string][]*fileSystemLine{}
+	var result = map[string]map[string][]*FileSystemLine{}
 
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
@@ -236,10 +237,10 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 		r := bufio.NewScanner(reader)
 		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
 		r.Split(bufio.ScanLines)
-		lines := []*fileSystemLine{}
+		lines := []*FileSystemLine{}
 		for r.Scan() {
 			lineStr := r.Text()
-			var meta = &fileSystemLine{}
+			var meta = &FileSystemLine{}
 			if err := json.Unmarshal([]byte(lineStr), &meta); err != nil {
 				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, lineStr)
 			}
@@ -249,10 +250,10 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 			for _, line := range lines {
 				if slices.Contains(externals, line.Path) {
 					if _, ok := result[digest]; !ok {
-						result[digest] = map[string][]*fileSystemLine{}
+						result[digest] = map[string][]*FileSystemLine{}
 					}
 					if _, ok := result[digest][line.Meta.StateVersion]; !ok {
-						result[digest][line.Meta.StateVersion] = []*fileSystemLine{}
+						result[digest][line.Meta.StateVersion] = []*FileSystemLine{}
 					}
 					result[digest][line.Meta.StateVersion] = append(result[digest][line.Meta.StateVersion], line)
 				}

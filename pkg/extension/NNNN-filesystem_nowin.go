@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
+func (fsm *FilesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	fsm.OS = runtime.GOOS
 	sys := fileInfo.Sys()
 	if sys == nil {
@@ -24,6 +24,7 @@ func (fsm *filesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	fsm.ATime = time.Unix(stat_t.Atim.Sec, stat_t.Atim.Nsec)
 	fsm.CTime = time.Unix(stat_t.Ctim.Sec, stat_t.Ctim.Nsec)
 	fsm.MTime = time.Unix(stat_t.Mtim.Sec, stat_t.Mtim.Nsec)
+	fsm.Size = uint64(stat_t.Size)
 	fi, err := os.Lstat(fullpath)
 	if err != nil {
 		return errors.WithStack(err)
