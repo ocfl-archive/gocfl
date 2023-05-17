@@ -31,6 +31,7 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 			ffmpeg.Mime,
 			nil,
 			ad)
+		logger.Info("indexer action siegfried added")
 	}
 	if magick != nil && magick.Enabled {
 		timeout, err := time.ParseDuration(magick.Timeout)
@@ -38,6 +39,7 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 			return nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
 		_ = ironmaiden.NewActionIdentifyV2("identify", magick.Identify, magick.Convert, magick.WSL, timeout, magick.Online, nil, ad)
+		logger.Info("indexer action identify added")
 	}
 	if tika != nil && tika.Enabled {
 		timeout, err := time.ParseDuration(tika.Timeout)
@@ -45,7 +47,11 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 			return nil, errors.Wrapf(err, "cannot parse magick timeout '%s'", magick.Timeout)
 		}
 		_ = ironmaiden.NewActionTika("tika", tika.AddressMeta, timeout, tika.RegexpMimeMeta, tika.RegexpMimeMetaNot, "", tika.Online, nil, ad)
+		logger.Info("indexer action tika added")
+
 		_ = ironmaiden.NewActionTika("fulltext", tika.AddressFulltext, timeout, tika.RegexpMimeFulltext, tika.RegexpMimeFulltextNot, "X-TIKA:content", tika.Online, nil, ad)
+		logger.Info("indexer action fulltext added")
+
 	}
 
 	return ad, nil
