@@ -44,10 +44,6 @@ Templates = "./data/displaydata/templates"
 */
 
 func initDisplay() {
-	displayCmd.Flags().StringP("object-path", "p", "", "object path to show statistics for")
-
-	displayCmd.Flags().StringP("object-id", "i", "", "object id to show statistics for")
-
 	displayCmd.Flags().StringP("display-addr", "a", "localhost:8080", "address to listen on")
 	emperror.Panic(viper.BindPFlag("Display.Addr", displayCmd.Flags().Lookup("display-addr")))
 
@@ -69,14 +65,6 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
 		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
-	}
-
-	oPath, _ := cmd.Flags().GetString("object-path")
-	oID, _ := cmd.Flags().GetString("object-id")
-	if oPath != "" && oID != "" {
-		//		emperror.Panic(cmd.Help())
-		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
-		return
 	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
