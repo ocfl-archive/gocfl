@@ -16,6 +16,7 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 		logger.Warningf("no siegfried signature file provided. using default signature file. please provide a recent signature file.")
 		signatureData = datasiegfried.DefaultSig
 	}
+	logger.Info("indexer action siegfried added")
 	_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, nil, ad)
 	if ffmpeg != nil && ffmpeg.Enabled {
 		timeout, err := time.ParseDuration(ffmpeg.Timeout)
@@ -31,7 +32,7 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 			ffmpeg.Mime,
 			nil,
 			ad)
-		logger.Info("indexer action siegfried added")
+		logger.Info("indexer action ffprobe added")
 	}
 	if magick != nil && magick.Enabled {
 		timeout, err := time.ParseDuration(magick.Timeout)
