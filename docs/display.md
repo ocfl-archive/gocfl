@@ -54,3 +54,6 @@ PS C:\daten\go\dev\gocfl\build> .\gocfl_windows_amd64.exe display c:/temp/test/o
 
 ### File Detail
 ![File Detail](display_detail_png.png)
+
+### File Detail of migrated file
+![Migrated File](display_detail_migrated.png)
