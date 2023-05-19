@@ -310,9 +310,9 @@ func ReadJsonL(object Object, name, version, compress, storageType, storageName 
 	case "path":
 		path, err := object.GetAreaPath("content")
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot get area path for '%s'", storageName)
+			return nil, errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
-		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
+		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s/%s_%s.jsonl%s", path, storageName, name, version, ext), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
 		fsys = object.GetFS()
 	case "extension":
@@ -389,12 +389,18 @@ func WriteJsonL(object Object, name string, brotliData []byte, compress, storage
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
-		targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
+		path, err := object.GetAreaPath("content")
+		if err != nil {
+			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
+		}
+		targetname := fmt.Sprintf("%s/%s/%s_%s.jsonl%s", path, storageName, name, head, ext)
+
+		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
 		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
-		targetname := strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext), "/")
+		targetname := strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", storageName, name, head, ext), "/")
 		fp, err := writefs.Create(fsys, targetname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%v/%s'", fsys, targetname)

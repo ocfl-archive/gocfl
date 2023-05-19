@@ -68,6 +68,7 @@ func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.U
 }
 
 func (s *Server) ListenAndServe(cert, key string) (err error) {
+	gin.SetMode(gin.ReleaseMode)
 	route := gin.Default()
 	route.UseRawPath = true
 	route.UnescapePathValues = false

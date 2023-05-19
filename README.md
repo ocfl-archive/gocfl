@@ -12,6 +12,7 @@ GOCFL command line tool supports the following subcommands
 * [info](docs/stat.md)
 * [extract](docs/extract.md)
 * [extractmeta](docs/extractmeta.md)
+* [display](docs/display.md)
 
 There's a [quickstart guide](docs/quickstart.md) available.
 
@@ -90,7 +91,7 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
 A fast and reliable OCFL creator, extractor and validator.
 https://github.com/je4/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
-Version v1.0-beta.1
+Version v1.0-beta.7
 
 Usage:
   gocfl [flags]
@@ -100,6 +101,7 @@ Available Commands:
   add         adds new object to existing ocfl structure
   completion  Generate the autocompletion script for the specified shell
   create      creates a new ocfl structure with initial content of one object
+  display     show content of ocfl object in webbrowser
   extract     extract version of ocfl content
   extractmeta extract metadata from ocfl structure
   help        Help about any command
@@ -117,7 +119,6 @@ Flags:
       --s3-endpoint string            Endpoint for S3 Buckets
       --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-  -v, --version                       show version
       --with-indexer                  starts indexer as a local service
 
 Use "gocfl [command] --help" for more information about a command.
