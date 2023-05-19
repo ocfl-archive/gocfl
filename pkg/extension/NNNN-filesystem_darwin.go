@@ -1,4 +1,4 @@
-//go:build !windows && !plan9 && !darwin
+//go:build darwin
 
 package extension
 
@@ -21,9 +21,9 @@ func (fsm *FilesystemMeta) init(fullpath string, fileInfo fs.FileInfo) error {
 	if !ok {
 		return errors.New("fileInfo.Sys() is not *syscall.Stat_t")
 	}
-	fsm.ATime = time.Unix(stat_t.Atim.Sec, stat_t.Atim.Nsec)
-	fsm.CTime = time.Unix(stat_t.Ctim.Sec, stat_t.Ctim.Nsec)
-	fsm.MTime = time.Unix(stat_t.Mtim.Sec, stat_t.Mtim.Nsec)
+	fsm.ATime = time.Unix(stat_t.Atimespec.Sec, stat_t.Atimespec.Nsec)
+	fsm.CTime = time.Unix(stat_t.Ctimespec.Sec, stat_t.Ctimespec.Nsec)
+	fsm.MTime = time.Unix(stat_t.Mtimespec.Sec, stat_t.Mtimespec.Nsec)
 	fsm.Size = uint64(stat_t.Size)
 	fi, err := os.Lstat(fullpath)
 	if err != nil {
