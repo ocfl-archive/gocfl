@@ -11,6 +11,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -68,7 +69,7 @@ type Migration struct {
 	done           bool
 }
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger *logging.Logger) (*Migration, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")

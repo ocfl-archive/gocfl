@@ -95,7 +95,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, "", nil, nil, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

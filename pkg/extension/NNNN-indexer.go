@@ -11,6 +11,7 @@ import (
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -60,7 +61,7 @@ type Indexer struct {
 	currentHead    string
 }
 
-func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher) (*Indexer, error) {
+func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, logger *logging.Logger) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")

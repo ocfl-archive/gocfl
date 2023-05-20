@@ -164,6 +164,34 @@ Format = "json"
 # --output
 Output = ""
 
+[Thumbnail]
+Enable=true
+Width=256
+Height=256
+Ext="png"
+Background="none"
+
+[Thumbnail.Function.CR2]
+ID = "CR2#01"
+Title = "Thumbnail from Canon CR2"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Pronoms = "fmt/592"
+
+[Thumbnail.Function.Images]
+ID = "Image#01"
+Title = "Thumbnail from Image"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -resize {width}x{height} -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Mime = "image/.+"
+
+[Thumbnail.Function.PDF]
+ID = "PDF#01"
+Title = "Thumbnail from Image"
+Command = "gswin64.exe -dNOPAUSE -dBATCH -sDEVICE=png16m –dFirstPage=1 –dLastPage=1 -sOutputFile={destination}.png {source}; \"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{destination}.png' -resize {width}x{height} -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Mime = "application/pdf"
+
 [Migration]
 # --with-migration
 Enable=true

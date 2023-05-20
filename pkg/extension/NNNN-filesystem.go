@@ -10,6 +10,7 @@ import (
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/op/go-logging"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -21,7 +22,7 @@ import (
 const FilesystemName = "NNNN-filesystem"
 const FilesystemDescription = "preserves filesytem metadata"
 
-func NewFilesystemFS(fsys fs.FS) (*Filesystem, error) {
+func NewFilesystemFS(fsys fs.FS, logger *logging.Logger) (*Filesystem, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
