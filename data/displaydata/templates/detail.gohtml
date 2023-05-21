@@ -102,7 +102,7 @@
     <h1 class="visually-hidden">{{ .title }}</h1>
     <div class="container-fluid bg-body">
         <div class="col bd-border">
-        <table class="table">
+        <table class="table w-auto">
             <thead>
             <tr>
                 <th colspan="2">Checksums</th>
@@ -123,7 +123,7 @@
         </table>
         </div>
         <div class="col bd-border">
-            <table class="table">
+            <table class="table w-auto">
                 <thead>
                 <tr>
                     <th colspan="1">Internal Names</th>
@@ -139,7 +139,7 @@
             </table>
         </div>
         <div class="col bd-border">
-            <table class="table">
+            <table class="table w-auto">
                 <thead>
                 <tr>
                     <th colspan="10">External Names</th>
@@ -184,9 +184,36 @@
                 </tbody>
             </table>
         </div>
+        {{ if $status.Thumbnail }}
+            <div class="col bd-border">
+                <table class="table w-auto">
+                    <thead>
+                    <tr>
+                        <th colspan="2">Thumbnail</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td class="table-active text-end"><strong>Thumbnail Process</strong></td>
+                        <td>{{ $status.Thumbnail.ID }}</td>
+                    </tr>
+                    {{ if $status.Thumbnail.Error }}
+                        <tr>
+                            <td class="table-active text-end"><strong>Thumbnail Error</strong></td>
+                            <td>{{ $status.Thumbnail.Error }}</td>
+                        </tr>
+                    {{ end }}
+                    <tr>
+                        <td class="table-active text-end"><strong>Image</strong></td>
+                        <td><img src="../extension/NNNN-thumbnail/download/data/{{ substr 0 1 $status.Checksum }}/{{ substr 1 2 $status.Checksum }}/{{ $status.Checksum }}.{{ $status.Thumbnail.Ext }}" /></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        {{ end }}
         {{ if $status.Indexer }}
         <div class="col bd-border">
-            <table class="table">
+            <table class="table w-auto">
                 <thead>
                 <tr>
                     <th colspan="2">Indexer</th>
@@ -250,7 +277,7 @@
         {{ end }}
         {{ if $status.Migration }}
         <div class="col bd-border">
-            <table class="table">
+            <table class="table w-auto">
                 <thead>
                 <tr>
                     <th colspan="2">Migration</th>

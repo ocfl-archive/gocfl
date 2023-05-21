@@ -16,6 +16,7 @@ import (
 	"github.com/je4/indexer/v2/pkg/indexer"
 	dcert "github.com/je4/utils/v2/pkg/cert"
 	"github.com/je4/utils/v2/pkg/checksum"
+	iou "github.com/je4/utils/v2/pkg/io"
 	"github.com/op/go-logging"
 	"html/template"
 	"io"
@@ -111,6 +112,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id/version/:version", s.version)
 	route.GET("/object/id/:id/detail/:checksum", s.detail)
 	route.GET("/object/id/:id/download/:checksum/:filename", s.download)
+	route.GET("/object/id/:id/extension/:extension/download/*path", s.downloadExtFile)
 	route.GET("/object/folder/*path", s.loadObjectPath)
 
 	route.StaticFS("/static", http.FS(s.dataFS))
@@ -136,6 +138,80 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		s.log.Infof("starting gocfl viewer at %v - http://%s:%v/", s.urlExt.String(), s.host, s.port)
 		return errors.WithStack(s.srv.ListenAndServe())
 	}
+}
+
+func (s *Server) downloadExtFile(c *gin.Context) {
+	var err error
+	type idParam struct {
+		ID        string `uri:"id" binding:"required"`
+		Path      string `uri:"path" binding:"required"`
+		Extension string `uri:"extension" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
+	iop.Path, err = url.PathUnescape(iop.Path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.Path).Error()})
+		return
+	}
+	iop.Extension, err = url.PathUnescape(iop.Extension)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.Extension).Error()})
+		return
+	}
+
+	if s.object != nil && s.object.GetID() == iop.ID {
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+	}
+	pathStr := filepath.ToSlash(filepath.Join("extensions", iop.Extension, iop.Path))
+	fp, err := s.object.GetFS().Open(pathStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	defer fp.Close()
+	fi, err := fp.Stat()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	mimeReader, err := iou.NewMimeReader(fp)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot instantiate mimereader for object %s - %s", s.object.GetID(), pathStr).Error()})
+		return
+	}
+	contentType, err := mimeReader.DetectContentType()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot detect content-type for object %s - %s", s.object.GetID(), pathStr).Error()})
+		return
+	}
+	c.DataFromReader(http.StatusOK, fi.Size(), contentType, mimeReader, map[string]string{})
 }
 
 func (s *Server) download(c *gin.Context) {
@@ -259,6 +335,7 @@ func (s *Server) detail(c *gin.Context) {
 		Indexer         *indexer.ResultV2                   `json:"indexer"`
 		IndexerJSON     string
 		Migration       *extension.MigrationResult
+		Thumbnail       *extension.ThumbnailResult
 	}
 
 	status := &detailStatus{
@@ -328,6 +405,16 @@ func (s *Server) detail(c *gin.Context) {
 	if extMigration != nil {
 		status.Migration = extMigration
 	}
+
+	extThumbnailAny, _ := file.Extension[extension.ThumbnailName]
+	var extThumbnail *extension.ThumbnailResult
+	if extThumbnailAny != nil {
+		extThumbnail, _ = extThumbnailAny.(*extension.ThumbnailResult)
+	}
+	if extThumbnail != nil {
+		status.Thumbnail = extThumbnail
+	}
+
 	var params = map[string]any{
 		"title":  "Detail",
 		"id":     s.object.GetID(),

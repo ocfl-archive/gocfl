@@ -35,11 +35,15 @@ type ThumbnailTarget struct {
 	Command        string        // command to execute (stdin --> stdout)
 }
 
+type ThumbnailResult struct {
+	Ext   string `json:"ext"`
+	Error string `json:"error,omitempty"`
+	ID    string `json:"id"`
+}
+
 type thumbnailLine struct {
+	ThumbnailResult
 	Checksum string `json:"checksum"`
-	Ext      string `json:"ext"`
-	Error    string `json:"error,omitempty"`
-	ID       string `json:"id"`
 }
 
 // map pronom to thumbnail
@@ -140,12 +144,14 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, mig *thumbnail.Function,
 		return errors.Wrap(err, "cannot close temp file")
 	}
 	if err := mig.Thumbnail(tmpFilename, targetTempName, thumb.logger); err != nil {
-		_ = os.Remove(tmpFilename)
-		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetName, object.GetID())
+		//_ = os.Remove(tmpFilename)
+		return errors.Wrapf(err, "cannot create thumbnail file '%v' to object '%s'", targetName, object.GetID())
 	}
-	if err := os.Remove(tmpFilename); err != nil {
-		return errors.Wrapf(err, "cannot remove temp file '%s'", tmpFilename)
-	}
+	/*
+		if err := os.Remove(tmpFilename); err != nil {
+			return errors.Wrapf(err, "cannot remove temp file '%s'", tmpFilename)
+		}
+	*/
 
 	mFile, err := os.Open(targetTempName)
 	if err != nil {
@@ -164,9 +170,11 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, mig *thumbnail.Function,
 	if err := mFile.Close(); err != nil {
 		return errors.Wrapf(err, "cannot close file '%s'", targetTempName)
 	}
-	if err := os.Remove(targetTempName); err != nil {
-		return errors.Wrapf(err, "cannot remove temp file '%s'", targetTempName)
-	}
+	/*
+		if err := os.Remove(targetTempName); err != nil {
+			return errors.Wrapf(err, "cannot remove temp file '%s'", targetTempName)
+		}
+	*/
 
 	return nil
 }
@@ -249,9 +257,11 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 				}
 				ml = &thumbnailLine{
 					Checksum: cs,
-					Ext:      thumb.thumbnail.Ext,
-					Error:    errStr,
-					ID:       thumbnailFunction.GetID(),
+					ThumbnailResult: ThumbnailResult{
+						Ext:   thumb.thumbnail.Ext,
+						Error: errStr,
+						ID:    thumbnailFunction.GetID(),
+					},
 				}
 
 				data, err := json.Marshal(ml)
@@ -336,7 +346,7 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 			if digest == "" {
 				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Checksum, object.GetID())
 			}
-			result[digest] = meta
+			result[digest] = &meta.ThumbnailResult
 		}
 		if err := r.Err(); err != nil {
 			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)

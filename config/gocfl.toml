@@ -188,9 +188,16 @@ Mime = "image/.+"
 [Thumbnail.Function.PDF]
 ID = "PDF#01"
 Title = "Thumbnail from Image"
-Command = "gswin64.exe -dNOPAUSE -dBATCH -sDEVICE=png16m –dFirstPage=1 –dLastPage=1 -sOutputFile={destination}.png {source}; \"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{destination}.png' -resize {width}x{height} -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/pdf2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
 Timeout = "2m"
 Mime = "application/pdf"
+
+[Thumbnail.Function.Video]
+ID = "Video#01"
+Title = "Thumbnail from Video"
+Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/video2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = "video/.+"
 
 [Migration]
 # --with-migration
