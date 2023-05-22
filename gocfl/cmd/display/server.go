@@ -86,6 +86,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		"manifest.gohtml",
 		"version.gohtml",
 		"detail.gohtml",
+		"report.gohtml",
 	}
 
 	for _, tplfile := range tplfiles {
@@ -95,6 +96,12 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 		}
 		funcMap["PathEscape"] = func(str string) string {
 			return url.PathEscape(str)
+		}
+		funcMap["humanizeBytes"] = func(size uint64) string {
+			return humanize.Bytes(size)
+		}
+		funcMap["humanizeTime"] = func(t time.Time) string {
+			return t.Format("2006-01-02 15:04:05")
 		}
 
 		tpl, err := template.New(tplfile).Funcs(funcMap).ParseFS(s.templateFS, tplfile)
@@ -111,6 +118,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id/manifest", s.manifest)
 	route.GET("/object/id/:id/version/:version", s.version)
 	route.GET("/object/id/:id/detail/:checksum", s.detail)
+	route.GET("/object/id/:id/report", s.report)
 	route.GET("/object/id/:id/download/:checksum/:filename", s.download)
 	route.GET("/object/id/:id/extension/:extension/download/*path", s.downloadExtFile)
 	route.GET("/object/folder/*path", s.loadObjectPath)
@@ -129,13 +137,13 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 			return errors.Wrap(err, "cannot generate default certificate")
 		}
 		s.srv.TLSConfig = &tls.Config{Certificates: []tls.Certificate{*cert}}
-		s.log.Infof("starting gocfl viewer at %v - https://%s:%v/", s.urlExt.String(), s.host, s.port)
+		fmt.Printf("starting gocfl viewer at %v - https://%s:%v/", s.urlExt.String(), s.host, s.port)
 		return errors.WithStack(s.srv.ListenAndServeTLS("", ""))
 	} else if cert != "" && key != "" {
-		s.log.Infof("starting gocfl viewer at %v - https://%s:%v/", s.urlExt.String(), s.host, s.port)
+		fmt.Printf("starting gocfl viewer at %v - https://%s:%v/", s.urlExt.String(), s.host, s.port)
 		return errors.WithStack(s.srv.ListenAndServeTLS(cert, key))
 	} else {
-		s.log.Infof("starting gocfl viewer at %v - http://%s:%v/", s.urlExt.String(), s.host, s.port)
+		fmt.Printf("starting gocfl viewer at %v - http://%s:%v/", s.urlExt.String(), s.host, s.port)
 		return errors.WithStack(s.srv.ListenAndServe())
 	}
 }
@@ -794,6 +802,176 @@ func (s *Server) displayObject(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "object.gohtml", gin.H(params))
+}
+
+func (s *Server) report(c *gin.Context) {
+
+	var err error
+	type idParam struct {
+		ID string `uri:"id" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
+
+	if s.object != nil && s.object.GetID() == iop.ID {
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+	}
+
+	if s.metadata == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no metadata loaded"})
+		return
+	}
+
+	extManager := s.object.GetExtensionManager()
+	inventory := s.object.GetInventory()
+
+	type mimeCount struct {
+		SizeStr string
+		Size    uint64
+		Count   int
+	}
+	var numFiles int
+	var size uint64
+	var noSizeFiles int
+	var mimeTypes = make(map[string]*mimeCount)
+	var pronoms = make(map[string]*mimeCount)
+	var videoSecs uint
+	for _, v := range s.metadata.Files {
+		numFiles += len(v.InternalName)
+		_fs, _ := v.Extension[extension.FilesystemName]
+		_idx, _ := v.Extension[extension.IndexerName]
+		var fs map[string]any
+		var idx *indexer.ResultV2
+		var ok bool
+		var sizeDone bool
+		if _fs != nil {
+			if fs, ok = _fs.(map[string]any); ok {
+				if fs["size"] != nil {
+					size += fs["size"].(uint64)
+					sizeDone = true
+				}
+			}
+		}
+		if _idx != nil {
+			if idx, ok = _idx.(*indexer.ResultV2); ok {
+				size += idx.Size
+				videoSecs += idx.Duration
+				if idx.Size > 0 {
+					sizeDone = true
+				}
+				if idx.Mimetype != "" {
+					if _, ok := mimeTypes[idx.Mimetype]; !ok {
+						mimeTypes[idx.Mimetype] = &mimeCount{
+							SizeStr: "",
+							Size:    0,
+							Count:   0,
+						}
+					}
+					mimeTypes[idx.Mimetype].Count++
+					mimeTypes[idx.Mimetype].Size += idx.Size
+				}
+				if idx.Pronom != "" {
+					if _, ok := pronoms[idx.Pronom]; !ok {
+						pronoms[idx.Pronom] = &mimeCount{
+							Size:  0,
+							Count: 0,
+						}
+					}
+					pronoms[idx.Pronom].Count++
+					pronoms[idx.Pronom].Size += idx.Size
+				}
+			}
+		}
+		if !sizeDone {
+			noSizeFiles++
+		}
+	}
+
+	for _, pronomSize := range pronoms {
+		pronomSize.SizeStr = humanize.Bytes(pronomSize.Size)
+	}
+	for _, mimeSize := range mimeTypes {
+		mimeSize.SizeStr = humanize.Bytes(mimeSize.Size)
+	}
+
+	var objectpath string
+	if fsStringer, ok := s.object.GetFS().(fmt.Stringer); ok {
+		objectpath = fsStringer.String()
+	}
+
+	mPath, err := extManager.BuildObjectManifestPath(s.object, "info.json", "metadata")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	var info map[string]any
+	// search for info file
+	for ver, _ := range s.metadata.Versions {
+		fullpath := filepath.ToSlash(filepath.Join(ver, "content", mPath))
+		jsonData, err := fs.ReadFile(s.object.GetFS(), fullpath)
+		if err == nil && len(jsonData) > 0 {
+			var infoStruct = map[string]any{}
+			if err := json.Unmarshal(jsonData, &infoStruct); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot unmarshal %s/%s", s.object.GetFS(), mPath).Error()})
+				return
+			}
+			info = infoStruct
+		}
+	}
+
+	var params = map[string]any{
+		"objectpath":     objectpath,
+		"gocfl":          "gocfl",
+		"head":           inventory.GetHead(),
+		"id":             s.object.GetID(),
+		"versions":       s.metadata.Versions,
+		"differentFiles": len(s.metadata.Files),
+		"numFiles":       numFiles,
+		"size":           size,
+		"noSizeFiles":    noSizeFiles,
+		"mimeTypes":      mimeTypes,
+		"pronoms":        pronoms,
+		"files":          s.metadata.Files,
+		"info":           info,
+		"avLength":       fmtDuration(time.Duration(int64(videoSecs) * int64(time.Second))),
+	}
+
+	c.HTML(http.StatusOK, "report.gohtml", gin.H(params))
+}
+
+func fmtDuration(d time.Duration) string {
+	d = d.Round(time.Minute)
+	h := d / time.Hour
+	d -= h * time.Hour
+	m := d / time.Minute
+	d -= m * time.Minute
+	s := d / time.Second
+	return fmt.Sprintf("%d:%02d:%02d", h, m, s)
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
