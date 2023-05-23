@@ -34,7 +34,7 @@ access rights, etc. this extension is a way to preserve this information.
       * **extension:** within the extension subfolder  
     * **Type:** string
     * **Default:** 
-
+* 
 * **Name:** `storageName`
     * **Description:** Location within the specified Type
         * **area:** area name
@@ -44,9 +44,9 @@ access rights, etc. this extension is a way to preserve this information.
     * **Default:**
 
 * **Name:** `folders`
-    * **Description:** name of the file containing the folder metadata. Empty means no folder metadata.
+    * **Description:** name of the file containing the folder metadata (i.e. ".keep"). Empty means no folder metadata.
     * **Type:** string
-    * **Default:**
+    * **Default:** 
 
 * **Name:** `compress`
     * **Description:** Compression type for JSONL file

@@ -27,7 +27,10 @@ import (
 //go:embed AdminLTE3.2/plugins/jquery/jquery.min.js
 //go:embed AdminLTE3.2/plugins/jquery/jquery.min.map
 //go:embed css/sidebar.css
+//go:embed css/interface.css
 //go:embed js/json-viewer.bundle.js
+//go:embed js/paged.js
+//go:embed js/paged.polyfill.js
 var WebRoot embed.FS
 
 //go:embed templates/object.gohtml
@@ -35,4 +38,5 @@ var WebRoot embed.FS
 //go:embed templates/manifest.gohtml
 //go:embed templates/version.gohtml
 //go:embed templates/detail.gohtml
+//go:embed templates/report.gohtml
 var TemplateRoot embed.FS

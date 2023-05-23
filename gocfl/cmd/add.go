@@ -9,6 +9,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	indexer2 "github.com/je4/gocfl/v2/pkg/subsystem/indexer"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
+	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
@@ -229,8 +230,16 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	thumb, err := thumbnail.GetThumbnails()
+	if err != nil {
+		daLogger.Errorf("cannot get thumbnails: %v", err)
+		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		return
+	}
+	thumb.SetSourceFS(sourceFS)
+
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, mig, sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, mig, thumb, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
