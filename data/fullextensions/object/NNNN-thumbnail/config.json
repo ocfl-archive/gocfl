@@ -1,6 +1,8 @@
 {
   "extensionName": "NNNN-thumbnail",
-  "compress": "gzip"
+  "compress": "gzip",
+  "width": 256,
+  "height": 256
 }
 
 

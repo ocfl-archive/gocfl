@@ -31,7 +31,7 @@ type Function struct {
 	mime    *regexp.Regexp
 }
 
-func (f *Function) Thumbnail(source string, dest string, logger *logging.Logger) error {
+func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger *logging.Logger) error {
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	args := []string{}
@@ -39,8 +39,8 @@ func (f *Function) Thumbnail(source string, dest string, logger *logging.Logger)
 		arg = strings.ReplaceAll(arg, "{source}", filepath.ToSlash(source))
 		arg = strings.ReplaceAll(arg, "{destination}", filepath.ToSlash(dest))
 		arg = strings.ReplaceAll(arg, "{background}", f.thumb.Background)
-		arg = strings.ReplaceAll(arg, "{width}", strconv.FormatUint(f.thumb.Width, 10))
-		arg = strings.ReplaceAll(arg, "{height}", strconv.FormatUint(f.thumb.Height, 10))
+		arg = strings.ReplaceAll(arg, "{width}", strconv.FormatUint(width, 10))
+		arg = strings.ReplaceAll(arg, "{height}", strconv.FormatUint(height, 10))
 		args = append(args, arg)
 	}
 	logger.Debugf("%s %v", f.command, args)
@@ -56,9 +56,6 @@ func (f *Function) GetID() string {
 type Thumbnail struct {
 	Functions  map[string]*Function
 	SourceFS   fs.FS
-	Width      uint64
-	Height     uint64
-	Ext        string
 	Background string
 }
 

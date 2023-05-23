@@ -28,9 +28,6 @@ func anyToStringMapString(dataAny any) (map[string]string, error) {
 func GetThumbnails() (*Thumbnail, error) {
 	m := &Thumbnail{
 		Functions:  map[string]*Function{},
-		Ext:        viper.GetString("Thumbnail.Ext"),
-		Width:      viper.GetUint64("Thumbnail.Width"),
-		Height:     viper.GetUint64("Thumbnail.Height"),
 		Background: viper.GetString("Thumbnail.Background"),
 		//Sources:   viper.GetStringMapString("Thumbnail.Source"),
 	}

@@ -66,6 +66,8 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
 - [x] Nearly full coverage of validation errors and warnings
 - [x] Content information
 - [x] Extraction with version selection
+- [x] Display of content via Webserver
+- [x] Report generation
 - [Community Extensions](https://github.com/OCFL/extensions/docs) 
   - [x] 0001-digest-algorithms
   - [x] 0002-flat-direct-storage-layout
@@ -84,6 +86,7 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
   - [x] [NNNN-migration](docs/NNNN-migration.md) (migration of file formats)
   - [x] [NNNN-gocfl-extension-manager](docs/NNNN-gocfl-extension-manager.md) (initial extension for sorted exclusion and sorted execution)
   - [x] [NNNN-filesystem](docs/NNNN-filesystem.md) (filesystem metadata extension)
+  - [x] [NNNN-thumbnail](docs/NNNN-thumbnail.md) (generation of thumbnails)
 
 ## Command Line Interface
 

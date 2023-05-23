@@ -76,6 +76,28 @@
             text-indent: -1em;
         }
 
+        table.tree {
+            break-inside: auto;
+            border-collapse: collapse;
+        }
+
+        table.tree tr {
+            break-inside: avoid;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        table.tree td {
+            font-size: small;
+            padding-left: 10px;
+            padding-bottom: 2px;
+        }
+
+        table.tree td.tree {
+            width: 28px;
+            border-right: thin solid black;
+        }
+
         table.type {
             break-inside: avoid;
             border-collapse: collapse;
@@ -276,6 +298,22 @@
                 <td>
                     {{ $pSize.SizeStr }}
                 </td>
+            </tr>
+        {{ end }}
+    </table>
+</div>
+
+<div class="chapter">
+    <h2 id="subtitle">
+        File Listing
+    </h2>
+    <table class="tree" style="">
+        {{ range $node := .tree }}
+            <tr>
+                {{ range $i := (until $node.Left) }}
+                <td class="tree"{{ if not $i }} style="border-right: none"{{ end }}></td>
+                {{ end }}
+                <td colspan={{ add1 $node.Right }}>{{ $node.Name }}</td>
             </tr>
         {{ end }}
     </table>

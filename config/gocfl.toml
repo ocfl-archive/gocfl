@@ -166,9 +166,6 @@ Output = ""
 
 [Thumbnail]
 Enable=true
-Width=256
-Height=256
-Ext="png"
 Background="none"
 
 [Thumbnail.Function.CR2]

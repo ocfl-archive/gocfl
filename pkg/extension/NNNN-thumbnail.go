@@ -26,6 +26,9 @@ const ThumbnailDescription = "preservation management - file thumbnail"
 type ThumbnailConfig struct {
 	*ocfl.ExtensionConfig
 	Compress string
+	Ext      string
+	Width    uint64
+	Height   uint64
 }
 
 type ThumbnailTarget struct {
@@ -75,6 +78,17 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.
 	var config = &ThumbnailConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	if config.Ext == "" {
+		config.Ext = "png"
+	} else {
+		config.Ext = strings.ToLower(config.Ext)
+	}
+	if config.Width == 0 {
+		config.Width = 256
+	}
+	if config.Height == 0 {
+		config.Height = 256
 	}
 	ext, err := NewThumbnail(config, thumbnail, logger)
 	if err != nil {
@@ -143,7 +157,7 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, mig *thumbnail.Function,
 	if err := tmpFile.Close(); err != nil {
 		return errors.Wrap(err, "cannot close temp file")
 	}
-	if err := mig.Thumbnail(tmpFilename, targetTempName, thumb.logger); err != nil {
+	if err := mig.Thumbnail(tmpFilename, targetTempName, thumb.ThumbnailConfig.Width, thumb.ThumbnailConfig.Height, thumb.logger); err != nil {
 		//_ = os.Remove(tmpFilename)
 		return errors.Wrapf(err, "cannot create thumbnail file '%v' to object '%s'", targetName, object.GetID())
 	}
@@ -218,7 +232,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 
-		targetFile := fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(cs)[0]), string([]rune(cs)[1]), cs, strings.ToLower(thumb.thumbnail.Ext))
+		targetFile := fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(cs)[0]), string([]rune(cs)[1]), cs, strings.ToLower(thumb.ThumbnailConfig.Ext))
 
 		var file io.ReadCloser
 		var ext string
@@ -258,7 +272,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 				ml = &thumbnailLine{
 					Checksum: cs,
 					ThumbnailResult: ThumbnailResult{
-						Ext:   thumb.thumbnail.Ext,
+						Ext:   thumb.ThumbnailConfig.Ext,
 						Error: errStr,
 						ID:    thumbnailFunction.GetID(),
 					},

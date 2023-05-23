@@ -944,6 +944,78 @@ func (s *Server) report(c *gin.Context) {
 		}
 	}
 
+	var filenames = []string{}
+
+	type edge struct {
+		indent   uint
+		children []*edge
+		parent   *edge
+		name     string
+	}
+
+	var tree = &edge{
+		indent:   0,
+		children: []*edge{},
+		parent:   nil,
+		name:     "",
+	}
+
+	var maxDepth uint
+	var addToTree func(parts []string, e *edge)
+	addToTree = func(parts []string, e *edge) {
+		if len(parts) == 0 {
+			return
+		}
+		for _, child := range e.children {
+			if child.name == parts[0] {
+				addToTree(parts[1:], child)
+				return
+			}
+		}
+		newEdge := &edge{
+			indent:   e.indent + 1,
+			children: []*edge{},
+			parent:   e,
+			name:     parts[0],
+		}
+		if maxDepth <= e.indent {
+			maxDepth = e.indent + 1
+		}
+		e.children = append(e.children, newEdge)
+		addToTree(parts[1:], newEdge)
+	}
+
+	for _, file := range s.metadata.Files {
+		for _, files := range file.VersionName {
+			for _, filename := range files {
+				filenames = append(filenames, filename)
+				parts := strings.Split(filename, "/")
+				addToTree(parts, tree)
+			}
+		}
+	}
+
+	type flatEdge struct {
+		Left  int
+		Right int
+		Name  string
+	}
+	var flatTree = []*flatEdge{}
+	var flattenTree func(e *edge)
+	flattenTree = func(e *edge) {
+		if e.name != "" {
+			flatTree = append(flatTree, &flatEdge{
+				Left:  int(e.indent),
+				Right: int(maxDepth - e.indent),
+				Name:  e.name,
+			})
+		}
+		for _, child := range e.children {
+			flattenTree(child)
+		}
+	}
+	flattenTree(tree)
+
 	var params = map[string]any{
 		"objectpath":     objectpath,
 		"gocfl":          "gocfl",
@@ -959,6 +1031,7 @@ func (s *Server) report(c *gin.Context) {
 		"files":          s.metadata.Files,
 		"info":           info,
 		"avLength":       fmtDuration(time.Duration(int64(videoSecs) * int64(time.Second))),
+		"tree":           flatTree,
 	}
 
 	c.HTML(http.StatusOK, "report.gohtml", gin.H(params))
