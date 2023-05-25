@@ -17,6 +17,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -59,9 +60,11 @@ type Indexer struct {
 	active         bool
 	indexerActions *ironmaiden.ActionDispatcher
 	currentHead    string
+	localCache     bool
+	logger         *logging.Logger
 }
 
-func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, logger *logging.Logger) (*Indexer, error) {
+func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger *logging.Logger) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -76,13 +79,13 @@ func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.Actio
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	ext, err := NewIndexer(config, urlString, indexerActions)
+	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create new indexer")
 	}
 	return ext, nil
 }
-func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher) (*Indexer, error) {
+func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger *logging.Logger) (*Indexer, error) {
 	var err error
 
 	if len(config.Actions) == 0 {
@@ -112,6 +115,8 @@ func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmai
 		buffer:         map[string]*bytes.Buffer{},
 		active:         true,
 		indexerActions: indexerActions,
+		localCache:     localCache,
+		logger:         logger,
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
@@ -315,20 +320,45 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 		sl.currentHead = head
 	}
 
-	result, err := sl.indexerActions.Stream(reader, stateFiles, sl.Actions)
+	var result *ironmaiden.ResultV2
+	var err error
+	if sl.localCache {
+		if len(stateFiles) == 0 {
+			return errors.Wrapf(err, "no statefiles")
+		}
+		tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+filepath.Ext(stateFiles[0]))
+		if err != nil {
+			return errors.Wrapf(err, "cannot create temp file")
+		}
+		fi, err := tmpFile.Stat()
+		if err != nil {
+			return errors.Wrapf(err, "cannot stat tempfile")
+		}
+		tmpFilename := filepath.ToSlash(filepath.Join(os.TempDir(), fi.Name()))
+		if _, err := io.Copy(tmpFile, reader); err != nil {
+			return errors.Wrapf(err, "cannot write to tempfile")
+		}
+		tmpFile.Close()
+		result, err = sl.indexerActions.DoV2(tmpFilename, stateFiles, sl.Actions)
+		os.Remove(tmpFilename)
+	} else {
+		result, err = sl.indexerActions.Stream(reader, stateFiles, sl.Actions)
+	}
 	if err != nil {
 		return errors.Wrapf(err, "cannot index '%s'", stateFiles)
 	}
-	var indexerline = indexerLine{
-		Path:    filepath.ToSlash(inventory.BuildManifestName(dest)),
-		Indexer: result,
-	}
-	data, err := json.Marshal(indexerline)
-	if err != nil {
-		return errors.Errorf("cannot marshal result %v", indexerline)
-	}
-	if _, err := sl.writer.Write(append(data, []byte("\n")...)); err != nil {
-		return errors.Errorf("cannot brotli %s", string(data))
+	if result != nil {
+		var indexerline = indexerLine{
+			Path:    filepath.ToSlash(inventory.BuildManifestName(dest)),
+			Indexer: result,
+		}
+		data, err := json.Marshal(indexerline)
+		if err != nil {
+			return errors.Errorf("cannot marshal result %v", indexerline)
+		}
+		if _, err := sl.writer.Write(append(data, []byte("\n")...)); err != nil {
+			return errors.Errorf("cannot brotli %s", string(data))
+		}
 	}
 	return nil
 }

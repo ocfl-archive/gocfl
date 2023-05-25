@@ -111,9 +111,9 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --object-extensions
-ObjectExtensions="c:/daten/go/dev/gocfl/data/fullextensions/object" # default "": use built in extensions
+ObjectExtensions="c:/daten/go/dev/gocfl/data/nomigrationextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-StoragerootExtensions="c:/daten/go/dev/gocfl/data/fullextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="c:/daten/go/dev/gocfl/data/nomigrationextensions/storageroot" # default "": use built in extensions
 # --no-compress
 NoCompress=true
 # --encrypt-aes
@@ -181,6 +181,13 @@ Title = "Thumbnail from Image"
 Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
 Timeout = "2m"
 Mime = "image/.+"
+
+[Thumbnail.Function.Audio]
+ID = "Audio#01"
+Title = "Spectrogram from Audio"
+Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Mime = "audio/.+"
 
 [Thumbnail.Function.PDF]
 ID = "PDF#01"
@@ -266,6 +273,8 @@ Pronoms = "fmt/14,fmt/15,fmt/16,fmt/17,fmt/18,fmt/19,fmt/20,fmt/276,fmt/95,fmt/3
 [Indexer]
 # --with-indexer
 Enable=true
+# Enable this, if there are problem detecting length of audio files with ffmpeg
+LocalCache=true
 
 [Indexer.Siegfried]
 #Signature = "/usr/share/siegfried/default.sig"

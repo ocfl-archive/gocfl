@@ -266,7 +266,7 @@
     <h1 id="subtitle">
         Content Overview
     </h1>
-    <table style=" margin-left: auto; margin-right: auto;">
+    <table style=" margin-left: auto; margin-right: auto; margin-bottom: 40px;">
         <tr>
             <td>Number of Files</td>
             <td>{{ .numFiles }}</td>
@@ -281,7 +281,7 @@
         </tr>
     </table>
 
-    <table class="type">
+    <table class="type" style="margin-left: auto; margin-right: auto;">
         <tr>
             <th class="first">Mimetype</th>
             <th>Count</th>
@@ -363,7 +363,7 @@
                         {{ range $key,$extName := $extNames }}
                             <tr>
                                 <td style="border-top: thin solid black;" class="head">Filename</td>
-                                <td style="border-top: thin solid black;" >{{ $extName }}</td>
+                                <td style="border-top: thin solid black;word-break: break-all;" >{{ $extName }}</td>
                             </tr>
                             {{ if $filesystem }}
                                 {{ range $ver,$fss := $filesystem }}

@@ -47,7 +47,7 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
+func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger *logging.Logger) (*ocfl.ExtensionFactory, error) {
 	logger.Debugf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
@@ -116,7 +116,7 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 
 	logger.Debugf("adding creator for extension %s", extension.IndexerName)
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
-		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions, logger)
+		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions, indexerLocalCache, logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
 		}
