@@ -28,8 +28,10 @@ import (
 // go:embed AdminLTE3.2/plugins/jquery/jquery.min.js
 // go:embed AdminLTE3.2/plugins/jquery/jquery.min.map
 //
-//go:embed bootstrap/dist/css/*
-//go:embed bootstrap/dist/js/*
+//go:embed bootstrap/dist/css/bootstrap.min.css
+//go:embed bootstrap/dist/css/bootstrap.min.css.map
+//go:embed bootstrap/dist/js/bootstrap.bundle.min.js
+//go:embed bootstrap/dist/js/bootstrap.bundle.min.js.map
 //go:embed css/sidebar.css
 //go:embed css/interface.css
 //go:embed js/json-viewer.bundle.js

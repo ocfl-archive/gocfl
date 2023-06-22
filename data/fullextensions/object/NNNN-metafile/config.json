@@ -3,7 +3,8 @@
   "storageType": "area",
   "storageName": "metadata",
   "format": "yaml",
-  "schema": "schema.json"
+  "schema": "schema.json",
+  "schemaUrl": "https://"
 }
 
 

@@ -924,53 +924,63 @@ func (s *Server) report(c *gin.Context) {
 		objectpath = fsStringer.String()
 	}
 
-	/*
-			cfg, err := extManager.GetConfigName(extension.MetaFileName)
-		if err != nil {
-			cfg = extension.MetaFileConfig{
-				ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: extension.MetaFileName},
-				StorageType:     "area",
-				StorageName:     "metadata",
-				MetaFormat:      "json",
-				MetaSchema:      "none",
-			}
-		}
-
-			metafileCfg, ok := cfg.(*extension.MetaFileConfig)
-			if !ok {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Errorf("invalid config format %v", cfg)})
-				return
-			}
-
-				if metafileCfg.StorageType == "extension" {
-					fsys, err := extManager.GetFSName(extension.MetaFileName)
-					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-						return
-					}
-					_ = fsys
-					//		writefs.WriteFile(fsys)
-				}
-
-	*/
-
-	mPath, err := extManager.BuildObjectManifestPath(s.object, "info.json", "metadata")
+	cfg, err := extManager.GetConfigName(extension.MetaFileName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		cfg = &extension.MetaFileConfig{
+			ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: extension.MetaFileName},
+			StorageType:     "area",
+			StorageName:     "metadata",
+			MetaFormat:      "json",
+			MetaSchema:      "none",
+		}
+	}
+
+	metafileCfg, ok := cfg.(*extension.MetaFileConfig)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Errorf("invalid config format %v", cfg)})
 		return
 	}
-	var info map[string]any
-	// search for info file
-	for ver, _ := range s.metadata.Versions {
-		fullpath := filepath.ToSlash(filepath.Join(ver, "content", mPath))
-		jsonData, err := fs.ReadFile(s.object.GetFS(), fullpath)
-		if err == nil && len(jsonData) > 0 {
-			var infoStruct = map[string]any{}
-			if err := json.Unmarshal(jsonData, &infoStruct); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot unmarshal %s/%s", s.object.GetFS(), mPath).Error()})
-				return
+
+	var infoBytes []byte
+	if metafileCfg.StorageType == "extension" {
+		fsys, err := extManager.GetFSName(extension.MetaFileName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		infoBytes, err = fs.ReadFile(fsys, fmt.Sprintf("info.%s", metafileCfg.MetaFormat))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot open %v/info.%s", fsys, metafileCfg.MetaFormat).Error()})
+			return
+		}
+	} else {
+		area := "content"
+		path := metafileCfg.StorageName
+		if metafileCfg.StorageType == "area" {
+			area = metafileCfg.StorageName
+			path = ""
+		}
+		fname := filepath.ToSlash(filepath.Join(path, fmt.Sprintf("info.%s", metafileCfg.MetaFormat)))
+		mPath, err := extManager.BuildObjectManifestPath(s.object, fname, area)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot map %s:%s", area, fname).Error()})
+			return
+		}
+
+		// search for info file
+		for ver, _ := range s.metadata.Versions {
+			fullpath := filepath.ToSlash(filepath.Join(ver, "content", mPath))
+			jsonData, err := fs.ReadFile(s.object.GetFS(), fullpath)
+			if err == nil && len(jsonData) > 0 {
+				infoBytes = jsonData
 			}
-			info = infoStruct
+		}
+	}
+	var info = map[string]any{}
+	if len(infoBytes) > 0 {
+		if err := json.Unmarshal(infoBytes, &info); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot unmarshal info.%s", metafileCfg.MetaFormat).Error()})
+			return
 		}
 	}
 
