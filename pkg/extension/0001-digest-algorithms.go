@@ -25,14 +25,6 @@ var algorithms = []checksum.DigestAlgorithm{
 	checksum.DigestSHA1,
 }
 
-type DigestAlgorithmsConfig struct {
-	*ocfl.ExtensionConfig
-}
-type DigestAlgorithms struct {
-	*DigestAlgorithmsConfig
-	fsys fs.FS
-}
-
 func NewDigestAlgorithmsFS(fsys fs.FS) (*DigestAlgorithms, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -59,17 +51,28 @@ func NewDigestAlgorithms(config *DigestAlgorithmsConfig) (*DigestAlgorithms, err
 	return sl, nil
 }
 
+type DigestAlgorithmsConfig struct {
+	*ocfl.ExtensionConfig
+}
+type DigestAlgorithms struct {
+	*DigestAlgorithmsConfig
+	fsys fs.FS
+}
+
+func (sl *DigestAlgorithms) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *DigestAlgorithms) GetConfig() any {
+	return sl.DigestAlgorithmsConfig
+}
+
 func (sl *DigestAlgorithms) IsRegistered() bool {
 	return true
 }
 
 func (sl *DigestAlgorithms) GetFixityDigests() []checksum.DigestAlgorithm {
 	return algorithms
-}
-
-func (sl *DigestAlgorithms) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.DigestAlgorithmsConfig, "", "  ")
-	return string(str)
 }
 
 func (sl *DigestAlgorithms) SetFS(fsys fs.FS) {

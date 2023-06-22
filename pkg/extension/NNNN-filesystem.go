@@ -84,6 +84,14 @@ type Filesystem struct {
 	writer      *brotli.Writer
 }
 
+func (extFS *Filesystem) GetFS() fs.FS {
+	return extFS.fsys
+}
+
+func (extFS *Filesystem) GetConfig() any {
+	return extFS.FilesystemConfig
+}
+
 func (extFS *Filesystem) AddFileBefore(object ocfl.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
@@ -319,17 +327,18 @@ func (extFS *Filesystem) WriteConfig() error {
 	if extFS.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	err := writefs.WriteFile(extFS.fsys, "config.json", []byte(extFS.GetConfigString()))
+	configWriter, err := writefs.Create(extFS.fsys, "config.json")
 	if err != nil {
-		return errors.Wrap(err, "cannot write config.json")
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(extFS.FilesystemConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 
-}
-
-func (extFS *Filesystem) GetConfigString() string {
-	str, _ := json.MarshalIndent(extFS.FilesystemConfig, "", "  ")
-	return string(str)
 }
 
 func (extFS *Filesystem) IsRegistered() bool {

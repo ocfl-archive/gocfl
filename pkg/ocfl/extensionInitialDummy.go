@@ -8,10 +8,6 @@ import (
 	"io/fs"
 )
 
-type InitialDummy struct {
-	*ExtensionManagerConfig
-}
-
 func NewInitialDummyFS(fsys fs.FS) (Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -35,6 +31,19 @@ func NewInitialDummy(config *ExtensionManagerConfig) (*InitialDummy, error) {
 		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
 	}
 	return sl, nil
+}
+
+type InitialDummy struct {
+	*ExtensionManagerConfig
+}
+
+func (dummy *InitialDummy) GetFS() fs.FS {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (dummy *InitialDummy) GetConfig() any {
+	return dummy.ExtensionManagerConfig
 }
 
 func (dummy *InitialDummy) IsRegistered() bool {

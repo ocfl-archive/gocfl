@@ -182,6 +182,13 @@ Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -re
 Timeout = "2m"
 Mime = "image/.+"
 
+[Thumbnail.Function.Audio]
+ID = "Audio#01"
+Title = "Spectrogram from Audio"
+Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Mime = "audio/.+"
+
 [Thumbnail.Function.PDF]
 ID = "PDF#01"
 Title = "Thumbnail from Image"
@@ -266,6 +273,8 @@ Pronoms = "fmt/14,fmt/15,fmt/16,fmt/17,fmt/18,fmt/19,fmt/20,fmt/276,fmt/95,fmt/3
 [Indexer]
 # --with-indexer
 Enable=true
+# Enable this, if there are problem detecting length of audio files with ffmpeg
+LocalCache=true
 
 [Indexer.Siegfried]
 #Signature = "/usr/share/siegfried/default.sig"
@@ -298,27 +307,36 @@ Signature = "C:/Users/micro/siegfried/default.sig"
 # relevance > 100: rate up
 # default = 100
 [Indexer.MimeRelevance.1]
-Regexp = "^application/octet-stream$"
+Regexp = "^application/octet-stream"
 Weight = 1
 [Indexer.MimeRelevance.2]
-Regexp = "^text/plain$"
+Regexp = "^text/plain"
 Weight = 3
 [Indexer.MimeRelevance.3]
-Regexp = "^audio/mpeg$"
+Regexp = "^audio/mpeg"
 Weight = 6
 [Indexer.MimeRelevance.4]
-Regexp = "^video/mpeg$"
+Regexp = "^video/mpeg"
 Weight = 5
 [Indexer.MimeRelevance.5]
-Regexp = "^text/.+$"
+Regexp = "^application/vnd\\..+"
 Weight = 4
 [Indexer.MimeRelevance.6]
-Regexp = "^application/vnd\\..+"
+Regexp = "^application/rtf"
 Weight = 4
 [Indexer.MimeRelevance.7]
 Regexp = "^application/.+"
 Weight = 2
 [Indexer.MimeRelevance.8]
+Regexp = "^text/.+"
+Weight = 4
+[Indexer.MimeRelevance.9]
+Regexp = "^audio/.+"
+Weight = 5
+[Indexer.MimeRelevance.10]
+Regexp = "^video/.+"
+Weight = 4
+[Indexer.MimeRelevance.11]
 Regexp = "^.+/x-.+"
 Weight = 80
 

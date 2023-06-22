@@ -1,0 +1,16 @@
+{
+  "extensionName": "NNNN-content-subpath",
+  "subPath": {
+    "content": {
+      "path": "data",
+      "description": "Payload of archival object"
+    },
+    "metadata": {
+      "path": "metadata",
+      "description": "additional semantic metadata"
+    }
+  }
+}
+
+
+

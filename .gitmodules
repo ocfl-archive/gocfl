@@ -2,3 +2,6 @@
 	path = fixtures/fixtures
 	url = https://github.com/OCFL/fixtures.git
 	branch = main
+[submodule "bootstrap"]
+	path = data/displaydata/bootstrap
+	url = https://github.com/twbs/bootstrap.git

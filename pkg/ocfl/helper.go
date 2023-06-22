@@ -382,7 +382,7 @@ func WriteJsonL(object Object, name string, brotliData []byte, compress, storage
 	}
 
 	head := object.GetInventory().GetHead()
-	switch storageType {
+	switch strings.ToLower(storageType) {
 	case "area":
 		targetname := fmt.Sprintf("%s_%s.jsonl%s", name, head, ext)
 		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, storageName, true, false); err != nil {

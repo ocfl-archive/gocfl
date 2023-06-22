@@ -17,21 +17,6 @@ import (
 const ContentSubPathName = "NNNN-content-subpath"
 const ContentSubPathDescription = "prepend a path inside the version content"
 
-type ContentSubPathEntry struct {
-	Path        string `json:"path"`
-	Description string `json:"description"`
-}
-
-type ContentSubPathConfig struct {
-	*ocfl.ExtensionConfig
-	Paths map[string]ContentSubPathEntry `json:"subPath"`
-}
-type ContentSubPath struct {
-	*ContentSubPathConfig
-	fsys fs.FS
-	area string
-}
-
 func GetContentSubPathParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
 		{
@@ -71,6 +56,29 @@ func NewContentSubPath(config *ContentSubPathConfig) (*ContentSubPath, error) {
 	return sl, nil
 }
 
+type ContentSubPathEntry struct {
+	Path        string `json:"path"`
+	Description string `json:"description"`
+}
+
+type ContentSubPathConfig struct {
+	*ocfl.ExtensionConfig
+	Paths map[string]ContentSubPathEntry `json:"subPath"`
+}
+type ContentSubPath struct {
+	*ContentSubPathConfig
+	fsys fs.FS
+	area string
+}
+
+func (sl *ContentSubPath) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *ContentSubPath) GetConfig() any {
+	return sl.ContentSubPathConfig
+}
+
 func (sl *ContentSubPath) IsRegistered() bool {
 	return false
 }
@@ -89,11 +97,6 @@ func (sl *ContentSubPath) SetParams(params map[string]string) error {
 }
 
 func (sl *ContentSubPath) GetName() string { return ContentSubPathName }
-
-func (sl *ContentSubPath) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.ContentSubPathConfig, "", "  ")
-	return string(str)
-}
 
 func (sl *ContentSubPath) WriteConfig() error {
 	if sl.fsys == nil {

@@ -15,13 +15,16 @@ require (
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
+	github.com/invopop/jsonschema v0.7.0
 	github.com/je4/filesystem/v2 v2.0.0-20230501160938-77a3222c20b1
 	github.com/je4/indexer/v2 v2.0.0-20230517155556-ad4de58e0d9a
 	github.com/je4/utils/v2 v2.0.8-0.20230429090351-3cef63b41e76
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -54,6 +57,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
+	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d // indirect

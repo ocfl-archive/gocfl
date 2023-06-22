@@ -924,6 +924,36 @@ func (s *Server) report(c *gin.Context) {
 		objectpath = fsStringer.String()
 	}
 
+	/*
+			cfg, err := extManager.GetConfigName(extension.MetaFileName)
+		if err != nil {
+			cfg = extension.MetaFileConfig{
+				ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: extension.MetaFileName},
+				StorageType:     "area",
+				StorageName:     "metadata",
+				MetaFormat:      "json",
+				MetaSchema:      "none",
+			}
+		}
+
+			metafileCfg, ok := cfg.(*extension.MetaFileConfig)
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Errorf("invalid config format %v", cfg)})
+				return
+			}
+
+				if metafileCfg.StorageType == "extension" {
+					fsys, err := extManager.GetFSName(extension.MetaFileName)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+						return
+					}
+					_ = fsys
+					//		writefs.WriteFile(fsys)
+				}
+
+	*/
+
 	mPath, err := extManager.BuildObjectManifestPath(s.object, "info.json", "metadata")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

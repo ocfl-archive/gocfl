@@ -16,19 +16,6 @@ import (
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
 const StorageLayoutHashAndIdNTupleDescription = "Hashed Truncated N-tuple Trees with Object ID Encapsulating Directory for OCFL Storage Hierarchies"
 
-type StorageLayoutHashAndIdNTuple struct {
-	*StorageLayoutHashAndIdNTupleConfig
-	hash hash.Hash
-	fsys fs.FS
-}
-
-type StorageLayoutHashAndIdNTupleConfig struct {
-	*ocfl.ExtensionConfig
-	DigestAlgorithm string `json:"digestAlgorithm"`
-	TupleSize       int    `json:"tupleSize"`
-	NumberOfTuples  int    `json:"numberOfTuples"`
-}
-
 func NewStorageLayoutHashAndIdNTupleFS(fsys fs.FS) (*StorageLayoutHashAndIdNTuple, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -69,17 +56,33 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 	return sl, nil
 }
 
+type StorageLayoutHashAndIdNTupleConfig struct {
+	*ocfl.ExtensionConfig
+	DigestAlgorithm string `json:"digestAlgorithm"`
+	TupleSize       int    `json:"tupleSize"`
+	NumberOfTuples  int    `json:"numberOfTuples"`
+}
+
+type StorageLayoutHashAndIdNTuple struct {
+	*StorageLayoutHashAndIdNTupleConfig
+	hash hash.Hash
+	fsys fs.FS
+}
+
+func (sl *StorageLayoutHashAndIdNTuple) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *StorageLayoutHashAndIdNTuple) GetConfig() any {
+	return sl.StorageLayoutHashAndIdNTupleConfig
+}
+
 func (sl *StorageLayoutHashAndIdNTuple) IsRegistered() bool {
 	return true
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
-}
-
-func (sl *StorageLayoutHashAndIdNTuple) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.StorageLayoutHashAndIdNTupleConfig, "", "  ")
-	return string(str)
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) SetFS(fsys fs.FS) {

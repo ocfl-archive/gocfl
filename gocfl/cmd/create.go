@@ -155,7 +155,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var indexerActions *ironmaiden.ActionDispatcher
 	var addr string
+	var localCache bool
 	if viper.GetBool("Indexer.Enable") {
+		localCache = viper.GetBool("Indexer.LocalCache")
 		siegfried, err := indexer2.GetSiegfried()
 		if err != nil {
 			daLogger.Warningf("cannot load indexer Siegfried: %v", err)
@@ -279,7 +281,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, indexerActions, mig, thumb, sourceFS, daLogger)
+	extensionFactory, err := initExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

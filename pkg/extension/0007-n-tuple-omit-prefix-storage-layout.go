@@ -29,20 +29,6 @@ func reverse(s string) string {
 	return string(rns)
 }
 
-type NTupleOmitPrefixStorageLayoutConfig struct {
-	*ocfl.ExtensionConfig
-	Delimiter         string `json:"delimiter"`
-	TupleSize         int    `json:"tupleSize"`
-	NumberOfTuples    int    `json:"numberOfTuples"`
-	ZeroPadding       string `json:"zeroPadding"`
-	ReverseObjectRoot bool   `json:"reverseObjectRoot"`
-}
-
-type NTupleOmitPrefixStorageLayout struct {
-	*NTupleOmitPrefixStorageLayoutConfig
-	fsys fs.FS
-}
-
 func NewNTupleOmitPrefixStorageLayoutFS(fsys fs.FS) (*NTupleOmitPrefixStorageLayout, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -68,17 +54,34 @@ func NewNTupleOmitPrefixStorageLayout(config *NTupleOmitPrefixStorageLayoutConfi
 	return sl, nil
 }
 
+type NTupleOmitPrefixStorageLayoutConfig struct {
+	*ocfl.ExtensionConfig
+	Delimiter         string `json:"delimiter"`
+	TupleSize         int    `json:"tupleSize"`
+	NumberOfTuples    int    `json:"numberOfTuples"`
+	ZeroPadding       string `json:"zeroPadding"`
+	ReverseObjectRoot bool   `json:"reverseObjectRoot"`
+}
+
+type NTupleOmitPrefixStorageLayout struct {
+	*NTupleOmitPrefixStorageLayoutConfig
+	fsys fs.FS
+}
+
+func (sl *NTupleOmitPrefixStorageLayout) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *NTupleOmitPrefixStorageLayout) GetConfig() any {
+	return sl.NTupleOmitPrefixStorageLayoutConfig
+}
+
 func (sl *NTupleOmitPrefixStorageLayout) IsRegistered() bool {
 	return true
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []ocfl.StatInfo) error {
 	return nil
-}
-
-func (sl *NTupleOmitPrefixStorageLayout) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.NTupleOmitPrefixStorageLayoutConfig, "", "  ")
-	return string(str)
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) SetFS(fsys fs.FS) {

@@ -14,9 +14,11 @@ type ExtensionConfig struct {
 type Extension interface {
 	GetName() string
 	SetFS(fsys fs.FS)
+	GetFS() fs.FS
 	SetParams(params map[string]string) error
 	WriteConfig() error
-	GetConfigString() string
+	//GetConfigString() string
+	GetConfig() any
 	IsRegistered() bool
 	//	Stat(w io.Writer, statInfo []StatInfo) error
 }

@@ -20,6 +20,16 @@ type LoggingIndexer struct {
 	metadata map[string]any
 }
 
+func (sl *LoggingIndexer) GetFS() fs.FS {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (sl *LoggingIndexer) GetConfig() any {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (sl *LoggingIndexer) IsRegistered() bool {
 	return false
 }
@@ -35,11 +45,6 @@ func (li *LoggingIndexer) SetParams(params map[string]string) error {
 }
 
 func (li *LoggingIndexer) WriteConfig() error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (li *LoggingIndexer) GetConfigString() string {
 	//TODO implement me
 	panic("implement me")
 }

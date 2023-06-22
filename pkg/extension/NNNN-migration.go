@@ -22,6 +22,40 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger *logging.Logger) (*Migration, error) {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read config.json")
+	}
+
+	var config = &MigrationConfig{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	ext, err := NewMigration(config, migration)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create new indexer")
+	}
+	return ext, nil
+}
+func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
+	sl := &Migration{
+		MigrationConfig: config,
+		migration:       mig,
+		buffer:          map[string]*bytes.Buffer{},
+		migrationFiles:  map[string]*migration.Function{},
+		migratedFiles:   map[string]map[string]string{},
+	}
+	//	sl.writer = brotli.NewWriter(sl.buffer)
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	}
+	if mig != nil {
+		sl.sourceFS = mig.SourceFS
+	}
+	return sl, nil
+}
+
 type MigrationConfig struct {
 	*ocfl.ExtensionConfig
 	StorageType string
@@ -69,43 +103,12 @@ type Migration struct {
 	done           bool
 }
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger *logging.Logger) (*Migration, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &MigrationConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	ext, err := NewMigration(config, migration)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
-	}
-	return ext, nil
-}
-func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
-	sl := &Migration{
-		MigrationConfig: config,
-		migration:       mig,
-		buffer:          map[string]*bytes.Buffer{},
-		migrationFiles:  map[string]*migration.Function{},
-		migratedFiles:   map[string]map[string]string{},
-	}
-	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-	if mig != nil {
-		sl.sourceFS = mig.SourceFS
-	}
-	return sl, nil
+func (mi *Migration) GetFS() fs.FS {
+	return mi.fsys
 }
 
-func (mi *Migration) GetConfigString() string {
-	str, _ := json.MarshalIndent(mi.MigrationConfig, "", "  ")
-	return string(str)
+func (mi *Migration) GetConfig() any {
+	return mi.MigrationConfig
 }
 
 func (mi *Migration) IsRegistered() bool { return false }
@@ -122,7 +125,8 @@ func (mi *Migration) WriteConfig() error {
 	if mi.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	err := writefs.WriteFile(mi.fsys, "config.json", []byte(mi.GetConfigString()))
+	str, _ := json.MarshalIndent(mi.MigrationConfig, "", "  ")
+	err := writefs.WriteFile(mi.fsys, "config.json", []byte(str))
 	if err != nil {
 		return errors.Wrap(err, "cannot write config.json")
 	}

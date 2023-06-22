@@ -31,25 +31,6 @@ var directCleanRulePeriods = regexp.MustCompile("^\\.+$")
 var directCleanErrFilenameTooLong = errors.New("filename too long")
 var directCleanErrPathnameTooLong = errors.New("pathname too long")
 
-type DirectClean struct {
-	*DirectCleanConfig
-	fsys      fs.FS
-	hash      hash.Hash  `json:"-"`
-	hashMutex sync.Mutex `json:"-"`
-}
-
-type DirectCleanConfig struct {
-	*ocfl.ExtensionConfig
-	MaxPathnameLen              int                      `json:"maxPathnameLen"`
-	MaxFilenameLen              int                      `json:"maxFilenameLen"`
-	ReplacementString           string                   `json:"replacementString"`
-	WhitespaceReplacementString string                   `json:"whitespaceReplacementString"`
-	UTFEncode                   bool                     `json:"utfEncode"`
-	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
-	FallbackFolder              string                   `json:"fallbackFolder"`
-	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
-}
-
 func min[T constraints.Ordered](a, b T) T {
 	if a < b {
 		return a
@@ -112,6 +93,33 @@ func encodeUTFCode(s string) string {
 	return "=u" + strings.Trim(fmt.Sprintf("%U", []rune(s)), "U+[]")
 }
 
+type DirectCleanConfig struct {
+	*ocfl.ExtensionConfig
+	MaxPathnameLen              int                      `json:"maxPathnameLen"`
+	MaxFilenameLen              int                      `json:"maxFilenameLen"`
+	ReplacementString           string                   `json:"replacementString"`
+	WhitespaceReplacementString string                   `json:"whitespaceReplacementString"`
+	UTFEncode                   bool                     `json:"utfEncode"`
+	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
+	FallbackFolder              string                   `json:"fallbackFolder"`
+	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
+}
+
+type DirectClean struct {
+	*DirectCleanConfig
+	fsys      fs.FS
+	hash      hash.Hash  `json:"-"`
+	hashMutex sync.Mutex `json:"-"`
+}
+
+func (sl *DirectClean) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *DirectClean) GetConfig() any {
+	return sl.DirectCleanConfig
+}
+
 // interface Extension
 
 func (sl *DirectClean) IsRegistered() bool {
@@ -119,11 +127,6 @@ func (sl *DirectClean) IsRegistered() bool {
 }
 
 func (sl *DirectClean) GetName() string { return DirectCleanName }
-
-func (sl *DirectClean) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.DirectCleanConfig, "", "  ")
-	return string(str)
-}
 
 func (sl *DirectClean) SetFS(fsys fs.FS) {
 	sl.fsys = fsys

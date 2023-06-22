@@ -1,0 +1,10 @@
+{
+  "extensionName": "NNNN-metafile",
+  "storageType": "area",
+  "storageName": "metadata",
+  "format": "yaml",
+  "schema": "schema.json"
+}
+
+
+
