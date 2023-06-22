@@ -111,9 +111,9 @@ OCFLVersion="1.1" # supported versions 1.0 1.1
 # --digest
 DigestAlgorithm="sha512"
 # --object-extensions
-ObjectExtensions="c:/daten/go/dev/gocfl/data/nomigrationextensions/object" # default "": use built in extensions
+ObjectExtensions="c:/daten/go/dev/gocfl/data/fullextensions/object" # default "": use built in extensions
 # --default-storageroot-extensions
-StoragerootExtensions="c:/daten/go/dev/gocfl/data/nomigrationextensions/storageroot" # default "": use built in extensions
+StoragerootExtensions="c:/daten/go/dev/gocfl/data/fullextensions/storageroot" # default "": use built in extensions
 # --no-compress
 NoCompress=true
 # --encrypt-aes
@@ -307,27 +307,36 @@ Signature = "C:/Users/micro/siegfried/default.sig"
 # relevance > 100: rate up
 # default = 100
 [Indexer.MimeRelevance.1]
-Regexp = "^application/octet-stream$"
+Regexp = "^application/octet-stream"
 Weight = 1
 [Indexer.MimeRelevance.2]
-Regexp = "^text/plain$"
+Regexp = "^text/plain"
 Weight = 3
 [Indexer.MimeRelevance.3]
-Regexp = "^audio/mpeg$"
+Regexp = "^audio/mpeg"
 Weight = 6
 [Indexer.MimeRelevance.4]
-Regexp = "^video/mpeg$"
+Regexp = "^video/mpeg"
 Weight = 5
 [Indexer.MimeRelevance.5]
-Regexp = "^text/.+$"
+Regexp = "^application/vnd\\..+"
 Weight = 4
 [Indexer.MimeRelevance.6]
-Regexp = "^application/vnd\\..+"
+Regexp = "^application/rtf"
 Weight = 4
 [Indexer.MimeRelevance.7]
 Regexp = "^application/.+"
 Weight = 2
 [Indexer.MimeRelevance.8]
+Regexp = "^text/.+"
+Weight = 4
+[Indexer.MimeRelevance.9]
+Regexp = "^audio/.+"
+Weight = 5
+[Indexer.MimeRelevance.10]
+Regexp = "^video/.+"
+Weight = 4
+[Indexer.MimeRelevance.11]
 Regexp = "^.+/x-.+"
 Weight = 80
 

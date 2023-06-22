@@ -23,6 +23,50 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
+func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.Logger) (*Thumbnail, error) {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read config.json")
+	}
+
+	var config = &ThumbnailConfig{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	if config.Ext == "" {
+		config.Ext = "png"
+	} else {
+		config.Ext = strings.ToLower(config.Ext)
+	}
+	if config.Width == 0 {
+		config.Width = 256
+	}
+	if config.Height == 0 {
+		config.Height = 256
+	}
+	ext, err := NewThumbnail(config, thumbnail, logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create new indexer")
+	}
+	return ext, nil
+}
+func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger *logging.Logger) (*Thumbnail, error) {
+	sl := &Thumbnail{
+		ThumbnailConfig: config,
+		logger:          logger,
+		thumbnail:       mig,
+		buffer:          map[string]*bytes.Buffer{},
+	}
+	//	sl.writer = brotli.NewWriter(sl.buffer)
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	}
+	if mig != nil {
+		sl.sourceFS = mig.SourceFS
+	}
+	return sl, nil
+}
+
 type ThumbnailConfig struct {
 	*ocfl.ExtensionConfig
 	Compress string
@@ -69,53 +113,12 @@ type Thumbnail struct {
 	done        bool
 }
 
-func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.Logger) (*Thumbnail, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &ThumbnailConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	if config.Ext == "" {
-		config.Ext = "png"
-	} else {
-		config.Ext = strings.ToLower(config.Ext)
-	}
-	if config.Width == 0 {
-		config.Width = 256
-	}
-	if config.Height == 0 {
-		config.Height = 256
-	}
-	ext, err := NewThumbnail(config, thumbnail, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
-	}
-	return ext, nil
-}
-func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger *logging.Logger) (*Thumbnail, error) {
-	sl := &Thumbnail{
-		ThumbnailConfig: config,
-		logger:          logger,
-		thumbnail:       mig,
-		buffer:          map[string]*bytes.Buffer{},
-	}
-	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-	if mig != nil {
-		sl.sourceFS = mig.SourceFS
-	}
-	return sl, nil
+func (thumb *Thumbnail) GetFS() fs.FS {
+	return thumb.fsys
 }
 
-func (thumb *Thumbnail) GetConfigString() string {
-	str, _ := json.MarshalIndent(thumb.ThumbnailConfig, "", "  ")
-	return string(str)
+func (thumb *Thumbnail) GetConfig() any {
+	return thumb.ThumbnailConfig
 }
 
 func (thumb *Thumbnail) IsRegistered() bool { return false }
@@ -132,9 +135,15 @@ func (thumb *Thumbnail) WriteConfig() error {
 	if thumb.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	err := writefs.WriteFile(thumb.fsys, "config.json", []byte(thumb.GetConfigString()))
+	configWriter, err := writefs.Create(thumb.fsys, "config.json")
 	if err != nil {
-		return errors.Wrap(err, "cannot write config.json")
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(thumb.ThumbnailConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 }

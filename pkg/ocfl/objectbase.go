@@ -203,7 +203,10 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 		fmt.Fprintf(w, "[%s] Initial Extension:\n---\n%s\n---\n", object.GetID(), string(data))
 		fmt.Fprintf(w, "[%s] Extension Configurations:\n", object.GetID())
 		for _, ext := range object.extensionManager.extensions {
-			fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString())
+			cfg := ext.GetConfig()
+			str, _ := json.MarshalIndent(cfg, "", "  ")
+
+			fmt.Fprintf(w, "---\n%s\n", str)
 		}
 	}
 	return nil

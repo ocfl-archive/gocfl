@@ -16,6 +16,30 @@ import (
 const ExtensionManagerName = "NNNN-gocfl-extension-manager"
 const ExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
+func NewExtensionManager() (*ExtensionManager, error) {
+	m := &ExtensionManager{
+		ExtensionManagerConfig: &ExtensionManagerConfig{
+			ExtensionConfig: &ExtensionConfig{ExtensionName: ExtensionManagerName},
+			Sort:            map[string][]string{},
+			Exclusion:       map[string][][]string{},
+		},
+		extensions:        []Extension{},
+		storageRootPath:   []ExtensionStorageRootPath{},
+		objectContentPath: []ExtensionObjectContentPath{},
+		objectChange:      []ExtensionObjectChange{},
+		fixityDigest:      []ExtensionFixityDigest{},
+		metadata:          []ExtensionMetadata{},
+		area:              []ExtensionArea{},
+	}
+	return m, nil
+}
+
+type ExtensionManagerConfig struct {
+	*ExtensionConfig
+	Sort      map[string][]string   `json:"sort"`
+	Exclusion map[string][][]string `json:"exclusion"`
+}
+
 type ExtensionManager struct {
 	*ExtensionManagerConfig
 	extensions         []Extension
@@ -33,33 +57,21 @@ type ExtensionManager struct {
 	fsys               fs.FS
 }
 
-func (manager *ExtensionManager) GetConfigString() string {
-	str, _ := json.MarshalIndent(manager.ExtensionManagerConfig, "", "  ")
-	return string(str)
+func (manager *ExtensionManager) GetFS() fs.FS {
+	return manager.fsys
 }
 
-type ExtensionManagerConfig struct {
-	*ExtensionConfig
-	Sort      map[string][]string   `json:"sort"`
-	Exclusion map[string][][]string `json:"exclusion"`
+func (manager *ExtensionManager) GetConfig() any {
+	return manager.ExtensionManagerConfig
 }
 
-func NewExtensionManager() (*ExtensionManager, error) {
-	m := &ExtensionManager{
-		ExtensionManagerConfig: &ExtensionManagerConfig{
-			ExtensionConfig: &ExtensionConfig{ExtensionName: ExtensionManagerName},
-			Sort:            map[string][]string{},
-			Exclusion:       map[string][][]string{},
-		},
-		extensions:        []Extension{},
-		storageRootPath:   []ExtensionStorageRootPath{},
-		objectContentPath: []ExtensionObjectContentPath{},
-		objectChange:      []ExtensionObjectChange{},
-		fixityDigest:      []ExtensionFixityDigest{},
-		metadata:          []ExtensionMetadata{},
-		area:              []ExtensionArea{},
+func (manager *ExtensionManager) GetConfigName(extName string) (any, error) {
+	for _, ext := range manager.extensions {
+		if ext.GetName() == extName {
+			return ext.GetConfig(), nil
+		}
 	}
-	return m, nil
+	return nil, errors.Errorf("extension '%s' not active", extName)
 }
 
 func (manager *ExtensionManager) Add(ext Extension) error {
@@ -123,6 +135,15 @@ func (manager *ExtensionManager) SetFS(fsys fs.FS) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (manager *ExtensionManager) GetFSName(extName string) (fs.FS, error) {
+	for _, ext := range manager.extensions {
+		if ext.GetName() == extName {
+			return ext.GetFS(), nil
+		}
+	}
+	return nil, errors.Errorf("extension '%s' not active", extName)
 }
 
 func sortExtensions[E Extension](list []E, sortName []string) {

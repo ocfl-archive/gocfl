@@ -16,20 +16,6 @@ import (
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
 const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 
-type StorageLayoutHashedNTuple struct {
-	*StorageLayoutHashedNTupleConfig
-	hash hash.Hash
-	fsys fs.FS
-}
-
-type StorageLayoutHashedNTupleConfig struct {
-	*ocfl.ExtensionConfig
-	DigestAlgorithm string `json:"digestAlgorithm"`
-	TupleSize       int    `json:"tupleSize"`
-	NumberOfTuples  int    `json:"numberOfTuples"`
-	ShortObjectRoot bool   `json:"shortObjectRoot"`
-}
-
 func NewStorageLayoutHashedNTupleFS(fsys fs.FS) (*StorageLayoutHashedNTuple, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -70,16 +56,33 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 	return sl, nil
 }
 
+type StorageLayoutHashedNTupleConfig struct {
+	*ocfl.ExtensionConfig
+	DigestAlgorithm string `json:"digestAlgorithm"`
+	TupleSize       int    `json:"tupleSize"`
+	NumberOfTuples  int    `json:"numberOfTuples"`
+	ShortObjectRoot bool   `json:"shortObjectRoot"`
+}
+
+type StorageLayoutHashedNTuple struct {
+	*StorageLayoutHashedNTupleConfig
+	hash hash.Hash
+	fsys fs.FS
+}
+
+func (sl *StorageLayoutHashedNTuple) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *StorageLayoutHashedNTuple) GetConfig() any {
+	return sl.StorageLayoutHashedNTupleConfig
+}
+
 func (sl *StorageLayoutHashedNTuple) IsRegistered() bool {
 	return true
 }
 
 func (sl *StorageLayoutHashedNTuple) GetName() string { return StorageLayoutHashedNTupleName }
-
-func (sl *StorageLayoutHashedNTuple) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.StorageLayoutHashedNTupleConfig, "", "  ")
-	return string(str)
-}
 
 func (sl *StorageLayoutHashedNTuple) SetFS(fsys fs.FS) {
 	sl.fsys = fsys

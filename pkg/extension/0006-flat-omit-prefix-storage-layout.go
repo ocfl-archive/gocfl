@@ -14,15 +14,6 @@ import (
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
 const FlatOmitPrefixStorageLayoutDescription = "removes prefix after last occurrence of delimiter"
 
-type FlatOmitPrefixStorageLayoutConfig struct {
-	*ocfl.ExtensionConfig
-	Delimiter string `json:"delimiter"`
-}
-type FlatOmitPrefixStorageLayout struct {
-	*FlatOmitPrefixStorageLayoutConfig
-	fsys fs.FS
-}
-
 func NewFlatOmitPrefixStorageLayoutFS(fsys fs.FS) (*FlatOmitPrefixStorageLayout, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -48,17 +39,29 @@ func NewFlatOmitPrefixStorageLayout(config *FlatOmitPrefixStorageLayoutConfig) (
 	return sl, nil
 }
 
+type FlatOmitPrefixStorageLayoutConfig struct {
+	*ocfl.ExtensionConfig
+	Delimiter string `json:"delimiter"`
+}
+type FlatOmitPrefixStorageLayout struct {
+	*FlatOmitPrefixStorageLayoutConfig
+	fsys fs.FS
+}
+
+func (sl *FlatOmitPrefixStorageLayout) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *FlatOmitPrefixStorageLayout) GetConfig() any {
+	return sl.FlatOmitPrefixStorageLayoutConfig
+}
+
 func (sl *FlatOmitPrefixStorageLayout) IsRegistered() bool {
 	return true
 }
 
 func (sl *FlatOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []ocfl.StatInfo) error {
 	return nil
-}
-
-func (sl *FlatOmitPrefixStorageLayout) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.FlatOmitPrefixStorageLayoutConfig, "", "  ")
-	return string(str)
 }
 
 func (sl *FlatOmitPrefixStorageLayout) SetFS(fsys fs.FS) {

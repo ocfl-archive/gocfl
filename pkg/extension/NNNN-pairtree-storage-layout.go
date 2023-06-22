@@ -34,6 +34,14 @@ type StorageLayoutPairTree struct {
 	fsys fs.FS
 }
 
+func (sl *StorageLayoutPairTree) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *StorageLayoutPairTree) GetConfig() any {
+	return sl.StorageLayoutPairTreeConfig
+}
+
 func (sl *StorageLayoutPairTree) IsRegistered() bool {
 	return false
 }
@@ -103,11 +111,6 @@ func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayo
 func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }
 func (sl *StorageLayoutPairTree) IsStorageRootExtension() bool { return true }
 func (sl *StorageLayoutPairTree) GetName() string              { return StorageLayoutPairTreeName }
-
-func (sl *StorageLayoutPairTree) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.StorageLayoutPairTreeConfig, "", "  ")
-	return string(str)
-}
 
 func (sl *StorageLayoutPairTree) SetParams(params map[string]string) error {
 	return nil

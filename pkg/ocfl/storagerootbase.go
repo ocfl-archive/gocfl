@@ -549,7 +549,10 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 			return errors.Wrap(err, "cannot write to writer")
 		}
 		for _, ext := range osr.extensionManager.extensions {
-			if _, err := fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString()); err != nil {
+			cfg := ext.GetConfig()
+			str, _ := json.MarshalIndent(cfg, "", "  ")
+
+			if _, err := fmt.Fprintf(w, "---\n%s\n", str); err != nil {
 				return errors.Wrap(err, "cannot write to writer")
 			}
 		}
@@ -575,7 +578,10 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 				return errors.Wrap(err, "cannot write to writer")
 			}
 			for _, ext := range osr.extensionManager.extensions {
-				if _, err := fmt.Fprintf(w, "---\n%s\n", ext.GetConfigString()); err != nil {
+				cfg := ext.GetConfig()
+				str, _ := json.MarshalIndent(cfg, "", "  ")
+
+				if _, err := fmt.Fprintf(w, "---\n%s\n", str); err != nil {
 					return errors.Wrap(err, "cannot write to writer")
 				}
 			}

@@ -44,26 +44,6 @@ func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-type IndexerConfig struct {
-	*ocfl.ExtensionConfig
-	StorageType string
-	StorageName string
-	Actions     []string
-	Compress    string
-}
-type Indexer struct {
-	*IndexerConfig
-	fsys           fs.FS
-	indexerURL     *url.URL
-	buffer         map[string]*bytes.Buffer
-	writer         *brotli.Writer
-	active         bool
-	indexerActions *ironmaiden.ActionDispatcher
-	currentHead    string
-	localCache     bool
-	logger         *logging.Logger
-}
-
 func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger *logging.Logger) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -128,9 +108,32 @@ func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmai
 	return sl, nil
 }
 
-func (sl *Indexer) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.IndexerConfig, "", "  ")
-	return string(str)
+type IndexerConfig struct {
+	*ocfl.ExtensionConfig
+	StorageType string
+	StorageName string
+	Actions     []string
+	Compress    string
+}
+type Indexer struct {
+	*IndexerConfig
+	fsys           fs.FS
+	indexerURL     *url.URL
+	buffer         map[string]*bytes.Buffer
+	writer         *brotli.Writer
+	active         bool
+	indexerActions *ironmaiden.ActionDispatcher
+	currentHead    string
+	localCache     bool
+	logger         *logging.Logger
+}
+
+func (sl *Indexer) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *Indexer) GetConfig() any {
+	return sl.IndexerConfig
 }
 
 func (sl *Indexer) IsRegistered() bool { return false }

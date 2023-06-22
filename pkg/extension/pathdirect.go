@@ -12,15 +12,6 @@ import (
 
 const PathDirectName = "NNNN-direct-path-layout"
 
-type PathDirectConfig struct {
-	*Config
-	fsys fs.FS
-}
-
-type PathDirect struct {
-	*PathDirectConfig
-}
-
 func NewPathDirectFS(fsys fs.FS) (ocfl.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -46,6 +37,23 @@ func NewPathDirect(config *PathDirectConfig) (*PathDirect, error) {
 	return sl, nil
 }
 
+type PathDirectConfig struct {
+	*Config
+	fsys fs.FS
+}
+
+type PathDirect struct {
+	*PathDirectConfig
+}
+
+func (sl *PathDirect) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *PathDirect) GetConfig() any {
+	return sl.PathDirectConfig
+}
+
 func (sl *PathDirect) IsRegistered() bool {
 	return false
 }
@@ -59,11 +67,6 @@ func (sl *PathDirect) SetParams(params map[string]string) error {
 }
 
 func (sl *PathDirect) GetName() string { return PathDirectName }
-
-func (sl *PathDirect) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.PathDirectConfig, "", "  ")
-	return string(str)
-}
 
 func (sl *PathDirect) WriteLayout(fsys fs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")

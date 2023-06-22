@@ -13,14 +13,6 @@ import (
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
 const StorageLayoutFlatDirectDescription = "one to one mapping without changes"
 
-type StorageLayoutFlatDirectConfig struct {
-	*ocfl.ExtensionConfig
-}
-type StorageLayoutFlatDirect struct {
-	*StorageLayoutFlatDirectConfig
-	fsys fs.FS
-}
-
 func NewStorageLayoutFlatDirectFS(fsys fs.FS) (*StorageLayoutFlatDirect, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -46,17 +38,28 @@ func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*Storage
 	return sl, nil
 }
 
+type StorageLayoutFlatDirectConfig struct {
+	*ocfl.ExtensionConfig
+}
+type StorageLayoutFlatDirect struct {
+	*StorageLayoutFlatDirectConfig
+	fsys fs.FS
+}
+
+func (sl *StorageLayoutFlatDirect) GetFS() fs.FS {
+	return sl.fsys
+}
+
+func (sl *StorageLayoutFlatDirect) GetConfig() any {
+	return sl.StorageLayoutFlatDirectConfig
+}
+
 func (sl *StorageLayoutFlatDirect) IsRegistered() bool {
 	return true
 }
 
 func (sl *StorageLayoutFlatDirect) Stat(w io.Writer, statInfo []ocfl.StatInfo) error {
 	return nil
-}
-
-func (sl *StorageLayoutFlatDirect) GetConfigString() string {
-	str, _ := json.MarshalIndent(sl.StorageLayoutFlatDirectConfig, "", "  ")
-	return string(str)
 }
 
 func (sl *StorageLayoutFlatDirect) SetFS(fs fs.FS) {
