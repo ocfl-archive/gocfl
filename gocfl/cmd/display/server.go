@@ -930,7 +930,7 @@ func (s *Server) report(c *gin.Context) {
 			ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: extension.MetaFileName},
 			StorageType:     "area",
 			StorageName:     "metadata",
-			MetaFormat:      "json",
+			MetaName:        "info.json",
 			MetaSchema:      "none",
 		}
 	}
@@ -948,9 +948,10 @@ func (s *Server) report(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		infoBytes, err = fs.ReadFile(fsys, fmt.Sprintf("info.%s", metafileCfg.MetaFormat))
+		infoname := strings.TrimLeft(filepath.ToSlash(filepath.Join(metafileCfg.StorageName, metafileCfg.MetaName)), "/")
+		infoBytes, err = fs.ReadFile(fsys, infoname)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot open %v/info.%s", fsys, metafileCfg.MetaFormat).Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot open %v/%s", fsys, infoname).Error()})
 			return
 		}
 	} else {
@@ -960,7 +961,7 @@ func (s *Server) report(c *gin.Context) {
 			area = metafileCfg.StorageName
 			path = ""
 		}
-		fname := filepath.ToSlash(filepath.Join(path, fmt.Sprintf("info.%s", metafileCfg.MetaFormat)))
+		fname := filepath.ToSlash(filepath.Join(path, metafileCfg.MetaName))
 		mPath, err := extManager.BuildObjectManifestPath(s.object, fname, area)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot map %s:%s", area, fname).Error()})
@@ -979,7 +980,7 @@ func (s *Server) report(c *gin.Context) {
 	var info = map[string]any{}
 	if len(infoBytes) > 0 {
 		if err := json.Unmarshal(infoBytes, &info); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot unmarshal info.%s", metafileCfg.MetaFormat).Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot unmarshal %s", metafileCfg.MetaName).Error()})
 			return
 		}
 	}

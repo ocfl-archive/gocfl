@@ -39,8 +39,8 @@ extension gives a schema and a position of the metadata file.
     * **Type:** string
     * **Default:**
 
-* **Name:** `folders`
-    * **Description:** name of the file containing the folder metadata (i.e. ".keep"). Empty means no folder metadata.
+* **Name:** `format`
+    * **Description:** format 
     * **Type:** string
     * **Default:**
 
