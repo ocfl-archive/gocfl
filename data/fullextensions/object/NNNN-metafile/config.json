@@ -1,10 +1,10 @@
 {
   "extensionName": "NNNN-metafile",
-  "storageType": "area",
+  "storageType": "extension",
   "storageName": "metadata",
-  "format": "yaml",
-  "schema": "schema.json",
-  "schemaUrl": "https://"
+  "name": "info.json",
+  "schema": "gocfl-info-1.0.json",
+  "schemaUrl": "https://raw.githubusercontent.com/je4/gocfl/main/gocfl-info-1.0.json"
 }
 
 

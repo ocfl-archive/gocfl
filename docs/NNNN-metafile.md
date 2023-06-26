@@ -15,7 +15,8 @@ validated against a json schema.
 ### Usage Scenario
 
 To allow OCFL Viewers the display of easy to find semantic metadata, this
-extension gives a schema and a position of the metadata file.
+extension gives a schema, position and name of the metadata file. This can be used for external 
+archive Managers to store semantic metadata.
 
 ## Parameters
 
@@ -39,105 +40,39 @@ extension gives a schema and a position of the metadata file.
     * **Type:** string
     * **Default:**
 
-* **Name:** `folders`
-    * **Description:** name of the file containing the folder metadata (i.e. ".keep"). Empty means no folder metadata.
+* **Name:** `schemaUrl`
+    * **Description:** url of the json metadata schema, to check the metafile content 
     * **Type:** string
     * **Default:**
 
-* **Name:** `compress`
-    * **Description:** Compression type for JSONL file
-        * **none:** no compression
-        * **gzip:** [gzip compression](https://en.wikipedia.org/wiki/Gzip)
-        * **brotli:** [brotli compression](https://en.wikipedia.org/wiki/Brotli)
+* **Name:** `schema`
+    * **Description:** local filename of schema, which contains the content of `schemaUrl`
     * **Type:** string
     * **Default:**
+
+* **Name:** `name`
+    * **Description:** the name of the metadata file. Extension MUST be `.json`
+    * **Type:** string
+    * **Default:** `info.json`
 
 
 ## Procedure (tbd.)
 
-Every entry whithin the [OCFL Object Manifest](https://ocfl.io/1.1/spec/#manifest)
-is represented by a JSON line in a file called  `filesystem_<version>.jsonl[.gz|.br]`.
-Since this file is immutable, every version of the ocfl object gets its own indexer file.
+While adding or updating an OCFL object, a metadata file is added at the specified storage location with 
+the specified name. Within this process, the file is validated against the given json schema.
+The schema file is stored next to the config.json file within the extension folder.
 
 ## Examples
 
-JSON Entry for a file from Linux OS
+### Parameters
+
 ```json
 {
-  "path": "data/test.odt",
-  "meta": {
-    "aTime": "2023-05-03T11:52:02.6948384+02:00",
-    "mTime": "2023-01-15T13:49:09.7643455+01:00",
-    "cTime": "2023-01-15T13:52:22.9096886+01:00",
-    "attr": "-rwxrwxrwx",
-    "os": "linux",
-    "sysStat": {
-      "Dev": 72,
-      "Ino": 23643898043722929,
-      "Nlink": 1,
-      "Mode": 33279,
-      "Uid": 1000,
-      "Gid": 1000,
-      "X__pad0": 0,
-      "Rdev": 0,
-      "Size": 4456,
-      "Blksize": 4096,
-      "Blocks": 16,
-      "Atim": {
-        "Sec": 1683107522,
-        "Nsec": 694838400
-      },
-      "Mtim": {
-        "Sec": 1673786949,
-        "Nsec": 764345500
-      },
-      "Ctim": {
-        "Sec": 1673787142,
-        "Nsec": 909688600
-      },
-      "X__unused": [
-        0,
-        0,
-        0
-      ]
-    },
-    "stateVersion": "v1"
-  }
+  "extensionName": "NNNN-metafile",
+  "storageType": "extension",
+  "storageName": "metadata",
+  "name": "info.json",
+  "schema": "gocfl-info-1.0.json",
+  "schemaUrl": "https://raw.githubusercontent.com/je4/gocfl/main/gocfl-info-1.0.json"
 }
 ```
-
-JSON Entry for a file from Windows OS
-```json
-{
-  "path": "data/test.odt",
-  "meta": {
-    "aTime": "2023-05-05T10:16:16.634688+02:00",
-    "mTime": "2023-01-15T13:49:09.7643455+01:00",
-    "cTime": "2023-01-15T13:50:27.6733047+01:00",
-    "attr": "Archive",
-    "os": "windows",
-    "sysStat": {
-      "FileAttributes": 32,
-      "CreationTime": {
-        "LowDateTime": 4049774711,
-        "HighDateTime": 31008991
-      },
-      "LastAccessTime": {
-        "LowDateTime": 3711819904,
-        "HighDateTime": 31031081
-      },
-      "LastWriteTime": {
-        "LowDateTime": 3270685119,
-        "HighDateTime": 31008991
-      },
-      "FileSizeHigh": 0,
-      "FileSizeLow": 4456
-    },
-    "stateVersion": "v1"
-  }
-}
-```
-
-
-### Result
-

@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -51,9 +52,29 @@ func NewMetaFileFS(fsys fs.FS) (*MetaFile, error) {
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	schema, err := fs.ReadFile(fsys, config.MetaSchema)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read metadata schema %v/%s", fsys, config.MetaSchema)
+
+	if config.MetaName == "config.json" {
+		return nil, errors.Errorf("config.json is not allowed for field name in %v/%s", fsys, "config.json")
+	}
+	if config.MetaSchema == "config.json" {
+		return nil, errors.Errorf("config.json is not allowed for field schema in %v/%s", fsys, "config.json")
+	}
+	var schema []byte
+	if config.MetaSchema != "" {
+		schema, err = fs.ReadFile(fsys, config.MetaSchema)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot read metadata schema %v/%s", fsys, config.MetaSchema)
+		}
+	} else {
+		resp, err := http.Get(config.MetaSchemaUrl)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot load metadata schema %s", config.MetaSchemaUrl)
+		}
+		schema, err = io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return nil, errors.Errorf("error loading metadata schema %s - [%v]%s - %s", resp.StatusCode, resp.Status, schema)
+		}
+		config.MetaSchema = "schema.json"
 	}
 
 	return NewMetaFile(config, schema)
@@ -67,7 +88,7 @@ func NewMetaFile(config *MetaFileConfig, schema []byte) (*MetaFile, error) {
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
-	sl.compiledSchema, err = jsonschema.CompileString("https://localhost/default.json", string(sl.schema))
+	sl.compiledSchema, err = jsonschema.CompileString(sl.MetaSchemaUrl, string(sl.schema))
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot compile schema")
 	}
@@ -76,10 +97,11 @@ func NewMetaFile(config *MetaFileConfig, schema []byte) (*MetaFile, error) {
 
 type MetaFileConfig struct {
 	*ocfl.ExtensionConfig
-	StorageType string `json:"storageType"`
-	StorageName string `json:"storageName"`
-	MetaFormat  string `json:"format,omitempty"`
-	MetaSchema  string `json:"schema,omitempty"`
+	StorageType   string `json:"storageType"`
+	StorageName   string `json:"storageName"`
+	MetaName      string `json:"name,omitempty"`
+	MetaSchema    string `json:"schema,omitempty"`
+	MetaSchemaUrl string `json:"schemaUrl,omitempty"`
 }
 type MetaFile struct {
 	*MetaFileConfig
@@ -127,7 +149,7 @@ func (sl *MetaFile) WriteConfig() error {
 		return errors.New("no filesystem set")
 	}
 	if err := writefs.WriteFile(sl.fsys, sl.MetaSchema, sl.schema); err != nil {
-		return errors.Wrapf(err, "cannot write schema to %v/%s", sl.fsys, "schema.json")
+		return errors.Wrapf(err, "cannot write schema to %v/%s", sl.fsys, sl.MetaSchema)
 	}
 	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
@@ -256,28 +278,30 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 		if err := sl.compiledSchema.Validate(info); err != nil {
 			return errors.Wrap(err, "cannot validate info file")
 		}
+	case ".toml":
+		jr := toml.NewDecoder(rc)
+		if _, err := jr.Decode(&info); err != nil {
+			return errors.Wrap(err, "cannot decode info file")
+		}
+		info, err = toStringKeys(info)
+		if err != nil {
+			return errors.Wrap(err, "cannot convert map[any]any to map[string]any")
+		}
+		if err := sl.compiledSchema.Validate(info); err != nil {
+			return errors.Wrap(err, "cannot validate info file")
+		}
 	default:
-		return errors.Errorf("unknown file extension in '%s' only .json and .yaml supported", fname)
+		return errors.Errorf("unknown file extension in '%s' only .json, .toml and .yaml supported", fname)
 	}
 
-	switch strings.ToLower(sl.MetaFormat) {
-	case "json":
-		infoData, err = json.MarshalIndent(info, "", "  ")
-		if err != nil {
-			return errors.Wrap(err, "cannot marshal info json")
-		}
-	case "yaml":
-		infoData, err = yaml.Marshal(info)
-		if err != nil {
-			return errors.Wrap(err, "cannot marshal info yaml")
-		}
-	default:
-		return errors.Errorf("invalid metadata format '%s'. only json and yaml supported.", sl.MetaFormat)
+	infoData, err = json.MarshalIndent(info, "", "  ")
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal info json")
 	}
 
 	switch strings.ToLower(sl.StorageType) {
 	case "area":
-		targetname := fmt.Sprintf("info.%s", strings.ToLower(sl.MetaFormat))
+		targetname := strings.TrimLeft(sl.MetaName, "/")
 		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, sl.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
@@ -286,14 +310,14 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
-		targetname := fmt.Sprintf("%s/%s/info.%s", path, sl.StorageName, strings.ToLower(sl.MetaFormat))
+		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, sl.StorageName, sl.MetaName)), "/")
 
 		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
 		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
-		targetname := strings.TrimLeft(fmt.Sprintf("data/info.%s", strings.ToLower(sl.MetaFormat)), "/")
+		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(sl.StorageName, sl.MetaName)), "/")
 		if err := writefs.WriteFile(sl.fsys, targetname, infoData); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", sl.fsys, targetname)
 		}
