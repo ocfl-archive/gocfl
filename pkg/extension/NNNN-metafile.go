@@ -149,7 +149,7 @@ func (sl *MetaFile) WriteConfig() error {
 		return errors.New("no filesystem set")
 	}
 	if err := writefs.WriteFile(sl.fsys, sl.MetaSchema, sl.schema); err != nil {
-		return errors.Wrapf(err, "cannot write schema to %v/%s", sl.fsys, "schema.json")
+		return errors.Wrapf(err, "cannot write schema to %v/%s", sl.fsys, sl.MetaSchema)
 	}
 	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
