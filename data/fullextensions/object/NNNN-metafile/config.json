@@ -1,6 +1,6 @@
 {
   "extensionName": "NNNN-metafile",
-  "storageType": "extension",
+  "storageType": "area",
   "storageName": "metadata",
   "name": "info.json",
   "schema": "gocfl-info-1.0.json",
