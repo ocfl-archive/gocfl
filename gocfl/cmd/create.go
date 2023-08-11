@@ -58,7 +58,7 @@ func initCreate() {
 	//	createCmd.MarkFlagRequired("user-address")
 	emperror.Panic(viper.BindPFlag("Create.UserAddress", createCmd.Flags().Lookup("user-address")))
 
-	createCmd.Flags().StringP("fixity", "f", "", fmt.Sprintf("comma separated list of digest algorithms for fixity %v", checksum.DigestsNames))
+	createCmd.Flags().StringP("fixity", "f", "", fmt.Sprintf("comma separated list of digest algorithms for fixity %v", checksum.DigestNames))
 	emperror.Panic(viper.BindPFlag("Create.Fixity", createCmd.Flags().Lookup("fixity")))
 
 	createCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
