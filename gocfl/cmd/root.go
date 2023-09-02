@@ -1,15 +1,11 @@
 package cmd
 
 import (
-	"bytes"
-	"emperror.dev/emperror"
-	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/martian/log"
 	"github.com/je4/gocfl/v2/config"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"regexp"
 )
@@ -82,8 +78,8 @@ var DigestIds = map[DigestFlag][]string{
 // all possible flags of all modules go here
 var persistentFlagConfigFile string
 
-// var persistentFlagLogfile string
-var intPersistentFlagLoglevel LogLevelFlag
+var persistentFlagLogfile string
+var persistentFlagLoglevel string
 
 //var flagDigest DigestFlag
 
@@ -98,6 +94,8 @@ var flagStatInfo = []string{}
 // var flagUserAddress string
 // var flagFixity string
 // var flagDigestSHA256, flagDigestSHA512 bool
+
+var conf *config.GOCFLConfig
 
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
@@ -114,31 +112,30 @@ Version %s`, VERSION),
 }
 
 func initConfig() {
+
 	if persistentFlagConfigFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(persistentFlagConfigFile)
-		if err := viper.ReadInConfig(); err == nil {
-			fmt.Println("Using config file:", viper.ConfigFileUsed())
-			// fmt.Println(viper.AllSettings())
-		} else {
+		data, err := os.ReadFile(persistentFlagConfigFile)
+		if err != nil {
 			_ = rootCmd.Help()
-			log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
+			log.Errorf("error reading config file %s: %v\n", persistentFlagConfigFile, err)
+			os.Exit(1)
+		}
+		conf, err = config.LoadGOCFLConfig(string(data))
+		if err != nil {
+			_ = rootCmd.Help()
+			log.Errorf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 	} else {
-		viper.SetConfigType("toml")
-		if err := viper.ReadConfig(bytes.NewBuffer(config.DefaultConfig)); err != nil {
-			log.Errorf("error reading default config file: %v\n", err)
+		var err error
+		conf, err = config.LoadGOCFLConfig(string(config.DefaultConfig))
+		if err != nil {
+			_ = rootCmd.Help()
+			log.Errorf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 	}
 
-	viper.AutomaticEnv()
-
-	persistentFlagLoglevel := viper.GetInt64("LogLevel")
-	if _, ok := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)]; !ok {
-		cobra.CheckErr(errors.Errorf("invalid Loglevel ID %v", persistentFlagLoglevel))
-	}
 	return
 }
 
@@ -157,26 +154,26 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
 
-	rootCmd.PersistentFlags().String("log-file", "", "log output file (default is console)")
-	emperror.Panic(viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file")))
+	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
+	//emperror.Panic(viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file")))
 
-	rootCmd.PersistentFlags().String("log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
-	emperror.Panic(viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level")))
+	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
+	//emperror.Panic(viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level")))
 
 	rootCmd.PersistentFlags().String("s3-endpoint", "", "Endpoint for S3 Buckets")
-	emperror.Panic(viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint")))
+	//emperror.Panic(viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint")))
 
 	rootCmd.PersistentFlags().String("s3-access-key-id", "", "Access Key ID for S3 Buckets")
-	emperror.Panic(viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id")))
+	//emperror.Panic(viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id")))
 
 	rootCmd.PersistentFlags().String("s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
-	emperror.Panic(viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key")))
+	//emperror.Panic(viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key")))
 
 	rootCmd.PersistentFlags().String("s3-region", "", "Region for S3 Access")
-	emperror.Panic(viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region")))
+	//emperror.Panic(viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region")))
 
 	rootCmd.PersistentFlags().Bool("with-indexer", false, "starts indexer as a local service")
-	emperror.Panic(viper.BindPFlag("Indexer.Enable", rootCmd.PersistentFlags().Lookup("with-indexer")))
+	//emperror.Panic(viper.BindPFlag("Indexer.Enable", rootCmd.PersistentFlags().Lookup("with-indexer")))
 
 	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
 	//	emperror.Panic(viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
