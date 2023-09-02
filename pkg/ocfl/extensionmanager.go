@@ -2,6 +2,7 @@ package ocfl
 
 import (
 	"bufio"
+	"cmp"
 	"emperror.dev/errors"
 	"encoding/json"
 	"github.com/je4/filesystem/v2/pkg/writefs"
@@ -147,7 +148,7 @@ func (manager *ExtensionManager) GetFSName(extName string) (fs.FS, error) {
 }
 
 func sortExtensions[E Extension](list []E, sortName []string) {
-	sortFunc := func(aExt, bExt E) bool {
+	sortFunc := func(aExt, bExt E) int {
 		aName := aExt.GetName()
 		bName := bExt.GetName()
 		var aNum, bNum int
@@ -159,13 +160,13 @@ func sortExtensions[E Extension](list []E, sortName []string) {
 				bNum = num
 			}
 		}
-		return aNum < bNum
+		return cmp.Compare(aNum, bNum)
 	}
 	slices.SortFunc(list, sortFunc)
 }
 
 func excludeExtensions[E Extension](list []E, exclusionSort []string) []E {
-	sortFunc := func(aExt, bExt E) bool {
+	sortFunc := func(aExt, bExt E) int {
 		aName := aExt.GetName()
 		bName := bExt.GetName()
 		var aNum, bNum int
@@ -177,7 +178,7 @@ func excludeExtensions[E Extension](list []E, exclusionSort []string) []E {
 				bNum = num
 			}
 		}
-		return aNum < bNum
+		return cmp.Compare(aNum, bNum)
 	}
 	// first sort list
 	slices.SortFunc(list, sortFunc)

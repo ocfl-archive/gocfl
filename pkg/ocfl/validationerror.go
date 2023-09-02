@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"cmp"
 	"context"
 	"emperror.dev/errors"
 	"fmt"
@@ -152,13 +153,13 @@ type ValidationStatus struct {
 	Errors []*ValidationError
 }
 
-func validationSort(E1, E2 *ValidationError) bool {
+func validationSort(E1, E2 *ValidationError) int {
 	sr1 := strings.HasPrefix(E1.Context, "storage root")
 	sr2 := strings.HasPrefix(E2.Context, "storage root")
 	if sr1 != sr2 {
-		return sr1 && !sr2
+		return -1 // sr1 && !sr2
 	}
-	return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
+	return cmp.Compare(E1.Context+string(E1.Code)+E1.Description2, E2.Context+string(E2.Code)+E2.Description2)
 }
 
 // removes duplicate errors

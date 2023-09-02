@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"emperror.dev/errors"
-	datasiegfried "github.com/je4/gocfl/v2/data/siegfried"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/op/go-logging"
 	"os"
@@ -14,7 +13,6 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 	signatureData, err := os.ReadFile(siegfried.Signature)
 	if err != nil {
 		logger.Warningf("no siegfried signature file provided. using default signature file. please provide a recent signature file.")
-		signatureData = datasiegfried.DefaultSig
 	}
 	logger.Info("indexer action siegfried added")
 	_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, nil, ad)

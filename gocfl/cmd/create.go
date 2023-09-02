@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
@@ -34,62 +33,63 @@ var createCmd = &cobra.Command{
 
 // initCreate initializes the gocfl create command
 func initCreate() {
+
 	createCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
-	emperror.Panic(viper.BindPFlag("Create.StorageRootExtensions", createCmd.Flags().Lookup("default-storageroot-extensions")))
+	//	emperror.Panic(viper.BindPFlag("Create.StorageRootExtensions", createCmd.Flags().Lookup("default-storageroot-extensions")))
 
 	createCmd.Flags().String("ocfl-version", "1.1", "ocfl version for new storage root")
-	emperror.Panic(viper.BindPFlag("Create.OCFLVersion", createCmd.Flags().Lookup("ocfl-version")))
+	// emperror.Panic(viper.BindPFlag("Create.OCFLVersion", createCmd.Flags().Lookup("ocfl-version")))
 
 	createCmd.Flags().StringVarP(&flagObjectID, "object-id", "i", "", "object id to update (required)")
-	emperror.Panic(createCmd.MarkFlagRequired("object-id"))
+	// emperror.Panic(createCmd.MarkFlagRequired("object-id"))
 
 	createCmd.Flags().String("default-object-extensions", "", "folder with initial extension configurations for new OCFL objects")
-	emperror.Panic(viper.BindPFlag("Create.ObjectExtensions", createCmd.Flags().Lookup("default-object-extensions")))
+	// emperror.Panic(viper.BindPFlag("Create.ObjectExtensions", createCmd.Flags().Lookup("default-object-extensions")))
 
 	createCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
 	//	createCmd.MarkFlagRequired("message")
-	emperror.Panic(viper.BindPFlag("Create.Message", createCmd.Flags().Lookup("message")))
+	// emperror.Panic(viper.BindPFlag("Create.Message", createCmd.Flags().Lookup("message")))
 
 	createCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
 	//	createCmd.MarkFlagRequired("user-name")
-	emperror.Panic(viper.BindPFlag("Create.UserName", createCmd.Flags().Lookup("user-name")))
+	// emperror.Panic(viper.BindPFlag("Create.UserName", createCmd.Flags().Lookup("user-name")))
 
 	createCmd.Flags().StringP("user-address", "a", "", "user address for new object version (required)")
 	//	createCmd.MarkFlagRequired("user-address")
-	emperror.Panic(viper.BindPFlag("Create.UserAddress", createCmd.Flags().Lookup("user-address")))
+	// emperror.Panic(viper.BindPFlag("Create.UserAddress", createCmd.Flags().Lookup("user-address")))
 
 	createCmd.Flags().StringP("fixity", "f", "", fmt.Sprintf("comma separated list of digest algorithms for fixity %v", checksum.DigestNames))
-	emperror.Panic(viper.BindPFlag("Create.Fixity", createCmd.Flags().Lookup("fixity")))
+	// emperror.Panic(viper.BindPFlag("Create.Fixity", createCmd.Flags().Lookup("fixity")))
 
 	createCmd.Flags().StringP("digest", "d", "", "digest to use for ocfl checksum")
-	emperror.Panic(viper.BindPFlag("Create.DigestAlgorithm", createCmd.Flags().Lookup("digest")))
+	// emperror.Panic(viper.BindPFlag("Create.DigestAlgorithm", createCmd.Flags().Lookup("digest")))
 
 	createCmd.Flags().String("default-area", "", "default area for update or ingest (default: content)")
-	emperror.Panic(viper.BindPFlag("Create.DefaultArea", createCmd.Flags().Lookup("default-area")))
+	// emperror.Panic(viper.BindPFlag("Create.DefaultArea", createCmd.Flags().Lookup("default-area")))
 
 	createCmd.Flags().Bool("deduplicate", false, "force deduplication (slower)")
-	emperror.Panic(viper.BindPFlag("Create.Deduplicate", createCmd.Flags().Lookup("deduplicate")))
+	// emperror.Panic(viper.BindPFlag("Create.Deduplicate", createCmd.Flags().Lookup("deduplicate")))
 
 	createCmd.Flags().Bool("no-compress", false, "do not compress data in zip file")
-	emperror.Panic(viper.BindPFlag("Create.NoCompression", createCmd.Flags().Lookup("no-compress")))
+	// emperror.Panic(viper.BindPFlag("Create.NoCompression", createCmd.Flags().Lookup("no-compress")))
 
 	createCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
-	emperror.Panic(viper.BindPFlag("Create.AES", createCmd.Flags().Lookup("encrypt-aes")))
+	// emperror.Panic(viper.BindPFlag("Create.AES", createCmd.Flags().Lookup("encrypt-aes")))
 
 	createCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
-	emperror.Panic(viper.BindPFlag("Create.AESKey", createCmd.Flags().Lookup("aes-key")))
+	// emperror.Panic(viper.BindPFlag("Create.AESKey", createCmd.Flags().Lookup("aes-key")))
 
 	createCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)")
-	emperror.Panic(viper.BindPFlag("Create.AESKey", createCmd.Flags().Lookup("aes-key")))
+	// emperror.Panic(viper.BindPFlag("Create.AESKey", createCmd.Flags().Lookup("aes-key")))
 
 	createCmd.Flags().String("keypass-file", "", "file with keypass2 database")
-	emperror.Panic(viper.BindPFlag("Create.KeyPassFile", createCmd.Flags().Lookup("keypass-file")))
+	// emperror.Panic(viper.BindPFlag("Create.KeyPassFile", createCmd.Flags().Lookup("keypass-file")))
 
 	createCmd.Flags().String("keypass-entry", "", "keypass2 entry to use for key encryption")
-	emperror.Panic(viper.BindPFlag("Create.KeyPassEntry", createCmd.Flags().Lookup("keypass-entry")))
+	// emperror.Panic(viper.BindPFlag("Create.KeyPassEntry", createCmd.Flags().Lookup("keypass-entry")))
 
 	createCmd.Flags().String("keypass-key", "", "key to use for keypass2 database decryption")
-	emperror.Panic(viper.BindPFlag("Create.KeyPassKey", createCmd.Flags().Lookup("keypass-key")))
+	// emperror.Panic(viper.BindPFlag("Create.KeyPassKey", createCmd.Flags().Lookup("keypass-key")))
 
 	//createCmd.Flags().Bool("force", false, "force overwrite of existing files")
 }

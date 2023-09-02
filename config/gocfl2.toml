@@ -1,0 +1,128 @@
+# --log-level
+# CRITICAL = 0
+# ERROR = 1
+# WARNING = 2
+# NOTICE = 3
+# INFO = 4
+# DEBUG = 5
+LogLevel="DEBUG"
+# --log-file
+#logFile="C:/temp/gocfl.log"
+
+[Indexer]
+# --with-indexer
+Enabled=true
+# Enable this, if there are problem detecting length of audio files with ffmpeg
+LocalCache=false
+
+[Indexer.Checksum]
+Enabled=true
+Digest=["sha512", "blake2b-384"]
+
+[Indexer.Siegfried]
+Enabled=true
+#Signature = "/usr/share/siegfried/default.sig"
+Signature = "C:/Users/micro/siegfried/default.sig"
+
+# mapping of pronom id to mimetype if not found in siegfried
+[Indexer.Siegfried.MimeMap]
+"x-fmt/92" = "image/psd"
+"fmt/134" = "audio/mp3"
+"x-fmt/184" = "image/x-sun-raster"
+"fmt/202" = "image/x-nikon-nef"
+"fmt/211" = "image/x-photo-cd"
+"x-fmt/383" = "image/fits"
+"fmt/405" = "image/x-portable-anymap"
+"fmt/406" = "image/x-portable-graymap"
+"fmt/408" = "image/x-portable-pixmap"
+"fmt/436" = "image/x-adobe-dng"
+"fmt/437" = "image/x-adobe-dng"
+"fmt/592" = "image/x-canon-cr2"
+"fmt/642" = "image/x-raw-fuji"
+"fmt/662" = "image/x-raw-panasonic"
+"fmt/668" = "image/x-olympus-orf"
+"fmt/986" = "text/xmp"
+"fmt/1001" = "image/x-exr"
+"fmt/1040" = "image/vnd.ms-dds"
+"fmt/1781" = "image/x-pentax-pef"
+
+# relevance of mimetype for sorting
+# relevance < 100: rate down
+# relevance > 100: rate up
+# default = 100
+[Indexer.MimeRelevance.1]
+Regexp = "^application/octet-stream"
+Weight = 1
+[Indexer.MimeRelevance.2]
+Regexp = "^text/plain"
+Weight = 3
+[Indexer.MimeRelevance.3]
+Regexp = "^audio/mpeg"
+Weight = 6
+[Indexer.MimeRelevance.4]
+Regexp = "^video/mpeg"
+Weight = 5
+[Indexer.MimeRelevance.5]
+Regexp = "^application/vnd\\..+"
+Weight = 4
+[Indexer.MimeRelevance.6]
+Regexp = "^application/rtf"
+Weight = 4
+[Indexer.MimeRelevance.7]
+Regexp = "^application/.+"
+Weight = 2
+[Indexer.MimeRelevance.8]
+Regexp = "^text/.+"
+Weight = 4
+[Indexer.MimeRelevance.9]
+Regexp = "^audio/.+"
+Weight = 5
+[Indexer.MimeRelevance.10]
+Regexp = "^video/.+"
+Weight = 4
+[Indexer.MimeRelevance.11]
+Regexp = "^.+/x-.+"
+Weight = 80
+
+[Indexer.FFMPEG]
+ffprobe = "C:/Users/micro/Downloads/ffmpeg-5.1.2-full_build/bin/ffprobe.exe"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "25s"
+online = true
+enabled = true
+[[Indexer.FFMPEG.Mime]]
+video = false
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "audio/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = false
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+
+[Indexer.ImageMagick]
+identify = "C:/Program Files/ImageMagick-7.1.0-Q16/identify.exe"
+convert = "C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "480s"
+online = true
+enabled = true
+
+[Indexer.Tika]
+addressMeta = "http://localhost:9998/meta"
+addressFulltext = "http://localhost:9998/tika"
+#address = "http://localhost:9998/rmeta/text"
+timeout = "10s"
+regexpMimeFulltext = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+regexpMimeFulltextNot = "" # "^.*$" # ""^application/.*$"
+regexpMimeMeta = ""
+regexpMimeMetaNot = "^(image|video|audio)/.*$"
+online = true
+enabled = true
+
