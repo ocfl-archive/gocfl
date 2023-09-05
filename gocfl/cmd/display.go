@@ -74,7 +74,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 
 	daLogger.Infof("opening '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory("Stat", cmd, nil, true, daLogger)
+	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

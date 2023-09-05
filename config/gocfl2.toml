@@ -9,8 +9,48 @@ LogLevel="DEBUG"
 # --log-file
 #logFile="C:/temp/gocfl.log"
 
+# global config for all operations on S3 storages
+[S3]
+# --s3-endpoint
+#Endpoint="%%GOCFL_S3_ENDPOINT%%"
+# --s3-access-key-id
+#AccessKeyID="%%GOCFL_S3_ACCESS_KEY_ID%%"
+# --s3-secret-access-key
+#AccessKey="%%GOCFL_S3_ACCESS_KEY%%"
+# --s3-region
+#Region="%%GOCFL_S3_REGION%%"
+
+[AES]
+Enable=true
+KeepassFile="c:/temp/test.kdbx"
+KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
+KeepassKey="%%GOCFL_KEEPASS_KEY%%"
+
+[Init]
+# --ocfl-version
+OCFLVersion="1.1"
+# --default-storageroot-extensions
+StorageRootExtensions="./data/defaultextensions/storageroot"
+# --digest
+Digest="sha512"
+
+[Add]
+# --message
+Message="initial commit"
+# --digest
+Digest="sha512"
+# --fixity
+Fixity=["sha256", "sha1", "md5"]
+# --default-object-extensions
+ObjectExtensions="./data/defaultextensions/object"
+[Add.User]
+# --user-name
+Name="John Doe"
+# --user-address
+Address="http://inter.net"
+
+# global config for all indexer operations
 [Indexer]
-# --with-indexer
 Enabled=true
 # Enable this, if there are problem detecting length of audio files with ffmpeg
 LocalCache=false
@@ -22,7 +62,7 @@ Digest=["sha512", "blake2b-384"]
 [Indexer.Siegfried]
 Enabled=true
 #Signature = "/usr/share/siegfried/default.sig"
-Signature = "C:/Users/micro/siegfried/default.sig"
+Signature = "file://C:/Users/micro/siegfried/default.sig"
 
 # mapping of pronom id to mimetype if not found in siegfried
 [Indexer.Siegfried.MimeMap]

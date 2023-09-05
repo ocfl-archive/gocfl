@@ -5,23 +5,31 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
+	configutil "github.com/je4/utils/v2/pkg/config"
 )
 
 type InitConfig struct {
 	OCFLVersion                string
 	StorageRootExtensionFolder string `toml:"storagerootextensions"`
+	Digest                     checksum.DigestAlgorithm
 }
 
 type AddConfig struct {
 	Deduplicate           bool
 	NoCompress            bool
 	ObjectExtensionFolder string `toml:"objectextensions"`
+	User                  *UserConfig
+	Digest                checksum.DigestAlgorithm
+	Fixity                []string
+	Message               string
 }
 
 type AESConfig struct {
-	Enable bool
-	Key    string
-	IV     string
+	Enable       bool
+	KeepassFile  configutil.EnvString
+	KeepassEntry configutil.EnvString
+	KeepassKey   configutil.EnvString
+	IV           configutil.EnvString
 }
 
 type DisplayConfig struct {
@@ -52,9 +60,16 @@ type UpdateConfig struct {
 	Echo        bool
 }
 
-type DefaultUserConfig struct {
-	UserName    string
-	UserAddress string
+type UserConfig struct {
+	Name    string
+	Address string
+}
+
+type S3Config struct {
+	Endpoint    configutil.EnvString
+	AccessKeyID configutil.EnvString
+	AccessKey   configutil.EnvString
+	Region      configutil.EnvString
 }
 
 type GOCFLConfig struct {
@@ -63,7 +78,6 @@ type GOCFLConfig struct {
 	Loglevel       string
 	LogFormat      string
 	AccessLog      string
-	Digest         checksum.DigestAlgorithm
 	Indexer        *indexer.IndexerConfig
 	AES            *AESConfig
 	Init           *InitConfig
@@ -72,7 +86,7 @@ type GOCFLConfig struct {
 	Extract        *ExtractConfig
 	ExtractMeta    *ExtractMetaConfig
 	Stat           *StatConfig
-	DefaultUser    *DefaultUserConfig
+	S3             *S3Config
 	DefaultMessage string
 }
 
@@ -82,11 +96,14 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 		Loglevel:  "ERROR",
 		Indexer:   indexer.GetDefaultConfig(),
 		AES:       &AESConfig{},
-		Init:      &InitConfig{},
 		Add: &AddConfig{
 			Deduplicate:           false,
 			NoCompress:            true,
 			ObjectExtensionFolder: "",
+			User:                  &UserConfig{},
+			Fixity:                []string{},
+			Message:               "",
+			Digest:                "",
 		},
 		Display: &DisplayConfig{
 			Addr:    "localhost:80",
@@ -113,7 +130,11 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 				"ObjectExtensionConfigs",
 			},
 		},
-		DefaultUser:    &DefaultUserConfig{},
+		Init: &InitConfig{
+			OCFLVersion:                "1.1",
+			StorageRootExtensionFolder: "",
+		},
+		S3:             &S3Config{},
 		DefaultMessage: "initial add",
 	}
 

@@ -56,7 +56,7 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory("Validate", cmd, nil, true, daLogger)
+	fsFactory, err := initializeFSFactory(nil, nil, nil, true, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
