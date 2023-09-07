@@ -24,6 +24,15 @@ type AddConfig struct {
 	Message               string
 }
 
+type UpdateConfig struct {
+	Deduplicate bool
+	NoCompress  bool
+	User        *UserConfig
+	Echo        bool
+	Message     string
+	Digest      checksum.DigestAlgorithm
+}
+
 type AESConfig struct {
 	Enable       bool
 	KeepassFile  configutil.EnvString
@@ -33,31 +42,37 @@ type AESConfig struct {
 }
 
 type DisplayConfig struct {
-	Addr     string
-	AddrExt  string
-	CertFile string
-	KeyFile  string
+	Addr      string
+	AddrExt   string
+	CertFile  string
+	KeyFile   string
+	Templates string
 }
 
 type ExtractConfig struct {
-	Manifest bool
-	Version  string
+	Manifest   bool
+	Version    string
+	ObjectPath string
+	ObjectID   string
+}
+
+type ValidateConfig struct {
+	ObjectPath string
+	ObjectID   string
 }
 
 type ExtractMetaConfig struct {
-	Version string
-	Format  string
-	Output  string
+	Version    string
+	Format     string
+	Output     string
+	ObjectPath string
+	ObjectID   string
 }
 
 type StatConfig struct {
-	Info []string
-}
-
-type UpdateConfig struct {
-	Deduplicate bool
-	NoCompress  bool
-	Echo        bool
+	Info       []string
+	ObjectPath string
+	ObjectID   string
 }
 
 type UserConfig struct {
@@ -73,37 +88,46 @@ type S3Config struct {
 }
 
 type GOCFLConfig struct {
-	ErrorTemplate  string
-	Logfile        string
-	Loglevel       string
-	LogFormat      string
-	AccessLog      string
-	Indexer        *indexer.IndexerConfig
-	AES            *AESConfig
-	Init           *InitConfig
-	Add            *AddConfig
-	Display        *DisplayConfig
-	Extract        *ExtractConfig
-	ExtractMeta    *ExtractMetaConfig
-	Stat           *StatConfig
-	S3             *S3Config
-	DefaultMessage string
+	ErrorTemplate string
+	Logfile       string
+	Loglevel      string
+	LogFormat     string
+	AccessLog     string
+	Indexer       *indexer.IndexerConfig
+	AES           *AESConfig
+	Init          *InitConfig
+	Add           *AddConfig
+	Update        *UpdateConfig
+	Display       *DisplayConfig
+	Extract       *ExtractConfig
+	ExtractMeta   *ExtractMetaConfig
+	Stat          *StatConfig
+	Validate      *ValidateConfig
+	S3            *S3Config
+	DefaultArea   string
 }
 
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
-		LogFormat: `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`,
-		Loglevel:  "ERROR",
-		Indexer:   indexer.GetDefaultConfig(),
-		AES:       &AESConfig{},
+		LogFormat:   `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`,
+		Loglevel:    "ERROR",
+		DefaultArea: "content",
+		Indexer:     indexer.GetDefaultConfig(),
+		AES:         &AESConfig{},
 		Add: &AddConfig{
 			Deduplicate:           false,
 			NoCompress:            true,
 			ObjectExtensionFolder: "",
 			User:                  &UserConfig{},
 			Fixity:                []string{},
-			Message:               "",
-			Digest:                "",
+			Message:               "initial add",
+			Digest:                "sha512",
+		},
+		Update: &UpdateConfig{
+			Deduplicate: true,
+			NoCompress:  false,
+			User:        &UserConfig{},
+			Echo:        false,
 		},
 		Display: &DisplayConfig{
 			Addr:    "localhost:80",
@@ -130,12 +154,12 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 				"ObjectExtensionConfigs",
 			},
 		},
+		Validate: &ValidateConfig{},
 		Init: &InitConfig{
 			OCFLVersion:                "1.1",
 			StorageRootExtensionFolder: "",
 		},
-		S3:             &S3Config{},
-		DefaultMessage: "initial add",
+		S3: &S3Config{},
 	}
 
 	if _, err := toml.Decode(data, conf); err != nil {

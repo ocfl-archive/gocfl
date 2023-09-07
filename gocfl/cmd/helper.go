@@ -297,6 +297,9 @@ func addObjectByPath(
 	sourceFS fs.FS, area string,
 	areaPaths map[string]fs.FS,
 	echo bool) (bool, error) {
+	if fixity == nil {
+		fixity = []checksum.DigestAlgorithm{}
+	}
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
@@ -306,6 +309,11 @@ func addObjectByPath(
 		o, err = storageRoot.LoadObjectByID(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "cannot load object %s", id)
+		}
+		// if we update, fixity is taken from last object version
+		f := o.GetInventory().GetFixity()
+		for alg, _ := range f {
+			fixity = append(fixity, alg)
 		}
 	} else {
 		o, err = storageRoot.CreateObject(id, storageRoot.GetVersion(), storageRoot.GetDigest(), fixity, defaultExtensions)

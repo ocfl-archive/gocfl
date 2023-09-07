@@ -28,10 +28,7 @@ func initInit() {
 	initCmd.Flags().Bool("no-compress", false, "do not compress data in zip file")
 }
 
-func doInit(cmd *cobra.Command, args []string) {
-	//ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
-	ocflPath := filepath.ToSlash(args[0])
-
+func doInitConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "default-storageroot-extensions"); str != "" {
 		conf.Init.StorageRootExtensionFolder = str
 	}
@@ -43,17 +40,26 @@ func doInit(cmd *cobra.Command, args []string) {
 	if str := getFlagString(cmd, "digest"); str != "" {
 		conf.Init.Digest = checksum.DigestAlgorithm(str)
 	}
-
-	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.Loglevel, LOGFORMAT)
-	defer lf.Close()
-	daLogger.Infof("creating '%s'", ocflPath)
-	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
-
 	if _, err := checksum.GetHash(conf.Init.Digest); err != nil {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", conf.Init.Digest))
 	}
+
+}
+
+func doInit(cmd *cobra.Command, args []string) {
+	//ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
+	ocflPath := filepath.ToSlash(args[0])
+
+	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.Loglevel, LOGFORMAT)
+	defer lf.Close()
+
+	doInitConf(cmd)
+
+	daLogger.Infof("creating '%s'", ocflPath)
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
@@ -118,5 +124,5 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	showStatus(ctx)
+	_ = showStatus(ctx)
 }

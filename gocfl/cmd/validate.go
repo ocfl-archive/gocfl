@@ -2,15 +2,11 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"path/filepath"
-	"strings"
 )
 
 var validateCmd = &cobra.Command{
@@ -24,27 +20,29 @@ var validateCmd = &cobra.Command{
 }
 
 func initValidate() {
-	validateCmd.Flags().StringVarP(&objectPath, "object-path", "o", "", "validate only the object at the specified path in storage root")
-	validateCmd.Flags().StringVar(&objectID, "object-id", "", "validate only the object with the specified id in storage root")
+	validateCmd.Flags().StringP("object-path", "o", "", "validate only the object at the specified path in storage root")
+	validateCmd.Flags().String("object-id", "", "validate only the object with the specified id in storage root")
 }
 
-var objectPath string
-var objectID string
+func doValidateConf(cmd *cobra.Command) {
+	if str := getFlagString(cmd, "object-path"); str != "" {
+		conf.Validate.ObjectPath = str
+	}
+	if str := getFlagString(cmd, "object-id"); str != "" {
+		conf.Validate.ObjectID = str
+	}
+}
 
 func validate(cmd *cobra.Command, args []string) {
 	//	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	ocflPath := filepath.ToSlash(args[0])
-	persistentFlagLogfile := viper.GetString("LogFile")
-	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
-	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
-	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
 	defer lf.Close()
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+
+	doValidateConf(cmd)
 
 	daLogger.Infof("validating '%s'", ocflPath)
 
@@ -83,6 +81,8 @@ func validate(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	objectID := conf.Validate.ObjectID
+	objectPath := conf.Validate.ObjectPath
 	if objectID != "" && objectPath != "" {
 		daLogger.Errorf("cannot specify both --object-id and --object-path")
 		return
@@ -102,7 +102,7 @@ func validate(cmd *cobra.Command, args []string) {
 			}
 		} else {
 			if err := storageRoot.CheckObjectByFolder(objectPath); err != nil {
-				daLogger.Errorf("ocfl object '%s' not valid: %v", objectPath, err)
+				daLogger.Errorf("ocfl object '%s' not va§lid: %v", objectPath, err)
 				daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 				return
 			}

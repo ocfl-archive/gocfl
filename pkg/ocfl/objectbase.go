@@ -809,12 +809,6 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 	}
 
-	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, isDir); err != nil {
-			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
-		}
-	}
-
 	targetFilename := object.i.BuildManifestName(names.InternalPath)
 
 	var digest string
@@ -873,6 +867,11 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 		} else {
 			if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
 				digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
+			}
+		}
+		if !noExtensionHook {
+			if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, isDir); err != nil {
+				return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 			}
 		}
 

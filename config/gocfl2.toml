@@ -43,6 +43,9 @@ Digest="sha512"
 Fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
 ObjectExtensions="./data/defaultextensions/object"
+
+DefaultArea="content"
+
 [Add.User]
 # --user-name
 Name="John Doe"
@@ -62,7 +65,8 @@ Digest=["sha512", "blake2b-384"]
 [Indexer.Siegfried]
 Enabled=true
 #Signature = "/usr/share/siegfried/default.sig"
-Signature = "file://C:/Users/micro/siegfried/default.sig"
+#Signature = "file://C:/Users/micro/siegfried/default.sig"
+Signature = "internal:/siegfried/default.sig"
 
 # mapping of pronom id to mimetype if not found in siegfried
 [Indexer.Siegfried.MimeMap]

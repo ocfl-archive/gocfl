@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -10,8 +9,6 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,52 +26,57 @@ var extractMetaCmd = &cobra.Command{
 
 func initExtractMeta() {
 	extractMetaCmd.Flags().StringP("object-path", "p", "", "object path to extract")
-
 	extractMetaCmd.Flags().StringP("object-id", "i", "", "object id to extract")
-
 	extractMetaCmd.Flags().String("version", "latest", "version to extract")
-	emperror.Panic(viper.BindPFlag("ExtractMeta.Version", extractMetaCmd.Flags().Lookup("version")))
-
 	extractMetaCmd.Flags().String("format", "json", "output format (json)")
-	emperror.Panic(viper.BindPFlag("ExtractMeta.Format", extractMetaCmd.Flags().Lookup("format")))
 	extractMetaCmd.Flags().String("output", "", "output file (default stdout)")
-	emperror.Panic(viper.BindPFlag("ExtractMeta.Output", extractMetaCmd.Flags().Lookup("output")))
+}
+
+func doExtractMetaConf(cmd *cobra.Command) {
+	if str := getFlagString(cmd, "object-path"); str != "" {
+		conf.ExtractMeta.ObjectPath = str
+	}
+	if str := getFlagString(cmd, "object-id"); str != "" {
+		conf.ExtractMeta.ObjectID = str
+	}
+	if str := getFlagString(cmd, "version"); str != "" {
+		conf.ExtractMeta.Version = str
+	}
+	if conf.ExtractMeta.Version == "" {
+		conf.ExtractMeta.Version = "latest"
+	}
+	if str := getFlagString(cmd, "format"); str != "" {
+		conf.ExtractMeta.Format = str
+	}
+	if str := getFlagString(cmd, "output"); str != "" {
+		conf.ExtractMeta.Output = str
+	}
 }
 
 func doExtractMeta(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(args[0])
 
-	persistentFlagLogfile := viper.GetString("LogFile")
-	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
-	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
-	}
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	defer lf.Close()
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	version := viper.GetString("Extract.Version")
-	if version == "" {
-		version = "latest"
-	}
+	doExtractMetaConf(cmd)
 
-	oPath, _ := cmd.Flags().GetString("object-path")
-	oID, _ := cmd.Flags().GetString("object-id")
+	oPath := conf.ExtractMeta.ObjectPath
+	oID := conf.ExtractMeta.ObjectID
 	if oPath != "" && oID != "" {
 		cmd.Help()
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
-	format := strings.ToLower(viper.GetString("ExtractMeta.Format"))
+	format := strings.ToLower(conf.ExtractMeta.Format)
 	if format != "json" {
 		cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid format '%s' for flag 'format' or 'Format' config file entry", format))
 		return
 	}
-	output := viper.GetString("ExtractMeta.Output")
-
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
-	defer lf.Close()
-	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+	output := conf.ExtractMeta.Output
 
 	daLogger.Infof("extracting metadata from '%s'", ocflPath)
 

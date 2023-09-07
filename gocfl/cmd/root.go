@@ -140,6 +140,7 @@ func initConfig() {
 
 	// load config file
 	if persistentFlagConfigFile != "" {
+		log.Infof("loading configuration from %s", persistentFlagLogfile)
 		data, err := os.ReadFile(persistentFlagConfigFile)
 		if err != nil {
 			_ = rootCmd.Help()
@@ -199,30 +200,12 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
-
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
-	//emperror.Panic(viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file")))
-
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
-	//emperror.Panic(viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level")))
-
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
-	//emperror.Panic(viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint")))
-
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3AccessKeyID, "s3-access-key-id", "", "Access Key ID for S3 Buckets")
-	//emperror.Panic(viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id")))
-
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3SecretAccessKey, "s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
-	//emperror.Panic(viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key")))
-
 	rootCmd.PersistentFlags().StringVar(&persistentFlagS3Region, "s3-region", "", "Region for S3 Access")
-	//emperror.Panic(viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region")))
-
-	//	rootCmd.PersistentFlags().Bool("with-indexer", false, "starts indexer as a local service")
-	//emperror.Panic(viper.BindPFlag("Indexer.Enable", rootCmd.PersistentFlags().Lookup("with-indexer")))
-
-	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
-	//	emperror.Panic(viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
 
 	initValidate()
 	initInit()

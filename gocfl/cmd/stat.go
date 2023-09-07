@@ -9,8 +9,6 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +26,6 @@ var statCmd = &cobra.Command{
 
 func initStat() {
 	statCmd.Flags().StringP("object-path", "p", "", "object path to show statistics for")
-
 	statCmd.Flags().StringP("object-id", "i", "", "object id to show statistics for")
 
 	infos := []string{}
@@ -36,34 +33,41 @@ func initStat() {
 		infos = append(infos, info)
 	}
 	statCmd.Flags().String("stat-info", "", fmt.Sprintf("comma separated list of info fields to show [%s]", strings.Join(infos, ",")))
-	emperror.Panic(viper.BindPFlag("Stat.Info", statCmd.Flags().Lookup("stat-info")))
+}
+
+func doStatConf(cmd *cobra.Command) {
+	if str := getFlagString(cmd, "object-path"); str != "" {
+		conf.Stat.ObjectPath = str
+	}
+	if str := getFlagString(cmd, "object-id"); str != "" {
+		conf.Stat.ObjectID = str
+	}
+	if str := getFlagString(cmd, "stat-info"); str != "" {
+		conf.Stat.Info = []string{}
+		for _, s := range strings.Split(str, ",") {
+			conf.Stat.Info = append(conf.Stat.Info, strings.ToLower(strings.TrimSpace(s)))
+		}
+	}
 }
 
 func doStat(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(args[0])
 
-	persistentFlagLogfile := viper.GetString("LogFile")
-	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
-	if persistentFlagLoglevel == "" {
-		persistentFlagLoglevel = "INFO"
-	}
-	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		emperror.Panic(cmd.Help())
-		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
-	}
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	defer lf.Close()
 
-	oPath, _ := cmd.Flags().GetString("object-path")
-	oID, _ := cmd.Flags().GetString("object-id")
+	doStatConf(cmd)
+
+	oPath := conf.Stat.ObjectPath
+	oID := conf.Stat.ObjectID
 	if oPath != "" && oID != "" {
 		emperror.Panic(cmd.Help())
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
 
-	statInfoString := viper.GetString("Stat.Info")
-	statInfoStrings := strings.Split(statInfoString, ",")
 	statInfo := []ocfl.StatInfo{}
-	for _, statInfoString := range statInfoStrings {
+	for _, statInfoString := range conf.Stat.Info {
 		statInfoString = strings.ToLower(strings.TrimSpace(statInfoString))
 		var found bool
 		for str, info := range ocfl.StatInfoString {
@@ -78,8 +82,6 @@ func doStat(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
-	defer lf.Close()
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
