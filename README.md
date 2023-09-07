@@ -1,3 +1,7 @@
+# Attention
+New simplified config file format
+Look at [gocfl2.toml](./config/gocfl2.toml)
+
 # Go OCFL Implementation
 
 This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
