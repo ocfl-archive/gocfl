@@ -1,0 +1,10 @@
+{
+  "extensionName": "NNNN-indexer",
+  "storageType": "area",
+  "storageName": "metadata",
+  "actions": ["siegfried"],
+  "compress": "gzip"
+}
+
+
+
