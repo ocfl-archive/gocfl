@@ -939,27 +939,6 @@ func (i *InventoryBase) DeleteFile(stateFilename string) error {
 	return nil
 }
 
-/*
-func (i *InventoryBase) Rename(oldVirtualFilename, newVirtualFilename string) error {
-	var newState = map[string][]string{}
-	var found = false
-	for key, vals := range i.Versions.Versions[i.GetHead()].State.State {
-		newState[key] = []string{}
-		for _, val := range vals {
-			if val == oldVirtualFilename {
-				found = true
-				newState[key] = append(newState[key], newVirtualFilename)
-			} else {
-				newState[key] = append(newState[key], val)
-			}
-		}
-	}
-	i.Versions.Versions[i.GetHead()].State.State = newState
-	i.modified = found
-	return nil
-}
-*/
-
 func (i *InventoryBase) CopyFile(dest string, digest string) error {
 	i.logger.Infof("[%s] copying '%s' -> '%s'", i.GetID(), digest, dest)
 

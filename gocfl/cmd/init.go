@@ -51,7 +51,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	//ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	ocflPath := filepath.ToSlash(args[0])
 
-	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.Loglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.LogLevel, LOGFORMAT)
 	defer lf.Close()
 
 	doInitConf(cmd)

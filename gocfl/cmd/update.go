@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/gocfl/v2/internal"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
@@ -79,14 +80,16 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	ocflPath := filepath.ToSlash(args[0])
 	srcPath := filepath.ToSlash(args[1])
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()
 
 	doUpdateConf(cmd)
 
 	var addr string
 	var localCache bool
-	indexerActions, err := ironmaiden.InitActionDispatcher(map[string]fs.FS{}, *conf.Indexer, daLogger)
+	var fss = map[string]fs.FS{"internal": internal.InternalFS}
+
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, daLogger)
 	if err != nil {
 		daLogger.Panicf("cannot init indexer: %v", err)
 	}

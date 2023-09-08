@@ -90,7 +90,7 @@ type S3Config struct {
 type GOCFLConfig struct {
 	ErrorTemplate string
 	Logfile       string
-	Loglevel      string
+	LogLevel      string
 	LogFormat     string
 	AccessLog     string
 	Indexer       *indexer.IndexerConfig
@@ -110,7 +110,7 @@ type GOCFLConfig struct {
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
 		LogFormat:   `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`,
-		Loglevel:    "ERROR",
+		LogLevel:    "ERROR",
 		DefaultArea: "content",
 		Indexer:     indexer.GetDefaultConfig(),
 		AES:         &AESConfig{},

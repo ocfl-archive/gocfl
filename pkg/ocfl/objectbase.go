@@ -600,6 +600,16 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 }
 
 func (object *ObjectBase) EndUpdate() error {
+	object.logger.Infof(fmt.Sprintf("EndUpdate of object '%s'", object.GetID()))
+	if !(object.i.IsWriteable()) {
+		object.logger.Warningf(fmt.Sprintf("object '%s' not writeable", object.GetID()))
+		return nil
+	}
+	if !(object.i.IsModified()) {
+		object.logger.Infof(fmt.Sprintf("object '%s' not modified", object.GetID()))
+		return nil
+	}
+
 	if object.echo {
 		if err := object.echoDelete(); err != nil {
 			return errors.Wrap(err, "cannot delete files")

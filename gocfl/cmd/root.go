@@ -168,7 +168,7 @@ func initConfig() {
 		conf.Logfile = persistentFlagLogfile
 	}
 	if persistentFlagLoglevel != "" {
-		conf.Loglevel = persistentFlagLoglevel
+		conf.LogLevel = persistentFlagLoglevel
 	}
 	if persistenFlagS3Endpoint != "" {
 		conf.S3.Endpoint = configutil.EnvString(persistenFlagS3Endpoint)
@@ -201,7 +201,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
-	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3AccessKeyID, "s3-access-key-id", "", "Access Key ID for S3 Buckets")
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3SecretAccessKey, "s3-secret-access-key", "", "Secret Access Key for S3 Buckets")

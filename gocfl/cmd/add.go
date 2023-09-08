@@ -5,6 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/gocfl/v2/internal"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
@@ -99,19 +100,20 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	ocflPath := filepath.ToSlash(args[0])
 	srcPath := filepath.ToSlash(args[1])
-	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, conf.Loglevel) {
+	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, conf.LogLevel) {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
 	}
-	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.Loglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.LogLevel, LOGFORMAT)
 	defer lf.Close()
 
 	doAddConf(cmd)
 
 	var addr string
 	var localCache bool
+	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(map[string]fs.FS{}, *conf.Indexer, daLogger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, daLogger)
 	if err != nil {
 		daLogger.Panicf("cannot init indexer: %v", err)
 	}

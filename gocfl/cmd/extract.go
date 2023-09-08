@@ -47,7 +47,7 @@ func doExtractConf(cmd *cobra.Command) {
 }
 
 func doExtract(cmd *cobra.Command, args []string) {
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()

@@ -37,7 +37,7 @@ func validate(cmd *cobra.Command, args []string) {
 	//	ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
 	ocflPath := filepath.ToSlash(args[0])
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
