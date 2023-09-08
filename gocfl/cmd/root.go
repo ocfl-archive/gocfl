@@ -12,7 +12,7 @@ import (
 	"regexp"
 )
 
-const VERSION = "v1.0-beta.9"
+const VERSION = "v2.0-beta.2"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 

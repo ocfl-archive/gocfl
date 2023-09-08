@@ -2,6 +2,10 @@
 New simplified config file format
 Look at [gocfl2.toml](./config/gocfl2.toml)
 
+# Installation
+
+`go install github.com/je4/gocfl/v2/gocfl@latest`
+
 # Go OCFL Implementation
 
 This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
