@@ -2,18 +2,14 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"golang.org/x/exp/slices"
 	"io/fs"
 	"path/filepath"
-	"strings"
 )
 
 var extractCmd = &cobra.Command{
@@ -28,49 +24,50 @@ var extractCmd = &cobra.Command{
 
 func initExtract() {
 	extractCmd.Flags().StringP("object-path", "p", "", "object path to extract")
-
 	extractCmd.Flags().StringP("object-id", "i", "", "object id to extract")
-
 	extractCmd.Flags().Bool("with-manifest", false, "generate manifest file in object extraction folder")
-	emperror.Panic(viper.BindPFlag("Extract.Manifest", extractCmd.Flags().Lookup("with-manifest")))
-
-	extractCmd.Flags().String("version", "latest", "version to extract")
-	emperror.Panic(viper.BindPFlag("Extract.Version", extractCmd.Flags().Lookup("version")))
+	extractCmd.Flags().String("version", "", "version to extract")
+}
+func doExtractConf(cmd *cobra.Command) {
+	if str := getFlagString(cmd, "object-path"); str != "" {
+		conf.Extract.ObjectPath = str
+	}
+	if str := getFlagString(cmd, "object-id"); str != "" {
+		conf.Extract.ObjectID = str
+	}
+	if b := getFlagBool(cmd, "with-manifest"); b {
+		conf.Extract.Manifest = b
+	}
+	if str := getFlagString(cmd, "version"); str != "" {
+		conf.Extract.Version = str
+	}
+	if conf.Extract.Version == "" {
+		conf.Extract.Version = "latest"
+	}
 }
 
 func doExtract(cmd *cobra.Command, args []string) {
+	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
+	defer lf.Close()
+	t := startTimer()
+	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+
 	ocflPath := filepath.ToSlash(args[0])
 	destPath := filepath.ToSlash(args[1])
 
-	persistentFlagLogfile := viper.GetString("LogFile")
-	persistentFlagLoglevel := strings.ToUpper(viper.GetString("LogLevel"))
-	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, persistentFlagLoglevel) {
-		cmd.Help()
-		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
-	}
+	doExtractConf(cmd)
 
-	withManifest := viper.GetBool("Extract.Manifest")
-	version := viper.GetString("Extract.Version")
-	if version == "" {
-		version = "latest"
-	}
-
-	oPath, _ := cmd.Flags().GetString("object-path")
-	oID, _ := cmd.Flags().GetString("object-id")
+	oPath := conf.Extract.ObjectPath
+	oID := conf.Extract.ObjectID
 	if oPath != "" && oID != "" {
 		cmd.Help()
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, persistentFlagLoglevel, LOGFORMAT)
-	defer lf.Close()
-	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
-
 	daLogger.Infof("extracting '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory("Extract", cmd, nil, true, daLogger)
+	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot create filesystem factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -125,7 +122,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := storageRoot.Extract(destFS, oPath, oID, version, withManifest); err != nil {
+	if err := storageRoot.Extract(destFS, oPath, oID, conf.Extract.Version, conf.Extract.Manifest); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		daLogger.Errorf("cannot extract storage root: %v\n", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

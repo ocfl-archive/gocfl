@@ -10,6 +10,7 @@ import (
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/filesystem/v2/pkg/zipfs"
 	"github.com/je4/filesystem/v2/pkg/zipfsrw"
+	"github.com/je4/gocfl/v2/config"
 	defaultextensions_object "github.com/je4/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/je4/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/je4/gocfl/v2/pkg/extension"
@@ -21,10 +22,8 @@ import (
 	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"io/fs"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -194,11 +193,16 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	return
 }
 
-func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksum.DigestAlgorithm, readOnly bool, logger *logging.Logger) (*writefs.Factory, error) {
+func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *config.AESConfig, s3Config *config.S3Config, noCompression, readOnly bool, logger *logging.Logger) (*writefs.Factory, error) {
 	if zipDigests == nil {
 		zipDigests = []checksum.DigestAlgorithm{checksum.DigestSHA512}
 	}
-	prefix = strings.TrimRight(prefix, ".") + "."
+	if aesConfig == nil {
+		aesConfig = &config.AESConfig{}
+	}
+	if s3Config == nil {
+		s3Config = &config.S3Config{}
+	}
 
 	fsFactory, err := writefs.NewFactory()
 	if err != nil {
@@ -210,31 +214,23 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 			return nil, errors.Wrap(err, "cannot register zipfs")
 		}
 	} else {
-
-		flagNoCompression := viper.GetBool(prefix + "NoCompression")
-
-		flagAES := viper.GetBool(prefix + "AES")
-
-		keePassFile := viper.GetString(prefix + "KeePassFile")
-		keePassEntry := viper.GetString(prefix + "KeePassEntry")
-		keePassKey := viper.GetString(prefix + "KeePassKey")
 		// todo: allow different KMS clients
-		if flagAES {
-			db, err := keepass2kms.LoadKeePassDBFromFile(keePassFile, keePassKey)
+		if aesConfig.Enable {
+			db, err := keepass2kms.LoadKeePassDBFromFile(string(aesConfig.KeepassFile), string(aesConfig.KeepassKey))
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot load keepass file '%s'", keePassFile)
+				return nil, errors.Wrapf(err, "cannot load keepass file '%s'", aesConfig.KeepassFile)
 			}
-			client, err := keepass2kms.NewClient(db, filepath.Base(keePassFile))
+			client, err := keepass2kms.NewClient(db, filepath.Base(string(aesConfig.KeepassFile)))
 			if err != nil {
 				return nil, errors.Wrap(err, "cannot create keepass2kms client")
 			}
 			registry.RegisterKMSClient(client)
 
-			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(flagNoCompression, zipDigests, keePassEntry), "\\.zip$", writefs.HighFS); err != nil {
+			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(noCompression, zipDigests, string(aesConfig.KeepassEntry)), "\\.zip$", writefs.HighFS); err != nil {
 				return nil, errors.Wrap(err, "cannot register FSEncryptedChecksum")
 			}
 		} else {
-			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(flagNoCompression, zipDigests), "\\.zip$", writefs.HighFS); err != nil {
+			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(noCompression, zipDigests), "\\.zip$", writefs.HighFS); err != nil {
 				return nil, errors.Wrap(err, "cannot register FSChecksum")
 			}
 		}
@@ -242,28 +238,26 @@ func initializeFSFactory(prefix string, cmd *cobra.Command, zipDigests []checksu
 	if err := fsFactory.Register(osfsrw.NewCreateFSFunc(), "", writefs.LowFS); err != nil {
 		return nil, errors.Wrap(err, "cannot register osfs")
 	}
-	s3Endpoint := viper.GetString("S3Endpoint")
-	s3AccessKeyID := viper.GetString("S3AccessKeyID")
-	s3SecretAccessKey := viper.GetString("S3SecretAccessKey")
-	if err := fsFactory.Register(
-		s3fsrw.NewCreateFSFunc(
-			map[string]*s3fsrw.S3Access{
-				"switch": {
-					s3AccessKeyID,
-					s3SecretAccessKey,
-					s3Endpoint,
-					true,
+	if s3Config.Endpoint != "" {
+		if err := fsFactory.Register(
+			s3fsrw.NewCreateFSFunc(
+				map[string]*s3fsrw.S3Access{
+					"switch": {
+						string(s3Config.AccessKeyID),
+						string(s3Config.AccessKey),
+						string(s3Config.Endpoint),
+						true,
+					},
 				},
-			},
+				s3fsrw.ARNRegexStr,
+				logger,
+			),
 			s3fsrw.ARNRegexStr,
-			logger,
-		),
-		s3fsrw.ARNRegexStr,
-		writefs.MediumFS,
-	); err != nil {
-		return nil, errors.Wrap(err, "cannot register s3fs")
+			writefs.MediumFS,
+		); err != nil {
+			return nil, errors.Wrap(err, "cannot register s3fs")
+		}
 	}
-
 	return fsFactory, nil
 }
 
@@ -303,6 +297,9 @@ func addObjectByPath(
 	sourceFS fs.FS, area string,
 	areaPaths map[string]fs.FS,
 	echo bool) (bool, error) {
+	if fixity == nil {
+		fixity = []checksum.DigestAlgorithm{}
+	}
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
@@ -312,6 +309,11 @@ func addObjectByPath(
 		o, err = storageRoot.LoadObjectByID(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "cannot load object %s", id)
+		}
+		// if we update, fixity is taken from last object version
+		f := o.GetInventory().GetFixity()
+		for alg, _ := range f {
+			fixity = append(fixity, alg)
 		}
 	} else {
 		o, err = storageRoot.CreateObject(id, storageRoot.GetVersion(), storageRoot.GetDigest(), fixity, defaultExtensions)

@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"cmp"
 	"context"
 	"emperror.dev/errors"
 	"encoding/json"
@@ -112,12 +113,12 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 		versionStrings = append(versionStrings, v)
 	}
 	// sort version strings in ascending order
-	slices.SortFunc(versionStrings, func(a, b string) bool {
+	slices.SortFunc(versionStrings, func(a, b string) int {
 		a = strings.TrimPrefix(a, "v0")
 		b = strings.TrimPrefix(b, "v0")
 		ia, _ := strconv.Atoi(a)
 		ib, _ := strconv.Atoi(b)
-		return ia < ib
+		return cmp.Compare(ia, ib)
 	})
 	extensionMetadata, err := object.extensionManager.GetMetadata(object)
 	if err != nil {
@@ -599,6 +600,16 @@ func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress s
 }
 
 func (object *ObjectBase) EndUpdate() error {
+	object.logger.Infof(fmt.Sprintf("EndUpdate of object '%s'", object.GetID()))
+	if !(object.i.IsWriteable()) {
+		object.logger.Warningf(fmt.Sprintf("object '%s' not writeable", object.GetID()))
+		return nil
+	}
+	if !(object.i.IsModified()) {
+		object.logger.Infof(fmt.Sprintf("object '%s' not modified", object.GetID()))
+		return nil
+	}
+
 	if object.echo {
 		if err := object.echoDelete(); err != nil {
 			return errors.Wrap(err, "cannot delete files")
@@ -808,12 +819,6 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 		return errors.Wrapf(err, "cannot create virtual filename for '%s'", path)
 	}
 
-	if !noExtensionHook {
-		if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, isDir); err != nil {
-			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
-		}
-	}
-
 	targetFilename := object.i.BuildManifestName(names.InternalPath)
 
 	var digest string
@@ -872,6 +877,11 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 		} else {
 			if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
 				digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
+			}
+		}
+		if !noExtensionHook {
+			if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, isDir); err != nil {
+				return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 			}
 		}
 
@@ -952,8 +962,16 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	versionStrings := object.i.GetVersionStrings()
 
 	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b string) bool {
-		return object.i.VersionLessOrEqual(a, b) && a != b
+	slices.SortFunc(versionStrings, func(a, b string) int {
+		if object.i.VersionLessOrEqual(a, b) && a != b {
+			return -1
+		} else {
+			if a == b {
+				return 0
+			} else {
+				return 1
+			}
+		}
 	})
 
 	for _, ver := range versionStrings {
@@ -1292,8 +1310,16 @@ func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) 
 	versionStrings := object.i.GetVersionStrings()
 
 	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b string) bool {
-		return object.i.VersionLessOrEqual(a, b) && a != b
+	slices.SortFunc(versionStrings, func(a, b string) int {
+		if object.i.VersionLessOrEqual(a, b) && a != b {
+			return -1
+		} else {
+			if a == b {
+				return 0
+			} else {
+				return 1
+			}
+		}
 	})
 	versionInventories := map[string]Inventory{}
 	for _, ver := range versionStrings {

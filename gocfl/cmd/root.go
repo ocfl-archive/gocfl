@@ -1,15 +1,13 @@
 package cmd
 
 import (
-	"bytes"
-	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/martian/log"
 	"github.com/je4/gocfl/v2/config"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"regexp"
 )
@@ -82,8 +80,13 @@ var DigestIds = map[DigestFlag][]string{
 // all possible flags of all modules go here
 var persistentFlagConfigFile string
 
-// var persistentFlagLogfile string
-var intPersistentFlagLoglevel LogLevelFlag
+var persistentFlagLogfile string
+var persistentFlagLoglevel string
+
+var persistenFlagS3Endpoint string
+var persistenFlagS3AccessKeyID string
+var persistenFlagS3SecretAccessKey string
+var persistentFlagS3Region string
 
 //var flagDigest DigestFlag
 
@@ -99,6 +102,8 @@ var flagStatInfo = []string{}
 // var flagFixity string
 // var flagDigestSHA256, flagDigestSHA512 bool
 
+var conf *config.GOCFLConfig
+
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
 var rootCmd = &cobra.Command{
@@ -113,32 +118,71 @@ Version %s`, VERSION),
 	},
 }
 
+func getFlagString(cmd *cobra.Command, flag string) string {
+	str, err := cmd.Flags().GetString(flag)
+	if err != nil {
+		_ = cmd.Help()
+		cobra.CheckErr(errors.Errorf("canot get flag %s: %v", flag, err))
+	}
+	return str
+}
+
+func getFlagBool(cmd *cobra.Command, flag string) bool {
+	b, err := cmd.Flags().GetBool(flag)
+	if err != nil {
+		_ = cmd.Help()
+		cobra.CheckErr(errors.Errorf("canot get flag %s: %v", flag, err))
+	}
+	return b
+}
+
 func initConfig() {
+
+	// load config file
 	if persistentFlagConfigFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(persistentFlagConfigFile)
-		if err := viper.ReadInConfig(); err == nil {
-			fmt.Println("Using config file:", viper.ConfigFileUsed())
-			// fmt.Println(viper.AllSettings())
-		} else {
+		log.Infof("loading configuration from %s", persistentFlagLogfile)
+		data, err := os.ReadFile(persistentFlagConfigFile)
+		if err != nil {
 			_ = rootCmd.Help()
-			log.Errorf("error reading config file %s: %v\n", viper.ConfigFileUsed(), err)
+			log.Errorf("error reading config file %s: %v\n", persistentFlagConfigFile, err)
+			os.Exit(1)
+		}
+		conf, err = config.LoadGOCFLConfig(string(data))
+		if err != nil {
+			_ = rootCmd.Help()
+			log.Errorf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 	} else {
-		viper.SetConfigType("toml")
-		if err := viper.ReadConfig(bytes.NewBuffer(config.DefaultConfig)); err != nil {
-			log.Errorf("error reading default config file: %v\n", err)
+		var err error
+		conf, err = config.LoadGOCFLConfig(string(config.DefaultConfig))
+		if err != nil {
+			_ = rootCmd.Help()
+			log.Errorf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 	}
 
-	viper.AutomaticEnv()
-
-	persistentFlagLoglevel := viper.GetInt64("LogLevel")
-	if _, ok := LogLevelIds[LogLevelFlag(persistentFlagLoglevel)]; !ok {
-		cobra.CheckErr(errors.Errorf("invalid Loglevel ID %v", persistentFlagLoglevel))
+	// overwrite config file with command line data
+	if persistentFlagLogfile != "" {
+		conf.Logfile = persistentFlagLogfile
 	}
+	if persistentFlagLoglevel != "" {
+		conf.LogLevel = persistentFlagLoglevel
+	}
+	if persistenFlagS3Endpoint != "" {
+		conf.S3.Endpoint = configutil.EnvString(persistenFlagS3Endpoint)
+	}
+	if persistentFlagS3Region != "" {
+		conf.S3.Region = configutil.EnvString(persistentFlagS3Region)
+	}
+	if persistenFlagS3AccessKeyID != "" {
+		conf.S3.AccessKeyID = configutil.EnvString(persistenFlagS3AccessKeyID)
+	}
+	if persistenFlagS3SecretAccessKey != "" {
+		conf.S3.AccessKey = configutil.EnvString(persistenFlagS3SecretAccessKey)
+	}
+
 	return
 }
 
@@ -156,30 +200,12 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
-
-	rootCmd.PersistentFlags().String("log-file", "", "log output file (default is console)")
-	emperror.Panic(viper.BindPFlag("LogFile", rootCmd.PersistentFlags().Lookup("log-file")))
-
-	rootCmd.PersistentFlags().String("log-level", "ERROR", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
-	emperror.Panic(viper.BindPFlag("LogLevel", rootCmd.PersistentFlags().Lookup("log-level")))
-
-	rootCmd.PersistentFlags().String("s3-endpoint", "", "Endpoint for S3 Buckets")
-	emperror.Panic(viper.BindPFlag("S3Endpoint", rootCmd.PersistentFlags().Lookup("s3-endpoint")))
-
-	rootCmd.PersistentFlags().String("s3-access-key-id", "", "Access Key ID for S3 Buckets")
-	emperror.Panic(viper.BindPFlag("S3AccessKeyID", rootCmd.PersistentFlags().Lookup("s3-access-key-id")))
-
-	rootCmd.PersistentFlags().String("s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
-	emperror.Panic(viper.BindPFlag("S3SecretAccessKey", rootCmd.PersistentFlags().Lookup("s3-secret-access-key")))
-
-	rootCmd.PersistentFlags().String("s3-region", "", "Region for S3 Access")
-	emperror.Panic(viper.BindPFlag("S3Region", rootCmd.PersistentFlags().Lookup("s3-region")))
-
-	rootCmd.PersistentFlags().Bool("with-indexer", false, "starts indexer as a local service")
-	emperror.Panic(viper.BindPFlag("Indexer.Enable", rootCmd.PersistentFlags().Lookup("with-indexer")))
-
-	//	rootCmd.PersistentFlags().StringVar(&flagExtensionFolder, "extensions", "", "folder with default extension configurations")
-	//	emperror.Panic(viper.BindPFlag("Extensions", rootCmd.PersistentFlags().Lookup("extensions"))
+	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
+	rootCmd.PersistentFlags().StringVar(&persistenFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
+	rootCmd.PersistentFlags().StringVar(&persistenFlagS3AccessKeyID, "s3-access-key-id", "", "Access Key ID for S3 Buckets")
+	rootCmd.PersistentFlags().StringVar(&persistenFlagS3SecretAccessKey, "s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagS3Region, "s3-region", "", "Region for S3 Access")
 
 	initValidate()
 	initInit()

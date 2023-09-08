@@ -6,3 +6,5 @@
 /build/gocfl_windows_arm64.exe
 /config/hek_gocfl.toml
 /cmd/test/
+*.sum
+go.work
