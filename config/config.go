@@ -80,6 +80,37 @@ type UserConfig struct {
 	Address string
 }
 
+type ThumbnailFunction struct {
+	ID      string
+	Title   string
+	Command string
+	Timeout configutil.Duration
+	Pronoms []string
+	Mime    []string
+}
+
+type Thumbnail struct {
+	Enabled    bool
+	Background string
+	Function   map[string]*ThumbnailFunction
+}
+
+type MigrationFunction struct {
+	ID                  string
+	Title               string
+	Command             string
+	Strategy            string
+	FilenameRegexp      string
+	FilenameReplacement string
+	Timeout             configutil.Duration
+	Pronoms             []string
+}
+
+type Migration struct {
+	Enabled  bool
+	Function map[string]*MigrationFunction
+}
+
 type S3Config struct {
 	Endpoint    configutil.EnvString
 	AccessKeyID configutil.EnvString
@@ -93,7 +124,10 @@ type GOCFLConfig struct {
 	LogLevel      string
 	LogFormat     string
 	AccessLog     string
+	Extension     map[string]map[string]string
 	Indexer       *indexer.IndexerConfig
+	Thumbnail     *Thumbnail
+	Migration     *Migration
 	AES           *AESConfig
 	Init          *InitConfig
 	Add           *AddConfig
@@ -112,8 +146,18 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 		LogFormat:   `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`,
 		LogLevel:    "ERROR",
 		DefaultArea: "content",
+		Extension:   map[string]map[string]string{},
 		Indexer:     indexer.GetDefaultConfig(),
-		AES:         &AESConfig{},
+		Thumbnail: &Thumbnail{
+			Enabled:    false,
+			Background: "",
+			Function:   map[string]*ThumbnailFunction{},
+		},
+		Migration: &Migration{
+			Enabled:  false,
+			Function: map[string]*MigrationFunction{},
+		},
+		AES: &AESConfig{},
 		Add: &AddConfig{
 			Deduplicate:           false,
 			NoCompress:            true,

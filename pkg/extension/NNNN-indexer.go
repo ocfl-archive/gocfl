@@ -38,8 +38,8 @@ func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 		{
 			ExtensionName: IndexerName,
 			Param:         "addr",
-			File:          "Addr",
-			Description:   "url for indexer format recognition service",
+			//File:          "Addr",
+			Description: "url for indexer format recognition service",
 		},
 	}
 }

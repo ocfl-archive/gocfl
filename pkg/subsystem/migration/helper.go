@@ -3,8 +3,8 @@ package migration
 import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
+	"github.com/je4/gocfl/v2/config"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"github.com/spf13/viper"
 	"io"
 	"os"
 	"path/filepath"
@@ -29,52 +29,41 @@ func anyToStringMapString(dataAny any) (map[string]string, error) {
 	return result, nil
 }
 
-func GetMigrations() (*Migration, error) {
+func GetMigrations(conf *config.GOCFLConfig) (*Migration, error) {
 	m := &Migration{
 		Functions: map[string]*Function{},
-		//Sources:   viper.GetStringMapString("Migration.Source"),
 	}
-	cmdstrings := viper.GetStringMap("Migration.Function")
 
-	for name, cmdAny := range cmdstrings {
-		cmdMap, err := anyToStringMapString(cmdAny)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
-		}
-		parts, err := shlex.Split(cmdMap["command"])
+	for name, fn := range conf.Migration.Function {
+		parts, err := shlex.Split(fn.Command)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
 		}
 		if len(parts) < 1 {
 			return nil, errors.Errorf("Migration.Function.%s is empty", name)
 		}
-		re, err := regexp.Compile(cmdMap["filenameregexp"])
+		re, err := regexp.Compile(fn.FilenameRegexp)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
 		}
-		timeoutString := cmdMap["timeout"]
-		timeout, err := time.ParseDuration(timeoutString)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot parse timeout of Migration.Function.%s", name)
-		}
+		timeout := fn.Timeout
 		var pronoms []string
-		pros := strings.Split(cmdMap["pronoms"], ",")
-		for _, pro := range pros {
+		for _, pro := range fn.Pronoms {
 			pronoms = append(pronoms, strings.TrimSpace(pro))
 		}
-		strategy, ok := Strategies[cmdMap["strategy"]]
+		strategy, ok := Strategies[fn.Strategy]
 		if !ok {
-			return nil, errors.Errorf("unknown strategy '%s' in Migration.Function.%s", cmdMap["strategy"], name)
+			return nil, errors.Errorf("unknown strategy '%s' in Migration.Function.%s", fn.Strategy, name)
 		}
 		m.Functions[name] = &Function{
-			title:    cmdMap["title"],
-			id:       cmdMap["id"],
+			title:    fn.Title,
+			id:       fn.ID,
 			command:  parts[0],
 			args:     parts[1:],
 			Strategy: strategy,
 			regexp:   re,
-			replace:  cmdMap["filenamereplacement"],
-			timeout:  timeout,
+			replace:  fn.FilenameReplacement,
+			timeout:  time.Duration(timeout),
 			pronoms:  pronoms,
 		}
 	}

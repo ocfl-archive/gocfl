@@ -46,7 +46,7 @@ func validate(cmd *cobra.Command, args []string) {
 
 	daLogger.Infof("validating '%s'", ocflPath)
 
-	extensionParams := GetExtensionParamValues(cmd)
+	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := initExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)

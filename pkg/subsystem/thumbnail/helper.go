@@ -3,7 +3,7 @@ package thumbnail
 import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
-	"github.com/spf13/viper"
+	"github.com/je4/gocfl/v2/config"
 	"regexp"
 	"strings"
 	"time"
@@ -25,52 +25,45 @@ func anyToStringMapString(dataAny any) (map[string]string, error) {
 	return result, nil
 }
 
-func GetThumbnails() (*Thumbnail, error) {
+func GetThumbnails(conf *config.GOCFLConfig) (*Thumbnail, error) {
 	m := &Thumbnail{
 		Functions:  map[string]*Function{},
-		Background: viper.GetString("Thumbnail.Background"),
-		//Sources:   viper.GetStringMapString("Thumbnail.Source"),
+		Background: conf.Thumbnail.Background,
 	}
-	cmdstrings := viper.GetStringMap("Thumbnail.Function")
 
-	for name, cmdAny := range cmdstrings {
-		cmdMap, err := anyToStringMapString(cmdAny)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot parse Thumbnail.Function.%s", name)
-		}
-		parts, err := shlex.Split(cmdMap["command"])
+	for name, fn := range conf.Thumbnail.Function {
+		parts, err := shlex.Split(fn.Command)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Thumbnail.Function.%s", name)
 		}
 		if len(parts) < 1 {
 			return nil, errors.Errorf("Thumbnail.Function.%s is empty", name)
 		}
-		timeoutString := cmdMap["timeout"]
-		timeout, err := time.ParseDuration(timeoutString)
+		timeout := fn.Timeout
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse timeout of Thumbnail.Function.%s", name)
 		}
-		var re *regexp.Regexp
-		if cmdMap["mime"] != "" {
-			re, err = regexp.Compile(cmdMap["mime"])
+		var mimeRes = []*regexp.Regexp{}
+		for _, mime := range fn.Mime {
+			re, err := regexp.Compile(mime)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
 			}
+			mimeRes = append(mimeRes, re)
 		}
 		var pronoms []string
-		pros := strings.Split(cmdMap["pronoms"], ",")
-		for _, pro := range pros {
+		for _, pro := range fn.Pronoms {
 			pronoms = append(pronoms, strings.TrimSpace(pro))
 		}
 		m.Functions[name] = &Function{
 			thumb:   m,
-			title:   cmdMap["title"],
-			id:      cmdMap["id"],
+			title:   fn.Title,
+			id:      fn.ID,
 			command: parts[0],
 			args:    parts[1:],
-			timeout: timeout,
+			timeout: time.Duration(timeout),
 			pronoms: pronoms,
-			mime:    re,
+			mime:    mimeRes,
 		}
 	}
 	return m, nil

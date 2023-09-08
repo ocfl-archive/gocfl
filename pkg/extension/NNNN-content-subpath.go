@@ -23,8 +23,8 @@ func GetContentSubPathParams() []*ocfl.ExtensionExternalParam {
 			ExtensionName: ContentSubPathName,
 			Functions:     []string{"extract"},
 			Param:         "area",
-			File:          "area",
-			Description:   "subpath for extraction (default: 'content'). 'all' for complete extraction",
+			//File:          "area",
+			Description: "subpath for extraction (default: 'content'). 'all' for complete extraction",
 		},
 	}
 }

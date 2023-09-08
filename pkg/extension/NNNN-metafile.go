@@ -29,15 +29,15 @@ func GetMetaFileParams() []*ocfl.ExtensionExternalParam {
 			ExtensionName: MetaFileName,
 			Functions:     []string{"add", "update", "create"},
 			Param:         "source",
-			File:          "Source",
-			Description:   "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
+			//File:          "Source",
+			Description: "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
 		},
 		{
 			ExtensionName: MetaFileName,
 			Functions:     []string{"extract", "objectextension"},
 			Param:         "target",
-			File:          "Target",
-			Description:   "url with metadata target folder",
+			//File:          "Target",
+			Description: "url with metadata target folder",
 		},
 	}
 }
@@ -196,6 +196,9 @@ func toStringKeys(val interface{}) (interface{}, error) {
 }
 
 func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
+	if sl.metadataSource.Path == "" {
+		return nil
+	}
 	if sl.stored {
 		return nil
 	}
