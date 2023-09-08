@@ -28,7 +28,7 @@ type Function struct {
 	title   string
 	id      string
 	pronoms []string
-	mime    *regexp.Regexp
+	mime    []*regexp.Regexp
 }
 
 func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger *logging.Logger) error {
@@ -79,8 +79,8 @@ func (m *Thumbnail) GetFunctionByPronom(pronom string) (*Function, error) {
 
 func (m *Thumbnail) GetFunctionByMimetype(mime string) (*Function, error) {
 	for _, f := range m.Functions {
-		if f.mime != nil {
-			if f.mime.MatchString(mime) {
+		for _, re := range f.mime {
+			if re.MatchString(mime) {
 				return f, nil
 			}
 		}

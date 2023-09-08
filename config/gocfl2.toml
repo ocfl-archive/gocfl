@@ -42,7 +42,7 @@ Digest="sha512"
 # --fixity
 Fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
-ObjectExtensions="./data/defaultextensions/object"
+ObjectExtensions="./data/fullextensions/object"
 
 DefaultArea="content"
 
@@ -52,7 +52,16 @@ Name="John Doe"
 # --user-address
 Address="http://inter.net"
 
-# global config for all indexer operations
+#
+# Extension parameter
+#
+[Extension]
+[Extension.NNNN-metafile]
+Source=""
+
+#
+# Indexer
+#
 [Indexer]
 Enabled=true
 # Enable this, if there are problem detecting length of audio files with ffmpeg
@@ -170,3 +179,114 @@ regexpMimeMetaNot = "^(image|video|audio)/.*$"
 online = true
 enabled = true
 
+#
+# Thumbnail
+#
+[Thumbnail]
+Enable=true
+Background="none"
+
+[Thumbnail.Function.CR2]
+ID = "CR2#01"
+Title = "Thumbnail from Canon CR2"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Thumbnail.Function.Images]
+ID = "Image#01"
+Title = "Thumbnail from Image"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Mime = ["image/.+"]
+
+[Thumbnail.Function.Audio]
+ID = "Audio#01"
+Title = "Spectrogram from Audio"
+Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Mime = ["audio/.+"]
+
+[Thumbnail.Function.PDF]
+ID = "PDF#01"
+Title = "Thumbnail from Image"
+Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/pdf2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = ["application/pdf"]
+
+[Thumbnail.Function.Video]
+ID = "Video#01"
+Title = "Thumbnail from Video"
+Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/video2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = ["video/.+"]
+
+#
+# Migration
+#
+[Migration]
+# --with-migration
+Enable=true
+
+[Migration.Function.CR2]
+ID = "CR2#01"
+Title = "Convert Canon CR2 to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' '{destination}' "
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}.png"
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Migration.Function.Image]
+ID = "Image#01"
+Title = "Convert Image to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' '{destination}' "
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}.png"
+Timeout = "2m"
+Pronoms = ["fmt/202","fmt/436","fmt/437","x-fmt/367","fmt/528","fmt/662"]
+
+[Migration.Function.PDFA]
+ID = "PDFA#01"
+Title = "Convert Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "add"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${1}mig_${2}"
+Timeout = "2m"
+Pronoms = ["fmt/14","fmt/15","fmt/16","fmt/17","fmt/18","fmt/19","fmt/20","fmt/276","fmt/95","fmt/354","fmt/493","fmt/144","fmt/145","fmt/157","fmt/146","fmt/147","fmt/158","fmt/148","fmt/488","fmt/489","fmt/490","fmt/492","fmt/491","fmt/1129","fmt/1451"]
+# "fmt/14": Acrobat PDF 1.0 - Portable Document Format
+# "fmt/15": Acrobat PDF 1.1 - Portable Document Format
+# "fmt/16": Acrobat PDF 1.2 - Portable Document Format
+# "fmt/17": Acrobat PDF 1.3 - Portable Document Format
+# "fmt/18": Acrobat PDF 1.4 - Portable Document Format
+# "fmt/19": Acrobat PDF 1.5 - Portable Document Format
+# "fmt/20": Acrobat PDF 1.6 - Portable Document Format
+# "fmt/276": Acrobat PDF 1.7 - Portable Document Format
+# "fmt/95": Acrobat PDF/A - Portable Document Format	1a
+# "fmt/354": Acrobat PDF/A - Portable Document Format	1b
+# "fmt/476": Acrobat PDF/A - Portable Document Format	2a
+# "fmt/477": Acrobat PDF/A - Portable Document Format	2b
+# "fmt/478": Acrobat PDF/A - Portable Document Format	2u
+# "fmt/479": Acrobat PDF/A - Portable Document Format	3a
+# "fmt/480": Acrobat PDF/A - Portable Document Format	3b
+# "fmt/481": Acrobat PDF/A - Portable Document Format	3u
+# "fmt/493": Acrobat PDF/E - Portable Document Format for Engineering PDF/E-1
+# "fmt/144": Acrobat PDF/X - Portable Document Format - Exchange 1:1999
+# "fmt/145": Acrobat PDF/X - Portable Document Format - Exchange 2:2001
+# "fmt/157": Acrobat PDF/X - Portable Document Format - Exchange 1a:2001
+# "fmt/146": Acrobat PDF/X - Portable Document Format - Exchange 1a:2003
+# "fmt/147": Acrobat PDF/X - Portable Document Format - Exchange 2:2002
+# "fmt/158": Acrobat PDF/X - Portable Document Format - Exchange 3:2002
+# "fmt/148": Acrobat PDF/X - Portable Document Format - Exchange 3:2003
+# "fmt/488": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4
+# "fmt/489": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4p
+# "fmt/490": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5g
+# "fmt/492": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5n
+# "fmt/491": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
+# "fmt/1129": PDF 2.0 - Portable Document Format - 2.0
+# "fmt/1451": PDF Portfolio - 1.7

@@ -137,7 +137,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	mig, err := migration.GetMigrations()
+	mig, err := migration.GetMigrations(conf)
 	if err != nil {
 		daLogger.Errorf("cannot get migrations: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -145,7 +145,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 	mig.SetSourceFS(sourceFS)
 
-	thumb, err := thumbnail.GetThumbnails()
+	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
 		daLogger.Errorf("cannot get thumbnails: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -153,7 +153,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 	thumb.SetSourceFS(sourceFS)
 
-	extensionParams := GetExtensionParamValues(cmd)
+	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := initExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)

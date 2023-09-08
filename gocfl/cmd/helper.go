@@ -150,11 +150,11 @@ func GetExtensionParams() []*ocfl.ExtensionExternalParam {
 	return result
 }
 
-func GetExtensionParamValues(cmd *cobra.Command) map[string]string {
+func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[string]string {
 	var result = map[string]string{}
 	extParams := GetExtensionParams()
 	for _, param := range extParams {
-		name, value := param.GetParam(cmd)
+		name, value := param.GetParam(cmd, conf)
 		if name != "" {
 			result[name] = value
 		}
