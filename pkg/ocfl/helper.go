@@ -303,11 +303,11 @@ func ReadFile(object Object, name, version, storageType, storageName string, fsy
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
-		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s/%s_%s.jsonl%s", path, storageName, name, version, ext), version)
+		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s/%s", path, storageName, name), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
 		fsys = object.GetFS()
 	case "extension":
-		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", storageName, name, version, ext), "/")
+		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s", storageName, name), "/")
 	default:
 		return nil, errors.Errorf("unsupported storage type '%s'", storageType)
 	}
