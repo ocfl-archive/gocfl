@@ -9,6 +9,7 @@ import (
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/fs"
@@ -351,8 +352,33 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
+func (sl *MetaFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	var err error
+	var result = map[string]any{}
+	inventory := object.GetInventory()
+	versions := inventory.GetVersionStrings()
+	slices.Reverse(versions)
+	var metadata []byte
+	for _, ver := range versions {
+		metadata, err = ocfl.ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys)
+		if err == nil {
+			break
+		}
+	}
+	if metadata == nil {
+		return nil, errors.Wrapf(err, "cannot read %s", sl.MetaName)
+	}
+	var metaStruct = map[string]any{}
+	if err := json.Unmarshal(metadata, &metaStruct); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal '%s'", sl.MetaName)
+	}
+	result[""] = metaStruct
+	return result, nil
+}
+
 // check interface satisfaction
 var (
 	_ ocfl.Extension             = &MetaFile{}
 	_ ocfl.ExtensionObjectChange = &MetaFile{}
+	_ ocfl.ExtensionMetadata     = &MetaFile{}
 )

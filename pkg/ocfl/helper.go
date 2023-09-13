@@ -286,6 +286,35 @@ func CleanPath(fname string, MaxFilenameLength, MaxPathnameLength int) (string, 
 	return fname, nil
 }
 
+func ReadFile(object Object, name, version, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+	var ext string
+	var targetname string
+	switch storageType {
+	case "area":
+		path, err := object.GetAreaPath(storageName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get area path for '%s'", storageName)
+		}
+		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s", path, name), version)
+		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
+		fsys = object.GetFS()
+	case "path":
+		path, err := object.GetAreaPath("content")
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get area path for '%s'", "content")
+		}
+		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s/%s_%s.jsonl%s", path, storageName, name, version, ext), version)
+		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
+		fsys = object.GetFS()
+	case "extension":
+		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", storageName, name, version, ext), "/")
+	default:
+		return nil, errors.Errorf("unsupported storage type '%s'", storageType)
+	}
+
+	return fs.ReadFile(fsys, targetname)
+}
+
 func ReadJsonL(object Object, name, version, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	var ext string
 	switch compress {

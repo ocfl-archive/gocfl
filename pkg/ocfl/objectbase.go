@@ -124,6 +124,15 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get extension metadata for object '%s'", object.GetID())
 	}
+	if objectMeta, ok := extensionMetadata[""]; ok {
+		/*
+			for key, val := range objectMeta {
+				result.Extension[key] = val
+			}
+
+		*/
+		result.Extension = objectMeta
+	}
 	for digest, fnames := range manifest {
 		if len(fnames) == 0 {
 			continue
