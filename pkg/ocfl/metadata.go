@@ -25,6 +25,7 @@ type ObjectMetadata struct {
 	Head            string
 	Versions        map[string]*VersionMetadata
 	Files           map[string]*FileMetadata
+	Extension       any
 }
 
 type StorageRootMetadata struct {
