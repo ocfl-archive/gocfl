@@ -287,7 +287,6 @@ func CleanPath(fname string, MaxFilenameLength, MaxPathnameLength int) (string, 
 }
 
 func ReadFile(object Object, name, version, storageType, storageName string, fsys fs.FS) ([]byte, error) {
-	var ext string
 	var targetname string
 	switch storageType {
 	case "area":
