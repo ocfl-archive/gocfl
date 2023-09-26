@@ -348,7 +348,6 @@ func downloadFile(u string) ([]byte, error) {
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
 func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
-
 	return nil
 }
 
