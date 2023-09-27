@@ -71,6 +71,10 @@ type ContentSubPath struct {
 	area string
 }
 
+func (sl *ContentSubPath) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	return map[string]any{"": sl.Paths}, nil
+}
+
 func (sl *ContentSubPath) GetFS() fs.FS {
 	return sl.fsys
 }
@@ -201,4 +205,5 @@ var (
 	_ ocfl.ExtensionObjectStatePath   = &ContentSubPath{}
 	_ ocfl.ExtensionObjectExtractPath = &ContentSubPath{}
 	_ ocfl.ExtensionArea              = &ContentSubPath{}
+	_ ocfl.ExtensionMetadata          = &ContentSubPath{}
 )

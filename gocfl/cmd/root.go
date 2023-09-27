@@ -6,13 +6,12 @@ import (
 	"github.com/google/martian/log"
 	"github.com/je4/gocfl/v2/config"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/gocfl/v2/version"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/spf13/cobra"
 	"os"
 	"regexp"
 )
-
-const VERSION = "v2.0-beta.2"
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
 
@@ -112,7 +111,7 @@ var rootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`A fast and reliable OCFL creator, extractor and validator.
 https://github.com/je4/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
-Version %s`, VERSION),
+Version %s`, version.VERSION),
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},

@@ -137,6 +137,11 @@ func initExtensionFactory(extensionParams map[string]string, indexerAddr string,
 		return extension.NewFilesystemFS(fsys, logger)
 	})
 
+	logger.Debugf("adding creator for extension %s", extension.METSName)
+	extensionFactory.AddCreator(extension.METSName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewMetsFS(fsys, logger)
+	})
+
 	return extensionFactory, nil
 }
 
