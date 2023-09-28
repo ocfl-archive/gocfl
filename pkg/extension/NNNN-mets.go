@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
+	"github.com/je4/gocfl/v2/pkg/dilcis/premis"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/version"
 	"github.com/je4/indexer/v2/pkg/indexer"
@@ -16,6 +17,7 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -114,6 +116,8 @@ func (me *Mets) UpdateObjectBefore(object ocfl.Object) error {
 	return nil
 }
 
+var regexpIntPath = regexp.MustCompile(`´(v[0-9]+)/content/(.+)/.+`)
+
 func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	inventory := object.GetInventory()
 	metadata, err := object.GetMetadata()
@@ -134,18 +138,58 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.Wrap(err, "cannot create uuid")
 	}
 
+	var contentSubPath = map[string]ContentSubPathEntry{}
+	var extensionMap map[string]any
+	extensionMap, _ = metadata.Extension.(map[string]any)
+	if extensionMap != nil {
+		if contentSubPathAny, ok := extensionMap[ContentSubPathName]; ok {
+			contentSubPath, _ = contentSubPathAny.(map[string]ContentSubPathEntry)
+		}
+	}
+
 	files := []*mets.FileType{}
+	structMaps := []*mets.StructMapType{}
 	internalPrefix := fmt.Sprintf("%s/content/", head)
+	structPhysical := map[string]map[string][]string{}
+	structSemantical := map[string][]string{}
+	// file section
+	if contentSubPath != nil {
+		for _, cse := range contentSubPath {
+			structSemantical[cse.Description] = []string{}
+		}
+	} else {
+		structSemantical["Payload"] = []string{}
+	}
+	for _, v := range inventory.GetVersionStrings() {
+		structPhysical[v] = map[string][]string{}
+		if contentSubPath != nil {
+			for area, _ := range contentSubPath {
+				structPhysical[v][area] = []string{}
+			}
+		} else {
+			structPhysical[v]["content"] = []string{}
+		}
+	}
+
+	premisStruct := &premis.PremisComplexType{
+		XMLName:     xml.Name{},
+		VersionAttr: "",
+		Object:      []*premis.ObjectComplexType{},
+		Event:       []*premis.EventComplexType{},
+		Agent:       []*premis.AgentComplexType{},
+		Rights:      []*premis.RightsComplexType{},
+	}
+	_ = premisStruct
+
 	for cs, metaFile := range metadata.Files {
 		uuid, err := uuid.NewUUID()
 		if err != nil {
 			return errors.Wrap(err, "cannot create uuid")
-
 		}
 		var size int64
 		var creation time.Time
 		var mime string
-		var href string
+		var fLocat = []*mets.FLocat{}
 		if ext, ok := metaFile.Extension[FilesystemName]; ok {
 			extFSL, ok := ext.(map[string][]*FileSystemLine)
 			if !ok {
@@ -166,9 +210,78 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 			mime = extIndexer.Mimetype
 		}
-		for _, int := range metaFile.InternalName {
-			if strings.HasPrefix(int, internalPrefix) {
-				href = "../" + int[len(internalPrefix):]
+		for _, intPath := range metaFile.InternalName {
+			parts := strings.Split(intPath, "/")
+			if len(parts) <= 2 {
+				return errors.Wrapf(err, "invalid path %s", intPath)
+			}
+			intVer := parts[0]
+			if parts[1] != "content" {
+				return errors.Wrapf(err, "no content in %s", intPath)
+			}
+			var intArea = "content"
+			var intSemantic = "Payload"
+			if len(parts) >= 3 {
+				if contentSubPath != nil {
+					intArea = parts[2]
+					intSemantic = ""
+					for area, cse := range contentSubPath {
+						if cse.Path == intArea {
+							intArea = area
+							intSemantic = cse.Description
+							break
+						}
+					}
+				}
+			}
+			structPhysical[intVer][intArea] = append(structPhysical[intVer][intArea], "uuid-"+uuid.String())
+			if intSemantic != "" {
+				structSemantical[intSemantic] = append(structSemantical[intSemantic], "uuid-"+uuid.String())
+			}
+			href := "../../../" + intPath
+			if strings.HasPrefix(intPath, internalPrefix) {
+				href = "../" + intPath[len(internalPrefix):]
+			}
+			fLocat = append(fLocat, &mets.FLocat{
+				LOCATION: &mets.LOCATION{
+					LOCTYPEAttr:      "URL",
+					OTHERLOCTYPEAttr: "internal",
+				},
+				SimpleLink: &mets.SimpleLink{
+					//XMLName:          xml.Name{},
+					TypeAttr:         "simple",
+					XlinkHrefAttr:    href,
+					XlinkRoleAttr:    "",
+					XlinkArcroleAttr: "",
+					XlinkTitleAttr:   "",
+					XlinkShowAttr:    "",
+					XlinkActuateAttr: "",
+				},
+				IDAttr:  "",
+				USEAttr: "",
+			})
+
+		}
+		if extNames, ok := metaFile.VersionName[head]; ok {
+			for _, extPath := range extNames {
+				fLocat = append(fLocat, &mets.FLocat{
+					LOCATION: &mets.LOCATION{
+						LOCTYPEAttr:      "URL",
+						OTHERLOCTYPEAttr: "external",
+					},
+					SimpleLink: &mets.SimpleLink{
+						//XMLName:          xml.Name{},
+						TypeAttr:         "simple",
+						XlinkHrefAttr:    "../" + extPath,
+						XlinkRoleAttr:    "",
+						XlinkArcroleAttr: "",
+						XlinkTitleAttr:   "",
+						XlinkShowAttr:    "",
+						XlinkActuateAttr: "",
+					},
+					IDAttr:  "",
+					USEAttr: "",
+				})
 			}
 		}
 
@@ -181,36 +294,17 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				CHECKSUMAttr:     cs,
 				CHECKSUMTYPEAttr: "SHA-512",
 			},
-			IDAttr:      uuid.String(),
-			SEQAttr:     0,
-			OWNERIDAttr: "",
-			ADMIDAttr:   nil,
-			DMDIDAttr:   nil,
-			GROUPIDAttr: "",
-			USEAttr:     "Datafile",
-			BEGINAttr:   "",
-			ENDAttr:     "",
-			BETYPEAttr:  "",
-			FLocat: []*mets.FLocat{
-				&mets.FLocat{
-					LOCATION: &mets.LOCATION{
-						LOCTYPEAttr:      "URL",
-						OTHERLOCTYPEAttr: "",
-					},
-					XlinkSimpleLink: &mets.SimpleLink{
-						XMLName:          xml.Name{},
-						TypeAttr:         "simple",
-						XlinkHrefAttr:    href,
-						XlinkRoleAttr:    "",
-						XlinkArcroleAttr: "",
-						XlinkTitleAttr:   "",
-						XlinkShowAttr:    "",
-						XlinkActuateAttr: "",
-					},
-					IDAttr:  "",
-					USEAttr: "",
-				},
-			},
+			IDAttr:        "uuid-" + uuid.String(),
+			SEQAttr:       0,
+			OWNERIDAttr:   "",
+			ADMIDAttr:     nil,
+			DMDIDAttr:     nil,
+			GROUPIDAttr:   "",
+			USEAttr:       "Datafile",
+			BEGINAttr:     "",
+			ENDAttr:       "",
+			BETYPEAttr:    "",
+			FLocat:        fLocat,
 			FContent:      nil,
 			Stream:        nil,
 			TransformFile: nil,
@@ -218,6 +312,122 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		files = append(files, file)
 	}
+
+	for ver, areaList := range structPhysical {
+		structMapPhysical := &mets.StructMapType{
+			XMLName:   xml.Name{},
+			IDAttr:    "",
+			TYPEAttr:  "physical",
+			LABELAttr: "AIP structMap",
+			Div: &mets.DivType{
+				XMLName: xml.Name{},
+				ORDERLABELS: &mets.ORDERLABELS{
+					ORDERAttr:      0,
+					ORDERLABELAttr: "",
+					LABELAttr:      "Version " + ver,
+				},
+				IDAttr:         "",
+				DMDIDAttr:      nil,
+				ADMIDAttr:      nil,
+				TYPEAttr:       "",
+				CONTENTIDSAttr: nil,
+				XlinkLabelAttr: nil,
+				Mptr:           nil,
+				Fptr:           nil,
+				Div:            []*mets.DivType{},
+			},
+		}
+
+		for area, uuids := range areaList {
+			div := &mets.DivType{
+				XMLName: xml.Name{},
+				ORDERLABELS: &mets.ORDERLABELS{
+					ORDERAttr:      0,
+					ORDERLABELAttr: "",
+					LABELAttr:      area,
+				},
+				IDAttr:         "",
+				DMDIDAttr:      nil,
+				ADMIDAttr:      nil,
+				TYPEAttr:       "",
+				CONTENTIDSAttr: nil,
+				XlinkLabelAttr: nil,
+				Mptr:           nil,
+				Fptr:           make([]*mets.Fptr, 0),
+				Div:            nil,
+			}
+			for _, u := range uuids {
+				div.Fptr = append(div.Fptr, &mets.Fptr{
+					XMLName:        xml.Name{},
+					IDAttr:         "",
+					FILEIDAttr:     u,
+					CONTENTIDSAttr: nil,
+					Par:            nil,
+					Seq:            nil,
+					Area:           nil,
+				})
+			}
+			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
+		}
+		structMaps = append(structMaps, structMapPhysical)
+	}
+
+	structMapSemantical := &mets.StructMapType{
+		XMLName:   xml.Name{},
+		IDAttr:    "",
+		TYPEAttr:  "logical",
+		LABELAttr: "AIP Structure",
+		Div: &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				ORDERAttr:      0,
+				ORDERLABELAttr: "",
+				LABELAttr:      "Package Structure",
+			},
+			IDAttr:         "",
+			DMDIDAttr:      nil,
+			ADMIDAttr:      nil,
+			TYPEAttr:       "",
+			CONTENTIDSAttr: nil,
+			XlinkLabelAttr: nil,
+			Mptr:           nil,
+			Fptr:           nil,
+			Div:            []*mets.DivType{},
+		},
+	}
+	for area, uuids := range structSemantical {
+		div := &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				ORDERAttr:      0,
+				ORDERLABELAttr: "",
+				LABELAttr:      area,
+			},
+			IDAttr:         "",
+			DMDIDAttr:      nil,
+			ADMIDAttr:      nil,
+			TYPEAttr:       "",
+			CONTENTIDSAttr: nil,
+			XlinkLabelAttr: nil,
+			Mptr:           nil,
+			Fptr:           make([]*mets.Fptr, 0),
+			Div:            nil,
+		}
+		for _, u := range uuids {
+			div.Fptr = append(div.Fptr, &mets.Fptr{
+				XMLName:        xml.Name{},
+				IDAttr:         "",
+				FILEIDAttr:     u,
+				CONTENTIDSAttr: nil,
+				Par:            nil,
+				Seq:            nil,
+				Area:           nil,
+			})
+		}
+		structMapSemantical.Div.Div = append(structMapSemantical.Div.Div, div)
+	}
+	structMaps = append(structMaps, structMapSemantical)
+
 	m := &mets.Mets{
 		XMLNS:      "http://www.loc.gov/METS/",
 		XMLXLinkNS: "http://www.w3.org/1999/xlink",
@@ -295,7 +505,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					},
 				},
 			},
-			StructMap:   nil,
+			StructMap:   structMaps,
 			StructLink:  nil,
 			BehaviorSec: nil,
 		}}
