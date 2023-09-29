@@ -429,8 +429,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	structMaps = append(structMaps, structMapSemantical)
 
 	m := &mets.Mets{
-		XMLNS:      "http://www.loc.gov/METS/",
-		XMLXLinkNS: "http://www.w3.org/1999/xlink",
+		XMLNS:             "http://www.loc.gov/METS/",
+		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
+		XMLNSXSI:          "http://www.w3.org/2001/XMLSchema-instance",
+		XSISchemaLocation: "http://www.loc.gov/METS/\nhttps://www.loc.gov/standards/mets/mets.xsd\nhttp://www.w3.org/1999/xlink\nhttps://www.w3.org/XML/2008/06/xlink.xsd",
 		MetsType: &mets.MetsType{
 			XMLName:     xml.Name{},
 			IDAttr:      "",
@@ -495,7 +497,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						XMLName: xml.Name{},
 						FileGrpType: &mets.FileGrpType{
 							XMLName:      xml.Name{},
-							IDAttr:       fileGrpId.String(),
+							IDAttr:       "uuid-" + fileGrpId.String(),
 							VERSDATEAttr: "",
 							ADMIDAttr:    nil,
 							USEAttr:      fmt.Sprintf("Version %s", head),
