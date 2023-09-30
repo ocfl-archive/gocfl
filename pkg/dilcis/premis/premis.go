@@ -23,9 +23,9 @@ type Rights *RightsComplexType
 
 // PremisComplexType ...
 type PremisComplexType struct {
-	XMLName     xml.Name             `xml:"premisComplexType"`
+	XMLName     xml.Name             `xml:"premis"`
 	VersionAttr string               `xml:"version,attr"`
-	Object      []*ObjectComplexType `xml:"object"`
+	Object      []*File              `xml:"object"`
 	Event       []*EventComplexType  `xml:"event"`
 	Agent       []*AgentComplexType  `xml:"agent"`
 	Rights      []*RightsComplexType `xml:"rights"`
@@ -33,7 +33,7 @@ type PremisComplexType struct {
 
 // ObjectComplexType ...
 type ObjectComplexType struct {
-	XMLName xml.Name `xml:"objectComplexType"`
+	XMLName xml.Name `xml:"object"`
 }
 
 // File ...
@@ -107,7 +107,7 @@ type IntellectualEntity struct {
 
 // EventComplexType ...
 type EventComplexType struct {
-	XMLName                 xml.Name                              `xml:"eventComplexType"`
+	XMLName                 xml.Name                              `xml:"event"`
 	XmlIDAttr               string                                `xml:"xmlID,attr,omitempty"`
 	VersionAttr             string                                `xml:"version,attr,omitempty"`
 	EventIdentifier         *EventIdentifierComplexType           `xml:"eventIdentifier"`
@@ -121,7 +121,7 @@ type EventComplexType struct {
 
 // AgentComplexType ...
 type AgentComplexType struct {
-	XMLName                          xml.Name                                       `xml:"agentComplexType"`
+	XMLName                          xml.Name                                       `xml:"agent"`
 	XmlIDAttr                        string                                         `xml:"xmlID,attr,omitempty"`
 	VersionAttr                      string                                         `xml:"version,attr,omitempty"`
 	AgentIdentifier                  []*AgentIdentifierComplexType                  `xml:"agentIdentifier"`
@@ -137,7 +137,7 @@ type AgentComplexType struct {
 
 // RightsComplexType ...
 type RightsComplexType struct {
-	XMLName         xml.Name                      `xml:"rightsComplexType"`
+	XMLName         xml.Name                      `xml:"rights"`
 	XmlIDAttr       string                        `xml:"xmlID,attr,omitempty"`
 	VersionAttr     string                        `xml:"version,attr,omitempty"`
 	RightsStatement []*RightsStatementComplexType `xml:"rightsStatement"`
@@ -146,7 +146,7 @@ type RightsComplexType struct {
 
 // AgentIdentifierComplexType ...
 type AgentIdentifierComplexType struct {
-	XMLName              xml.Name             `xml:"agentIdentifierComplexType"`
+	XMLName              xml.Name             `xml:"agentIdentifier"`
 	SimpleLinkAttr       string               `xml:"simpleLink,attr,omitempty"`
 	AgentIdentifierType  *StringPlusAuthority `xml:"agentIdentifierType"`
 	AgentIdentifierValue string               `xml:"agentIdentifierValue"`
@@ -154,14 +154,14 @@ type AgentIdentifierComplexType struct {
 
 // CompositionLevelComplexType ...
 type CompositionLevelComplexType struct {
-	XMLName     xml.Name `xml:"compositionLevelComplexType"`
+	XMLName     xml.Name `xml:"compositionLevel"`
 	UnknownAttr string   `xml:"unknown,attr,omitempty"`
 	Value       int      `xml:",chardata"`
 }
 
 // ContentLocationComplexType ...
 type ContentLocationComplexType struct {
-	XMLName              xml.Name             `xml:"contentLocationComplexType"`
+	XMLName              xml.Name             `xml:"contentLocation"`
 	SimpleLinkAttr       string               `xml:"simpleLink,attr,omitempty"`
 	ContentLocationType  *StringPlusAuthority `xml:"contentLocationType"`
 	ContentLocationValue string               `xml:"contentLocationValue"`
@@ -169,7 +169,7 @@ type ContentLocationComplexType struct {
 
 // CopyrightDocumentationIdentifierComplexType ...
 type CopyrightDocumentationIdentifierComplexType struct {
-	XMLName                               xml.Name             `xml:"copyrightDocumentationIdentifierComplexType"`
+	XMLName                               xml.Name             `xml:"copyrightDocumentationIdentifier"`
 	CopyrightDocumentationIdentifierType  *StringPlusAuthority `xml:"copyrightDocumentationIdentifierType"`
 	CopyrightDocumentationIdentifierValue string               `xml:"copyrightDocumentationIdentifierValue"`
 	CopyrightDocumentationRole            *StringPlusAuthority `xml:"copyrightDocumentationRole"`
@@ -177,7 +177,7 @@ type CopyrightDocumentationIdentifierComplexType struct {
 
 // CopyrightInformationComplexType ...
 type CopyrightInformationComplexType struct {
-	XMLName                          xml.Name                                       `xml:"copyrightInformationComplexType"`
+	XMLName                          xml.Name                                       `xml:"copyrightInformation"`
 	CopyrightStatus                  *StringPlusAuthority                           `xml:"copyrightStatus"`
 	CopyrightJurisdiction            *CountryCode                                   `xml:"copyrightJurisdiction"`
 	CopyrightStatusDeterminationDate *EdtfSimpleType                                `xml:"copyrightStatusDeterminationDate"`
@@ -188,7 +188,7 @@ type CopyrightInformationComplexType struct {
 
 // CreatingApplicationComplexType ...
 type CreatingApplicationComplexType struct {
-	XMLName                      xml.Name                `xml:"creatingApplicationComplexType"`
+	XMLName                      xml.Name                `xml:"creatingApplication"`
 	CreatingApplicationName      *StringPlusAuthority    `xml:"creatingApplicationName"`
 	CreatingApplicationVersion   string                  `xml:"creatingApplicationVersion"`
 	DateCreatedByApplication     *EdtfSimpleType         `xml:"dateCreatedByApplication"`
@@ -197,14 +197,14 @@ type CreatingApplicationComplexType struct {
 
 // EnvironmentFunctionComplexType ...
 type EnvironmentFunctionComplexType struct {
-	XMLName                  xml.Name             `xml:"environmentFunctionComplexType"`
+	XMLName                  xml.Name             `xml:"environmentFunction"`
 	EnvironmentFunctionType  *StringPlusAuthority `xml:"environmentFunctionType"`
 	EnvironmentFunctionLevel string               `xml:"environmentFunctionLevel"`
 }
 
 // EnvironmentDesignationComplexType ...
 type EnvironmentDesignationComplexType struct {
-	XMLName                         xml.Name             `xml:"environmentDesignationComplexType"`
+	XMLName                         xml.Name             `xml:"environmentDesignation"`
 	EnvironmentName                 *StringPlusAuthority `xml:"environmentName"`
 	EnvironmentVersion              string               `xml:"environmentVersion"`
 	EnvironmentOrigin               string               `xml:"environmentOrigin"`
@@ -214,7 +214,7 @@ type EnvironmentDesignationComplexType struct {
 
 // EnvironmentRegistryComplexType ...
 type EnvironmentRegistryComplexType struct {
-	XMLName                 xml.Name             `xml:"environmentRegistryComplexType"`
+	XMLName                 xml.Name             `xml:"environmentRegistry"`
 	EnvironmentRegistryName string               `xml:"environmentRegistryName"`
 	EnvironmentRegistryKey  string               `xml:"environmentRegistryKey"`
 	EnvironmentRegistryRole *StringPlusAuthority `xml:"environmentRegistryRole"`
@@ -222,14 +222,14 @@ type EnvironmentRegistryComplexType struct {
 
 // EventDetailInformationComplexType ...
 type EventDetailInformationComplexType struct {
-	XMLName              xml.Name                `xml:"eventDetailInformationComplexType"`
+	XMLName              xml.Name                `xml:"eventDetailInformation"`
 	EventDetail          string                  `xml:"eventDetail"`
 	EventDetailExtension []*ExtensionComplexType `xml:"eventDetailExtension"`
 }
 
 // EventIdentifierComplexType ...
 type EventIdentifierComplexType struct {
-	XMLName              xml.Name             `xml:"eventIdentifierComplexType"`
+	XMLName              xml.Name             `xml:"eventIdentifier"`
 	SimpleLinkAttr       string               `xml:"simpleLink,attr,omitempty"`
 	EventIdentifierType  *StringPlusAuthority `xml:"eventIdentifierType"`
 	EventIdentifierValue string               `xml:"eventIdentifierValue"`
@@ -237,21 +237,21 @@ type EventIdentifierComplexType struct {
 
 // EventOutcomeDetailComplexType ...
 type EventOutcomeDetailComplexType struct {
-	XMLName                     xml.Name                `xml:"eventOutcomeDetailComplexType"`
+	XMLName                     xml.Name                `xml:"eventOutcomeDetail"`
 	EventOutcomeDetailNote      string                  `xml:"eventOutcomeDetailNote"`
 	EventOutcomeDetailExtension []*ExtensionComplexType `xml:"eventOutcomeDetailExtension"`
 }
 
 // EventOutcomeInformationComplexType ...
 type EventOutcomeInformationComplexType struct {
-	XMLName            xml.Name                         `xml:"eventOutcomeInformationComplexType"`
+	XMLName            xml.Name                         `xml:"eventOutcomeInformation"`
 	EventOutcome       *StringPlusAuthority             `xml:"eventOutcome"`
 	EventOutcomeDetail []*EventOutcomeDetailComplexType `xml:"eventOutcomeDetail"`
 }
 
 // FixityComplexType ...
 type FixityComplexType struct {
-	XMLName                 xml.Name             `xml:"fixityComplexType"`
+	XMLName                 xml.Name             `xml:"fixity"`
 	MessageDigestAlgorithm  *StringPlusAuthority `xml:"messageDigestAlgorithm"`
 	MessageDigest           string               `xml:"messageDigest"`
 	MessageDigestOriginator *StringPlusAuthority `xml:"messageDigestOriginator"`
@@ -259,7 +259,7 @@ type FixityComplexType struct {
 
 // FormatComplexType ...
 type FormatComplexType struct {
-	XMLName           xml.Name                      `xml:"formatComplexType"`
+	XMLName           xml.Name                      `xml:"format"`
 	FormatDesignation *FormatDesignationComplexType `xml:"formatDesignation"`
 	FormatRegistry    *FormatRegistryComplexType    `xml:"formatRegistry"`
 	FormatNote        []string                      `xml:"formatNote"`
@@ -267,14 +267,14 @@ type FormatComplexType struct {
 
 // FormatDesignationComplexType ...
 type FormatDesignationComplexType struct {
-	XMLName       xml.Name             `xml:"formatDesignationComplexType"`
+	XMLName       xml.Name             `xml:"formatDesignation"`
 	FormatName    *StringPlusAuthority `xml:"formatName"`
 	FormatVersion string               `xml:"formatVersion"`
 }
 
 // FormatRegistryComplexType ...
 type FormatRegistryComplexType struct {
-	XMLName            xml.Name             `xml:"formatRegistryComplexType"`
+	XMLName            xml.Name             `xml:"formatRegistry"`
 	SimpleLinkAttr     string               `xml:"simpleLink,attr,omitempty"`
 	FormatRegistryName *StringPlusAuthority `xml:"formatRegistryName"`
 	FormatRegistryKey  *StringPlusAuthority `xml:"formatRegistryKey"`
@@ -283,7 +283,7 @@ type FormatRegistryComplexType struct {
 
 // InhibitorsComplexType ...
 type InhibitorsComplexType struct {
-	XMLName         xml.Name               `xml:"inhibitorsComplexType"`
+	XMLName         xml.Name               `xml:"inhibitors"`
 	InhibitorType   *StringPlusAuthority   `xml:"inhibitorType"`
 	InhibitorTarget []*StringPlusAuthority `xml:"inhibitorTarget"`
 	InhibitorKey    string                 `xml:"inhibitorKey"`
@@ -291,7 +291,7 @@ type InhibitorsComplexType struct {
 
 // LicenseDocumentationIdentifierComplexType ...
 type LicenseDocumentationIdentifierComplexType struct {
-	XMLName                             xml.Name             `xml:"licenseDocumentationIdentifierComplexType"`
+	XMLName                             xml.Name             `xml:"licenseDocumentationIdentifier"`
 	LicenseDocumentationIdentifierType  *StringPlusAuthority `xml:"licenseDocumentationIdentifierType"`
 	LicenseDocumentationIdentifierValue string               `xml:"licenseDocumentationIdentifierValue"`
 	LicenseDocumentationRole            *StringPlusAuthority `xml:"licenseDocumentationRole"`
@@ -299,7 +299,7 @@ type LicenseDocumentationIdentifierComplexType struct {
 
 // LicenseInformationComplexType ...
 type LicenseInformationComplexType struct {
-	XMLName                        xml.Name                                     `xml:"licenseInformationComplexType"`
+	XMLName                        xml.Name                                     `xml:"licenseInformation"`
 	LicenseDocumentationIdentifier []*LicenseDocumentationIdentifierComplexType `xml:"licenseDocumentationIdentifier"`
 	LicenseTerms                   string                                       `xml:"licenseTerms"`
 	LicenseNote                    []string                                     `xml:"licenseNote"`
@@ -308,7 +308,7 @@ type LicenseInformationComplexType struct {
 
 // LinkingAgentIdentifierComplexType ...
 type LinkingAgentIdentifierComplexType struct {
-	XMLName                     xml.Name               `xml:"linkingAgentIdentifierComplexType"`
+	XMLName                     xml.Name               `xml:"linkingAgentIdentifier"`
 	LinkAgentXmlIDAttr          string                 `xml:"LinkAgentXmlID,attr,omitempty"`
 	SimpleLinkAttr              string                 `xml:"simpleLink,attr,omitempty"`
 	LinkingAgentIdentifierType  *StringPlusAuthority   `xml:"linkingAgentIdentifierType"`
@@ -318,7 +318,7 @@ type LinkingAgentIdentifierComplexType struct {
 
 // LinkingEnvironmentIdentifierComplexType ...
 type LinkingEnvironmentIdentifierComplexType struct {
-	XMLName                           xml.Name               `xml:"linkingEnvironmentIdentifierComplexType"`
+	XMLName                           xml.Name               `xml:"linkingEnvironmentIdentifier"`
 	LinkEventXmlIDAttr                string                 `xml:"LinkEventXmlID,attr,omitempty"`
 	SimpleLinkAttr                    string                 `xml:"simpleLink,attr,omitempty"`
 	LinkingEnvironmentIdentifierType  string                 `xml:"linkingEnvironmentIdentifierType"`
@@ -328,7 +328,7 @@ type LinkingEnvironmentIdentifierComplexType struct {
 
 // LinkingEventIdentifierComplexType ...
 type LinkingEventIdentifierComplexType struct {
-	XMLName                     xml.Name             `xml:"linkingEventIdentifierComplexType"`
+	XMLName                     xml.Name             `xml:"linkingEventIdentifier"`
 	LinkEventXmlIDAttr          string               `xml:"LinkEventXmlID,attr,omitempty"`
 	SimpleLinkAttr              string               `xml:"simpleLink,attr,omitempty"`
 	LinkingEventIdentifierType  *StringPlusAuthority `xml:"linkingEventIdentifierType"`
@@ -337,7 +337,7 @@ type LinkingEventIdentifierComplexType struct {
 
 // LinkingObjectIdentifierComplexType ...
 type LinkingObjectIdentifierComplexType struct {
-	XMLName                      xml.Name               `xml:"linkingObjectIdentifierComplexType"`
+	XMLName                      xml.Name               `xml:"linkingObjectIdentifier"`
 	LinkObjectXmlIDAttr          string                 `xml:"LinkObjectXmlID,attr,omitempty"`
 	SimpleLinkAttr               string                 `xml:"simpleLink,attr,omitempty"`
 	LinkingObjectIdentifierType  *StringPlusAuthority   `xml:"linkingObjectIdentifierType"`
@@ -347,7 +347,7 @@ type LinkingObjectIdentifierComplexType struct {
 
 // LinkingRightsStatementIdentifierComplexType ...
 type LinkingRightsStatementIdentifierComplexType struct {
-	XMLName                               xml.Name             `xml:"linkingRightsStatementIdentifierComplexType"`
+	XMLName                               xml.Name             `xml:"linkingRightsStatementIdentifier"`
 	LinkPermissionStatementXmlIDAttr      string               `xml:"LinkPermissionStatementXmlID,attr,omitempty"`
 	SimpleLinkAttr                        string               `xml:"simpleLink,attr,omitempty"`
 	LinkingRightsStatementIdentifierType  *StringPlusAuthority `xml:"linkingRightsStatementIdentifierType"`
@@ -356,7 +356,7 @@ type LinkingRightsStatementIdentifierComplexType struct {
 
 // ObjectCharacteristicsComplexType ...
 type ObjectCharacteristicsComplexType struct {
-	XMLName                        xml.Name                          `xml:"objectCharacteristicsComplexType"`
+	XMLName                        xml.Name                          `xml:"objectCharacteristics"`
 	CompositionLevel               *CompositionLevelComplexType      `xml:"compositionLevel"`
 	Fixity                         []*FixityComplexType              `xml:"fixity"`
 	Size                           int64                             `xml:"size"`
@@ -368,7 +368,7 @@ type ObjectCharacteristicsComplexType struct {
 
 // ObjectIdentifierComplexType ...
 type ObjectIdentifierComplexType struct {
-	XMLName               xml.Name             `xml:"objectIdentifierComplexType"`
+	XMLName               xml.Name             `xml:"objectIdentifier"`
 	SimpleLinkAttr        string               `xml:"simpleLink,attr,omitempty"`
 	ObjectIdentifierType  *StringPlusAuthority `xml:"objectIdentifierType"`
 	ObjectIdentifierValue string               `xml:"objectIdentifierValue"`
@@ -376,14 +376,14 @@ type ObjectIdentifierComplexType struct {
 
 // OriginalNameComplexType ...
 type OriginalNameComplexType struct {
-	XMLName        xml.Name `xml:"originalNameComplexType"`
+	XMLName        xml.Name `xml:"originalName"`
 	SimpleLinkAttr string   `xml:"simpleLink,attr,omitempty"`
 	Value          string   `xml:",chardata"`
 }
 
 // OtherRightsDocumentationIdentifierComplexType ...
 type OtherRightsDocumentationIdentifierComplexType struct {
-	XMLName                                 xml.Name             `xml:"otherRightsDocumentationIdentifierComplexType"`
+	XMLName                                 xml.Name             `xml:"otherRightsDocumentationIdentifier"`
 	OtherRightsDocumentationIdentifierType  *StringPlusAuthority `xml:"otherRightsDocumentationIdentifierType"`
 	OtherRightsDocumentationIdentifierValue string               `xml:"otherRightsDocumentationIdentifierValue"`
 	OtherRightsDocumentationRole            *StringPlusAuthority `xml:"otherRightsDocumentationRole"`
@@ -391,7 +391,7 @@ type OtherRightsDocumentationIdentifierComplexType struct {
 
 // OtherRightsInformationComplexType ...
 type OtherRightsInformationComplexType struct {
-	XMLName                            xml.Name                                         `xml:"otherRightsInformationComplexType"`
+	XMLName                            xml.Name                                         `xml:"otherRightsInformation"`
 	OtherRightsDocumentationIdentifier []*OtherRightsDocumentationIdentifierComplexType `xml:"otherRightsDocumentationIdentifier"`
 	OtherRightsBasis                   *StringPlusAuthority                             `xml:"otherRightsBasis"`
 	OtherRightsApplicableDates         *StartAndEndDateComplexType                      `xml:"otherRightsApplicableDates"`
@@ -400,7 +400,7 @@ type OtherRightsInformationComplexType struct {
 
 // PreservationLevelComplexType ...
 type PreservationLevelComplexType struct {
-	XMLName                       xml.Name             `xml:"preservationLevelComplexType"`
+	XMLName                       xml.Name             `xml:"preservationLevel"`
 	PreservationLevelType         *StringPlusAuthority `xml:"preservationLevelType"`
 	PreservationLevelValue        *StringPlusAuthority `xml:"preservationLevelValue"`
 	PreservationLevelRole         *StringPlusAuthority `xml:"preservationLevelRole"`
@@ -410,7 +410,7 @@ type PreservationLevelComplexType struct {
 
 // RelatedEventIdentifierComplexType ...
 type RelatedEventIdentifierComplexType struct {
-	XMLName                     xml.Name             `xml:"relatedEventIdentifierComplexType"`
+	XMLName                     xml.Name             `xml:"relatedEventIdentifier"`
 	RelEventXmlIDAttr           string               `xml:"RelEventXmlID,attr,omitempty"`
 	SimpleLinkAttr              string               `xml:"simpleLink,attr,omitempty"`
 	RelatedEventIdentifierType  *StringPlusAuthority `xml:"relatedEventIdentifierType"`
@@ -420,7 +420,7 @@ type RelatedEventIdentifierComplexType struct {
 
 // RelatedObjectIdentifierComplexType ...
 type RelatedObjectIdentifierComplexType struct {
-	XMLName                      xml.Name             `xml:"relatedObjectIdentifierComplexType"`
+	XMLName                      xml.Name             `xml:"relatedObjectIdentifier"`
 	RelObjectXmlIDAttr           string               `xml:"RelObjectXmlID,attr,omitempty"`
 	SimpleLinkAttr               string               `xml:"simpleLink,attr,omitempty"`
 	RelatedObjectIdentifierType  *StringPlusAuthority `xml:"relatedObjectIdentifierType"`
@@ -430,7 +430,7 @@ type RelatedObjectIdentifierComplexType struct {
 
 // RelationshipComplexType ...
 type RelationshipComplexType struct {
-	XMLName                          xml.Name                              `xml:"relationshipComplexType"`
+	XMLName                          xml.Name                              `xml:"relationship"`
 	RelationshipType                 *StringPlusAuthority                  `xml:"relationshipType"`
 	RelationshipSubType              *StringPlusAuthority                  `xml:"relationshipSubType"`
 	RelatedObjectIdentifier          []*RelatedObjectIdentifierComplexType `xml:"relatedObjectIdentifier"`
@@ -441,7 +441,7 @@ type RelationshipComplexType struct {
 
 // RightsGrantedComplexType ...
 type RightsGrantedComplexType struct {
-	XMLName           xml.Name                    `xml:"rightsGrantedComplexType"`
+	XMLName           xml.Name                    `xml:"rightsGranted"`
 	Act               *StringPlusAuthority        `xml:"act"`
 	Restriction       []*StringPlusAuthority      `xml:"restriction"`
 	TermOfGrant       *StartAndEndDateComplexType `xml:"termOfGrant"`
@@ -451,7 +451,7 @@ type RightsGrantedComplexType struct {
 
 // RightsStatementComplexType ...
 type RightsStatementComplexType struct {
-	XMLName                   xml.Name                              `xml:"rightsStatementComplexType"`
+	XMLName                   xml.Name                              `xml:"rightsStatement"`
 	RightsStatementIdentifier *RightsStatementIdentifierComplexType `xml:"rightsStatementIdentifier"`
 	RightsBasis               *StringPlusAuthority                  `xml:"rightsBasis"`
 	CopyrightInformation      *CopyrightInformationComplexType      `xml:"copyrightInformation"`
@@ -465,7 +465,7 @@ type RightsStatementComplexType struct {
 
 // RightsStatementIdentifierComplexType ...
 type RightsStatementIdentifierComplexType struct {
-	XMLName                        xml.Name             `xml:"rightsStatementIdentifierComplexType"`
+	XMLName                        xml.Name             `xml:"rightsStatementIdentifier"`
 	SimpleLinkAttr                 string               `xml:"simpleLink,attr,omitempty"`
 	RightsStatementIdentifierType  *StringPlusAuthority `xml:"rightsStatementIdentifierType"`
 	RightsStatementIdentifierValue string               `xml:"rightsStatementIdentifierValue"`
@@ -473,7 +473,7 @@ type RightsStatementIdentifierComplexType struct {
 
 // SignatureComplexType ...
 type SignatureComplexType struct {
-	XMLName                  xml.Name                `xml:"signatureComplexType"`
+	XMLName                  xml.Name                `xml:"signature"`
 	SignatureEncoding        *StringPlusAuthority    `xml:"signatureEncoding"`
 	Signer                   *StringPlusAuthority    `xml:"signer"`
 	SignatureMethod          *StringPlusAuthority    `xml:"signatureMethod"`
@@ -485,14 +485,14 @@ type SignatureComplexType struct {
 
 // SignatureInformationComplexType ...
 type SignatureInformationComplexType struct {
-	XMLName                       xml.Name                `xml:"signatureInformationComplexType"`
+	XMLName                       xml.Name                `xml:"signatureInformation"`
 	Signature                     *SignatureComplexType   `xml:"signature"`
 	SignatureInformationExtension []*ExtensionComplexType `xml:"signatureInformationExtension"`
 }
 
 // SignificantPropertiesComplexType ...
 type SignificantPropertiesComplexType struct {
-	XMLName                        xml.Name                `xml:"significantPropertiesComplexType"`
+	XMLName                        xml.Name                `xml:"significantProperties"`
 	SignificantPropertiesType      *StringPlusAuthority    `xml:"significantPropertiesType"`
 	SignificantPropertiesValue     string                  `xml:"significantPropertiesValue"`
 	SignificantPropertiesExtension []*ExtensionComplexType `xml:"significantPropertiesExtension"`
@@ -500,14 +500,14 @@ type SignificantPropertiesComplexType struct {
 
 // StartAndEndDateComplexType ...
 type StartAndEndDateComplexType struct {
-	XMLName   xml.Name        `xml:"startAndEndDateComplexType"`
+	XMLName   xml.Name        `xml:"startAndEndDate"`
 	StartDate *EdtfSimpleType `xml:"startDate"`
 	EndDate   *EdtfSimpleType `xml:"endDate"`
 }
 
 // StatuteDocumentationIdentifierComplexType ...
 type StatuteDocumentationIdentifierComplexType struct {
-	XMLName                             xml.Name             `xml:"statuteDocumentationIdentifierComplexType"`
+	XMLName                             xml.Name             `xml:"statuteDocumentationIdentifier"`
 	StatuteDocumentationIdentifierType  *StringPlusAuthority `xml:"statuteDocumentationIdentifierType"`
 	StatuteDocumentationIdentifierValue string               `xml:"statuteDocumentationIdentifierValue"`
 	StatuteDocumentationRole            *StringPlusAuthority `xml:"statuteDocumentationRole"`
@@ -515,7 +515,7 @@ type StatuteDocumentationIdentifierComplexType struct {
 
 // StatuteInformationComplexType ...
 type StatuteInformationComplexType struct {
-	XMLName                             xml.Name                                     `xml:"statuteInformationComplexType"`
+	XMLName                             xml.Name                                     `xml:"statuteInformation"`
 	StatuteJurisdiction                 *CountryCode                                 `xml:"statuteJurisdiction"`
 	StatuteCitation                     *StringPlusAuthority                         `xml:"statuteCitation"`
 	StatuteInformationDeterminationDate *EdtfSimpleType                              `xml:"statuteInformationDeterminationDate"`
@@ -526,7 +526,7 @@ type StatuteInformationComplexType struct {
 
 // StorageComplexType ...
 type StorageComplexType struct {
-	XMLName         xml.Name                    `xml:"storageComplexType"`
+	XMLName         xml.Name                    `xml:"storage"`
 	ContentLocation *ContentLocationComplexType `xml:"contentLocation"`
 	StorageMedium   *StringPlusAuthority        `xml:"storageMedium"`
 }
@@ -1094,7 +1094,7 @@ type Version3 string
 
 // ExtensionComplexType ...
 type ExtensionComplexType struct {
-	XMLName xml.Name `xml:"extensionComplexType"`
+	XMLName xml.Name `xml:"extension"`
 }
 
 // EdtfSimpleType ...
@@ -1110,7 +1110,9 @@ type AuthorityAttributeGroup struct {
 
 // StringPlusAuthority ...
 type StringPlusAuthority struct {
-	XMLName                 xml.Name `xml:"stringPlusAuthority"`
-	AuthorityAttributeGroup *AuthorityAttributeGroup
-	Value                   string `xml:",chardata"`
+	//	XMLName                 xml.Name `xml:"stringPlusAuthority"`
+	AuthorityAttr    string `xml:"authority,attr,omitempty"`
+	AuthorityURIAttr string `xml:"authorityURI,attr,omitempty"`
+	ValueURIAttr     string `xml:"valueURI,attr,omitempty"`
+	Value            string `xml:",chardata"`
 }

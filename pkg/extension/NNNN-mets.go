@@ -147,7 +147,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 	}
 
-	files := []*mets.FileType{}
+	metsFiles := []*mets.FileType{}
+	premisFiles := []*premis.File{}
 	structMaps := []*mets.StructMapType{}
 	internalPrefix := fmt.Sprintf("%s/content/", head)
 	structPhysical := map[string]map[string][]string{}
@@ -171,16 +172,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 	}
 
-	premisStruct := &premis.PremisComplexType{
-		XMLName:     xml.Name{},
-		VersionAttr: "",
-		Object:      []*premis.ObjectComplexType{},
-		Event:       []*premis.EventComplexType{},
-		Agent:       []*premis.AgentComplexType{},
-		Rights:      []*premis.RightsComplexType{},
-	}
-	_ = premisStruct
-
 	for cs, metaFile := range metadata.Files {
 		uuid, err := uuid.NewUUID()
 		if err != nil {
@@ -188,7 +179,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		var size int64
 		var creation time.Time
-		var mime string
 		var fLocat = []*mets.FLocat{}
 		if ext, ok := metaFile.Extension[FilesystemName]; ok {
 			extFSL, ok := ext.(map[string][]*FileSystemLine)
@@ -203,12 +193,152 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 
 		}
+		metsFile := &mets.FileType{
+			XMLName: xml.Name{},
+			FILECORE: &mets.FILECORE{
+				MIMETYPEAttr:     "",
+				SIZEAttr:         size,
+				CREATEDAttr:      creation.Format("2006-01-02T15:04:05"),
+				CHECKSUMAttr:     cs,
+				CHECKSUMTYPEAttr: "SHA-512",
+			},
+			IDAttr:        "uuid-" + uuid.String(),
+			SEQAttr:       0,
+			OWNERIDAttr:   "",
+			ADMIDAttr:     nil,
+			DMDIDAttr:     nil,
+			GROUPIDAttr:   "",
+			USEAttr:       "Datafile",
+			BEGINAttr:     "",
+			ENDAttr:       "",
+			BETYPEAttr:    "",
+			FLocat:        fLocat,
+			FContent:      nil,
+			Stream:        nil,
+			TransformFile: nil,
+			File:          nil,
+		}
+		premisFile := &premis.File{
+			XMLName:     xml.Name{},
+			XmlIDAttr:   "",
+			VersionAttr: "",
+			ObjectIdentifier: []*premis.ObjectIdentifierComplexType{
+				&premis.ObjectIdentifierComplexType{
+					XMLName:               xml.Name{},
+					SimpleLinkAttr:        "",
+					ObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+					ObjectIdentifierValue: "uuid-" + uuid.String(),
+				},
+			},
+			PreservationLevel:                nil,
+			SignificantProperties:            []*premis.SignificantPropertiesComplexType{},
+			ObjectCharacteristics:            []*premis.ObjectCharacteristicsComplexType{},
+			OriginalName:                     nil,
+			Storage:                          nil,
+			SignatureInformation:             nil,
+			Relationship:                     nil,
+			LinkingEventIdentifier:           nil,
+			LinkingRightsStatementIdentifier: nil,
+			ObjectComplexType:                nil,
+		}
 		if ext, ok := metaFile.Extension[IndexerName]; ok {
 			extIndexer, ok := ext.(*indexer.ResultV2)
 			if !ok {
 				return errors.Wrapf(err, "invalid type: %v", ext)
 			}
-			mime = extIndexer.Mimetype
+			metsFile.FILECORE.MIMETYPEAttr = extIndexer.Mimetype
+			objectCharacter := &premis.ObjectCharacteristicsComplexType{
+				XMLName:          xml.Name{},
+				CompositionLevel: nil,
+				Fixity: []*premis.FixityComplexType{
+					premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+version.VERSION),
+				},
+				Size:                           0,
+				Format:                         []*premis.FormatComplexType{},
+				CreatingApplication:            nil,
+				Inhibitors:                     nil,
+				ObjectCharacteristicsExtension: nil,
+			}
+			if extIndexer.Mimetype != "" {
+				objectCharacter.Format = append(objectCharacter.Format, &premis.FormatComplexType{
+					XMLName: xml.Name{},
+					FormatDesignation: &premis.FormatDesignationComplexType{
+						XMLName:       xml.Name{},
+						FormatName:    premis.NewStringPlusAuthority(extIndexer.Mimetype, "", "", ""),
+						FormatVersion: "",
+					},
+					FormatRegistry: nil,
+					FormatNote:     []string{"IANA MIME-type"},
+				})
+			}
+			if extIndexer.Pronom != "" {
+				sfAny, _ := extIndexer.Metadata["siegfried"]
+				sfAnyList, ok := sfAny.([]any)
+				if ok {
+					for _, sfEntry := range sfAnyList {
+						sfMap, ok := sfEntry.(map[string]any)
+						if !ok {
+							continue
+						}
+						fct := &premis.FormatComplexType{
+							XMLName:           xml.Name{},
+							FormatDesignation: nil,
+							FormatRegistry:    nil,
+							FormatNote:        []string{"siegfried"},
+						}
+						if designationAny, ok := sfMap["Name"]; ok {
+							if designation, ok := designationAny.(string); ok {
+								fct.FormatDesignation = &premis.FormatDesignationComplexType{
+									XMLName:       xml.Name{},
+									FormatName:    premis.NewStringPlusAuthority(designation, "", "", ""),
+									FormatVersion: "",
+								}
+							}
+						}
+						if idAny, ok := sfMap["ID"]; ok {
+							if id, ok := idAny.(string); ok {
+								fct.FormatRegistry = &premis.FormatRegistryComplexType{
+									XMLName:            xml.Name{},
+									SimpleLinkAttr:     "",
+									FormatRegistryName: premis.NewStringPlusAuthority("PRONOM", "", "", ""),
+									FormatRegistryKey:  premis.NewStringPlusAuthority(id, "", "", ""),
+									FormatRegistryRole: premis.NewStringPlusAuthority(
+										"specification",
+										"http://id.loc.gov/vocabulary/preservation/formatRegistryRole",
+										"",
+										"http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe",
+									),
+								}
+							}
+							objectCharacter.Format = append(objectCharacter.Format, fct)
+						}
+					}
+				}
+			}
+			for digest, checksum := range metaFile.Checksums {
+				objectCharacter.Fixity = append(objectCharacter.Fixity,
+					premis.NewFixityComplexType(string(digest), checksum, "gocfl "+version.VERSION),
+				)
+			}
+			if extIndexer != nil {
+				if extIndexer.Width > 0 {
+					premisFile.SignificantProperties = append(premisFile.SignificantProperties,
+						premis.NewSignificantPropertiesComplexType("width", fmt.Sprintf("%v", extIndexer.Width)),
+					)
+					premisFile.SignificantProperties = append(premisFile.SignificantProperties,
+						premis.NewSignificantPropertiesComplexType("height", fmt.Sprintf("%v", extIndexer.Height)),
+					)
+				}
+				if extIndexer.Duration > 0 {
+					premisFile.SignificantProperties = append(premisFile.SignificantProperties,
+						premis.NewSignificantPropertiesComplexType("duration", fmt.Sprintf("%v", extIndexer.Duration)),
+					)
+				}
+				if extIndexer.Size > 0 {
+					objectCharacter.Size = int64(extIndexer.Size)
+				}
+			}
+			premisFile.ObjectCharacteristics = append(premisFile.ObjectCharacteristics, objectCharacter)
 		}
 		for _, intPath := range metaFile.InternalName {
 			parts := strings.Split(intPath, "/")
@@ -285,32 +415,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 
-		file := &mets.FileType{
-			XMLName: xml.Name{},
-			FILECORE: &mets.FILECORE{
-				MIMETYPEAttr:     mime,
-				SIZEAttr:         size,
-				CREATEDAttr:      creation.Format("2006-01-02T15:04:05"),
-				CHECKSUMAttr:     cs,
-				CHECKSUMTYPEAttr: "SHA-512",
-			},
-			IDAttr:        "uuid-" + uuid.String(),
-			SEQAttr:       0,
-			OWNERIDAttr:   "",
-			ADMIDAttr:     nil,
-			DMDIDAttr:     nil,
-			GROUPIDAttr:   "",
-			USEAttr:       "Datafile",
-			BEGINAttr:     "",
-			ENDAttr:       "",
-			BETYPEAttr:    "",
-			FLocat:        fLocat,
-			FContent:      nil,
-			Stream:        nil,
-			TransformFile: nil,
-			File:          nil,
-		}
-		files = append(files, file)
+		metsFiles = append(metsFiles, metsFile)
+		premisFiles = append(premisFiles, premisFile)
 	}
 
 	for ver, areaList := range structPhysical {
@@ -502,7 +608,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 							ADMIDAttr:    nil,
 							USEAttr:      fmt.Sprintf("Version %s", head),
 							FileGrp:      nil,
-							File:         files,
+							File:         metsFiles,
 						},
 					},
 				},
@@ -517,10 +623,28 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.Wrap(err, "cannot marshal METS")
 	}
 
+	premisStruct := &premis.PremisComplexType{
+		XMLName:     xml.Name{},
+		VersionAttr: "",
+		Object:      premisFiles,
+		Event:       []*premis.EventComplexType{},
+		Agent:       []*premis.AgentComplexType{},
+		Rights:      []*premis.RightsComplexType{},
+	}
+
+	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal PREMIS")
+	}
+
 	switch strings.ToLower(me.StorageType) {
 	case "area":
 		targetname := "mets.xml"
 		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{targetname}, me.StorageName, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", targetname)
+		}
+		targetname = "premis.xml"
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{targetname}, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
@@ -530,12 +654,21 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "mets.xml")), "/")
 
-		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
 		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{targetname}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
+
+		targetname = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "premis.xml")), "/")
+
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{targetname}, "", true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", targetname)
+		}
 	case "extension":
-		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, "mets.xml")), "/")
+		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("mets-%s.xml", object.GetVersion()))), "/")
+		if err := writefs.WriteFile(me.fsys, targetname, metsBytes); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, targetname)
+		}
+		targetname = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("premis-%s.xml", object.GetVersion()))), "/")
 		if err := writefs.WriteFile(me.fsys, targetname, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, targetname)
 		}
