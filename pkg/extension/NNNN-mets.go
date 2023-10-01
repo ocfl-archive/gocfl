@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 )
 
 const METSName = "NNNN-mets"
@@ -147,6 +146,59 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 	}
 
+	var metsName, premisName string
+	var area string
+	var names *ocfl.NamesStruct
+	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
+	switch strings.ToLower(me.StorageType) {
+	case "area":
+		metsName = "mets.xml"
+		premisName = "premis.xml"
+		area = me.StorageName
+		names, err = object.BuildNames([]string{metsName}, area)
+		if err != nil {
+			return errors.Wrapf(err, "cannot build names for %s", metsName)
+		}
+	case "path":
+		path, err := object.GetAreaPath("content")
+		if err != nil {
+			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
+		}
+		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "mets.xml")), "/")
+		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "premis.xml")), "/")
+		area = ""
+		names, err = object.BuildNames([]string{metsName}, area)
+		if err != nil {
+			return errors.Wrapf(err, "cannot build names for %s", metsName)
+		}
+	case "extension":
+		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("mets-%s.xml", object.GetVersion()))), "/")
+		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("premis-%s.xml", object.GetVersion()))), "/")
+		names = &ocfl.NamesStruct{
+			ExternalPaths: []string{},
+			InternalPath:  metsName,
+			ManifestPath:  "",
+		}
+	default:
+		return errors.Errorf("unsupported storage type '%s'", me.StorageType)
+	}
+	if len(names.ExternalPaths) > 1 {
+		return errors.Errorf("multiple external paths for mets file not supported - %v", names.ExternalPaths)
+	}
+	if len(names.ExternalPaths) == 1 {
+		parts := strings.Split(names.ExternalPaths[0], "/")
+		for i := 1; i < len(parts); i++ {
+			externalRelativePath += "../"
+		}
+	}
+	parts := strings.Split(names.InternalPath, "/")
+	for i := 1; i < len(parts)+2; i++ {
+		internalRelativePath += "../"
+	}
+	for i := 1; i < len(parts); i++ {
+		internalRelativePathCurrentVersion += "../"
+	}
+
 	metsFiles := []*mets.FileType{}
 	premisFiles := []*premis.File{}
 	structMaps := []*mets.StructMapType{}
@@ -177,9 +229,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if err != nil {
 			return errors.Wrap(err, "cannot create uuid")
 		}
+		uuidString := "uuid-" + uuid.String()
 		var size int64
-		var creation time.Time
-		var fLocat = []*mets.FLocat{}
+		var creationString string
+		//		var fLocat = []*mets.FLocat{}
 		if ext, ok := metaFile.Extension[FilesystemName]; ok {
 			extFSL, ok := ext.(map[string][]*FileSystemLine)
 			if !ok {
@@ -187,7 +240,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 			if fslHead, ok := extFSL[head]; ok {
 				if len(fslHead) > 0 {
-					creation = fslHead[0].Meta.CTime
+					creationString = fslHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
 					size = int64(fslHead[0].Meta.Size)
 				}
 			}
@@ -198,11 +251,11 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			FILECORE: &mets.FILECORE{
 				MIMETYPEAttr:     "",
 				SIZEAttr:         size,
-				CREATEDAttr:      creation.Format("2006-01-02T15:04:05"),
+				CREATEDAttr:      creationString,
 				CHECKSUMAttr:     cs,
 				CHECKSUMTYPEAttr: "SHA-512",
 			},
-			IDAttr:        "uuid-" + uuid.String(),
+			IDAttr:        uuidString,
 			SEQAttr:       0,
 			OWNERIDAttr:   "",
 			ADMIDAttr:     nil,
@@ -212,7 +265,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			BEGINAttr:     "",
 			ENDAttr:       "",
 			BETYPEAttr:    "",
-			FLocat:        fLocat,
+			FLocat:        []*mets.FLocat{},
 			FContent:      nil,
 			Stream:        nil,
 			TransformFile: nil,
@@ -227,14 +280,14 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					XMLName:               xml.Name{},
 					SimpleLinkAttr:        "",
 					ObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
-					ObjectIdentifierValue: "uuid-" + uuid.String(),
+					ObjectIdentifierValue: uuidString,
 				},
 			},
 			PreservationLevel:                nil,
 			SignificantProperties:            []*premis.SignificantPropertiesComplexType{},
 			ObjectCharacteristics:            []*premis.ObjectCharacteristicsComplexType{},
 			OriginalName:                     nil,
-			Storage:                          nil,
+			Storage:                          []*premis.StorageComplexType{},
 			SignatureInformation:             nil,
 			Relationship:                     nil,
 			LinkingEventIdentifier:           nil,
@@ -286,6 +339,16 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 							FormatRegistry:    nil,
 							FormatNote:        []string{"siegfried"},
 						}
+						if sfBasisAny, ok := sfMap["Basis"]; ok {
+							if sfBasisAnyList, ok := sfBasisAny.([]any); ok {
+								for _, sfBasisEntryAny := range sfBasisAnyList {
+									if sfBasisString, ok := sfBasisEntryAny.(string); ok {
+										fct.FormatNote = append(fct.FormatNote, "Basis: "+sfBasisString)
+									}
+								}
+							}
+						}
+
 						if designationAny, ok := sfMap["Name"]; ok {
 							if designation, ok := designationAny.(string); ok {
 								fct.FormatDesignation = &premis.FormatDesignationComplexType{
@@ -368,11 +431,11 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			if intSemantic != "" {
 				structSemantical[intSemantic] = append(structSemantical[intSemantic], "uuid-"+uuid.String())
 			}
-			href := "../../../" + intPath
+			href := internalRelativePath + intPath
 			if strings.HasPrefix(intPath, internalPrefix) {
-				href = "../" + intPath[len(internalPrefix):]
+				href = internalRelativePathCurrentVersion + intPath[len(internalPrefix):]
 			}
-			fLocat = append(fLocat, &mets.FLocat{
+			metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 				LOCATION: &mets.LOCATION{
 					LOCTYPEAttr:      "URL",
 					OTHERLOCTYPEAttr: "internal",
@@ -390,11 +453,20 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				IDAttr:  "",
 				USEAttr: "",
 			})
-
+			premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
+				XMLName: xml.Name{},
+				ContentLocation: &premis.ContentLocationComplexType{
+					XMLName:              xml.Name{},
+					SimpleLinkAttr:       "",
+					ContentLocationType:  premis.NewStringPlusAuthority("OCFL internal", "", "", ""),
+					ContentLocationValue: href,
+				},
+				StorageMedium: premis.NewStringPlusAuthority("OCFL Object Root", "", "", ""),
+			})
 		}
 		if extNames, ok := metaFile.VersionName[head]; ok {
 			for _, extPath := range extNames {
-				fLocat = append(fLocat, &mets.FLocat{
+				metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 					LOCATION: &mets.LOCATION{
 						LOCTYPEAttr:      "URL",
 						OTHERLOCTYPEAttr: "external",
@@ -402,7 +474,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					SimpleLink: &mets.SimpleLink{
 						//XMLName:          xml.Name{},
 						TypeAttr:         "simple",
-						XlinkHrefAttr:    "../" + extPath,
+						XlinkHrefAttr:    externalRelativePath + extPath,
 						XlinkRoleAttr:    "",
 						XlinkArcroleAttr: "",
 						XlinkTitleAttr:   "",
@@ -412,9 +484,19 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					IDAttr:  "",
 					USEAttr: "",
 				})
+				premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
+					XMLName: xml.Name{},
+					ContentLocation: &premis.ContentLocationComplexType{
+						XMLName:              xml.Name{},
+						SimpleLinkAttr:       "",
+						ContentLocationType:  premis.NewStringPlusAuthority("origin", "", "", ""),
+						ContentLocationValue: externalRelativePath + extPath,
+					},
+					StorageMedium: premis.NewStringPlusAuthority("extracted OCFL", "", "", ""),
+				})
+
 			}
 		}
-
 		metsFiles = append(metsFiles, metsFile)
 		premisFiles = append(premisFiles, premisFile)
 	}
@@ -638,41 +720,21 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	switch strings.ToLower(me.StorageType) {
-	case "area":
-		targetname := "mets.xml"
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{targetname}, me.StorageName, true, false); err != nil {
-			return errors.Wrapf(err, "cannot write '%s'", targetname)
+	case "area", "path":
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
-		targetname = "premis.xml"
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{targetname}, me.StorageName, true, false); err != nil {
-			return errors.Wrapf(err, "cannot write '%s'", targetname)
-		}
-	case "path":
-		path, err := object.GetAreaPath("content")
-		if err != nil {
-			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
-		}
-		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "mets.xml")), "/")
-
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{targetname}, "", true, false); err != nil {
-			return errors.Wrapf(err, "cannot write '%s'", targetname)
-		}
-
-		targetname = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "premis.xml")), "/")
-
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{targetname}, "", true, false); err != nil {
-			return errors.Wrapf(err, "cannot write '%s'", targetname)
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, area, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
 	case "extension":
-		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("mets-%s.xml", object.GetVersion()))), "/")
-		if err := writefs.WriteFile(me.fsys, targetname, metsBytes); err != nil {
-			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, targetname)
+		if err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, metsName)
 		}
-		targetname = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("premis-%s.xml", object.GetVersion()))), "/")
-		if err := writefs.WriteFile(me.fsys, targetname, metsBytes); err != nil {
-			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, targetname)
+		if err := writefs.WriteFile(me.fsys, premisName, metsBytes); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, premisName)
 		}
-	default:
+	default: // cannot happen here
 		return errors.Errorf("unsupported storage type '%s'", me.StorageType)
 	}
 
