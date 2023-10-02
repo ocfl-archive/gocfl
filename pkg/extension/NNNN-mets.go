@@ -273,6 +273,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		premisFile := &premis.File{
 			XMLName:     xml.Name{},
+			XSIType:     "premis:file",
 			XmlIDAttr:   "",
 			VersionAttr: "",
 			ObjectIdentifier: []*premis.ObjectIdentifierComplexType{
