@@ -274,7 +274,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		premisFile := &premis.File{
 			XMLName:     xml.Name{},
 			XSIType:     "premis:file",
-			XmlIDAttr:   "",
+			XmlIDAttr:   uuidString,
 			VersionAttr: "",
 			ObjectIdentifier: []*premis.ObjectIdentifierComplexType{
 				&premis.ObjectIdentifierComplexType{
@@ -414,8 +414,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				return errors.Wrapf(err, "no content in %s", intPath)
 			}
 			var intArea = "content"
-			var intSemantic = "Payload"
-			if len(parts) >= 3 {
+			var intSemantic = "Other Payload"
+			if len(parts) > 3 {
 				if contentSubPath != nil {
 					intArea = parts[2]
 					intSemantic = ""
@@ -502,29 +502,40 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		premisFiles = append(premisFiles, premisFile)
 	}
 
-	for ver, areaList := range structPhysical {
-		structMapPhysical := &mets.StructMapType{
-			XMLName:   xml.Name{},
-			IDAttr:    "",
-			TYPEAttr:  "physical",
-			LABELAttr: "AIP structMap",
-			Div: &mets.DivType{
-				XMLName: xml.Name{},
-				ORDERLABELS: &mets.ORDERLABELS{
-					ORDERAttr:      0,
-					ORDERLABELAttr: "",
-					LABELAttr:      "Version " + ver,
-				},
-				IDAttr:         "",
-				DMDIDAttr:      nil,
-				ADMIDAttr:      nil,
-				TYPEAttr:       "",
-				CONTENTIDSAttr: nil,
-				XlinkLabelAttr: nil,
-				Mptr:           nil,
-				Fptr:           nil,
-				Div:            []*mets.DivType{},
+	structMapPhysicalId := uuid.New()
+	structMapPhysicalIdString := "urn:uuid:" + structMapPhysicalId.String()
+	structMapPhysical := &mets.StructMapType{
+		XMLName:   xml.Name{},
+		IDAttr:    "",
+		TYPEAttr:  "physical",
+		LABELAttr: "AIP structMap",
+		Div: &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				ORDERAttr:      0,
+				ORDERLABELAttr: "",
+				LABELAttr:      structMapPhysicalIdString,
 			},
+			IDAttr:         "",
+			DMDIDAttr:      nil,
+			ADMIDAttr:      nil,
+			TYPEAttr:       "",
+			CONTENTIDSAttr: nil,
+			XlinkLabelAttr: nil,
+			Mptr:           nil,
+			Fptr:           nil,
+			Div:            []*mets.DivType{},
+		},
+	}
+	for ver, areaList := range structPhysical {
+		structMapPhysicalDivVer := &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				ORDERAttr:      0,
+				ORDERLABELAttr: "",
+				LABELAttr:      "Version " + ver,
+			},
+			Div: make([]*mets.DivType, 0),
 		}
 
 		for area, uuids := range areaList {
@@ -556,10 +567,12 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					Area:           nil,
 				})
 			}
-			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
+			structMapPhysicalDivVer.Div = append(structMapPhysicalDivVer.Div, div)
 		}
-		structMaps = append(structMaps, structMapPhysical)
+
+		structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
 	}
+	structMaps = append(structMaps, structMapPhysical)
 
 	structMapSemantical := &mets.StructMapType{
 		XMLName:   xml.Name{},
