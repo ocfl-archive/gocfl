@@ -232,9 +232,9 @@ Enable=true
 ID = "CR2#01"
 Title = "Convert Canon CR2 to PNG"
 Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' '{destination}' "
-Strategy = "add"
+Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
-FilenameReplacement = "${1}mig_${2}.png"
+FilenameReplacement = "${2}.png"
 Timeout = "2m"
 Pronoms = ["fmt/592"]
 
@@ -242,9 +242,9 @@ Pronoms = ["fmt/592"]
 ID = "Image#01"
 Title = "Convert Image to PNG"
 Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' '{destination}' "
-Strategy = "add"
+Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
-FilenameReplacement = "${1}mig_${2}.png"
+FilenameReplacement = "${2}.png"
 Timeout = "2m"
 Pronoms = ["fmt/202","fmt/436","fmt/437","x-fmt/367","fmt/528","fmt/662"]
 
@@ -254,9 +254,9 @@ Title = "Convert Acrobat PDF to PDF/A - Portable Document Format 2a"
 Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
 #Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
 #Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
-Strategy = "add"
+Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
-FilenameReplacement = "${1}mig_${2}"
+FilenameReplacement = "${2}"
 Timeout = "2m"
 Pronoms = ["fmt/14","fmt/15","fmt/16","fmt/17","fmt/18","fmt/19","fmt/20","fmt/276","fmt/95","fmt/354","fmt/493","fmt/144","fmt/145","fmt/157","fmt/146","fmt/147","fmt/158","fmt/148","fmt/488","fmt/489","fmt/490","fmt/492","fmt/491","fmt/1129","fmt/1451"]
 # "fmt/14": Acrobat PDF 1.0 - Portable Document Format

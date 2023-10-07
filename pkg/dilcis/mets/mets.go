@@ -100,7 +100,7 @@ type MetsType struct {
 
 // AmdSecType is A digital provenance metadata element <digiprovMD> can be used to record any preservation-related actions taken on the various files which comprise a digital object (e.g., those subsequent to the initial digitization of the files such as transformation or migrations) or, in the case of born digital materials, the files’ creation. In short, digital provenance should be used to record information that allows both archival/library staff and scholars to understand what modifications have been made to a digital object and/or its constituent parts during its life cycle. This information can then be used to judge how those processes might have altered or corrupted the object’s ability to accurately represent the original item. One might, for example, record master derivative relationships and the process by which those derivations have been created. Or the <digiprovMD> element could contain information regarding the migration/transformation of a file from its original digitization (e.g., OCR, TEI, etc.,)to its current incarnation as a digital object (e.g., JPEG2000). The <digiprovMD> element conforms to same generic datatype as the <dmdSec>,  <techMD>, <rightsMD>, and <sourceMD> elements, and supports the same sub-elements and attributes. A digital provenance metadata element can either wrap the metadata  (mdWrap) or reference it in an external location (mdRef) or both.  METS allows multiple <digiprovMD> elements; and digital provenance metadata can be associated with any METS element that supports an ADMID attribute. Digital provenance metadata can be expressed according to current digital provenance description standards (such as PREMIS) or a locally produced XML schema.
 type AmdSecType struct {
-	XMLName    xml.Name     `xml:"amdSecType"`
+	XMLName    xml.Name     `xml:"amdSec"`
 	IDAttr     string       `xml:"ID,attr,omitempty"`
 	TechMD     []*MdSecType `xml:"techMD"`
 	RightsMD   []*MdSecType `xml:"rightsMD"`
@@ -288,14 +288,31 @@ type ObjectType struct {
 
 // MdRef ...
 type MdRef struct {
-	XMLName         xml.Name `xml:"mdRef"`
-	LOCATION        *LOCATION
-	XlinkSimpleLink *SimpleLink
-	METADATA        *METADATA
-	FILECORE        *FILECORE
-	IDAttr          string `xml:"ID,attr,omitempty"`
-	LABELAttr       string `xml:"LABEL,attr,omitempty"`
-	XPTRAttr        string `xml:"XPTR,attr,omitempty"`
+	XMLName   xml.Name `xml:"mdRef"`
+	IDAttr    string   `xml:"ID,attr,omitempty"`
+	LABELAttr string   `xml:"LABEL,attr,omitempty"`
+	XPTRAttr  string   `xml:"XPTR,attr,omitempty"`
+	// SimpleLink
+	TypeAttr         string `xml:"xlink:type,attr,omitempty"`
+	XlinkHrefAttr    string `xml:"xlink:href,attr,omitempty"`
+	XlinkRoleAttr    string `xml:"xlink:role,attr,omitempty"`
+	XlinkArcroleAttr string `xml:"xlink:arcrole,attr,omitempty"`
+	XlinkTitleAttr   string `xml:"xlink:title,attr,omitempty"`
+	XlinkShowAttr    string `xml:"xlink:show,attr,omitempty"`
+	XlinkActuateAttr string `xml:"xlink:actuate,attr,omitempty"`
+	// LOCTYPE
+	LOCTYPEAttr      string `xml:"LOCTYPE,attr"`
+	OTHERLOCTYPEAttr string `xml:"OTHERLOCTYPE,attr,omitempty"`
+	// METADATA
+	MDTYPEAttr        string `xml:"MDTYPE,attr"`
+	OTHERMDTYPEAttr   string `xml:"OTHERMDTYPE,attr,omitempty"`
+	MDTYPEVERSIONAttr string `xml:"MDTYPEVERSION,attr,omitempty"`
+	// FILECORE
+	MIMETYPEAttr     string `xml:"MIMETYPE,attr,omitempty"`
+	SIZEAttr         int64  `xml:"SIZE,attr,omitempty"`
+	CREATEDAttr      string `xml:"CREATED,attr,omitempty"`
+	CHECKSUMAttr     string `xml:"CHECKSUM,attr,omitempty"`
+	CHECKSUMTYPEAttr string `xml:"CHECKSUMTYPE,attr,omitempty"`
 }
 
 // XmlData ...
@@ -317,7 +334,7 @@ type MdWrap struct {
 // MdSecType is mdSecType: Complex Type for Metadata Sections
 // A generic framework for pointing to/including metadata within a METS document, a la Warwick Framework.
 type MdSecType struct {
-	XMLName     xml.Name `xml:"mdSecType"`
+	//	XMLName     xml.Name `xml:"mdSecType"`
 	IDAttr      string   `xml:"ID,attr"`
 	GROUPIDAttr string   `xml:"GROUPID,attr,omitempty"`
 	ADMIDAttr   []string `xml:"ADMID,attr,omitempty"`

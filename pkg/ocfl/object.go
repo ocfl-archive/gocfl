@@ -32,6 +32,7 @@ type Object interface {
 	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) error
 	DeleteFile(virtualFilename string, digest string) error
+	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
 	GetID() string
 	GetVersion() OCFLVersion
 	Check() error

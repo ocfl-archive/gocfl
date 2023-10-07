@@ -23,6 +23,7 @@ type Inventory interface {
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
 	DeleteFile(stateFilename string) error
+	RenameFile(stateSource, stateDest string) error
 	//Rename(oldVirtualFilename, newVirtualFilename string) error
 	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	CopyFile(dest string, digest string) error

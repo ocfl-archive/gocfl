@@ -939,6 +939,28 @@ func (i *InventoryBase) DeleteFile(stateFilename string) error {
 	return nil
 }
 
+func (i *InventoryBase) RenameFile(stateSource, stateDest string) error {
+	var newState = map[string][]string{}
+	var found = false
+	for key, state := range i.Versions.Versions[i.GetHead()].State.State {
+		newState[key] = []string{}
+		for _, val := range state {
+			if val == stateSource {
+				newState[key] = append(newState[key], stateDest)
+				found = true
+			} else {
+				newState[key] = append(newState[key], val)
+			}
+		}
+	}
+	i.Versions.Versions[i.GetHead()].State.State = newState
+	if found {
+		i.modified = found
+		i.logger.Infof("[%s] rename '%s' to '%s' in state", i.GetID(), stateSource, stateDest)
+	}
+	return nil
+}
+
 func (i *InventoryBase) CopyFile(dest string, digest string) error {
 	i.logger.Infof("[%s] copying '%s' -> '%s'", i.GetID(), digest, dest)
 

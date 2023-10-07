@@ -921,7 +921,7 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 		return errors.New("object not writeable")
 	}
 
-	// if file is already there we do nothing
+	// if file is not there we do nothing
 	dup, err := object.i.AlreadyExists(virtualFilename, digest)
 	if err != nil {
 		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilename, digest)
@@ -932,6 +932,30 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 	}
 	if err := object.i.DeleteFile(virtualFilename); err != nil {
 		return errors.Wrapf(err, "cannot delete '%s'", virtualFilename)
+	}
+	return nil
+
+}
+
+func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error {
+	virtualFilenameSource = filepath.ToSlash(virtualFilenameSource)
+	object.logger.Debugf("removing '%s' [%s]", virtualFilenameSource, digest)
+
+	if !object.i.IsWriteable() {
+		return errors.New("object not writeable")
+	}
+
+	// if file is not there we do nothing
+	dup, err := object.i.AlreadyExists(virtualFilenameSource, digest)
+	if err != nil {
+		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilenameSource, digest)
+	}
+	if !dup {
+		object.logger.Debugf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest)
+		return nil
+	}
+	if err := object.i.RenameFile(virtualFilenameSource, virtualFilenameDest); err != nil {
+		return errors.Wrapf(err, "cannot delete '%s'", virtualFilenameSource)
 	}
 	return nil
 

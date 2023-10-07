@@ -2,6 +2,7 @@ package extension
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"emperror.dev/errors"
 	"encoding/json"
 	"encoding/xml"
@@ -19,6 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const METSName = "NNNN-mets"
@@ -630,6 +632,22 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 	structMaps = append(structMaps, structMapSemantical)
 
+	premisStruct := &premis.PremisComplexType{
+		XMLName:     xml.Name{},
+		VersionAttr: "",
+		Object:      premisFiles,
+		Event:       []*premis.EventComplexType{},
+		Agent:       []*premis.AgentComplexType{},
+		Rights:      []*premis.RightsComplexType{},
+	}
+
+	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal PREMIS")
+	}
+
+	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
+
 	m := &mets.Mets{
 		XMLNS:             "http://www.loc.gov/METS/",
 		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
@@ -690,7 +708,47 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				},
 			},
 			DmdSec: nil,
-			AmdSec: nil,
+			AmdSec: []*mets.AmdSecType{
+				&mets.AmdSecType{
+					XMLName:  xml.Name{},
+					IDAttr:   "uuid-" + uuid.NewString(),
+					TechMD:   nil,
+					RightsMD: nil,
+					SourceMD: nil,
+					DigiprovMD: []*mets.MdSecType{
+						&mets.MdSecType{
+							//XMLName:     xml.Name{},
+							IDAttr:      "uuid-" + uuid.NewString(),
+							GROUPIDAttr: "",
+							ADMIDAttr:   nil,
+							CREATEDAttr: "",
+							STATUSAttr:  "",
+							MdRef: &mets.MdRef{
+								XMLName:          xml.Name{},
+								LOCTYPEAttr:      "URL",
+								OTHERLOCTYPEAttr: "internal",
+								TypeAttr:         "",
+								XlinkHrefAttr:    "premis.xml",
+								XlinkRoleAttr:    "",
+								XlinkArcroleAttr: "",
+								XlinkTitleAttr:   "",
+								XlinkShowAttr:    "",
+								XlinkActuateAttr: "",
+								MDTYPEAttr:       "PREMIS",
+								IDAttr:           "",
+								LABELAttr:        "",
+								XPTRAttr:         "",
+								MIMETYPEAttr:     "application/xml",
+								SIZEAttr:         int64(len(premisBytes)),
+								CREATEDAttr:      time.Now().Format("2006-01-02T15:04:05"),
+								CHECKSUMAttr:     premisChecksum,
+								CHECKSUMTYPEAttr: "SHA-512",
+							},
+							MdWrap: nil,
+						},
+					},
+				},
+			},
 			FileSec: &mets.FileSec{
 				XMLName: xml.Name{},
 				IDAttr:  "",
@@ -717,20 +775,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	metsBytes, err := xml.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal METS")
-	}
-
-	premisStruct := &premis.PremisComplexType{
-		XMLName:     xml.Name{},
-		VersionAttr: "",
-		Object:      premisFiles,
-		Event:       []*premis.EventComplexType{},
-		Agent:       []*premis.AgentComplexType{},
-		Rights:      []*premis.RightsComplexType{},
-	}
-
-	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
-	if err != nil {
-		return errors.Wrap(err, "cannot marshal PREMIS")
 	}
 
 	switch strings.ToLower(me.StorageType) {
