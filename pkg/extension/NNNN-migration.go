@@ -73,7 +73,7 @@ type MigrationTarget struct {
 }
 
 type MigrationResult struct {
-	Source string `json:"source,omitempty"`
+	Source string `json:"source"`
 	Error  string `json:"error,omitempty"`
 	ID     string `json:"id"`
 }
@@ -202,17 +202,23 @@ func (mi *Migration) NeedNewVersion(ocfl.Object) (bool, error) {
 	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
+// DoNewVersion todo: check for second migration step and do different naming
 func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
 	}()
 
-	metadata, err := mi.GetMetadata(object)
+	migrationMetadata, err := mi.GetMetadata(object)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get migration metadata for object '%s'", object.GetID())
 	}
-	migratedChecksums := maps.Keys(metadata)
+	migratedChecksums := maps.Keys(migrationMetadata)
+	for _, metaAny := range migrationMetadata {
+		if meta, ok := metaAny.(*migrationLine); ok {
+			_ = meta
+		}
+	}
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	extensionManager := object.GetExtensionManager()

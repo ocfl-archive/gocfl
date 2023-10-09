@@ -9,12 +9,15 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/gocfl/v2/pkg/dilcis/ead3"
 	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
 	"github.com/je4/gocfl/v2/pkg/dilcis/premis"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/version"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/op/go-logging"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -203,10 +206,16 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 	metsFiles := []*mets.FileType{}
 	premisFiles := []*premis.File{}
+	premisEvents := []*premis.EventComplexType{}
 	structMaps := []*mets.StructMapType{}
 	internalPrefix := fmt.Sprintf("%s/content/", head)
 	structPhysical := map[string]map[string][]string{}
 	structSemantical := map[string][]string{}
+	internalFiledata := map[string]struct {
+		ingestVersion string
+		uuid          string
+	}{}
+	//	ingest := map[string]string{}
 	// file section
 	if contentSubPath != nil {
 		for _, cse := range contentSubPath {
@@ -215,7 +224,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	} else {
 		structSemantical["Payload"] = []string{}
 	}
-	for _, v := range inventory.GetVersionStrings() {
+	versionStrings := inventory.GetVersionStrings()
+	for _, v := range versionStrings {
 		structPhysical[v] = map[string][]string{}
 		if contentSubPath != nil {
 			for area, _ := range contentSubPath {
@@ -226,12 +236,25 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 	}
 
+	// get ingest versions
 	for cs, metaFile := range metadata.Files {
-		uuid, err := uuid.NewUUID()
-		if err != nil {
-			return errors.Wrap(err, "cannot create uuid")
+		val := struct {
+			ingestVersion string
+			uuid          string
+		}{
+			uuid: "uuid-" + uuid.New().String(),
 		}
-		uuidString := "uuid-" + uuid.String()
+		stateVersions := maps.Keys(metaFile.VersionName)
+		for _, vStr := range versionStrings {
+			if slices.Contains(stateVersions, vStr) {
+				val.ingestVersion = vStr
+			}
+		}
+		internalFiledata[cs] = val
+	}
+
+	for cs, metaFile := range metadata.Files {
+		uuidString := internalFiledata[cs].uuid
 		var size int64
 		var creationString string
 		//		var fLocat = []*mets.FLocat{}
@@ -430,9 +453,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 				}
 			}
-			structPhysical[intVer][intArea] = append(structPhysical[intVer][intArea], "uuid-"+uuid.String())
+			structPhysical[intVer][intArea] = append(structPhysical[intVer][intArea], uuidString)
 			if intSemantic != "" {
-				structSemantical[intSemantic] = append(structSemantical[intSemantic], "uuid-"+uuid.String())
+				structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
 			}
 			href := internalRelativePath + intPath
 			if strings.HasPrefix(intPath, internalPrefix) {
@@ -500,6 +523,100 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 			}
 		}
+		var ingestTime time.Time
+		var ingestVersion string
+		_ = ingestVersion
+		if internal, ok := internalFiledata[cs]; ok {
+			if internal.ingestVersion != "" {
+				ingestVersion = internal.ingestVersion
+				if versionData, ok := metadata.Versions[internal.ingestVersion]; ok {
+					ingestTime = versionData.Created
+				}
+			}
+		}
+
+		eventIngest := &premis.EventComplexType{
+			XMLName:     xml.Name{},
+			XmlIDAttr:   "",
+			VersionAttr: "",
+			EventIdentifier: &premis.EventIdentifierComplexType{
+				XMLName:              xml.Name{},
+				SimpleLinkAttr:       "",
+				EventIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+				EventIdentifierValue: "ingest-" + cs,
+			},
+			EventType:               premis.NewStringPlusAuthority("MIGRATION", "", "", ""),
+			EventDateTime:           ingestTime.Format(time.RFC3339),
+			EventDetailInformation:  nil,
+			EventOutcomeInformation: nil,
+			LinkingAgentIdentifier:  nil,
+			LinkingObjectIdentifier: nil,
+		}
+		if migrationAny, ok := metaFile.Extension[MigrationName]; ok {
+			migration, ok := migrationAny.(*MigrationResult)
+			if !ok {
+				return errors.Wrapf(err, "invalid type for migration of '%s': %v", cs, migrationAny)
+			}
+			eventMigration := &premis.EventComplexType{
+				XMLName:     xml.Name{},
+				XmlIDAttr:   "",
+				VersionAttr: "",
+				EventIdentifier: &premis.EventIdentifierComplexType{
+					XMLName:              xml.Name{},
+					SimpleLinkAttr:       "",
+					EventIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+					EventIdentifierValue: migration.ID,
+				},
+				EventType:               premis.NewStringPlusAuthority("MIGRATION", "", "", ""),
+				EventDateTime:           ingestTime.Format(time.RFC3339),
+				EventDetailInformation:  nil,
+				EventOutcomeInformation: []*premis.EventOutcomeInformationComplexType{},
+				LinkingAgentIdentifier:  nil,
+				LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{
+					&premis.LinkingObjectIdentifierComplexType{
+						XMLName:                      xml.Name{},
+						LinkObjectXmlIDAttr:          "",
+						SimpleLinkAttr:               "",
+						LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+						LinkingObjectIdentifierValue: uuidString,
+						LinkingObjectRole:            []*premis.StringPlusAuthority{premis.NewStringPlusAuthority("TARGET", "", "", "")},
+					},
+				},
+			}
+			if migration.Error == "" {
+				eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
+					XMLName:            xml.Name{},
+					EventOutcome:       premis.NewStringPlusAuthority("success", "", "", ""),
+					EventOutcomeDetail: nil,
+				})
+				if internal, ok := internalFiledata[migration.Source]; ok {
+					if internal.uuid != "" {
+						eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier, &premis.LinkingObjectIdentifierComplexType{
+							XMLName:                      xml.Name{},
+							LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+							LinkingObjectIdentifierValue: internal.uuid,
+							LinkingObjectRole: []*premis.StringPlusAuthority{
+								premis.NewStringPlusAuthority("SOURCE", "", "", ""),
+							},
+						})
+					}
+				}
+			} else {
+				eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
+					XMLName:      xml.Name{},
+					EventOutcome: premis.NewStringPlusAuthority("error", "", "", ""),
+					EventOutcomeDetail: []*premis.EventOutcomeDetailComplexType{
+						&premis.EventOutcomeDetailComplexType{
+							XMLName:                     xml.Name{},
+							EventOutcomeDetailNote:      migration.Error,
+							EventOutcomeDetailExtension: nil,
+						},
+					},
+				})
+			}
+			premisEvents = append(premisEvents, eventMigration)
+		}
+		_ = eventIngest
 		metsFiles = append(metsFiles, metsFile)
 		premisFiles = append(premisFiles, premisFile)
 	}
@@ -636,7 +753,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		XMLName:     xml.Name{},
 		VersionAttr: "",
 		Object:      premisFiles,
-		Event:       []*premis.EventComplexType{},
+		Event:       premisEvents,
 		Agent:       []*premis.AgentComplexType{},
 		Rights:      []*premis.RightsComplexType{},
 	}
@@ -647,6 +764,62 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
+
+	ead := &ead3.Ead{
+		XMLName:             xml.Name{},
+		AmCommon:            nil,
+		RelatedencodingAttr: "",
+		BaseAttr:            "",
+		Control:             nil,
+		Frontmatter:         nil,
+		Archdesc: &ead3.Archdesc{
+			XMLName:             xml.Name{},
+			AmCommon:            nil,
+			AmDescBase:          nil,
+			LevelAttr:           "collection",
+			LocaltypeAttr:       "",
+			RelatedencodingAttr: "",
+			BaseAttr:            "",
+			MDescBaseDescgrp:    nil,
+			Runner:              nil,
+			Did: &ead3.Did{
+				XMLName:            xml.Name{},
+				AmCommon:           nil,
+				EncodinganalogAttr: "",
+				MDid: []*ead3.MDid{
+					{
+						XMLName:            xml.Name{},
+						Abstract:           nil,
+						Container:          nil,
+						Dao:                nil,
+						Daoset:             nil,
+						Didnote:            nil,
+						Langmaterial:       nil,
+						Materialspec:       nil,
+						Origination:        nil,
+						Physdescset:        nil,
+						Physdesc:           nil,
+						Physdescstructured: nil,
+						Physloc:            nil,
+						Repository:         nil,
+						Unitdate:           nil,
+						Unitdatestructured: nil,
+						Unitid:             nil,
+						Unittitle:          nil,
+					},
+				},
+				Head: &ead3.Head{
+					XMLName:     xml.Name{},
+					AmCommon:    nil,
+					AltheadAttr: "",
+					MMixedBasic: nil,
+				},
+			},
+			Dsc: nil,
+		},
+	}
+
+	_ = ead
 
 	m := &mets.Mets{
 		XMLNS:             "http://www.loc.gov/METS/",

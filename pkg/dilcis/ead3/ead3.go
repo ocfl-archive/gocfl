@@ -22,10 +22,11 @@ type Ead struct {
 
 // Archdesc ...
 type Archdesc struct {
-	XMLName             xml.Name `xml:"archdesc"`
-	AmCommon            *AmCommon
-	AmDescBase          *AmDescBase
-	ALevel              *ALevel
+	XMLName    xml.Name `xml:"archdesc"`
+	AmCommon   *AmCommon
+	AmDescBase *AmDescBase
+	// ALevel              *ALevel
+	LevelAttr           string `xml:"level,attr"`
 	LocaltypeAttr       string `xml:"localtype,attr,omitempty"`
 	RelatedencodingAttr string `xml:"relatedencoding,attr,omitempty"`
 	BaseAttr            string `xml:"base,attr,omitempty"`
