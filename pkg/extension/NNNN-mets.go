@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/je4/filesystem/v2/pkg/writefs"
-	"github.com/je4/gocfl/v2/pkg/dilcis/ead3"
 	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
 	"github.com/je4/gocfl/v2/pkg/dilcis/premis"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -34,9 +33,14 @@ func GetMetsParams() []*ocfl.ExtensionExternalParam {
 		{
 			ExtensionName: METSName,
 			Functions:     []string{"add", "update", "create"},
-			Param:         "source",
-			//File:          "Source",
-			Description: "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
+			Param:         "descriptive-metadata",
+			Description:   "reference to archived descriptive metadata (i.e. metadata:ead.xml)",
+		},
+		{
+			ExtensionName: METSName,
+			Functions:     []string{"add", "update", "create"},
+			Param:         "descriptive-metadata-type",
+			Description:   "type of descriptive metadata (EAD, MARC, MARCXML, JSON, XML)",
 		},
 	}
 }
@@ -72,8 +76,10 @@ type MetsConfig struct {
 }
 type Mets struct {
 	*MetsConfig
-	fsys   fs.FS
-	logger *logging.Logger
+	fsys                    fs.FS
+	logger                  *logging.Logger
+	descriptiveMetadata     string
+	descriptiveMetadataType string
 }
 
 func (me *Mets) GetFS() fs.FS {
@@ -89,6 +95,16 @@ func (me *Mets) IsRegistered() bool {
 }
 
 func (me *Mets) SetParams(params map[string]string) error {
+	if params != nil {
+		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "descriptive-metadata")
+		if str, ok := params[name]; ok {
+			me.descriptiveMetadata = str
+		}
+		name = fmt.Sprintf("ext-%s-%s", MetaFileName, "descriptive-metadata-type")
+		if str, ok := params[name]; ok {
+			me.descriptiveMetadataType = str
+		}
+	}
 	return nil
 }
 
@@ -208,6 +224,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	premisFiles := []*premis.File{}
 	premisEvents := []*premis.EventComplexType{}
 	structMaps := []*mets.StructMapType{}
+	mdSecs := []*mets.MdSecType{}
+	//metaFolder, _ := contentSubPath["metadata"]
+
 	internalPrefix := fmt.Sprintf("%s/content/", head)
 	structPhysical := map[string]map[string][]string{}
 	structSemantical := map[string][]string{}
@@ -238,6 +257,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 	// get ingest versions
 	for cs, metaFile := range metadata.Files {
+
 		val := struct {
 			ingestVersion string
 			uuid          string
@@ -257,6 +277,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		uuidString := internalFiledata[cs].uuid
 		var size int64
 		var creationString string
+
 		//		var fLocat = []*mets.FLocat{}
 		if ext, ok := metaFile.Extension[FilesystemName]; ok {
 			extFSL, ok := ext.(map[string][]*FileSystemLine)
@@ -271,6 +292,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 
 		}
+
 		metsFile := &mets.FileType{
 			XMLName: xml.Name{},
 			FILECORE: &mets.FILECORE{
@@ -457,14 +479,17 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			if intSemantic != "" {
 				structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
 			}
-			href := internalRelativePath + intPath
-			if strings.HasPrefix(intPath, internalPrefix) {
-				href = internalRelativePathCurrentVersion + intPath[len(internalPrefix):]
-			}
+			/*
+				href := internalRelativePath + intPath
+				if strings.HasPrefix(intPath, internalPrefix) {
+					href = internalRelativePathCurrentVersion + intPath[len(internalPrefix):]
+				}
+			*/
+			href := intPath
 			metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 				LOCATION: &mets.LOCATION{
-					LOCTYPEAttr:      "URL",
-					OTHERLOCTYPEAttr: "internal",
+					LOCTYPEAttr:      "other",
+					OTHERLOCTYPEAttr: "URL:internal",
 				},
 				SimpleLink: &mets.SimpleLink{
 					//XMLName:          xml.Name{},
@@ -484,7 +509,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				ContentLocation: &premis.ContentLocationComplexType{
 					XMLName:              xml.Name{},
 					SimpleLinkAttr:       "",
-					ContentLocationType:  premis.NewStringPlusAuthority("OCFL internal", "", "", ""),
+					ContentLocationType:  premis.NewStringPlusAuthority("internal", "", "", ""),
 					ContentLocationValue: href,
 				},
 				StorageMedium: premis.NewStringPlusAuthority("OCFL Object Root", "", "", ""),
@@ -494,13 +519,13 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			for _, extPath := range extNames {
 				metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 					LOCATION: &mets.LOCATION{
-						LOCTYPEAttr:      "URL",
-						OTHERLOCTYPEAttr: "external",
+						LOCTYPEAttr:      "other",
+						OTHERLOCTYPEAttr: "URL:external",
 					},
 					SimpleLink: &mets.SimpleLink{
 						//XMLName:          xml.Name{},
-						TypeAttr:         "simple",
-						XlinkHrefAttr:    externalRelativePath + extPath,
+						TypeAttr: "simple",
+						XlinkHrefAttr:/* externalRelativePath + */ extPath,
 						XlinkRoleAttr:    "",
 						XlinkArcroleAttr: "",
 						XlinkTitleAttr:   "",
@@ -513,10 +538,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
 					XMLName: xml.Name{},
 					ContentLocation: &premis.ContentLocationComplexType{
-						XMLName:              xml.Name{},
-						SimpleLinkAttr:       "",
-						ContentLocationType:  premis.NewStringPlusAuthority("origin", "", "", ""),
-						ContentLocationValue: externalRelativePath + extPath,
+						XMLName:             xml.Name{},
+						SimpleLinkAttr:      "",
+						ContentLocationType: premis.NewStringPlusAuthority("external", "", "", ""),
+						ContentLocationValue:/*externalRelativePath + */ extPath,
 					},
 					StorageMedium: premis.NewStringPlusAuthority("extracted OCFL", "", "", ""),
 				})
@@ -635,7 +660,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				ORDERLABELAttr: "",
 				LABELAttr:      structMapPhysicalIdString,
 			},
-			IDAttr:         "",
+			IDAttr:         "uuid-" + structMapPhysicalId.String() + "-structMap-div",
 			DMDIDAttr:      nil,
 			ADMIDAttr:      nil,
 			TYPEAttr:       "",
@@ -646,16 +671,18 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			Div:            []*mets.DivType{},
 		},
 	}
-	for ver, areaList := range structPhysical {
-		structMapPhysicalDivVer := &mets.DivType{
-			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
-				ORDERAttr:      0,
-				ORDERLABELAttr: "",
-				LABELAttr:      "Version " + ver,
-			},
-			Div: make([]*mets.DivType, 0),
-		}
+	for _, areaList := range structPhysical {
+		/*
+			structMapPhysicalDivVer := &mets.DivType{
+				XMLName: xml.Name{},
+				ORDERLABELS: &mets.ORDERLABELS{
+					ORDERAttr:      0,
+					ORDERLABELAttr: "",
+					LABELAttr:      "Version " + ver,
+				},
+				Div: make([]*mets.DivType, 0),
+			}
+		*/
 
 		for area, uuids := range areaList {
 			div := &mets.DivType{
@@ -665,7 +692,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					ORDERLABELAttr: "",
 					LABELAttr:      area,
 				},
-				IDAttr:         "",
+				IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
 				DMDIDAttr:      nil,
 				ADMIDAttr:      nil,
 				TYPEAttr:       "",
@@ -686,10 +713,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					Area:           nil,
 				})
 			}
-			structMapPhysicalDivVer.Div = append(structMapPhysicalDivVer.Div, div)
+			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
 		}
 
-		structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
+		//	structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
 	}
 	structMaps = append(structMaps, structMapPhysical)
 
@@ -705,7 +732,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				ORDERLABELAttr: "",
 				LABELAttr:      "Package Structure",
 			},
-			IDAttr:         "",
+			IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
 			DMDIDAttr:      nil,
 			ADMIDAttr:      nil,
 			TYPEAttr:       "",
@@ -724,7 +751,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				ORDERLABELAttr: "",
 				LABELAttr:      area,
 			},
-			IDAttr:         "",
+			IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
 			DMDIDAttr:      nil,
 			ADMIDAttr:      nil,
 			TYPEAttr:       "",
@@ -765,61 +792,121 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
 
-	ead := &ead3.Ead{
-		XMLName:             xml.Name{},
-		AmCommon:            nil,
-		RelatedencodingAttr: "",
-		BaseAttr:            "",
-		Control:             nil,
-		Frontmatter:         nil,
-		Archdesc: &ead3.Archdesc{
-			XMLName:             xml.Name{},
-			AmCommon:            nil,
-			AmDescBase:          nil,
-			LevelAttr:           "collection",
-			LocaltypeAttr:       "",
-			RelatedencodingAttr: "",
-			BaseAttr:            "",
-			MDescBaseDescgrp:    nil,
-			Runner:              nil,
-			Did: &ead3.Did{
-				XMLName:            xml.Name{},
-				AmCommon:           nil,
-				EncodinganalogAttr: "",
-				MDid: []*ead3.MDid{
-					{
-						XMLName:            xml.Name{},
-						Abstract:           nil,
-						Container:          nil,
-						Dao:                nil,
-						Daoset:             nil,
-						Didnote:            nil,
-						Langmaterial:       nil,
-						Materialspec:       nil,
-						Origination:        nil,
-						Physdescset:        nil,
-						Physdesc:           nil,
-						Physdescstructured: nil,
-						Physloc:            nil,
-						Repository:         nil,
-						Unitdate:           nil,
-						Unitdatestructured: nil,
-						Unitid:             nil,
-						Unittitle:          nil,
-					},
-				},
-				Head: &ead3.Head{
-					XMLName:     xml.Name{},
-					AmCommon:    nil,
-					AltheadAttr: "",
-					MMixedBasic: nil,
-				},
-			},
-			Dsc: nil,
-		},
-	}
+	if me.descriptiveMetadata != "" {
+		var filename string
 
-	_ = ead
+		parts := strings.Split(me.descriptiveMetadata, ":")
+		switch len(parts) {
+		case 1:
+			filename = parts[0]
+		case 2:
+			if path, ok := contentSubPath[parts[0]]; ok {
+				filename = filepath.ToSlash(filepath.Join(path.Path, parts[1]))
+			} else {
+				return errors.Errorf("cannot find content sub path '%s' for file '%s'", parts[0], me.descriptiveMetadata)
+			}
+		default:
+			return errors.Errorf("invalid descriptive metadata '%s'", me.descriptiveMetadata)
+		}
+		var found *ocfl.FileMetadata
+		for _, metaFile := range metadata.Files {
+			if ver, ok := metaFile.VersionName[head]; ok {
+				for _, name := range ver {
+					if name == filename {
+						found = metaFile
+						break
+					}
+				}
+				if found != nil {
+					break
+				}
+			}
+		}
+
+		if found == nil {
+			return errors.Errorf("cannot find descriptive metadata file '%s'", me.descriptiveMetadata)
+		}
+		var mimetype string
+		switch strings.ToUpper(me.descriptiveMetadataType) {
+		case "MARC":
+			mimetype = "application/marc"
+		case "MARCXML":
+			mimetype = "application/marcxml+xml"
+		case "JSON":
+			mimetype = "text/json"
+		case "XML":
+			mimetype = "text/xml"
+		default:
+			mimetype = "application/octet-stream"
+		}
+
+		if len(found.InternalName) > 0 {
+			mdSecs = append(mdSecs, &mets.MdSecType{
+				IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
+				GROUPIDAttr: "",
+				ADMIDAttr:   nil,
+				CREATEDAttr: "",
+				STATUSAttr:  "",
+				MdRef: &mets.MdRef{
+					XMLName:           xml.Name{},
+					IDAttr:            "",
+					LABELAttr:         "",
+					XPTRAttr:          "",
+					TypeAttr:          "simple",
+					XlinkHrefAttr:     filepath.ToSlash(filepath.Join(internalPrefix, found.InternalName[0])),
+					XlinkRoleAttr:     "",
+					XlinkArcroleAttr:  "",
+					XlinkTitleAttr:    "",
+					XlinkShowAttr:     "",
+					XlinkActuateAttr:  "",
+					LOCTYPEAttr:       "other",
+					OTHERLOCTYPEAttr:  "URL:internal",
+					MDTYPEAttr:        "",
+					OTHERMDTYPEAttr:   "",
+					MDTYPEVERSIONAttr: "",
+					MIMETYPEAttr:      mimetype,
+					SIZEAttr:          0,
+					CREATEDAttr:       "",
+					CHECKSUMAttr:      found.Checksums[inventory.GetDigestAlgorithm()],
+					CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
+				},
+				MdWrap: nil,
+			})
+		}
+		if len(found.VersionName[head]) > 0 {
+			mdSecs = append(mdSecs, &mets.MdSecType{
+				IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
+				GROUPIDAttr: "",
+				ADMIDAttr:   nil,
+				CREATEDAttr: "",
+				STATUSAttr:  "",
+				MdRef: &mets.MdRef{
+					XMLName:           xml.Name{},
+					IDAttr:            "",
+					LABELAttr:         "",
+					XPTRAttr:          "",
+					TypeAttr:          "simple",
+					XlinkHrefAttr:     found.VersionName[head][0],
+					XlinkRoleAttr:     "",
+					XlinkArcroleAttr:  "",
+					XlinkTitleAttr:    "",
+					XlinkShowAttr:     "",
+					XlinkActuateAttr:  "",
+					LOCTYPEAttr:       "other",
+					OTHERLOCTYPEAttr:  "URL:external",
+					MDTYPEAttr:        "",
+					OTHERMDTYPEAttr:   "",
+					MDTYPEVERSIONAttr: "",
+					MIMETYPEAttr:      "",
+					SIZEAttr:          0,
+					CREATEDAttr:       "",
+					CHECKSUMAttr:      found.Checksums[inventory.GetDigestAlgorithm()],
+					CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
+				},
+				MdWrap: nil,
+			})
+		}
+	}
 
 	m := &mets.Mets{
 		XMLNS:             "http://www.loc.gov/METS/",
@@ -880,7 +967,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					Value:    "mets.xml",
 				},
 			},
-			DmdSec: nil,
+			DmdSec: mdSecs,
 			AmdSec: []*mets.AmdSecType{
 				&mets.AmdSecType{
 					XMLName:  xml.Name{},
@@ -898,8 +985,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 							STATUSAttr:  "",
 							MdRef: &mets.MdRef{
 								XMLName:          xml.Name{},
-								LOCTYPEAttr:      "URL",
-								OTHERLOCTYPEAttr: "internal",
+								LOCTYPEAttr:      "other",
+								OTHERLOCTYPEAttr: "URL:internal",
 								TypeAttr:         "",
 								XlinkHrefAttr:    "premis.xml",
 								XlinkRoleAttr:    "",

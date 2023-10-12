@@ -8,6 +8,10 @@
     "metadata": {
       "path": "metadata",
       "description": "additional semantic metadata"
+    },
+    "documentation": {
+      "path": "documentation",
+      "description": "documentation of the archival object"
     }
   }
 }

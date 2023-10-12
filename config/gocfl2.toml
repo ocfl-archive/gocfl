@@ -59,6 +59,11 @@ Address="http://inter.net"
 [Extension.NNNN-metafile]
 Source=""
 
+[Extension.NNNN-mets]
+# --ext-NNNN-mets-descriptive-metadata
+Descriptive-Metadata="metadata:info.json"
+# --ext-NNNN-mets-descriptive-metadata-type
+Descriptive-Metadata-Type="json"
 #
 # Indexer
 #

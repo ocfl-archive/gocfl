@@ -150,6 +150,7 @@ func GetExtensionParams() []*ocfl.ExtensionExternalParam {
 
 	result = append(result, extension.GetIndexerParams()...)
 	result = append(result, extension.GetMetaFileParams()...)
+	result = append(result, extension.GetMetsParams()...)
 	result = append(result, extension.GetContentSubPathParams()...)
 
 	return result
