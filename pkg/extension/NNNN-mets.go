@@ -228,7 +228,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	//metaFolder, _ := contentSubPath["metadata"]
 
 	internalPrefix := fmt.Sprintf("%s/content/", head)
-	structPhysical := map[string]map[string][]string{}
+	structPhysical := map[string][]string{}
 	structSemantical := map[string][]string{}
 	internalFiledata := map[string]struct {
 		ingestVersion string
@@ -244,15 +244,12 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		structSemantical["Payload"] = []string{}
 	}
 	versionStrings := inventory.GetVersionStrings()
-	for _, v := range versionStrings {
-		structPhysical[v] = map[string][]string{}
-		if contentSubPath != nil {
-			for area, _ := range contentSubPath {
-				structPhysical[v][area] = []string{}
-			}
-		} else {
-			structPhysical[v]["content"] = []string{}
+	if contentSubPath != nil {
+		for area, _ := range contentSubPath {
+			structPhysical[area] = []string{}
 		}
+	} else {
+		structPhysical["content"] = []string{}
 	}
 
 	// get ingest versions
@@ -456,7 +453,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			if len(parts) <= 2 {
 				return errors.Wrapf(err, "invalid path %s", intPath)
 			}
-			intVer := parts[0]
 			if parts[1] != "content" {
 				return errors.Wrapf(err, "no content in %s", intPath)
 			}
@@ -475,7 +471,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 				}
 			}
-			structPhysical[intVer][intArea] = append(structPhysical[intVer][intArea], uuidString)
+			structPhysical[intArea] = append(structPhysical[intArea], uuidString)
 			if intSemantic != "" {
 				structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
 			}
@@ -671,7 +667,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			Div:            []*mets.DivType{},
 		},
 	}
-	for _, areaList := range structPhysical {
+	for area, fileList := range structPhysical {
 		/*
 			structMapPhysicalDivVer := &mets.DivType{
 				XMLName: xml.Name{},
@@ -684,37 +680,35 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		*/
 
-		for area, uuids := range areaList {
-			div := &mets.DivType{
-				XMLName: xml.Name{},
-				ORDERLABELS: &mets.ORDERLABELS{
-					ORDERAttr:      0,
-					ORDERLABELAttr: "",
-					LABELAttr:      area,
-				},
-				IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
-				DMDIDAttr:      nil,
-				ADMIDAttr:      nil,
-				TYPEAttr:       "",
-				CONTENTIDSAttr: nil,
-				XlinkLabelAttr: nil,
-				Mptr:           nil,
-				Fptr:           make([]*mets.Fptr, 0),
-				Div:            nil,
-			}
-			for _, u := range uuids {
-				div.Fptr = append(div.Fptr, &mets.Fptr{
-					XMLName:        xml.Name{},
-					IDAttr:         "",
-					FILEIDAttr:     u,
-					CONTENTIDSAttr: nil,
-					Par:            nil,
-					Seq:            nil,
-					Area:           nil,
-				})
-			}
-			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
+		div := &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				ORDERAttr:      0,
+				ORDERLABELAttr: "",
+				LABELAttr:      area,
+			},
+			IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
+			DMDIDAttr:      nil,
+			ADMIDAttr:      nil,
+			TYPEAttr:       "",
+			CONTENTIDSAttr: nil,
+			XlinkLabelAttr: nil,
+			Mptr:           nil,
+			Fptr:           make([]*mets.Fptr, 0),
+			Div:            nil,
 		}
+		for _, u := range fileList {
+			div.Fptr = append(div.Fptr, &mets.Fptr{
+				XMLName:        xml.Name{},
+				IDAttr:         "",
+				FILEIDAttr:     u,
+				CONTENTIDSAttr: nil,
+				Par:            nil,
+				Seq:            nil,
+				Area:           nil,
+			})
+		}
+		structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
 
 		//	structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
 	}
