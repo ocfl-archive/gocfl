@@ -34,13 +34,7 @@ func GetMetsParams() []*ocfl.ExtensionExternalParam {
 			ExtensionName: METSName,
 			Functions:     []string{"add", "update", "create"},
 			Param:         "descriptive-metadata",
-			Description:   "reference to archived descriptive metadata (i.e. metadata:ead.xml)",
-		},
-		{
-			ExtensionName: METSName,
-			Functions:     []string{"add", "update", "create"},
-			Param:         "descriptive-metadata-type",
-			Description:   "type of descriptive metadata (EAD, MARC, MARCXML, JSON, XML)",
+			Description:   "reference to archived descriptive metadata (i.e. ead:metadata:ead.xml)",
 		},
 	}
 }
@@ -96,13 +90,9 @@ func (me *Mets) IsRegistered() bool {
 
 func (me *Mets) SetParams(params map[string]string) error {
 	if params != nil {
-		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "descriptive-metadata")
+		name := fmt.Sprintf("ext-%s-%s", METSName, "descriptive-metadata")
 		if str, ok := params[name]; ok {
 			me.descriptiveMetadata = str
-		}
-		name = fmt.Sprintf("ext-%s-%s", MetaFileName, "descriptive-metadata-type")
-		if str, ok := params[name]; ok {
-			me.descriptiveMetadataType = str
 		}
 	}
 	return nil
@@ -339,12 +329,14 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			LinkingRightsStatementIdentifier: nil,
 			ObjectComplexType:                nil,
 		}
+		var mimeType string
 		if ext, ok := metaFile.Extension[IndexerName]; ok {
 			extIndexer, ok := ext.(*indexer.ResultV2)
 			if !ok {
 				return errors.Wrapf(err, "invalid type: %v", ext)
 			}
-			metsFile.FILECORE.MIMETYPEAttr = extIndexer.Mimetype
+			mimeType = extIndexer.Mimetype
+			metsFile.FILECORE.MIMETYPEAttr = mimeType
 			objectCharacter := &premis.ObjectCharacteristicsComplexType{
 				XMLName:          xml.Name{},
 				CompositionLevel: nil,
@@ -471,6 +463,21 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 				}
 			}
+			if intArea == "metadata" {
+				mdSecs = append(mdSecs, newMDSec(
+					fmt.Sprintf("dmdSec-int-%s", uuidString),
+					"area-metadata",
+					intPath,
+					"URL:internal",
+					mimeType,
+					0,
+					"",
+					cs,
+					string(inventory.GetDigestAlgorithm()),
+				))
+				continue
+			}
+
 			structPhysical[intArea] = append(structPhysical[intArea], uuidString)
 			if intSemantic != "" {
 				structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
@@ -513,6 +520,34 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		if extNames, ok := metaFile.VersionName[head]; ok {
 			for _, extPath := range extNames {
+				parts := strings.Split(extPath, "/")
+				var extArea = "content"
+				if len(parts) > 1 {
+					if contentSubPath != nil {
+						extArea = parts[0]
+						for area, cse := range contentSubPath {
+							if cse.Path == extArea {
+								extArea = area
+								break
+							}
+						}
+					}
+				}
+				if extArea == "metadata" {
+					mdSecs = append(mdSecs, newMDSec(
+						fmt.Sprintf("dmdSec-ext-%s", uuidString),
+						"area-metadata",
+						extPath,
+						"URL:external",
+						mimeType,
+						0,
+						"",
+						cs,
+						string(inventory.GetDigestAlgorithm()),
+					))
+					continue
+				}
+
 				metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 					LOCATION: &mets.LOCATION{
 						LOCTYPEAttr:      "other",
@@ -638,7 +673,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			premisEvents = append(premisEvents, eventMigration)
 		}
 		_ = eventIngest
-		metsFiles = append(metsFiles, metsFile)
+		if len(metsFile.FLocat) > 0 {
+			metsFiles = append(metsFiles, metsFile)
+		}
 		premisFiles = append(premisFiles, premisFile)
 	}
 
@@ -708,7 +745,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				Area:           nil,
 			})
 		}
-		structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
+		if len(div.Fptr) > 0 {
+			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
+		}
 
 		//	structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
 	}
@@ -787,27 +826,43 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
 
 	if me.descriptiveMetadata != "" {
-		var filename string
+		var metaFilename string
+		var metaType string
+		var metaArea string
 
 		parts := strings.Split(me.descriptiveMetadata, ":")
 		switch len(parts) {
-		case 1:
-			filename = parts[0]
 		case 2:
-			if path, ok := contentSubPath[parts[0]]; ok {
-				filename = filepath.ToSlash(filepath.Join(path.Path, parts[1]))
+			metaType = parts[0]
+			metaArea = "content"
+			if len(contentSubPath) == 0 {
+				metaFilename = filepath.ToSlash(filepath.Clean(parts[1]))
 			} else {
-				return errors.Errorf("cannot find content sub path '%s' for file '%s'", parts[0], me.descriptiveMetadata)
+				if path, ok := contentSubPath[metaArea]; ok {
+					metaFilename = filepath.ToSlash(filepath.Join(path.Path, parts[1]))
+				} else {
+					return errors.Errorf("cannot find content sub path '%s' for file '%s'", metaArea, me.descriptiveMetadata)
+				}
+			}
+		case 3:
+			metaType = parts[0]
+			metaArea = parts[1]
+			if path, ok := contentSubPath[metaArea]; ok {
+				metaFilename = filepath.ToSlash(filepath.Join(path.Path, parts[2]))
+			} else {
+				return errors.Errorf("cannot find content sub path '%s' for file '%s'", metaArea, me.descriptiveMetadata)
 			}
 		default:
 			return errors.Errorf("invalid descriptive metadata '%s'", me.descriptiveMetadata)
 		}
 		var found *ocfl.FileMetadata
-		for _, metaFile := range metadata.Files {
+		var foundChecksum string
+		for checksum, metaFile := range metadata.Files {
 			if ver, ok := metaFile.VersionName[head]; ok {
 				for _, name := range ver {
-					if name == filename {
+					if name == metaFilename {
 						found = metaFile
+						foundChecksum = checksum
 						break
 					}
 				}
@@ -821,7 +876,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			return errors.Errorf("cannot find descriptive metadata file '%s'", me.descriptiveMetadata)
 		}
 		var mimetype string
-		switch strings.ToUpper(me.descriptiveMetadataType) {
+		switch strings.ToUpper(metaType) {
 		case "MARC":
 			mimetype = "application/marc"
 		case "MARCXML":
@@ -834,71 +889,110 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			mimetype = "application/octet-stream"
 		}
 
+		// remove any existing mdSecs with the same checksum
+		// todo: do it for internal and external name separately
+		mdSecs2 := mdSecs
+		mdSecs = make([]*mets.MdSecType, 0, len(mdSecs2))
+		for i := 0; i < len(mdSecs2); i++ {
+			if mdSecs2[i].MdRef.CHECKSUMAttr != foundChecksum {
+				mdSecs = append(mdSecs, mdSecs2[i])
+			}
+		}
+		mdSecs2 = nil
+
 		if len(found.InternalName) > 0 {
-			mdSecs = append(mdSecs, &mets.MdSecType{
-				IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
-				GROUPIDAttr: "",
-				ADMIDAttr:   nil,
-				CREATEDAttr: "",
-				STATUSAttr:  "",
-				MdRef: &mets.MdRef{
-					XMLName:           xml.Name{},
-					IDAttr:            "",
-					LABELAttr:         "",
-					XPTRAttr:          "",
-					TypeAttr:          "simple",
-					XlinkHrefAttr:     filepath.ToSlash(filepath.Join(internalPrefix, found.InternalName[0])),
-					XlinkRoleAttr:     "",
-					XlinkArcroleAttr:  "",
-					XlinkTitleAttr:    "",
-					XlinkShowAttr:     "",
-					XlinkActuateAttr:  "",
-					LOCTYPEAttr:       "other",
-					OTHERLOCTYPEAttr:  "URL:internal",
-					MDTYPEAttr:        "",
-					OTHERMDTYPEAttr:   "",
-					MDTYPEVERSIONAttr: "",
-					MIMETYPEAttr:      mimetype,
-					SIZEAttr:          0,
-					CREATEDAttr:       "",
-					CHECKSUMAttr:      found.Checksums[inventory.GetDigestAlgorithm()],
-					CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
-				},
-				MdWrap: nil,
-			})
+			mdSecs = append(mdSecs, newMDSec(
+				fmt.Sprintf("dmdSec-int-%s-%s", object.GetID(), head),
+				"primary-metadata",
+				filepath.ToSlash(filepath.Join(internalPrefix, found.InternalName[0])),
+				"URL:internal",
+				mimetype,
+				0,
+				"",
+				foundChecksum,
+				string(inventory.GetDigestAlgorithm()),
+			))
+			/*
+				mdSecs = append(mdSecs, &mets.MdSecType{
+					IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
+					GROUPIDAttr: "primary-metadata",
+					ADMIDAttr:   nil,
+					CREATEDAttr: "",
+					STATUSAttr:  "",
+					MdRef: &mets.MdRef{
+						XMLName:           xml.Name{},
+						IDAttr:            "",
+						LABELAttr:         "",
+						XPTRAttr:          "",
+						TypeAttr:          "simple",
+						XlinkHrefAttr:     filepath.ToSlash(filepath.Join(internalPrefix, found.InternalName[0])),
+						XlinkRoleAttr:     "",
+						XlinkArcroleAttr:  "",
+						XlinkTitleAttr:    "",
+						XlinkShowAttr:     "",
+						XlinkActuateAttr:  "",
+						LOCTYPEAttr:       "other",
+						OTHERLOCTYPEAttr:  "URL:internal",
+						MDTYPEAttr:        "",
+						OTHERMDTYPEAttr:   "",
+						MDTYPEVERSIONAttr: "",
+						MIMETYPEAttr:      mimetype,
+						SIZEAttr:          0,
+						CREATEDAttr:       "",
+						CHECKSUMAttr:      foundChecksum,
+						CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
+					},
+					MdWrap: nil,
+				})
+
+			*/
 		}
 		if len(found.VersionName[head]) > 0 {
-			mdSecs = append(mdSecs, &mets.MdSecType{
-				IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
-				GROUPIDAttr: "",
-				ADMIDAttr:   nil,
-				CREATEDAttr: "",
-				STATUSAttr:  "",
-				MdRef: &mets.MdRef{
-					XMLName:           xml.Name{},
-					IDAttr:            "",
-					LABELAttr:         "",
-					XPTRAttr:          "",
-					TypeAttr:          "simple",
-					XlinkHrefAttr:     found.VersionName[head][0],
-					XlinkRoleAttr:     "",
-					XlinkArcroleAttr:  "",
-					XlinkTitleAttr:    "",
-					XlinkShowAttr:     "",
-					XlinkActuateAttr:  "",
-					LOCTYPEAttr:       "other",
-					OTHERLOCTYPEAttr:  "URL:external",
-					MDTYPEAttr:        "",
-					OTHERMDTYPEAttr:   "",
-					MDTYPEVERSIONAttr: "",
-					MIMETYPEAttr:      "",
-					SIZEAttr:          0,
-					CREATEDAttr:       "",
-					CHECKSUMAttr:      found.Checksums[inventory.GetDigestAlgorithm()],
-					CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
-				},
-				MdWrap: nil,
-			})
+			mdSecs = append(mdSecs, newMDSec(
+				fmt.Sprintf("dmdSec-ext-%s-%s", object.GetID(), head),
+				"primary-metadata",
+				found.VersionName[head][0],
+				"URL:external",
+				mimetype,
+				0,
+				"",
+				foundChecksum,
+				string(inventory.GetDigestAlgorithm()),
+			))
+			/*
+				mdSecs = append(mdSecs, &mets.MdSecType{
+					IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
+					GROUPIDAttr: "primary-metadata",
+					ADMIDAttr:   nil,
+					CREATEDAttr: "",
+					STATUSAttr:  "",
+					MdRef: &mets.MdRef{
+						XMLName:           xml.Name{},
+						IDAttr:            "",
+						LABELAttr:         "",
+						XPTRAttr:          "",
+						TypeAttr:          "simple",
+						XlinkHrefAttr:     found.VersionName[head][0],
+						XlinkRoleAttr:     "",
+						XlinkArcroleAttr:  "",
+						XlinkTitleAttr:    "",
+						XlinkShowAttr:     "",
+						XlinkActuateAttr:  "",
+						LOCTYPEAttr:       "other",
+						OTHERLOCTYPEAttr:  "URL:external",
+						MDTYPEAttr:        "",
+						OTHERMDTYPEAttr:   "",
+						MDTYPEVERSIONAttr: "",
+						MIMETYPEAttr:      mimetype,
+						SIZEAttr:          0,
+						CREATEDAttr:       "",
+						CHECKSUMAttr:      foundChecksum,
+						CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
+					},
+					MdWrap: nil,
+				})
+
+			*/
 		}
 	}
 
@@ -970,36 +1064,50 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					RightsMD: nil,
 					SourceMD: nil,
 					DigiprovMD: []*mets.MdSecType{
-						&mets.MdSecType{
-							//XMLName:     xml.Name{},
-							IDAttr:      "uuid-" + uuid.NewString(),
-							GROUPIDAttr: "",
-							ADMIDAttr:   nil,
-							CREATEDAttr: "",
-							STATUSAttr:  "",
-							MdRef: &mets.MdRef{
-								XMLName:          xml.Name{},
-								LOCTYPEAttr:      "other",
-								OTHERLOCTYPEAttr: "URL:internal",
-								TypeAttr:         "",
-								XlinkHrefAttr:    "premis.xml",
-								XlinkRoleAttr:    "",
-								XlinkArcroleAttr: "",
-								XlinkTitleAttr:   "",
-								XlinkShowAttr:    "",
-								XlinkActuateAttr: "",
-								MDTYPEAttr:       "PREMIS",
-								IDAttr:           "",
-								LABELAttr:        "",
-								XPTRAttr:         "",
-								MIMETYPEAttr:     "application/xml",
-								SIZEAttr:         int64(len(premisBytes)),
-								CREATEDAttr:      time.Now().Format("2006-01-02T15:04:05"),
-								CHECKSUMAttr:     premisChecksum,
-								CHECKSUMTYPEAttr: "SHA-512",
+						newMDSec(
+							"uuid-"+uuid.NewString(),
+							"",
+							"premis.xml",
+							"URL:internal",
+							"application/xml",
+							int64(len(premisBytes)),
+							"PREMIS",
+							premisChecksum,
+							"SHA-512",
+						),
+						/*
+							&mets.MdSecType{
+								//XMLName:     xml.Name{},
+								IDAttr:      "uuid-" + uuid.NewString(),
+								GROUPIDAttr: "",
+								ADMIDAttr:   nil,
+								CREATEDAttr: "",
+								STATUSAttr:  "",
+								MdRef: &mets.MdRef{
+									XMLName:          xml.Name{},
+									LOCTYPEAttr:      "other",
+									OTHERLOCTYPEAttr: "URL:internal",
+									TypeAttr:         "",
+									XlinkHrefAttr:    "premis.xml",
+									XlinkRoleAttr:    "",
+									XlinkArcroleAttr: "",
+									XlinkTitleAttr:   "",
+									XlinkShowAttr:    "",
+									XlinkActuateAttr: "",
+									MDTYPEAttr:       "PREMIS",
+									IDAttr:           "",
+									LABELAttr:        "",
+									XPTRAttr:         "",
+									MIMETYPEAttr:     "application/xml",
+									SIZEAttr:         int64(len(premisBytes)),
+									CREATEDAttr:      time.Now().Format("2006-01-02T15:04:05"),
+									CHECKSUMAttr:     premisChecksum,
+									CHECKSUMTYPEAttr: "SHA-512",
+								},
+
+								MdWrap: nil,
 							},
-							MdWrap: nil,
-						},
+						*/
 					},
 				},
 			},
@@ -1051,6 +1159,49 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	return nil
+}
+
+func newMDSec(
+	id string,
+	groupid string,
+	href string,
+	otherloctype string,
+	mimetype string,
+	size int64,
+	mdType string,
+	checksum, checksumType string,
+) *mets.MdSecType {
+	return &mets.MdSecType{
+		IDAttr:      id,
+		GROUPIDAttr: groupid,
+		ADMIDAttr:   nil,
+		CREATEDAttr: "",
+		STATUSAttr:  "",
+		MdRef: &mets.MdRef{
+			XMLName:           xml.Name{},
+			IDAttr:            "",
+			LABELAttr:         "",
+			XPTRAttr:          "",
+			TypeAttr:          "simple",
+			XlinkHrefAttr:     href,
+			XlinkRoleAttr:     "",
+			XlinkArcroleAttr:  "",
+			XlinkTitleAttr:    "",
+			XlinkShowAttr:     "",
+			XlinkActuateAttr:  "",
+			LOCTYPEAttr:       "other",
+			OTHERLOCTYPEAttr:  otherloctype,
+			MDTYPEAttr:        mdType,
+			OTHERMDTYPEAttr:   "",
+			MDTYPEVERSIONAttr: "",
+			MIMETYPEAttr:      mimetype,
+			SIZEAttr:          size,
+			CREATEDAttr:       "",
+			CHECKSUMAttr:      checksum,
+			CHECKSUMTYPEAttr:  checksumType,
+		},
+		MdWrap: nil,
+	}
 }
 
 // check interface satisfaction

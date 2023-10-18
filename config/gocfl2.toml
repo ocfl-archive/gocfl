@@ -61,9 +61,7 @@ Source=""
 
 [Extension.NNNN-mets]
 # --ext-NNNN-mets-descriptive-metadata
-Descriptive-Metadata="metadata:info.json"
-# --ext-NNNN-mets-descriptive-metadata-type
-Descriptive-Metadata-Type="json"
+descriptive-metadata="json:metadata:info.json"
 #
 # Indexer
 #
