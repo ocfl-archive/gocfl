@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/gocfl/v2/data/specs"
 	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
 	"github.com/je4/gocfl/v2/pkg/dilcis/premis"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
@@ -45,7 +46,14 @@ func NewMetsFS(fsys fs.FS, logger *logging.Logger) (*Mets, error) {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
 
-	var config = &MetsConfig{}
+	var config = &MetsConfig{
+		ExtensionConfig:            &ocfl.ExtensionConfig{ExtensionName: METSName},
+		StorageType:                "area",
+		StorageName:                "metadata",
+		PrimaryDescriptiveMetadata: "metadata:info.json",
+		MetsFile:                   "mets.xml",
+		PremisFile:                 "premis.xml",
+	}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
@@ -65,15 +73,18 @@ func NewMets(config *MetsConfig, logger *logging.Logger) (*Mets, error) {
 
 type MetsConfig struct {
 	*ocfl.ExtensionConfig
-	StorageType string `json:"storageType"`
-	StorageName string `json:"storageName"`
+	StorageType                string `json:"storageType"`
+	StorageName                string `json:"storageName"`
+	PrimaryDescriptiveMetadata string `json:"primaryDescriptiveMetadata,omitempty"`
+	MetsFile                   string `json:"metsFile,omitempty"`
+	PremisFile                 string `json:"premisFile,omitempty"`
 }
 type Mets struct {
 	*MetsConfig
-	fsys                    fs.FS
-	logger                  *logging.Logger
-	descriptiveMetadata     string
-	descriptiveMetadataType string
+	fsys   fs.FS
+	logger *logging.Logger
+	//	descriptiveMetadata     string
+	//	descriptiveMetadataType string
 }
 
 func (me *Mets) GetFS() fs.FS {
@@ -92,7 +103,7 @@ func (me *Mets) SetParams(params map[string]string) error {
 	if params != nil {
 		name := fmt.Sprintf("ext-%s-%s", METSName, "descriptive-metadata")
 		if str, ok := params[name]; ok {
-			me.descriptiveMetadata = str
+			me.PrimaryDescriptiveMetadata = str
 		}
 	}
 	return nil
@@ -127,6 +138,27 @@ func (me *Mets) UpdateObjectBefore(object ocfl.Object) error {
 }
 
 var regexpIntPath = regexp.MustCompile(`´(v[0-9]+)/content/(.+)/.+`)
+
+func checksumTypeToMets(t string) string {
+	// Adler-32 CRC32 HAVAL MD5 MNP SHA-1 SHA-256 SHA-384 SHA-512 TIGER WHIRLPOOL
+	t = strings.ToUpper(t)
+	switch t {
+	case "SHA512":
+		return "SHA-512"
+	case "SHA384":
+		return "SHA-384"
+	case "SHA256":
+		return "SHA-256"
+	case "SHA1":
+		return "SHA-1"
+	case "ADLER32":
+		return "ADLER-32"
+	case "CRC32", "MD5", "MNP", "TIGER", "WHIRLPOOL":
+		return t
+	default:
+		return ""
+	}
+}
 
 func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	inventory := object.GetInventory()
@@ -163,8 +195,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
 	switch strings.ToLower(me.StorageType) {
 	case "area":
-		metsName = "mets.xml"
-		premisName = "premis.xml"
+		metsName = me.MetsFile
+		premisName = me.PremisFile
 		area = me.StorageName
 		names, err = object.BuildNames([]string{metsName}, area)
 		if err != nil {
@@ -175,16 +207,16 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
-		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "mets.xml")), "/")
-		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, "premis.xml")), "/")
+		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.MetsFile)), "/")
+		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.PremisFile)), "/")
 		area = ""
 		names, err = object.BuildNames([]string{metsName}, area)
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", metsName)
 		}
 	case "extension":
-		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("mets-%s.xml", object.GetVersion()))), "/")
-		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf("premis-%s.xml", object.GetVersion()))), "/")
+		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
+		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
 		names = &ocfl.NamesStruct{
 			ExternalPaths: []string{},
 			InternalPath:  metsName,
@@ -491,7 +523,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			href := intPath
 			metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 				LOCATION: &mets.LOCATION{
-					LOCTYPEAttr:      "other",
+					LOCTYPEAttr:      "OTHER",
 					OTHERLOCTYPEAttr: "URL:internal",
 				},
 				SimpleLink: &mets.SimpleLink{
@@ -550,7 +582,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 				metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 					LOCATION: &mets.LOCATION{
-						LOCTYPEAttr:      "other",
+						LOCTYPEAttr:      "OTHER",
 						OTHERLOCTYPEAttr: "URL:external",
 					},
 					SimpleLink: &mets.SimpleLink{
@@ -810,12 +842,16 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	structMaps = append(structMaps, structMapSemantical)
 
 	premisStruct := &premis.PremisComplexType{
-		XMLName:     xml.Name{},
-		VersionAttr: "",
-		Object:      premisFiles,
-		Event:       premisEvents,
-		Agent:       []*premis.AgentComplexType{},
-		Rights:      []*premis.RightsComplexType{},
+		XMLName:           xml.Name{},
+		XMLNS:             "http://www.loc.gov/premis/v3",
+		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
+		XMLNSXSI:          "http://www.w3.org/2001/XMLSchema-instance",
+		XSISchemaLocation: "http://www.loc.gov/premis/v3\nschemas/premis.xsd\nhttp://www.w3.org/1999/xlink\nschemas/xlink.xsd",
+		VersionAttr:       "3.0",
+		Object:            premisFiles,
+		Event:             premisEvents,
+		Agent:             []*premis.AgentComplexType{},
+		Rights:            []*premis.RightsComplexType{},
 	}
 
 	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
@@ -825,12 +861,12 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
 
-	if me.descriptiveMetadata != "" {
+	if me.PrimaryDescriptiveMetadata != "" {
 		var metaFilename string
 		var metaType string
 		var metaArea string
 
-		parts := strings.Split(me.descriptiveMetadata, ":")
+		parts := strings.Split(me.PrimaryDescriptiveMetadata, ":")
 		switch len(parts) {
 		case 2:
 			metaType = parts[0]
@@ -841,7 +877,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				if path, ok := contentSubPath[metaArea]; ok {
 					metaFilename = filepath.ToSlash(filepath.Join(path.Path, parts[1]))
 				} else {
-					return errors.Errorf("cannot find content sub path '%s' for file '%s'", metaArea, me.descriptiveMetadata)
+					return errors.Errorf("cannot find content sub path '%s' for file '%s'", metaArea, me.PrimaryDescriptiveMetadata)
 				}
 			}
 		case 3:
@@ -850,10 +886,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			if path, ok := contentSubPath[metaArea]; ok {
 				metaFilename = filepath.ToSlash(filepath.Join(path.Path, parts[2]))
 			} else {
-				return errors.Errorf("cannot find content sub path '%s' for file '%s'", metaArea, me.descriptiveMetadata)
+				return errors.Errorf("cannot find content sub path '%s' for file '%s'", metaArea, me.PrimaryDescriptiveMetadata)
 			}
 		default:
-			return errors.Errorf("invalid descriptive metadata '%s'", me.descriptiveMetadata)
+			return errors.Errorf("invalid descriptive metadata '%s'", me.PrimaryDescriptiveMetadata)
 		}
 		var found *ocfl.FileMetadata
 		var foundChecksum string
@@ -873,7 +909,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 
 		if found == nil {
-			return errors.Errorf("cannot find descriptive metadata file '%s'", me.descriptiveMetadata)
+			return errors.Errorf("cannot find descriptive metadata file '%s'", me.PrimaryDescriptiveMetadata)
 		}
 		var mimetype string
 		switch strings.ToUpper(metaType) {
@@ -912,40 +948,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				foundChecksum,
 				string(inventory.GetDigestAlgorithm()),
 			))
-			/*
-				mdSecs = append(mdSecs, &mets.MdSecType{
-					IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
-					GROUPIDAttr: "primary-metadata",
-					ADMIDAttr:   nil,
-					CREATEDAttr: "",
-					STATUSAttr:  "",
-					MdRef: &mets.MdRef{
-						XMLName:           xml.Name{},
-						IDAttr:            "",
-						LABELAttr:         "",
-						XPTRAttr:          "",
-						TypeAttr:          "simple",
-						XlinkHrefAttr:     filepath.ToSlash(filepath.Join(internalPrefix, found.InternalName[0])),
-						XlinkRoleAttr:     "",
-						XlinkArcroleAttr:  "",
-						XlinkTitleAttr:    "",
-						XlinkShowAttr:     "",
-						XlinkActuateAttr:  "",
-						LOCTYPEAttr:       "other",
-						OTHERLOCTYPEAttr:  "URL:internal",
-						MDTYPEAttr:        "",
-						OTHERMDTYPEAttr:   "",
-						MDTYPEVERSIONAttr: "",
-						MIMETYPEAttr:      mimetype,
-						SIZEAttr:          0,
-						CREATEDAttr:       "",
-						CHECKSUMAttr:      foundChecksum,
-						CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
-					},
-					MdWrap: nil,
-				})
-
-			*/
 		}
 		if len(found.VersionName[head]) > 0 {
 			mdSecs = append(mdSecs, newMDSec(
@@ -959,40 +961,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				foundChecksum,
 				string(inventory.GetDigestAlgorithm()),
 			))
-			/*
-				mdSecs = append(mdSecs, &mets.MdSecType{
-					IDAttr:      fmt.Sprintf("dmdSec-%s-%s", object.GetID(), head),
-					GROUPIDAttr: "primary-metadata",
-					ADMIDAttr:   nil,
-					CREATEDAttr: "",
-					STATUSAttr:  "",
-					MdRef: &mets.MdRef{
-						XMLName:           xml.Name{},
-						IDAttr:            "",
-						LABELAttr:         "",
-						XPTRAttr:          "",
-						TypeAttr:          "simple",
-						XlinkHrefAttr:     found.VersionName[head][0],
-						XlinkRoleAttr:     "",
-						XlinkArcroleAttr:  "",
-						XlinkTitleAttr:    "",
-						XlinkShowAttr:     "",
-						XlinkActuateAttr:  "",
-						LOCTYPEAttr:       "other",
-						OTHERLOCTYPEAttr:  "URL:external",
-						MDTYPEAttr:        "",
-						OTHERMDTYPEAttr:   "",
-						MDTYPEVERSIONAttr: "",
-						MIMETYPEAttr:      mimetype,
-						SIZEAttr:          0,
-						CREATEDAttr:       "",
-						CHECKSUMAttr:      foundChecksum,
-						CHECKSUMTYPEAttr:  string(inventory.GetDigestAlgorithm()),
-					},
-					MdWrap: nil,
-				})
-
-			*/
 		}
 	}
 
@@ -1000,7 +968,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		XMLNS:             "http://www.loc.gov/METS/",
 		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
 		XMLNSXSI:          "http://www.w3.org/2001/XMLSchema-instance",
-		XSISchemaLocation: "http://www.loc.gov/METS/\nhttps://www.loc.gov/standards/mets/mets.xsd\nhttp://www.w3.org/1999/xlink\nhttps://www.w3.org/XML/2008/06/xlink.xsd",
+		XSISchemaLocation: "http://www.loc.gov/METS/\nschemas/mets.xsd\nhttp://www.w3.org/1999/xlink\nschemas/xlink.xsd",
 		MetsType: &mets.MetsType{
 			XMLName:     xml.Name{},
 			IDAttr:      "",
@@ -1067,7 +1035,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						newMDSec(
 							"uuid-"+uuid.NewString(),
 							"",
-							"premis.xml",
+							me.PremisFile,
 							"URL:internal",
 							"application/xml",
 							int64(len(premisBytes)),
@@ -1075,39 +1043,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 							premisChecksum,
 							"SHA-512",
 						),
-						/*
-							&mets.MdSecType{
-								//XMLName:     xml.Name{},
-								IDAttr:      "uuid-" + uuid.NewString(),
-								GROUPIDAttr: "",
-								ADMIDAttr:   nil,
-								CREATEDAttr: "",
-								STATUSAttr:  "",
-								MdRef: &mets.MdRef{
-									XMLName:          xml.Name{},
-									LOCTYPEAttr:      "other",
-									OTHERLOCTYPEAttr: "URL:internal",
-									TypeAttr:         "",
-									XlinkHrefAttr:    "premis.xml",
-									XlinkRoleAttr:    "",
-									XlinkArcroleAttr: "",
-									XlinkTitleAttr:   "",
-									XlinkShowAttr:    "",
-									XlinkActuateAttr: "",
-									MDTYPEAttr:       "PREMIS",
-									IDAttr:           "",
-									LABELAttr:        "",
-									XPTRAttr:         "",
-									MIMETYPEAttr:     "application/xml",
-									SIZEAttr:         int64(len(premisBytes)),
-									CREATEDAttr:      time.Now().Format("2006-01-02T15:04:05"),
-									CHECKSUMAttr:     premisChecksum,
-									CHECKSUMTYPEAttr: "SHA-512",
-								},
-
-								MdWrap: nil,
-							},
-						*/
 					},
 				},
 			},
@@ -1147,12 +1082,30 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, area, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", "schemas/mets.xsd")
+		}
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", "schemas/premis.xsd")
+		}
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
+		}
 	case "extension":
 		if err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, metsName)
 		}
 		if err := writefs.WriteFile(me.fsys, premisName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, premisName)
+		}
+		if err := writefs.WriteFile(me.fsys, "schemas/mets.xsd", specs.METSXSD); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, "schemas/mets.xsd")
+		}
+		if err := writefs.WriteFile(me.fsys, "schemas/premis.xsd", specs.PremisXSD); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, "schemas/premis.xsd")
+		}
+		if err := writefs.WriteFile(me.fsys, "schemas/xlink.xsd", specs.XLinkXSD); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, "schemas/xlink.xsd")
 		}
 	default: // cannot happen here
 		return errors.Errorf("unsupported storage type '%s'", me.StorageType)
@@ -1189,7 +1142,7 @@ func newMDSec(
 			XlinkTitleAttr:    "",
 			XlinkShowAttr:     "",
 			XlinkActuateAttr:  "",
-			LOCTYPEAttr:       "other",
+			LOCTYPEAttr:       "OTHER",
 			OTHERLOCTYPEAttr:  otherloctype,
 			MDTYPEAttr:        mdType,
 			OTHERMDTYPEAttr:   "",
@@ -1198,7 +1151,7 @@ func newMDSec(
 			SIZEAttr:          size,
 			CREATEDAttr:       "",
 			CHECKSUMAttr:      checksum,
-			CHECKSUMTYPEAttr:  checksumType,
+			CHECKSUMTYPEAttr:  checksumTypeToMets(checksumType),
 		},
 		MdWrap: nil,
 	}

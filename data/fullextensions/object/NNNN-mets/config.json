@@ -1,7 +1,10 @@
 {
   "extensionName": "NNNN-mets",
   "storageType": "area",
-  "storageName": "metadata"
+  "storageName": "metadata",
+  "primaryDescriptiveMetadata": "json:metadata:info.json",
+  "metsFile": "mets.xml",
+  "premisFile": "premis.xml"
 }
 
 

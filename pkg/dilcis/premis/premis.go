@@ -23,9 +23,14 @@ type Rights *RightsComplexType
 
 // PremisComplexType ...
 type PremisComplexType struct {
-	XMLName     xml.Name `xml:"premis"`
-	VersionAttr string   `xml:"version,attr"`
-	Object      []*File  `xml:"object"`
+	XMLName           xml.Name `xml:"premis"`
+	XMLNS             string   `xml:"xmlns,attr"`
+	XMLNSXSI          string   `xml:"xmlns:xsi,attr"`
+	XSISchemaLocation string   `xml:"xsi:schemaLocation,attr"`
+	XMLXLinkNS        string   `xml:"xmlns:xlink,attr"`
+
+	VersionAttr string  `xml:"version,attr"`
+	Object      []*File `xml:"object"`
 	//Object      []*ObjectComplexType `xml:"object"`
 	Event  []*EventComplexType  `xml:"event"`
 	Agent  []*AgentComplexType  `xml:"agent"`
