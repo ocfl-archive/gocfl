@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/gosimple/slug"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/gocfl/v2/data/specs"
 	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
@@ -273,6 +274,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	} else {
 		structPhysical["content"] = []string{}
 	}
+	structPhysical["schemas"] = []string{}
 
 	// get ingest versions
 	for cs, metaFile := range metadata.Files {
@@ -315,7 +317,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		metsFile := &mets.FileType{
 			XMLName: xml.Name{},
 			FILECORE: &mets.FILECORE{
-				MIMETYPEAttr:     "",
+				MIMETYPEAttr:     "application/octet-stream",
 				SIZEAttr:         size,
 				CREATEDAttr:      creationString,
 				CHECKSUMAttr:     cs,
@@ -339,7 +341,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		premisFile := &premis.File{
 			XMLName:     xml.Name{},
-			XSIType:     "premis:file",
+			XSIType:     "file",
 			XmlIDAttr:   uuidString,
 			VersionAttr: "",
 			ObjectIdentifier: []*premis.ObjectIdentifierComplexType{
@@ -481,6 +483,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				return errors.Wrapf(err, "no content in %s", intPath)
 			}
 			var intArea = "content"
+			var isSchema bool
 			var intSemantic = "Other Payload"
 			if len(parts) > 3 {
 				if contentSubPath != nil {
@@ -490,12 +493,13 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						if cse.Path == intArea {
 							intArea = area
 							intSemantic = cse.Description
+							isSchema = parts[3] == "schemas"
 							break
 						}
 					}
 				}
 			}
-			if intArea == "metadata" {
+			if intArea == "metadata" && !isSchema {
 				mdSecs = append(mdSecs, newMDSec(
 					fmt.Sprintf("dmdSec-int-%s", uuidString),
 					"area-metadata",
@@ -510,7 +514,11 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				continue
 			}
 
-			structPhysical[intArea] = append(structPhysical[intArea], uuidString)
+			if isSchema {
+				structPhysical["schemas"] = append(structPhysical["schemas"], uuidString)
+			} else {
+				structPhysical[intArea] = append(structPhysical[intArea], uuidString)
+			}
 			if intSemantic != "" {
 				structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
 			}
@@ -554,18 +562,20 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			for _, extPath := range extNames {
 				parts := strings.Split(extPath, "/")
 				var extArea = "content"
+				var isSchema bool
 				if len(parts) > 1 {
 					if contentSubPath != nil {
 						extArea = parts[0]
 						for area, cse := range contentSubPath {
 							if cse.Path == extArea {
 								extArea = area
+								isSchema = parts[1] == "schemas"
 								break
 							}
 						}
 					}
 				}
-				if extArea == "metadata" {
+				if extArea == "metadata" && !isSchema {
 					mdSecs = append(mdSecs, newMDSec(
 						fmt.Sprintf("dmdSec-ext-%s", uuidString),
 						"area-metadata",
@@ -748,6 +758,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				Div: make([]*mets.DivType, 0),
 			}
 		*/
+		if len(fileList) == 0 {
+			continue
+		}
 
 		div := &mets.DivType{
 			XMLName: xml.Name{},
@@ -809,6 +822,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		},
 	}
 	for area, uuids := range structSemantical {
+		if len(uuids) == 0 {
+			continue
+		}
+
 		div := &mets.DivType{
 			XMLName: xml.Name{},
 			ORDERLABELS: &mets.ORDERLABELS{
@@ -938,7 +955,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 		if len(found.InternalName) > 0 {
 			mdSecs = append(mdSecs, newMDSec(
-				fmt.Sprintf("dmdSec-int-%s-%s", object.GetID(), head),
+				fmt.Sprintf("dmdSec-int-%s-%s", slug.Make(object.GetID()), head),
 				"primary-metadata",
 				filepath.ToSlash(filepath.Join(internalPrefix, found.InternalName[0])),
 				"URL:internal",
@@ -951,7 +968,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 		if len(found.VersionName[head]) > 0 {
 			mdSecs = append(mdSecs, newMDSec(
-				fmt.Sprintf("dmdSec-ext-%s-%s", object.GetID(), head),
+				fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(object.GetID()), head),
 				"primary-metadata",
 				found.VersionName[head][0],
 				"URL:external",
@@ -1048,7 +1065,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			},
 			FileSec: &mets.FileSec{
 				XMLName: xml.Name{},
-				IDAttr:  "",
+				IDAttr:  "uuid-" + uuid.NewString(),
 				FileGrp: []*mets.FileGrp{
 					&mets.FileGrp{
 						XMLName: xml.Name{},
@@ -1076,19 +1093,24 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 	switch strings.ToLower(me.StorageType) {
 	case "area", "path":
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
+
+		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
+		if err := object.AddData(metsBytes, metsName, false, area, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
 		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, area, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
+		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
+		if err := object.AddData(specs.METSXSD, "schemas/mets.xsd", true, area, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/mets.xsd")
 		}
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
+		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
+		if err := object.AddData(specs.PremisXSD, "schemas/premis.xsd", true, area, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/premis.xsd")
 		}
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
+		//if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
+		if err := object.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, area, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
 		}
 	case "extension":
@@ -1124,6 +1146,9 @@ func newMDSec(
 	mdType string,
 	checksum, checksumType string,
 ) *mets.MdSecType {
+	if mdType == "" {
+		mdType = "OTHER"
+	}
 	return &mets.MdSecType{
 		IDAttr:      id,
 		GROUPIDAttr: groupid,
