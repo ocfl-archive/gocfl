@@ -30,6 +30,7 @@ type Object interface {
 	EndArea() error
 	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
 	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
+	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) error
 	DeleteFile(virtualFilename string, digest string) error
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error

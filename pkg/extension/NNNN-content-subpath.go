@@ -1,7 +1,6 @@
 package extension
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -148,8 +147,9 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 		row++
 	}
 
-	buf := bytes.NewBuffer([]byte(readme.String()))
-	if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false, false); err != nil {
+	//buf := bytes.NewBuffer([]byte(readme.String()))
+	//if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false, false); err != nil {
+	if err := object.AddData([]byte(readme.String()), "README.md", true, "", false, false); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
 	return nil

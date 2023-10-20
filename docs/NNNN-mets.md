@@ -70,8 +70,9 @@ another aip format within the OCFL object.
 
 ## Caveat
 
-the fewer supporting extensions are used, 
-the less useful the content of the mets and premis files will be.
+Make sure, that the extensions are used in the correct order.
+(`NNNN-mets` is normally at the end of the `UpdateObjectAfter` chain)
+
 
 ## Procedure (tbd.)
 
