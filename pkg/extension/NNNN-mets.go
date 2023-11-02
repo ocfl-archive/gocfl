@@ -260,7 +260,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	premisFiles := []*premis.File{}
 	premisEvents := []*premis.EventComplexType{}
 	structMaps := []*mets.StructMapType{}
-	mdSecs := []*mets.MdSecType{}
+	dmdSecs := []*mets.MdSecType{}
 	fileGrpUUID := map[string]string{}
 	//metaFolder, _ := contentSubPath["metadata"]
 
@@ -535,7 +535,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						}
 					}
 					if intArea == "metadata" && !isSchema {
-						mdSecs = append(mdSecs, newMDSec(fmt.Sprintf("dmdSec-int-%s", uuidString), "area-metadata", intPath, "OTHER", "URL:internal", mimeType, 0, "", cs, string(inventory.GetDigestAlgorithm())))
+						dmdSecs = append(dmdSecs, newMDSec(fmt.Sprintf("dmdSec-int-%s", uuidString), "area-metadata", intPath, "OTHER", "URL:internal", mimeType, 0, "", cs, string(inventory.GetDigestAlgorithm())))
 						continue
 					}
 
@@ -602,7 +602,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				}
 				if extArea == "metadata" && !isSchema {
 					if !slices.Contains([]string{extMetsName, extPremisName}, extPath) {
-						mdSecs = append(mdSecs, newMDSec(
+						dmdSecs = append(dmdSecs, newMDSec(
 							fmt.Sprintf("dmdSec-ext-%s", uuidString),
 							"area-metadata",
 							extPath,
@@ -985,17 +985,17 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 
 		// remove any existing mdSecs with the same checksum
 		// todo: do it for internal and external name separately
-		mdSecs2 := mdSecs
-		mdSecs = make([]*mets.MdSecType, 0, len(mdSecs2))
+		mdSecs2 := dmdSecs
+		dmdSecs = make([]*mets.MdSecType, 0, len(mdSecs2))
 		for i := 0; i < len(mdSecs2); i++ {
 			if mdSecs2[i].MdRef.CHECKSUMAttr != foundChecksum {
-				mdSecs = append(mdSecs, mdSecs2[i])
+				dmdSecs = append(dmdSecs, mdSecs2[i])
 			}
 		}
 		mdSecs2 = nil
 
 		if len(found.InternalName) > 0 {
-			mdSecs = append(mdSecs, newMDSec(
+			dmdSecs = append(dmdSecs, newMDSec(
 				fmt.Sprintf("dmdSec-int-%s-%s", slug.Make(object.GetID()), head),
 				"primary-metadata",
 				found.InternalName[0],
@@ -1009,7 +1009,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			))
 		}
 		if len(found.VersionName[head]) > 0 {
-			mdSecs = append(mdSecs, newMDSec(
+			dmdSecs = append(dmdSecs, newMDSec(
 				fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(object.GetID()), head),
 				"primary-metadata",
 				found.VersionName[head][0],
@@ -1041,6 +1041,24 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				File:         files,
 			},
 		})
+	}
+
+	var amdSecs = []*mets.AmdSecType{}
+	if premisNames != nil {
+		sec := &mets.AmdSecType{
+			XMLName:  xml.Name{},
+			IDAttr:   "uuid-" + uuid.NewString(),
+			TechMD:   nil,
+			RightsMD: nil,
+			SourceMD: nil,
+			DigiprovMD: []*mets.MdSecType{
+				newMDSec("uuid-"+uuid.NewString(), "", premisNames.InternalPath, "OTHER", "URL:internal", "application/xml", int64(len(premisBytes)), "PREMIS", premisChecksum, "SHA-512"),
+			},
+		}
+		for _, ext := range premisNames.ExternalPaths {
+			sec.DigiprovMD = append(sec.DigiprovMD, newMDSec("uuid-"+uuid.NewString(), "", ext, "URL", "", "application/xml", int64(len(premisBytes)), "PREMIS", premisChecksum, "SHA-512"))
+		}
+		amdSecs = append(amdSecs, sec)
 	}
 
 	m := &mets.Mets{
@@ -1102,19 +1120,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					Value:    "mets.xml",
 				},
 			},
-			DmdSec: mdSecs,
-			AmdSec: []*mets.AmdSecType{
-				&mets.AmdSecType{
-					XMLName:  xml.Name{},
-					IDAttr:   "uuid-" + uuid.NewString(),
-					TechMD:   nil,
-					RightsMD: nil,
-					SourceMD: nil,
-					DigiprovMD: []*mets.MdSecType{
-						newMDSec("uuid-"+uuid.NewString(), "", me.PremisFile, "OTHER", "URL:internal", "application/xml", int64(len(premisBytes)), "PREMIS", premisChecksum, "SHA-512"),
-					},
-				},
-			},
+			DmdSec: dmdSecs,
+			AmdSec: amdSecs,
 			FileSec: &mets.FileSec{
 				XMLName: xml.Name{},
 				IDAttr:  "uuid-" + uuid.NewString(),
