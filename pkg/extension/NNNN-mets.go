@@ -30,6 +30,12 @@ import (
 const METSName = "NNNN-mets"
 const METSDescription = "METS/EAD3/PREMIS metadata"
 
+type metsInternalFiledata struct {
+	ingestVersion string
+	uuid          string
+	cs            string
+}
+
 func GetMetsParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
 		{
@@ -169,86 +175,68 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	head := inventory.GetHead()
-	versions := inventory.GetVersions()
-
-	v, ok := versions[head]
-	if !ok {
-		return errors.Wrapf(err, "object has no version %s", head)
-	}
 
 	var contentSubPath = map[string]ContentSubPathEntry{}
-	var extensionMap map[string]any
-	extensionMap, _ = metadata.Extension.(map[string]any)
-	if extensionMap != nil {
+	if extensionMap, _ := metadata.Extension.(map[string]any); extensionMap != nil {
 		if contentSubPathAny, ok := extensionMap[ContentSubPathName]; ok {
 			contentSubPath, _ = contentSubPathAny.(map[string]ContentSubPathEntry)
 		}
 	}
 
-	var metsName, premisName string
-	var extMetsName, extPremisName string
-	var area string
 	var metsNames, premisNames *ocfl.NamesStruct
 	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
 	switch strings.ToLower(me.StorageType) {
 	case "area":
-		metsName = me.MetsFile
-		premisName = me.PremisFile
-		area = me.StorageName
-		metsNames, err = object.BuildNames([]string{metsName}, area)
+		metsNames, err = object.BuildNames([]string{me.MetsFile}, me.StorageName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot build names for %s", metsName)
+			return errors.Wrapf(err, "cannot build names for %s", me.MetsFile)
 		}
-		premisNames, err = object.BuildNames([]string{premisName}, area)
+		premisNames, err = object.BuildNames([]string{me.PremisFile}, me.StorageName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot build names for %s", premisName)
+			return errors.Wrapf(err, "cannot build names for %s", me.PremisFile)
 		}
 	case "path":
 		path, err := object.GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
-		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.MetsFile)), "/")
-		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.PremisFile)), "/")
-		area = ""
-		metsNames, err = object.BuildNames([]string{metsName}, area)
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.MetsFile)), "/")
+		metsNames, err = object.BuildNames([]string{metsName}, "")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", metsName)
 		}
-		premisNames, err = object.BuildNames([]string{premisName}, area)
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.PremisFile)), "/")
+		premisNames, err = object.BuildNames([]string{premisName}, "")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", premisName)
 		}
 	case "extension":
-		metsName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
-		premisName = strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
 		metsNames = &ocfl.NamesStruct{
-			ExternalPaths: []string{},
+			ExternalPaths: []string{me.MetsFile},
 			InternalPath:  metsName,
 			ManifestPath:  "",
 		}
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
 		premisNames = &ocfl.NamesStruct{
-			ExternalPaths: []string{},
+			ExternalPaths: []string{me.PremisFile},
 			InternalPath:  premisName,
 			ManifestPath:  "",
 		}
 	default:
 		return errors.Errorf("unsupported storage type '%s'", me.StorageType)
 	}
-	if len(premisNames.ExternalPaths) > 0 {
-		extPremisName = premisNames.ExternalPaths[0]
+	if len(premisNames.ExternalPaths) == 0 {
+		return errors.Errorf("no external path for premis file")
 	}
-	if len(metsNames.ExternalPaths) > 1 {
-		return errors.Errorf("multiple external paths for mets file not supported - %v", metsNames.ExternalPaths)
+	if len(metsNames.ExternalPaths) == 0 {
+		return errors.Errorf("no external path for mets file")
 	}
-	if len(metsNames.ExternalPaths) == 1 {
-		extMetsName = metsNames.ExternalPaths[0]
-		parts := strings.Split(metsNames.ExternalPaths[0], "/")
-		for i := 1; i < len(parts); i++ {
-			externalRelativePath += "../"
-		}
+	parts := strings.Split(metsNames.ExternalPaths[0], "/")
+	for i := 1; i < len(parts); i++ {
+		externalRelativePath += "../"
 	}
-	parts := strings.Split(metsNames.InternalPath, "/")
+	parts = strings.Split(metsNames.InternalPath, "/")
 	for i := 1; i < len(parts)+2; i++ {
 		internalRelativePath += "../"
 	}
@@ -256,68 +244,54 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		internalRelativePathCurrentVersion += "../"
 	}
 
-	metsFiles := map[string][]*mets.FileType{}
+	metsFiles := map[string][]*mets.FileType{
+		"schemas":  []*mets.FileType{},
+		"content":  []*mets.FileType{},
+		"metadata": []*mets.FileType{},
+	}
 	premisFiles := []*premis.File{}
 	premisEvents := []*premis.EventComplexType{}
-	structMaps := []*mets.StructMapType{}
 	dmdSecs := []*mets.MdSecType{}
-	fileGrpUUID := map[string]string{}
+	fileGrpUUID := map[string]string{
+		"schemas":  uuid.NewString(),
+		"content":  uuid.NewString(),
+		"metadata": uuid.NewString(),
+	}
 	//metaFolder, _ := contentSubPath["metadata"]
 
 	//internalPrefix := fmt.Sprintf("%s/content/", head)
-	structPhysical := map[string][]string{}
-	structSemantical := map[string][]string{}
-	internalFiledata := map[string]struct {
-		ingestVersion string
-		uuid          string
-		cs            string
-	}{}
-	//	ingest := map[string]string{}
-	// file section
-	if contentSubPath != nil {
-		for cName, cse := range contentSubPath {
-			structSemantical[cse.Description] = []string{}
-			metsFiles[cName] = []*mets.FileType{}
-			fileGrpUUID[cName] = uuid.NewString()
-			if err != nil {
-				return errors.Wrap(err, "cannot create uuid")
-			}
-		}
-	} else {
-		metsFiles["content"] = []*mets.FileType{}
-		structSemantical["Payload"] = []string{}
-		fileGrpUUID["content"] = uuid.NewString()
+	structPhysical := map[string][]string{
+		"content":  []string{},
+		"schemas":  []string{},
+		"metadata": []string{},
 	}
-	metsFiles["schemas"] = []*mets.FileType{}
-	fileGrpUUID["schemas"] = uuid.NewString()
-	versionStrings := inventory.GetVersionStrings()
-	if contentSubPath != nil {
-		for area, _ := range contentSubPath {
-			structPhysical[area] = []string{}
+	/*
+		structSemantical := map[string][]string{
+			"Payload": []string{},
 		}
-	} else {
-		structPhysical["content"] = []string{}
+	*/
+	internalFiledata := map[string]metsInternalFiledata{}
+	for cName, _ := range contentSubPath {
+		//		structSemantical[cse.Description] = []string{}
+		structPhysical[cName] = []string{}
+		metsFiles[cName] = []*mets.FileType{}
+		fileGrpUUID[cName] = uuid.NewString()
 	}
-	structPhysical["schemas"] = []string{}
 
 	// get ingest versions
 	for cs, metaFile := range metadata.Files {
-
 		if extNames, ok := metaFile.VersionName[head]; ok {
 			for _, extPath := range extNames {
 
-				val := struct {
-					ingestVersion string
-					uuid          string
-					cs            string
-				}{
-					uuid: "uuid-" + uuid.New().String(),
+				val := metsInternalFiledata{
+					uuid: "uuid-" + uuid.NewString(),
 					cs:   cs,
 				}
 				stateVersions := maps.Keys(metaFile.VersionName)
-				for _, vStr := range versionStrings {
+				for _, vStr := range inventory.GetVersionStrings() {
 					if slices.Contains(stateVersions, vStr) {
 						val.ingestVersion = vStr
+						break
 					}
 				}
 				internalFiledata[extPath] = val
@@ -336,9 +310,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				if ext, ok := metaFile.Extension[FilesystemName]; ok {
 					extFSL, ok := ext.(map[string][]*FileSystemLine)
 					if !ok {
-						return errors.Wrapf(err, "invalid type: %v", ext)
+						return errors.Errorf("invalid type: %v", ext)
 					}
-					for _, ver := range versionStrings {
+					for _, ver := range inventory.GetVersionStrings() {
 						if verHead, ok := extFSL[ver]; ok {
 							if len(verHead) > 0 {
 								creationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
@@ -358,45 +332,24 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						CHECKSUMAttr:     cs,
 						CHECKSUMTYPEAttr: "SHA-512",
 					},
-					IDAttr:        uuidString,
-					SEQAttr:       0,
-					OWNERIDAttr:   "",
-					ADMIDAttr:     nil,
-					DMDIDAttr:     nil,
-					GROUPIDAttr:   "",
-					USEAttr:       "Datafile",
-					BEGINAttr:     "",
-					ENDAttr:       "",
-					BETYPEAttr:    "",
-					FLocat:        []*mets.FLocat{},
-					FContent:      nil,
-					Stream:        nil,
-					TransformFile: nil,
-					File:          nil,
+					IDAttr:  uuidString,
+					USEAttr: "Datafile",
+					FLocat:  []*mets.FLocat{},
 				}
 				premisFile := &premis.File{
-					XMLName:     xml.Name{},
-					XSIType:     "file",
-					XmlIDAttr:   uuidString,
-					VersionAttr: "",
+					XMLName:   xml.Name{},
+					XSIType:   "file",
+					XmlIDAttr: uuidString,
 					ObjectIdentifier: []*premis.ObjectIdentifierComplexType{
 						&premis.ObjectIdentifierComplexType{
 							XMLName:               xml.Name{},
-							SimpleLinkAttr:        "",
 							ObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
 							ObjectIdentifierValue: uuidString,
 						},
 					},
-					PreservationLevel:                nil,
-					SignificantProperties:            []*premis.SignificantPropertiesComplexType{},
-					ObjectCharacteristics:            []*premis.ObjectCharacteristicsComplexType{},
-					OriginalName:                     nil,
-					Storage:                          []*premis.StorageComplexType{},
-					SignatureInformation:             nil,
-					Relationship:                     nil,
-					LinkingEventIdentifier:           nil,
-					LinkingRightsStatementIdentifier: nil,
-					ObjectComplexType:                nil,
+					SignificantProperties: []*premis.SignificantPropertiesComplexType{},
+					ObjectCharacteristics: []*premis.ObjectCharacteristicsComplexType{},
+					Storage:               []*premis.StorageComplexType{},
 				}
 				var mimeType string
 				if ext, ok := metaFile.Extension[IndexerName]; ok {
@@ -404,30 +357,24 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					if !ok {
 						return errors.Wrapf(err, "invalid type: %v", ext)
 					}
-					mimeType = extIndexer.Mimetype
-					metsFile.FILECORE.MIMETYPEAttr = mimeType
+					metsFile.FILECORE.MIMETYPEAttr = extIndexer.Mimetype
 					objectCharacter := &premis.ObjectCharacteristicsComplexType{
 						XMLName:          xml.Name{},
 						CompositionLevel: nil,
 						Fixity: []*premis.FixityComplexType{
 							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+version.VERSION),
 						},
-						Size:                           0,
-						Format:                         []*premis.FormatComplexType{},
-						CreatingApplication:            nil,
-						Inhibitors:                     nil,
-						ObjectCharacteristicsExtension: nil,
+						Size:   int64(extIndexer.Size),
+						Format: []*premis.FormatComplexType{},
 					}
 					if extIndexer.Mimetype != "" {
 						objectCharacter.Format = append(objectCharacter.Format, &premis.FormatComplexType{
 							XMLName: xml.Name{},
 							FormatDesignation: &premis.FormatDesignationComplexType{
-								XMLName:       xml.Name{},
-								FormatName:    premis.NewStringPlusAuthority(extIndexer.Mimetype, "", "", ""),
-								FormatVersion: "",
+								XMLName:    xml.Name{},
+								FormatName: premis.NewStringPlusAuthority(extIndexer.Mimetype, "", "", ""),
 							},
-							FormatRegistry: nil,
-							FormatNote:     []string{"IANA MIME-type"},
+							FormatNote: []string{"IANA MIME-type"},
 						})
 					}
 					if extIndexer.Pronom != "" {
@@ -440,10 +387,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 									continue
 								}
 								fct := &premis.FormatComplexType{
-									XMLName:           xml.Name{},
-									FormatDesignation: nil,
-									FormatRegistry:    nil,
-									FormatNote:        []string{"siegfried"},
+									XMLName:    xml.Name{},
+									FormatNote: []string{"siegfried"},
 								}
 								if sfBasisAny, ok := sfMap["Basis"]; ok {
 									if sfBasisAnyList, ok := sfBasisAny.([]any); ok {
@@ -458,9 +403,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 								if designationAny, ok := sfMap["Name"]; ok {
 									if designation, ok := designationAny.(string); ok {
 										fct.FormatDesignation = &premis.FormatDesignationComplexType{
-											XMLName:       xml.Name{},
-											FormatName:    premis.NewStringPlusAuthority(designation, "", "", ""),
-											FormatVersion: "",
+											XMLName:    xml.Name{},
+											FormatName: premis.NewStringPlusAuthority(designation, "", "", ""),
 										}
 									}
 								}
@@ -468,7 +412,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 									if id, ok := idAny.(string); ok {
 										fct.FormatRegistry = &premis.FormatRegistryComplexType{
 											XMLName:            xml.Name{},
-											SimpleLinkAttr:     "",
 											FormatRegistryName: premis.NewStringPlusAuthority("PRONOM", "", "", ""),
 											FormatRegistryKey:  premis.NewStringPlusAuthority(id, "", "", ""),
 											FormatRegistryRole: premis.NewStringPlusAuthority(
@@ -519,15 +462,15 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 					var intArea = "content"
 					var isSchema bool
-					var intSemantic = "Other Payload"
+					//					var intSemantic = "Other Payload"
 					if len(parts) > 3 {
 						if contentSubPath != nil {
 							intArea = parts[2]
-							intSemantic = ""
+							// intSemantic = ""
 							for area, cse := range contentSubPath {
 								if cse.Path == intArea {
 									intArea = area
-									intSemantic = cse.Description
+									// intSemantic = cse.Description
 									isSchema = parts[3] == "schemas"
 									break
 								}
@@ -535,7 +478,19 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						}
 					}
 					if intArea == "metadata" && !isSchema {
-						dmdSecs = append(dmdSecs, newMDSec(fmt.Sprintf("dmdSec-int-%s", uuidString), "area-metadata", intPath, "OTHER", "URL:internal", mimeType, 0, "", cs, string(inventory.GetDigestAlgorithm())))
+						dmdSecs = append(dmdSecs, newMDSec(
+							fmt.Sprintf("dmdSec-int-%s", uuidString),
+							"area-metadata",
+							intPath,
+							"OTHER",
+							"URL:internal",
+							mimeType,
+							creationString,
+							size,
+							"",
+							"",
+							cs,
+							string(inventory.GetDigestAlgorithm())))
 						continue
 					}
 
@@ -544,13 +499,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					} else {
 						structPhysical[intArea] = append(structPhysical[intArea], uuidString)
 					}
-					if intSemantic != "" {
-						structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
-					}
 					/*
-						href := internalRelativePath + intPath
-						if strings.HasPrefix(intPath, internalPrefix) {
-							href = internalRelativePathCurrentVersion + intPath[len(internalPrefix):]
+						if intSemantic != "" {
+							structSemantical[intSemantic] = append(structSemantical[intSemantic], uuidString)
 						}
 					*/
 					href := intPath
@@ -561,13 +512,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						},
 						SimpleLink: &mets.SimpleLink{
 							//XMLName:          xml.Name{},
-							TypeAttr:         "simple",
-							XlinkHrefAttr:    href,
-							XlinkRoleAttr:    "",
-							XlinkArcroleAttr: "",
-							XlinkTitleAttr:   "",
-							XlinkShowAttr:    "",
-							XlinkActuateAttr: "",
+							TypeAttr:      "simple",
+							XlinkHrefAttr: href,
 						},
 						IDAttr:  "",
 						USEAttr: "",
@@ -601,7 +547,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 				}
 				if extArea == "metadata" && !isSchema {
-					if !slices.Contains([]string{extMetsName, extPremisName}, extPath) {
+					if !slices.Contains([]string{metsNames.ExternalPaths[0], premisNames.ExternalPaths[0]}, extPath) {
 						dmdSecs = append(dmdSecs, newMDSec(
 							fmt.Sprintf("dmdSec-ext-%s", uuidString),
 							"area-metadata",
@@ -609,32 +555,25 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 							"URL",
 							"",
 							mimeType,
-							0,
+							creationString,
+							size,
+							"",
 							"",
 							cs,
-							string(inventory.GetDigestAlgorithm()),
-						))
+							string(inventory.GetDigestAlgorithm())))
 					}
 					continue
 				}
 
 				metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
 					LOCATION: &mets.LOCATION{
-						LOCTYPEAttr:      "URL",
-						OTHERLOCTYPEAttr: "",
+						LOCTYPEAttr: "URL",
 					},
 					SimpleLink: &mets.SimpleLink{
 						//XMLName:          xml.Name{},
 						TypeAttr: "simple",
 						XlinkHrefAttr:/* externalRelativePath + */ extPath,
-						XlinkRoleAttr:    "",
-						XlinkArcroleAttr: "",
-						XlinkTitleAttr:   "",
-						XlinkShowAttr:    "",
-						XlinkActuateAttr: "",
 					},
-					IDAttr:  "",
-					USEAttr: "",
 				})
 				premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
 					XMLName: xml.Name{},
@@ -671,12 +610,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						EventIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
 						EventIdentifierValue: "ingest-" + cs,
 					},
-					EventType:               premis.NewStringPlusAuthority("MIGRATION", "", "", ""),
-					EventDateTime:           ingestTime.Format(time.RFC3339),
-					EventDetailInformation:  nil,
-					EventOutcomeInformation: nil,
-					LinkingAgentIdentifier:  nil,
-					LinkingObjectIdentifier: nil,
+					EventType:     premis.NewStringPlusAuthority("MIGRATION", "", "", ""),
+					EventDateTime: ingestTime.Format(time.RFC3339),
 				}
 				if migrationAny, ok := metaFile.Extension[MigrationName]; ok {
 					migration, ok := migrationAny.(*MigrationResult)
@@ -689,7 +624,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						VersionAttr: "",
 						EventIdentifier: &premis.EventIdentifierComplexType{
 							XMLName:              xml.Name{},
-							SimpleLinkAttr:       "",
 							EventIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
 							EventIdentifierValue: migration.ID,
 						},
@@ -701,8 +635,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{
 							&premis.LinkingObjectIdentifierComplexType{
 								XMLName:                      xml.Name{},
-								LinkObjectXmlIDAttr:          "",
-								SimpleLinkAttr:               "",
 								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
 								LinkingObjectIdentifierValue: uuidString,
 								LinkingObjectRole:            []*premis.StringPlusAuthority{premis.NewStringPlusAuthority("TARGET", "", "", "")},
@@ -711,9 +643,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 					if migration.Error == "" {
 						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
-							XMLName:            xml.Name{},
-							EventOutcome:       premis.NewStringPlusAuthority("success", "", "", ""),
-							EventOutcomeDetail: nil,
+							XMLName:      xml.Name{},
+							EventOutcome: premis.NewStringPlusAuthority("success", "", "", ""),
 						})
 						var sourcePath string
 						for extPath, val := range internalFiledata {
@@ -740,9 +671,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 							EventOutcome: premis.NewStringPlusAuthority("error", "", "", ""),
 							EventOutcomeDetail: []*premis.EventOutcomeDetailComplexType{
 								&premis.EventOutcomeDetailComplexType{
-									XMLName:                     xml.Name{},
-									EventOutcomeDetailNote:      migration.Error,
-									EventOutcomeDetailExtension: nil,
+									XMLName:                xml.Name{},
+									EventOutcomeDetailNote: migration.Error,
 								},
 							},
 						})
@@ -761,163 +691,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 	}
-
-	structMapPhysicalId := uuid.New()
-	structMapPhysicalIdString := "urn:uuid:" + structMapPhysicalId.String()
-	structMapPhysical := &mets.StructMapType{
-		XMLName:   xml.Name{},
-		IDAttr:    "",
-		TYPEAttr:  "physical",
-		LABELAttr: "AIP structMap",
-		Div: &mets.DivType{
-			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
-				ORDERAttr:      0,
-				ORDERLABELAttr: "",
-				LABELAttr:      structMapPhysicalIdString,
-			},
-			IDAttr:         "uuid-" + structMapPhysicalId.String() + "-structMap-div",
-			DMDIDAttr:      nil,
-			ADMIDAttr:      nil,
-			TYPEAttr:       "",
-			CONTENTIDSAttr: nil,
-			XlinkLabelAttr: nil,
-			Mptr:           nil,
-			Fptr:           nil,
-			Div:            []*mets.DivType{},
-		},
-	}
-	for area, fileList := range structPhysical {
-		/*
-			structMapPhysicalDivVer := &mets.DivType{
-				XMLName: xml.Name{},
-				ORDERLABELS: &mets.ORDERLABELS{
-					ORDERAttr:      0,
-					ORDERLABELAttr: "",
-					LABELAttr:      "Version " + ver,
-				},
-				Div: make([]*mets.DivType, 0),
-			}
-		*/
-		if len(fileList) == 0 {
-			continue
-		}
-
-		div := &mets.DivType{
-			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
-				ORDERAttr:      0,
-				ORDERLABELAttr: "",
-				LABELAttr:      area,
-			},
-			IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
-			DMDIDAttr:      nil,
-			ADMIDAttr:      nil,
-			TYPEAttr:       "",
-			CONTENTIDSAttr: nil,
-			XlinkLabelAttr: nil,
-			Mptr:           nil,
-			Fptr:           make([]*mets.Fptr, 0),
-			Div:            nil,
-		}
-		for _, u := range fileList {
-			div.Fptr = append(div.Fptr, &mets.Fptr{
-				XMLName:        xml.Name{},
-				IDAttr:         "",
-				FILEIDAttr:     u,
-				CONTENTIDSAttr: nil,
-				Par:            nil,
-				Seq:            nil,
-				Area:           nil,
-			})
-		}
-		if len(div.Fptr) > 0 {
-			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
-		}
-
-		//	structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
-	}
-	structMaps = append(structMaps, structMapPhysical)
-
-	structMapSemantical := &mets.StructMapType{
-		XMLName:   xml.Name{},
-		IDAttr:    "",
-		TYPEAttr:  "logical",
-		LABELAttr: "AIP Structure",
-		Div: &mets.DivType{
-			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
-				ORDERAttr:      0,
-				ORDERLABELAttr: "",
-				LABELAttr:      "Package Structure",
-			},
-			IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
-			DMDIDAttr:      nil,
-			ADMIDAttr:      nil,
-			TYPEAttr:       "",
-			CONTENTIDSAttr: nil,
-			XlinkLabelAttr: nil,
-			Mptr:           nil,
-			Fptr:           nil,
-			Div:            []*mets.DivType{},
-		},
-	}
-	for area, uuids := range structSemantical {
-		if len(uuids) == 0 {
-			continue
-		}
-
-		div := &mets.DivType{
-			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
-				ORDERAttr:      0,
-				ORDERLABELAttr: "",
-				LABELAttr:      area,
-			},
-			IDAttr:         "uuid-" + uuid.New().String() + "-structMap-div",
-			DMDIDAttr:      nil,
-			ADMIDAttr:      nil,
-			TYPEAttr:       "",
-			CONTENTIDSAttr: nil,
-			XlinkLabelAttr: nil,
-			Mptr:           nil,
-			Fptr:           make([]*mets.Fptr, 0),
-			Div:            nil,
-		}
-		for _, u := range uuids {
-			div.Fptr = append(div.Fptr, &mets.Fptr{
-				XMLName:        xml.Name{},
-				IDAttr:         "",
-				FILEIDAttr:     u,
-				CONTENTIDSAttr: nil,
-				Par:            nil,
-				Seq:            nil,
-				Area:           nil,
-			})
-		}
-		structMapSemantical.Div.Div = append(structMapSemantical.Div.Div, div)
-	}
-	structMaps = append(structMaps, structMapSemantical)
-
-	premisStruct := &premis.PremisComplexType{
-		XMLName:           xml.Name{},
-		XMLNS:             "http://www.loc.gov/premis/v3",
-		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
-		XMLNSXSI:          "http://www.w3.org/2001/XMLSchema-instance",
-		XSISchemaLocation: "http://www.loc.gov/premis/v3\nschemas/premis.xsd\nhttp://www.w3.org/1999/xlink\nschemas/xlink.xsd",
-		VersionAttr:       "3.0",
-		Object:            premisFiles,
-		Event:             premisEvents,
-		Agent:             []*premis.AgentComplexType{},
-		Rights:            []*premis.RightsComplexType{},
-	}
-
-	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
-	if err != nil {
-		return errors.Wrap(err, "cannot marshal PREMIS")
-	}
-
-	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
 
 	if me.PrimaryDescriptiveMetadata != "" {
 		var metaFilename string
@@ -969,19 +742,19 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if found == nil {
 			return errors.Errorf("cannot find descriptive metadata file '%s'", me.PrimaryDescriptiveMetadata)
 		}
-		var mimetype string
-		switch strings.ToUpper(metaType) {
-		case "MARC":
-			mimetype = "application/marc"
-		case "MARCXML":
-			mimetype = "application/marcxml+xml"
-		case "JSON":
-			mimetype = "text/json"
-		case "XML":
-			mimetype = "text/xml"
-		default:
-			mimetype = "application/octet-stream"
-		}
+		metaType = strings.ToUpper(metaType)
+		/*
+			switch metaType {
+			case "MARC":
+				foundMimetype = "application/marc"
+			case "MARCXML":
+				foundMimetype = "application/marcxml+xml"
+			case "JSON":
+				foundMimetype = "text/json"
+			case "XML":
+				foundMimetype = "text/xml"
+			}
+		*/
 
 		// remove any existing mdSecs with the same checksum
 		// todo: do it for internal and external name separately
@@ -990,39 +763,92 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		for i := 0; i < len(mdSecs2); i++ {
 			if mdSecs2[i].MdRef.CHECKSUMAttr != foundChecksum {
 				dmdSecs = append(dmdSecs, mdSecs2[i])
+				structPhysical["metadata"] = append(structPhysical["metadata"], mdSecs2[i].IDAttr)
 			}
 		}
 		mdSecs2 = nil
 
+		var foundCreationString string
+		var foundSize int64
+		if ext, ok := found.Extension[FilesystemName]; ok {
+			extFSL, ok := ext.(map[string][]*FileSystemLine)
+			if !ok {
+				return errors.Errorf("invalid type: %v", ext)
+			}
+			for _, ver := range inventory.GetVersionStrings() {
+				if verHead, ok := extFSL[ver]; ok {
+					if len(verHead) > 0 {
+						foundCreationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
+						foundSize = int64(verHead[0].Meta.Size)
+					}
+				}
+			}
+		}
+		var foundMimetype string = "application/octet-stream"
+
+		if ext, ok := found.Extension[IndexerName]; ok {
+			extIndexer, ok := ext.(*indexer.ResultV2)
+			if !ok {
+				return errors.Wrapf(err, "invalid type: %v", ext)
+			}
+			foundMimetype = extIndexer.Mimetype
+		}
+
 		if len(found.InternalName) > 0 {
+			id := fmt.Sprintf("dmdSec-int-%s-%s", slug.Make(object.GetID()), head)
 			dmdSecs = append(dmdSecs, newMDSec(
-				fmt.Sprintf("dmdSec-int-%s-%s", slug.Make(object.GetID()), head),
+				id,
 				"primary-metadata",
 				found.InternalName[0],
 				"OTHER",
 				"URL:internal",
-				mimetype,
-				0,
+				foundMimetype,
+				foundCreationString,
+				foundSize,
+				metaType,
 				"",
 				foundChecksum,
-				string(inventory.GetDigestAlgorithm()),
-			))
+				string(inventory.GetDigestAlgorithm())))
+			structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		}
 		if len(found.VersionName[head]) > 0 {
+			id := fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(object.GetID()), head)
 			dmdSecs = append(dmdSecs, newMDSec(
-				fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(object.GetID()), head),
+				id,
 				"primary-metadata",
 				found.VersionName[head][0],
 				"URL",
 				"",
-				mimetype,
-				0,
+				foundMimetype,
+				foundCreationString,
+				foundSize,
+				metaType,
 				"",
 				foundChecksum,
-				string(inventory.GetDigestAlgorithm()),
-			))
+				string(inventory.GetDigestAlgorithm())))
+			structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		}
 	}
+
+	premisStruct := &premis.PremisComplexType{
+		XMLName:           xml.Name{},
+		XMLNS:             "http://www.loc.gov/premis/v3",
+		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
+		XMLNSXSI:          "http://www.w3.org/2001/XMLSchema-instance",
+		XSISchemaLocation: "http://www.loc.gov/premis/v3\nschemas/premis.xsd\nhttp://www.w3.org/1999/xlink\nschemas/xlink.xsd",
+		VersionAttr:       "3.0",
+		Object:            premisFiles,
+		Event:             premisEvents,
+		Agent:             []*premis.AgentComplexType{},
+		Rights:            []*premis.RightsComplexType{},
+	}
+
+	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal PREMIS")
+	}
+
+	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
 
 	metsFileGrps := []*mets.FileGrp{}
 	for a, files := range metsFiles {
@@ -1032,34 +858,157 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		metsFileGrps = append(metsFileGrps, &mets.FileGrp{
 			XMLName: xml.Name{},
 			FileGrpType: &mets.FileGrpType{
-				XMLName:      xml.Name{},
-				IDAttr:       "uuid-" + fileGrpUUID[a],
-				VERSDATEAttr: "",
-				ADMIDAttr:    nil,
-				USEAttr:      a,
-				FileGrp:      nil,
-				File:         files,
+				XMLName: xml.Name{},
+				IDAttr:  "uuid-" + fileGrpUUID[a],
+				USEAttr: a,
+				File:    files,
 			},
 		})
 	}
 
 	var amdSecs = []*mets.AmdSecType{}
 	if premisNames != nil {
+		id := "amdSec-int-uuid-" + uuid.NewString()
 		sec := &mets.AmdSecType{
-			XMLName:  xml.Name{},
-			IDAttr:   "uuid-" + uuid.NewString(),
-			TechMD:   nil,
-			RightsMD: nil,
-			SourceMD: nil,
+			XMLName: xml.Name{},
+			IDAttr:  "uuid-" + uuid.NewString(),
 			DigiprovMD: []*mets.MdSecType{
-				newMDSec("uuid-"+uuid.NewString(), "", premisNames.InternalPath, "OTHER", "URL:internal", "application/xml", int64(len(premisBytes)), "PREMIS", premisChecksum, "SHA-512"),
+				newMDSec(
+					id,
+					"",
+					premisNames.InternalPath,
+					"OTHER",
+					"URL:internal",
+					"application/xml",
+					"",
+					int64(len(premisBytes)),
+					"PREMIS",
+					"",
+					premisChecksum,
+					"SHA-512"),
 			},
 		}
+		structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		for _, ext := range premisNames.ExternalPaths {
-			sec.DigiprovMD = append(sec.DigiprovMD, newMDSec("uuid-"+uuid.NewString(), "", ext, "URL", "", "application/xml", int64(len(premisBytes)), "PREMIS", premisChecksum, "SHA-512"))
+			id := "amdSec-ext-uuid-" + uuid.NewString()
+			sec.DigiprovMD = append(sec.DigiprovMD, newMDSec(
+				id,
+				"",
+				ext,
+				"URL",
+				"",
+				"application/xml",
+				"", int64(len(premisBytes)),
+				"PREMIS",
+				"",
+				premisChecksum,
+				"SHA-512"))
+			structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		}
 		amdSecs = append(amdSecs, sec)
 	}
+
+	versions := inventory.GetVersions()
+	v, ok := versions[head]
+	if !ok {
+		return errors.Wrapf(err, "object has no version %s", head)
+	}
+
+	structMapPhysicalId := uuid.New()
+	structMapPhysicalIdString := "urn:uuid:" + structMapPhysicalId.String()
+	structMapPhysical := &mets.StructMapType{
+		XMLName:   xml.Name{},
+		IDAttr:    "",
+		TYPEAttr:  "physical",
+		LABELAttr: "AIP structMap",
+		Div: &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				ORDERAttr:      0,
+				ORDERLABELAttr: "",
+				LABELAttr:      structMapPhysicalIdString,
+			},
+			IDAttr: "uuid-" + structMapPhysicalId.String() + "-structMap-div",
+			Div:    []*mets.DivType{},
+		},
+	}
+
+	structMaps := []*mets.StructMapType{}
+
+	for area, fileList := range structPhysical {
+		if len(fileList) == 0 {
+			continue
+		}
+
+		div := &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				LABELAttr: area,
+			},
+			IDAttr: "uuid-" + uuid.New().String() + "-structMap-div",
+			Fptr:   make([]*mets.Fptr, 0),
+		}
+		for _, u := range fileList {
+			div.Fptr = append(div.Fptr, &mets.Fptr{
+				XMLName:    xml.Name{},
+				FILEIDAttr: u,
+			})
+		}
+		if len(div.Fptr) > 0 {
+			structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, div)
+		}
+
+		//	structMapPhysical.Div.Div = append(structMapPhysical.Div.Div, structMapPhysicalDivVer)
+	}
+	structMaps = append(structMaps, structMapPhysical)
+
+	structMapSemantical := &mets.StructMapType{
+		XMLName:   xml.Name{},
+		TYPEAttr:  "logical",
+		LABELAttr: "AIP Structure",
+		Div: &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				LABELAttr: "Package Structure",
+			},
+			IDAttr: "uuid-" + uuid.New().String() + "-structMap-div",
+			Div:    []*mets.DivType{},
+		},
+	}
+
+	for area, uuids := range structPhysical {
+		if len(uuids) == 0 {
+			continue
+		}
+
+		var label = "Other Data"
+		if cse, ok := contentSubPath[area]; ok {
+			label = cse.Description
+		} else {
+			switch area {
+			case "schemas":
+				label = "Metadata Schema"
+			case "metadata":
+				label = "Metadata Files"
+			}
+		}
+		div := &mets.DivType{
+			XMLName: xml.Name{},
+			ORDERLABELS: &mets.ORDERLABELS{
+				LABELAttr: label,
+			},
+			IDAttr: "uuid-" + uuid.NewString() + "-structMap-div",
+			Fptr:   make([]*mets.Fptr, 0),
+		}
+		for _, u := range uuids {
+			div.Fptr = append(div.Fptr, &mets.Fptr{
+				XMLName:    xml.Name{},
+				FILEIDAttr: u,
+			})
+		}
+		structMapSemantical.Div.Div = append(structMapSemantical.Div.Div, div)
+	}
+	structMaps = append(structMaps, structMapSemantical)
 
 	m := &mets.Mets{
 		XMLNS:             "http://www.loc.gov/METS/",
@@ -1068,24 +1017,18 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		XSISchemaLocation: "http://www.loc.gov/METS/\nschemas/mets.xsd\nhttp://www.w3.org/1999/xlink\nschemas/xlink.xsd",
 		MetsType: &mets.MetsType{
 			XMLName:     xml.Name{},
-			IDAttr:      "",
 			OBJIDAttr:   metadata.ID,
 			LABELAttr:   fmt.Sprintf("METS Container for Object %s version %s - %s", metadata.ID, head, v.Message),
 			TYPEAttr:    "AIP",
 			PROFILEAttr: "http://www.ra.ee/METS/v01/IP.xml",
 			MetsHdr: &mets.MetsHdr{
 				XMLName:          xml.Name{},
-				IDAttr:           "",
-				ADMIDAttr:        nil,
 				CREATEDATEAttr:   v.Created.Format("2006-01-02T15:04:05"),
-				LASTMODDATEAttr:  "",
 				RECORDSTATUSAttr: "NEW",
 				Agent: []*mets.Agent{
 					&mets.Agent{
 						XMLName:       xml.Name{},
-						IDAttr:        "",
 						ROLEAttr:      "CREATOR",
-						OTHERROLEAttr: "",
 						TYPEAttr:      "OTHER",
 						OTHERTYPEAttr: "SOFTWARE",
 						Name:          "gocfl",
@@ -1097,13 +1040,9 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						},
 					},
 					&mets.Agent{
-						XMLName:       xml.Name{},
-						IDAttr:        "",
-						ROLEAttr:      "ARCHIVIST",
-						OTHERROLEAttr: "",
-						TYPEAttr:      "",
-						OTHERTYPEAttr: "",
-						Name:          v.User.Name.String(),
+						XMLName:  xml.Name{},
+						ROLEAttr: "ARCHIVIST",
+						Name:     v.User.Name.String(),
 						Note: []*mets.Note{
 							&mets.Note{
 								XMLName: xml.Name{},
@@ -1114,10 +1053,8 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				},
 				AltRecordID: nil,
 				MetsDocumentID: &mets.MetsDocumentID{
-					XMLName:  xml.Name{},
-					IDAttr:   "",
-					TYPEAttr: "",
-					Value:    "mets.xml",
+					XMLName: xml.Name{},
+					Value:   "mets.xml",
 				},
 			},
 			DmdSec: dmdSecs,
@@ -1127,9 +1064,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				IDAttr:  "uuid-" + uuid.NewString(),
 				FileGrp: metsFileGrps,
 			},
-			StructMap:   structMaps,
-			StructLink:  nil,
-			BehaviorSec: nil,
+			StructMap: structMaps,
 		}}
 
 	metsBytes, err := xml.MarshalIndent(m, "", "  ")
@@ -1138,28 +1073,59 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	switch strings.ToLower(me.StorageType) {
-	case "area", "path":
+	case "area":
+		metsName := me.MetsFile
+		premisName := me.PremisFile
 
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
-		if err := object.AddData(metsBytes, metsName, false, area, true, false); err != nil {
+		if err := object.AddData(metsBytes, metsName, false, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, area, true, false); err != nil {
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.METSXSD, "schemas/mets.xsd", true, area, true, false); err != nil {
+		if err := object.AddData(specs.METSXSD, "schemas/mets.xsd", true, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/mets.xsd")
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.PremisXSD, "schemas/premis.xsd", true, area, true, false); err != nil {
+		if err := object.AddData(specs.PremisXSD, "schemas/premis.xsd", true, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/premis.xsd")
 		}
 		//if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, area, true, false); err != nil {
+		if err := object.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, me.StorageName, true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
+		}
+	case "path":
+		path, err := object.GetAreaPath("content")
+		if err != nil {
+			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
+		}
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.MetsFile)), "/")
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.PremisFile)), "/")
+
+		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
+		if err := object.AddData(metsBytes, metsName, false, "", true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", metsName)
+		}
+		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, "", true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", premisName)
+		}
+		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
+		if err := object.AddData(specs.METSXSD, "schemas/mets.xsd", true, "", true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", "schemas/mets.xsd")
+		}
+		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
+		if err := object.AddData(specs.PremisXSD, "schemas/premis.xsd", true, "", true, false); err != nil {
+			return errors.Wrapf(err, "cannot write '%s'", "schemas/premis.xsd")
+		}
+		//if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
+		if err := object.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
 		}
 	case "extension":
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
 		if err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, metsName)
 		}
@@ -1182,38 +1148,30 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func newMDSec(id, groupid, href, loctype, otherloctype, mimetype string, size int64, mdType, checksum, checksumType string) *mets.MdSecType {
+func newMDSec(id, groupid, href, loctype, otherloctype, mimetype, created string, size int64, mdType, othermdtype, checksum, checksumType string) *mets.MdSecType {
 	if mdType == "" {
 		mdType = "OTHER"
+	}
+	if mdType == "OTHER" && othermdtype == "" {
+		othermdtype = "UNKNOWN"
 	}
 	return &mets.MdSecType{
 		IDAttr:      id,
 		GROUPIDAttr: groupid,
-		ADMIDAttr:   nil,
-		CREATEDAttr: "",
-		STATUSAttr:  "",
+		CREATEDAttr: time.Now().Format("2006-01-02T15:04:05"),
 		MdRef: &mets.MdRef{
-			XMLName:           xml.Name{},
-			IDAttr:            "",
-			LABELAttr:         "",
-			XPTRAttr:          "",
-			TypeAttr:          "simple",
-			XlinkHrefAttr:     href,
-			XlinkRoleAttr:     "",
-			XlinkArcroleAttr:  "",
-			XlinkTitleAttr:    "",
-			XlinkShowAttr:     "",
-			XlinkActuateAttr:  "",
-			LOCTYPEAttr:       loctype,
-			OTHERLOCTYPEAttr:  otherloctype,
-			MDTYPEAttr:        mdType,
-			OTHERMDTYPEAttr:   "",
-			MDTYPEVERSIONAttr: "",
-			MIMETYPEAttr:      mimetype,
-			SIZEAttr:          size,
-			CREATEDAttr:       "",
-			CHECKSUMAttr:      checksum,
-			CHECKSUMTYPEAttr:  checksumTypeToMets(checksumType),
+			XMLName:          xml.Name{},
+			TypeAttr:         "simple",
+			XlinkHrefAttr:    href,
+			LOCTYPEAttr:      loctype,
+			OTHERLOCTYPEAttr: otherloctype,
+			MDTYPEAttr:       mdType,
+			OTHERMDTYPEAttr:  othermdtype,
+			MIMETYPEAttr:     mimetype,
+			SIZEAttr:         size,
+			CHECKSUMAttr:     checksum,
+			CHECKSUMTYPEAttr: checksumTypeToMets(checksumType),
+			CREATEDAttr:      created,
 		},
 		MdWrap: nil,
 	}
