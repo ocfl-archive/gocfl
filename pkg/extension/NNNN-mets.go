@@ -36,6 +36,31 @@ type metsInternalFiledata struct {
 	cs            string
 }
 
+var metsMDTypes = []string{
+	"MARC",
+	"MODS",
+	"EAD",
+	"DC",
+	"NISOIMG",
+	"LC-AV",
+	"VRA",
+	"TEIHDR",
+	"DDI",
+	"FGDC",
+	"LOM",
+	"PREMIS",
+	"PREMIS:OBJECT",
+	"PREMIS:AGENT",
+	"PREMIS:RIGHTS",
+	"PREMIS:EVENT",
+	"TEXTMD",
+	"METSRIGHTS",
+	"ISO 19115:2003 NAP",
+	"EAC-CPF",
+	"LIDO",
+	"OTHER",
+}
+
 func GetMetsParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
 		{
@@ -743,6 +768,11 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			return errors.Errorf("cannot find descriptive metadata file '%s'", me.PrimaryDescriptiveMetadata)
 		}
 		metaType = strings.ToUpper(metaType)
+		var otherMetaType string
+		if !slices.Contains(metsMDTypes, metaType) {
+			otherMetaType = metaType
+			metaType = "OTHER"
+		}
 		/*
 			switch metaType {
 			case "MARC":
@@ -806,7 +836,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				foundCreationString,
 				foundSize,
 				metaType,
-				"",
+				otherMetaType,
 				foundChecksum,
 				string(inventory.GetDigestAlgorithm())))
 			structPhysical["metadata"] = append(structPhysical["metadata"], id)
@@ -823,7 +853,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 				foundCreationString,
 				foundSize,
 				metaType,
-				"",
+				otherMetaType,
 				foundChecksum,
 				string(inventory.GetDigestAlgorithm())))
 			structPhysical["metadata"] = append(structPhysical["metadata"], id)

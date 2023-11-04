@@ -12,7 +12,7 @@
 
 For enhancing compatibility with classic archive information package 
 formats (i.e. https://dilcis.eu), this extension provides a way to 
-automaticaly generate a METS and a Premis file for every version of 
+integrate a METS and a Premis file for every version of 
 the OCFL object based on the inventory.
 
 Technical metadata is provided by the [NNNN-indexer](NNNN-indexer.md) extension.
@@ -53,9 +53,9 @@ another aip format within the OCFL object.
 
 * **Name:** `primaryDescriptiveMetadata`
     * **Description:** File with primary descriptive metadata (mets:dmdSec)
-    * **Format:** <area>:<filename>
+    * **Format:** <type>:<area>:<filename>
     * **Type:** string
-    * **Default:** `metadata:info.json`
+    * **Default:** `info:metadata:info.json`
 
 * **Name:** `metsFile`
     * **Description:** Name of the mets file
@@ -76,23 +76,12 @@ Make sure, that the extensions are used in the correct order.
 
 ## Procedure (tbd.)
 
-Before finalization of an object version, start the generation of
-the METS and Premis files. The METS and Premis files are generated 
-based on the inventory and all types of usable metadata. Generally, 
-this metadata is provided by extensions. 
+This extension is used to place a METS and Premis file within the object at the given location.
+The source of these files depends on the implementation of this extension.
 
-## Examples
+### Generation of METS and Premis files
+Both files are generated based on information available in the inventory and the metadata files.
 
-
-```xml
-{
-	"path": "v2/content/data/=u007Eblä=u0020blubb=u005Bin=u005D/Modulhandbuch_MA_Gestaltung.pdf",
-	"migration": {
-		"source": "v1/content/data/=u007Eblä=u0020blubb=u005Bin=u005D/Modulhandbuch_MA_Gestaltung.pdf",
-		"id": "PDFA#01"
-	}
-}
-```
-
-### Result
+### Insertion
+Both files already exists und are inserted into the object.
 
