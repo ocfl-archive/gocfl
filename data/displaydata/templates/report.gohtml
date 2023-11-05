@@ -300,7 +300,33 @@
                 </td>
             </tr>
         {{ end }}
+        <td class="first">
+        </td>
+        <td>
+        </td>
+        <td>
+        </td>
+        </tr>
+        <tr>
+            <th class="first">Pronom</th>
+            <th>Count</th>
+            <th>Size</th>
+        </tr>
+        {{ range $pronom, $pSize := .pronoms }}
+            <tr>
+                <td class="first">
+                    {{ $pronom }}
+                </td>
+                <td>
+                    {{ $pSize.Count }}
+                </td>
+                <td>
+                    {{ $pSize.SizeStr }}
+                </td>
+            </tr>
+        {{ end }}
     </table>
+
 </div>
 
 <div class="chapter">
