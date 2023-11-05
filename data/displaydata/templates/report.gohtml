@@ -331,7 +331,7 @@
 
 <div class="chapter">
     <h2 id="subtitle">
-        File Listing
+        Directory Listing
     </h2>
     <table class="tree" style="">
         {{ range $node := .tree }}
@@ -344,6 +344,8 @@
         {{ end }}
     </table>
 </div>
+
+{{if len .files}}
 
 <div class="chapter">
     {{range $cs, $file := .files}}
@@ -426,5 +428,7 @@
         </table>
     {{end}}
 </div>
+
+{{end}}
 </body>
 </html>

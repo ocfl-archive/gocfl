@@ -820,6 +820,7 @@ func (s *Server) report(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
 		return
 	}
+	full := c.DefaultQuery("full", "none") != "none"
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
@@ -1031,6 +1032,9 @@ func (s *Server) report(c *gin.Context) {
 			for _, filename := range files {
 				filenames = append(filenames, filename)
 				parts := strings.Split(filename, "/")
+				if !full {
+					parts = parts[0 : len(parts)-1]
+				}
 				addToTree(parts, tree)
 			}
 		}
@@ -1057,6 +1061,11 @@ func (s *Server) report(c *gin.Context) {
 	}
 	flattenTree(tree)
 
+	var files = map[string]*ocfl.FileMetadata{}
+	if full {
+		files = s.metadata.Files
+	}
+
 	var params = map[string]any{
 		"objectpath":     objectpath,
 		"gocfl":          "gocfl",
@@ -1069,10 +1078,11 @@ func (s *Server) report(c *gin.Context) {
 		"noSizeFiles":    noSizeFiles,
 		"mimeTypes":      mimeTypes,
 		"pronoms":        pronoms,
-		"files":          s.metadata.Files,
+		"files":          files,
 		"info":           info,
 		"avLength":       fmtDuration(time.Duration(int64(videoSecs) * int64(time.Second))),
 		"tree":           flatTree,
+		"full":           full,
 	}
 
 	c.HTML(http.StatusOK, "report.gohtml", gin.H(params))
