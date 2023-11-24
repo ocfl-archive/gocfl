@@ -192,6 +192,28 @@ func checksumTypeToMets(t string) string {
 	}
 }
 
+type metaFileBase struct {
+	Address             string   `json:"address,omitempty"`
+	AlternativeTitles   []string `json:"alternative_titles,omitempty"`
+	Collection          string   `json:"collection,omitempty"`
+	CollectionId        string   `json:"collection_id,omitempty"`
+	Created             string   `json:"created,omitempty"`
+	Deprecates          string   `json:"deprecates,omitempty"`
+	Description         string   `json:"description,omitempty"`
+	Identifiers         []string `json:"identifiers,omitempty"`
+	IngestWorkflow      string   `json:"ingest_workflow,omitempty"`
+	Keywords            []string `json:"keywords,omitempty"`
+	LastChanged         string   `json:"last_changed,omitempty"`
+	Organisation        string   `json:"organisation,omitempty"`
+	OrganisationAddress string   `json:"organisation_address,omitempty"`
+	OrganisationId      string   `json:"organisation_id,omitempty"`
+	References          []string `json:"references,omitempty"`
+	Sets                []string `json:"sets,omitempty"`
+	Signature           string   `json:"signature,omitempty"`
+	Title               string   `json:"title,omitempty"`
+	User                string   `json:"user,omitempty"`
+}
+
 func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	inventory := object.GetInventory()
 	metadata, err := object.GetMetadata()
@@ -202,12 +224,31 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	head := inventory.GetHead()
 
 	var contentSubPath = map[string]ContentSubPathEntry{}
+	var premisOrgAgentName string
+	var premisOrgAgentIdentifier string
+	var premisPersonAgentIdentifier string
+	var premisPersonAgentName string
 	if extensionMap, _ := metadata.Extension.(map[string]any); extensionMap != nil {
 		if contentSubPathAny, ok := extensionMap[ContentSubPathName]; ok {
 			contentSubPath, _ = contentSubPathAny.(map[string]ContentSubPathEntry)
 		}
+		if metaFileAny, ok := extensionMap[MetaFileName]; ok {
+			if metaFile, ok := metaFileAny.(map[string]any); ok {
+				if str, ok := metaFile["organisation"]; ok {
+					premisOrgAgentName, _ = str.(string)
+				}
+				if str, ok := metaFile["organisation_address"]; ok {
+					premisOrgAgentIdentifier, _ = str.(string)
+				}
+				if str, ok := metaFile["address"]; ok {
+					premisPersonAgentIdentifier, _ = str.(string)
+				}
+				if str, ok := metaFile["user"]; ok {
+					premisPersonAgentName, _ = str.(string)
+				}
+			}
+		}
 	}
-
 	var metsNames, premisNames *ocfl.NamesStruct
 	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
 	switch strings.ToLower(me.StorageType) {
@@ -361,6 +402,62 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					USEAttr: "Datafile",
 					FLocat:  []*mets.FLocat{},
 				}
+				for verString, _ := range metaFile.VersionName {
+					ver, ok := metadata.Versions[verString]
+					if !ok {
+						return errors.Errorf("cannot find version '%s'", verString)
+					}
+					premisEventPackage := &premis.EventComplexType{
+						XMLName:     xml.Name{},
+						XmlIDAttr:   "",
+						VersionAttr: "",
+						EventIdentifier: &premis.EventIdentifierComplexType{
+							XMLName:              xml.Name{},
+							SimpleLinkAttr:       "",
+							EventIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+							EventIdentifierValue: "uuid-" + uuid.NewString(),
+						},
+						EventType:     premis.NewStringPlusAuthority("packing", "eventType", "https://id.loc.gov/vocabulary/preservation/eventType", "https://id.loc.gov/vocabulary/preservation/eventType/pac.html"),
+						EventDateTime: ver.Created.Format(time.RFC3339),
+						EventOutcomeInformation: []*premis.EventOutcomeInformationComplexType{
+							&premis.EventOutcomeInformationComplexType{
+								XMLName:      xml.Name{},
+								EventOutcome: premis.NewStringPlusAuthority("success", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/suc.html"),
+							},
+						},
+						LinkingAgentIdentifier: []*premis.LinkingAgentIdentifierComplexType{
+							&premis.LinkingAgentIdentifierComplexType{
+								XMLName:                     xml.Name{},
+								LinkAgentXmlIDAttr:          "",
+								SimpleLinkAttr:              "",
+								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierValue: ver.Address,
+							},
+							&premis.LinkingAgentIdentifierComplexType{
+								XMLName:                     xml.Name{},
+								LinkAgentXmlIDAttr:          "",
+								SimpleLinkAttr:              "",
+								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierValue: premisOrgAgentIdentifier,
+							},
+							&premis.LinkingAgentIdentifierComplexType{
+								XMLName:                     xml.Name{},
+								LinkAgentXmlIDAttr:          "",
+								SimpleLinkAttr:              "",
+								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierValue: "https://github.com/je4/gocfl",
+							},
+						},
+						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{
+							&premis.LinkingObjectIdentifierComplexType{
+								XMLName:                      xml.Name{},
+								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+								LinkingObjectIdentifierValue: uuidString,
+							},
+						},
+					}
+					premisEvents = append(premisEvents, premisEventPackage)
+				}
 				premisFile := &premis.File{
 					XMLName:   xml.Name{},
 					XSIType:   "file",
@@ -442,7 +539,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 											FormatRegistryRole: premis.NewStringPlusAuthority(
 												"specification",
 												"http://id.loc.gov/vocabulary/preservation/formatRegistryRole",
-												"",
+												"http://id.loc.gov/vocabulary/preservation/formatRegistryRole",
 												"http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe",
 											),
 										}
@@ -476,6 +573,24 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						}
 					}
 					premisFile.ObjectCharacteristics = append(premisFile.ObjectCharacteristics, objectCharacter)
+				}
+				if len(premisFile.ObjectCharacteristics) == 0 {
+					premisFile.ObjectCharacteristics = append(premisFile.ObjectCharacteristics, &premis.ObjectCharacteristicsComplexType{
+						XMLName:          xml.Name{},
+						CompositionLevel: nil,
+						Fixity:           []*premis.FixityComplexType{},
+						Size:             size,
+						Format: []*premis.FormatComplexType{
+							&premis.FormatComplexType{
+								XMLName: xml.Name{},
+								FormatDesignation: &premis.FormatDesignationComplexType{
+									XMLName:    xml.Name{},
+									FormatName: premis.NewStringPlusAuthority("application/octet-stream", "", "", ""),
+								},
+								FormatNote: []string{"IANA MIME-type"},
+							},
+						},
+					})
 				}
 				for _, intPath := range metaFile.InternalName {
 					parts := strings.Split(intPath, "/")
@@ -543,16 +658,18 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						IDAttr:  "",
 						USEAttr: "",
 					})
-					premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
-						XMLName: xml.Name{},
-						ContentLocation: &premis.ContentLocationComplexType{
-							XMLName:              xml.Name{},
-							SimpleLinkAttr:       "",
-							ContentLocationType:  premis.NewStringPlusAuthority("internal", "", "", ""),
-							ContentLocationValue: href,
-						},
-						StorageMedium: premis.NewStringPlusAuthority("OCFL Object Root", "", "", ""),
-					})
+					/*
+						premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
+							XMLName: xml.Name{},
+							ContentLocation: &premis.ContentLocationComplexType{
+								XMLName:              xml.Name{},
+								SimpleLinkAttr:       "",
+								ContentLocationType:  premis.NewStringPlusAuthority("internal", "", "", ""),
+								ContentLocationValue: href,
+							},
+							StorageMedium: premis.NewStringPlusAuthority("OCFL Object Root", "", "", ""),
+						})
+					*/
 				}
 				//		if extNames, ok := metaFile.VersionName[head]; ok {
 				//			for _, extPath := range extNames {
@@ -600,45 +717,39 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						XlinkHrefAttr:/* externalRelativePath + */ extPath,
 					},
 				})
-				premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
-					XMLName: xml.Name{},
-					ContentLocation: &premis.ContentLocationComplexType{
-						XMLName:             xml.Name{},
-						SimpleLinkAttr:      "",
-						ContentLocationType: premis.NewStringPlusAuthority("external", "", "", ""),
-						ContentLocationValue:/*externalRelativePath + */ extPath,
-					},
-					StorageMedium: premis.NewStringPlusAuthority("extracted OCFL", "", "", ""),
-				})
+				/*
+					premisFile.Storage = append(premisFile.Storage, &premis.StorageComplexType{
+						XMLName: xml.Name{},
+						ContentLocation: &premis.ContentLocationComplexType{
+							XMLName:             xml.Name{},
+							SimpleLinkAttr:      "",
+							ContentLocationType: premis.NewStringPlusAuthority("external", "", "", ""),
+							ContentLocationValue: extPath,
+						},
+						StorageMedium: premis.NewStringPlusAuthority("extracted OCFL", "", "", ""),
+					})
+				*/
 
 				//			}
 				//		}
-				var ingestTime time.Time
-				var ingestVersion string
-				_ = ingestVersion
-				if internal, ok := internalFiledata[extPath]; ok {
-					if internal.ingestVersion != "" {
-						ingestVersion = internal.ingestVersion
-						if versionData, ok := metadata.Versions[internal.ingestVersion]; ok {
-							ingestTime = versionData.Created
-						}
-					}
-				}
-
-				eventIngest := &premis.EventComplexType{
-					XMLName:     xml.Name{},
-					XmlIDAttr:   "",
-					VersionAttr: "",
-					EventIdentifier: &premis.EventIdentifierComplexType{
-						XMLName:              xml.Name{},
-						SimpleLinkAttr:       "",
-						EventIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
-						EventIdentifierValue: "ingest-" + cs,
-					},
-					EventType:     premis.NewStringPlusAuthority("MIGRATION", "", "", ""),
-					EventDateTime: ingestTime.Format(time.RFC3339),
-				}
+				/*
+									var ingestTime time.Time
+									var ingestVersion string
+					//				_ = ingestVersion
+									if internal, ok := internalFiledata[extPath]; ok {
+										if internal.ingestVersion != "" {
+											ingestVersion = internal.ingestVersion
+											if versionData, ok := metadata.Versions[internal.ingestVersion]; ok {
+												ingestTime = versionData.Created
+											}
+										}
+									}
+				*/
 				if migrationAny, ok := metaFile.Extension[MigrationName]; ok {
+					ver, ok := metadata.Versions[head]
+					if !ok {
+						return errors.Errorf("cannot find head version '%s'", head)
+					}
 					migration, ok := migrationAny.(*MigrationResult)
 					if !ok {
 						return errors.Wrapf(err, "invalid type for migration of '%s': %v", cs, migrationAny)
@@ -649,51 +760,63 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						VersionAttr: "",
 						EventIdentifier: &premis.EventIdentifierComplexType{
 							XMLName:              xml.Name{},
-							EventIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
-							EventIdentifierValue: migration.ID,
+							EventIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+							EventIdentifierValue: "uuid-" + uuid.NewString(), //migration.ID,
 						},
-						EventType:               premis.NewStringPlusAuthority("MIGRATION", "", "", ""),
-						EventDateTime:           ingestTime.Format(time.RFC3339),
+						EventType:               premis.NewStringPlusAuthority("migration", "eventType", "https://id.loc.gov/vocabulary/preservation/eventType", "https://id.loc.gov/vocabulary/preservation/eventType/mig.html"),
+						EventDateTime:           ver.Created.Format(time.RFC3339),
 						EventDetailInformation:  nil,
 						EventOutcomeInformation: []*premis.EventOutcomeInformationComplexType{},
-						LinkingAgentIdentifier:  nil,
-						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{
+						LinkingAgentIdentifier: []*premis.LinkingAgentIdentifierComplexType{
+							&premis.LinkingAgentIdentifierComplexType{
+								XMLName:                     xml.Name{},
+								LinkAgentXmlIDAttr:          "",
+								SimpleLinkAttr:              "",
+								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierValue: migration.ID,
+								LinkingAgentRole:            nil,
+							},
+						},
+						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{},
+					}
+					var sourcePath string
+					for intExtPath, val := range internalFiledata {
+						if val.cs == migration.Source {
+							sourcePath = intExtPath
+							break
+						}
+					}
+					if internal, ok := internalFiledata[sourcePath]; ok {
+						if internal.uuid != "" {
+							eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier, &premis.LinkingObjectIdentifierComplexType{
+								XMLName:                      xml.Name{},
+								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+								LinkingObjectIdentifierValue: internal.uuid,
+								LinkingObjectRole: []*premis.StringPlusAuthority{
+									premis.NewStringPlusAuthority("source", "eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole/sou.html"),
+								},
+							})
+						}
+					}
+
+					if migration.Error == "" {
+						eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier,
 							&premis.LinkingObjectIdentifierComplexType{
 								XMLName:                      xml.Name{},
 								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
 								LinkingObjectIdentifierValue: uuidString,
-								LinkingObjectRole:            []*premis.StringPlusAuthority{premis.NewStringPlusAuthority("TARGET", "", "", "")},
-							},
-						},
-					}
-					if migration.Error == "" {
+								LinkingObjectRole: []*premis.StringPlusAuthority{
+									premis.NewStringPlusAuthority("outcome", "eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole/out.html"),
+								},
+							})
 						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
 							XMLName:      xml.Name{},
-							EventOutcome: premis.NewStringPlusAuthority("success", "", "", ""),
+							EventOutcome: premis.NewStringPlusAuthority("success", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/suc.html"),
 						})
-						var sourcePath string
-						for extPath, val := range internalFiledata {
-							if val.cs == migration.Source {
-								sourcePath = extPath
-								break
-							}
-						}
-						if internal, ok := internalFiledata[sourcePath]; ok {
-							if internal.uuid != "" {
-								eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier, &premis.LinkingObjectIdentifierComplexType{
-									XMLName:                      xml.Name{},
-									LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
-									LinkingObjectIdentifierValue: internal.uuid,
-									LinkingObjectRole: []*premis.StringPlusAuthority{
-										premis.NewStringPlusAuthority("SOURCE", "", "", ""),
-									},
-								})
-							}
-						}
 					} else {
 						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
 							XMLName:      xml.Name{},
-							EventOutcome: premis.NewStringPlusAuthority("error", "", "", ""),
+							EventOutcome: premis.NewStringPlusAuthority("fail", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/fai.html", "http://id.loc.gov/vocabulary/preservation/eventOutcome/fai"),
 							EventOutcomeDetail: []*premis.EventOutcomeDetailComplexType{
 								&premis.EventOutcomeDetailComplexType{
 									XMLName:                xml.Name{},
@@ -704,7 +827,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 					premisEvents = append(premisEvents, eventMigration)
 				}
-				_ = eventIngest
 				if len(metsFile.FLocat) > 0 {
 					a := extArea
 					if isSchema {
@@ -869,8 +991,54 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		VersionAttr:       "3.0",
 		Object:            premisFiles,
 		Event:             premisEvents,
-		Agent:             []*premis.AgentComplexType{},
-		Rights:            []*premis.RightsComplexType{},
+		Agent: []*premis.AgentComplexType{
+			&premis.AgentComplexType{
+				XMLName:     xml.Name{},
+				XmlIDAttr:   "",
+				VersionAttr: "",
+				AgentIdentifier: []*premis.AgentIdentifierComplexType{
+					&premis.AgentIdentifierComplexType{
+						XMLName:              xml.Name{},
+						SimpleLinkAttr:       "",
+						AgentIdentifierType:  premis.NewStringPlusAuthority("organization", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/org.html"),
+						AgentIdentifierValue: premisOrgAgentIdentifier,
+					}},
+				AgentName: []*premis.StringPlusAuthority{
+					premis.NewStringPlusAuthority(premisOrgAgentName, "", "", ""),
+				},
+			},
+			&premis.AgentComplexType{
+				XMLName:     xml.Name{},
+				XmlIDAttr:   "",
+				VersionAttr: "",
+				AgentIdentifier: []*premis.AgentIdentifierComplexType{
+					&premis.AgentIdentifierComplexType{
+						XMLName:              xml.Name{},
+						SimpleLinkAttr:       "",
+						AgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+						AgentIdentifierValue: premisPersonAgentIdentifier,
+					}},
+				AgentName: []*premis.StringPlusAuthority{
+					premis.NewStringPlusAuthority(premisPersonAgentName, "", "", ""),
+				},
+			},
+			&premis.AgentComplexType{
+				XMLName:     xml.Name{},
+				XmlIDAttr:   "",
+				VersionAttr: "",
+				AgentIdentifier: []*premis.AgentIdentifierComplexType{
+					&premis.AgentIdentifierComplexType{
+						XMLName:              xml.Name{},
+						SimpleLinkAttr:       "",
+						AgentIdentifierType:  premis.NewStringPlusAuthority("software", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/sof.html"),
+						AgentIdentifierValue: "https://github.com/je4/gocfl",
+					}},
+				AgentName: []*premis.StringPlusAuthority{
+					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", version.VERSION), "", "", ""),
+				},
+			},
+		},
+		Rights: []*premis.RightsComplexType{},
 	}
 
 	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
