@@ -1048,7 +1048,7 @@ func (s *Server) report(c *gin.Context) {
 	var flatTree = []*flatEdge{}
 	var flattenTree func(e *edge)
 	flattenTree = func(e *edge) {
-		if e.name != "" {
+		if strings.TrimSpace(e.name) != "" {
 			flatTree = append(flatTree, &flatEdge{
 				Left:  int(e.indent),
 				Right: int(maxDepth - e.indent),

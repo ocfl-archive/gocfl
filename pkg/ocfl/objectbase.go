@@ -1464,16 +1464,16 @@ func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	return allDigestAlgs, nil
 }
 
-func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool) error {
+func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool, area string) error {
 	var manifest strings.Builder
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()
 	if err := object.i.IterateStateFiles(version, func(internals, externals []string, digest string) error {
 		for _, external := range externals {
-			external, err = object.extensionManager.BuildObjectExtractPath(object, external, "")
+			external, err = object.extensionManager.BuildObjectExtractPath(object, external, area)
 			if err != nil {
 				errCause := errors.Cause(err)
-				if errCause == ExtensionObjectExtractPathWrongAreaError {
+				if errors.Is(errCause, ExtensionObjectExtractPathWrongAreaError) {
 					return nil
 				}
 				return errors.Wrapf(err, "cannot map path '%s'", external)

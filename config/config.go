@@ -54,6 +54,7 @@ type ExtractConfig struct {
 	Version    string
 	ObjectPath string
 	ObjectID   string
+	Area       string
 }
 
 type ValidateConfig struct {

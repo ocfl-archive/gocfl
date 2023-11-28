@@ -34,7 +34,7 @@ type StorageRoot interface {
 	setModified()
 	GetVersion() OCFLVersion
 	Stat(w io.Writer, path string, id string, statInfo []StatInfo) error
-	Extract(fs fs.FS, path, id, version string, withManifest bool) error
+	Extract(fsys fs.FS, path, id, version string, withManifest bool, area string) error
 	ExtractMeta(path, id string) (*StorageRootMetadata, error)
 }
 

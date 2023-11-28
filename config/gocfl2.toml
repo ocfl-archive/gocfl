@@ -48,9 +48,9 @@ DefaultArea="content"
 
 [Add.User]
 # --user-name
-Name="John Doe"
+Name="Jürgen Enge"
 # --user-address
-Address="http://inter.net"
+Address="mailto:juergen.enge@unibas.ch"
 
 #
 # Extension parameter
@@ -249,7 +249,7 @@ Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
 FilenameReplacement = "${2}.png"
 Timeout = "2m"
-Pronoms = ["fmt/202","fmt/436","fmt/437","x-fmt/367","fmt/528","fmt/662"]
+Pronoms = ["fmt/202","fmt/436","fmt/437","x-fmt/367","fmt/528","fmt/662", "fmt/1101"]
 
 [Migration.Function.PDFA]
 ID = "PDFA#01"
@@ -261,7 +261,7 @@ Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
 FilenameReplacement = "${2}"
 Timeout = "2m"
-Pronoms = ["fmt/14","fmt/15","fmt/16","fmt/17","fmt/18","fmt/19","fmt/20","fmt/276","fmt/95","fmt/354","fmt/493","fmt/144","fmt/145","fmt/157","fmt/146","fmt/147","fmt/158","fmt/148","fmt/488","fmt/489","fmt/490","fmt/492","fmt/491","fmt/1129","fmt/1451"]
+Pronoms = ["fmt/14","fmt/15","fmt/16","fmt/17","fmt/18","fmt/19","fmt/276","fmt/95","fmt/354","fmt/493","fmt/144","fmt/145","fmt/157","fmt/146","fmt/147","fmt/158","fmt/148","fmt/488","fmt/489","fmt/490","fmt/492","fmt/491","fmt/1129","fmt/1451"]
 # "fmt/14": Acrobat PDF 1.0 - Portable Document Format
 # "fmt/15": Acrobat PDF 1.1 - Portable Document Format
 # "fmt/16": Acrobat PDF 1.2 - Portable Document Format
@@ -293,3 +293,28 @@ Pronoms = ["fmt/14","fmt/15","fmt/16","fmt/17","fmt/18","fmt/19","fmt/20","fmt/2
 # "fmt/491": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
 # "fmt/1129": PDF 2.0 - Portable Document Format - 2.0
 # "fmt/1451": PDF Portfolio - 1.7
+
+[Migration.Function.PDFA2]
+ID = "PDFA#02"
+Title = "Convert non Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.pdf"
+Timeout = "2m"
+Pronoms = ["fmt/20"]
+
+
+[Migration.Function.EPS]
+ID = "EPS#01"
+Title = "Convert non Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.pdf"
+Timeout = "2m"
+Pronoms = ["fmt/124"]

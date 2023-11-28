@@ -41,7 +41,7 @@ type Object interface {
 	GetFS() fs.FS
 	IsModified() bool
 	Stat(w io.Writer, statInfo []StatInfo) error
-	Extract(fs fs.FS, version string, manifest bool) error
+	Extract(fsys fs.FS, version string, withManifest bool, area string) error
 	GetMetadata() (*ObjectMetadata, error)
 	GetAreaPath(area string) (string, error)
 	GetExtensionManager() *ExtensionManager
