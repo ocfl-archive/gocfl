@@ -1,7 +1,6 @@
 package extension
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -69,6 +68,10 @@ type ContentSubPath struct {
 	*ContentSubPathConfig
 	fsys fs.FS
 	area string
+}
+
+func (sl *ContentSubPath) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	return map[string]any{"": sl.Paths}, nil
 }
 
 func (sl *ContentSubPath) GetFS() fs.FS {
@@ -144,8 +147,9 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 		row++
 	}
 
-	buf := bytes.NewBuffer([]byte(readme.String()))
-	if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false, false); err != nil {
+	//buf := bytes.NewBuffer([]byte(readme.String()))
+	//if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false, false); err != nil {
+	if err := object.AddData([]byte(readme.String()), "README.md", true, "", false, false); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
 	return nil
@@ -201,4 +205,5 @@ var (
 	_ ocfl.ExtensionObjectStatePath   = &ContentSubPath{}
 	_ ocfl.ExtensionObjectExtractPath = &ContentSubPath{}
 	_ ocfl.ExtensionArea              = &ContentSubPath{}
+	_ ocfl.ExtensionMetadata          = &ContentSubPath{}
 )

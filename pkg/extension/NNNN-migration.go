@@ -12,6 +12,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/indexer/v2/pkg/indexer"
 	"github.com/op/go-logging"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -72,7 +73,7 @@ type MigrationTarget struct {
 }
 
 type MigrationResult struct {
-	Source string `json:"source,omitempty"`
+	Source string `json:"source"`
 	Error  string `json:"error,omitempty"`
 	ID     string `json:"id"`
 }
@@ -201,12 +202,23 @@ func (mi *Migration) NeedNewVersion(ocfl.Object) (bool, error) {
 	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
+// DoNewVersion todo: check for second migration step and do different naming
 func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
 	}()
 
+	migrationMetadata, err := mi.GetMetadata(object)
+	if err != nil {
+		return errors.Wrapf(err, "cannot get migration metadata for object '%s'", object.GetID())
+	}
+	migratedChecksums := maps.Keys(migrationMetadata)
+	for _, metaAny := range migrationMetadata {
+		if meta, ok := metaAny.(*migrationLine); ok {
+			_ = meta
+		}
+	}
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	extensionManager := object.GetExtensionManager()
@@ -226,6 +238,10 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 		mi.migratedFiles[head] = map[string]string{}
 	}
 	for cs, mig := range mi.migrationFiles {
+		var isMigrated bool
+		if slices.Contains(migratedChecksums, cs) {
+			isMigrated = true
+		}
 		// todo: do it more efficient
 		var found = false
 		for _, mf := range mi.migratedFiles {
@@ -248,7 +264,11 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
 		}
 		for _, sf := range stateFiles {
-			targetNames = append(targetNames, mig.GetDestinationName(sf))
+			t := mig.GetDestinationName(sf, head, isMigrated)
+			if t == "" {
+				return errors.Errorf("cannot get destination name for file '%s' in object '%s'", sf, object.GetID())
+			}
+			targetNames = append(targetNames, t)
 		}
 
 		mi.migratedFiles[head][cs] = manifestFiles[0]
@@ -329,6 +349,19 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 					}
 					if err := object.DeleteFile(n, cs); err != nil {
 						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", n, object.GetID())
+					}
+				}
+			case migration.StrategyFolder:
+				for _, src := range stateFiles {
+					if slices.Contains(targetNames, src) {
+						continue
+					}
+					var dest string
+					if !isMigrated {
+						dest = filepath.ToSlash(filepath.Join(filepath.Dir(src), filepath.Base(src), filepath.Base(src)))
+					}
+					if err := object.RenameFile(src, dest, cs); err != nil {
+						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", src, object.GetID())
 					}
 				}
 			}

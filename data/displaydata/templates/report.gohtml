@@ -281,7 +281,7 @@
         </tr>
     </table>
 
-    <table class="type" style="margin-left: auto; margin-right: auto;">
+    <table class="type" style="width: 100%; margin-left: auto; margin-right: auto;">
         <tr>
             <th class="first">Mimetype</th>
             <th>Count</th>
@@ -300,12 +300,40 @@
                 </td>
             </tr>
         {{ end }}
+        <td class="first">
+        </td>
+        <td>
+        </td>
+        <td>
+        </td>
+        </tr>
     </table>
+    <table class="type" style="width: 100%; margin-left: auto; margin-right: auto;">
+        <tr>
+            <th class="first">Pronom</th>
+            <th>Count</th>
+            <th>Size</th>
+        </tr>
+        {{ range $pronom, $pSize := .pronoms }}
+            <tr>
+                <td class="first">
+                    {{ $pronom }}
+                </td>
+                <td>
+                    {{ $pSize.Count }}
+                </td>
+                <td>
+                    {{ $pSize.SizeStr }}
+                </td>
+            </tr>
+        {{ end }}
+    </table>
+
 </div>
 
 <div class="chapter">
     <h2 id="subtitle">
-        File Listing
+        Directory Listing
     </h2>
     <table class="tree" style="">
         {{ range $node := .tree }}
@@ -319,12 +347,18 @@
     </table>
 </div>
 
+{{if len .files}}
+
 <div class="chapter">
     {{range $cs, $file := .files}}
         {{ $thumb := (index $file.Extension "NNNN-thumbnail") }}
         {{ $indexer := (index $file.Extension "NNNN-indexer") }}
         {{ $filesystem := (index $file.Extension "NNNN-filesystem") }}
         {{ $extNames := (index $file.VersionName $data.head) }}
+        {{ if eq (len $extNames) 0 }}
+            {{ continue }}
+        {{ end }}
+
         <hr>
         <table class="work">
             <tr>
@@ -400,5 +434,7 @@
         </table>
     {{end}}
 </div>
+
+{{end}}
 </body>
 </html>

@@ -85,6 +85,7 @@ func NewMetaFile(config *MetaFileConfig, schema []byte) (*MetaFile, error) {
 	sl := &MetaFile{
 		MetaFileConfig: config,
 		schema:         schema,
+		info:           map[string][]byte{},
 	}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
@@ -111,6 +112,7 @@ type MetaFile struct {
 	fsys           fs.FS
 	compiledSchema *jsonschema.Schema
 	stored         bool
+	info           map[string][]byte
 }
 
 func (sl *MetaFile) GetFS() fs.FS {
@@ -329,6 +331,8 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 		return errors.Errorf("unsupported storage type '%s'", sl.StorageType)
 	}
 
+	// remember the content
+	sl.info[inventory.GetHead()] = infoData
 	return nil
 }
 
@@ -348,7 +352,6 @@ func downloadFile(u string) ([]byte, error) {
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
 func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
-
 	return nil
 }
 
@@ -360,8 +363,11 @@ func (sl *MetaFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	slices.Reverse(versions)
 	var metadata []byte
 	for _, ver := range versions {
-		metadata, err = ocfl.ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys)
-		if err == nil {
+		var ok bool
+		if metadata, ok = sl.info[ver]; ok {
+			break
+		}
+		if metadata, err = ocfl.ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys); err == nil {
 			break
 		}
 	}

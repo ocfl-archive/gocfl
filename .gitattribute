@@ -1,0 +1,5 @@
+config/* linguist-vendored
+data/* linguist-vendored
+docs/* linguist-vendored
+fixtures/* linguist-vendored
+*.go linguist-language=Go

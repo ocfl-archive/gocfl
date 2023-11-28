@@ -665,7 +665,7 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 	return result, nil
 }
 
-func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withManifest bool) error {
+func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withManifest bool, area string) error {
 	if version == "" {
 		version = "latest"
 	}
@@ -684,7 +684,7 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 			if err != nil {
 				return errors.Wrapf(err, "cannot create subfolder '%s' of '%v'", oFolder, fsys)
 			}
-			if err := o.Extract(subFS, version, withManifest); err != nil {
+			if err := o.Extract(subFS, version, withManifest, ""); err != nil {
 				return errors.Wrapf(err, "cannot extract object in folder '%s'", oFolder)
 			}
 		}
@@ -700,7 +700,7 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 		if err != nil {
 			return errors.Wrapf(err, "cannot load object '%s%s'", path, id)
 		}
-		if err := o.Extract(fsys, version, withManifest); err != nil {
+		if err := o.Extract(fsys, version, withManifest, area); err != nil {
 			return errors.Wrapf(err, "cannot extract object '%s%s'", path, id)
 		}
 	}

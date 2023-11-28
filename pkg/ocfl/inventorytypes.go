@@ -64,6 +64,10 @@ func (s *OCFLString) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.string)
 }
 
+func (s *OCFLString) String() string {
+	return s.string
+}
+
 type OCFLTime struct {
 	time.Time
 	err error

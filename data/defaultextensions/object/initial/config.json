@@ -4,6 +4,10 @@
     "ObjectContentPath": [
       "NNNN-direct-clean-path-layout",
       "NNNN-content-subpath"
+    ],
+    "ObjectChange": [
+      "NNNN-indexer",
+      "NNNN-metafile"
     ]
   },
   "exclusion": {

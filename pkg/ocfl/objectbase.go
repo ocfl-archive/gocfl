@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"emperror.dev/errors"
@@ -814,6 +815,82 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 	return nil
 }
 
+func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
+	if !object.i.IsWriteable() {
+		return errors.New("object not writeable")
+	}
+
+	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
+	var digest string
+
+	names, err := object.BuildNames([]string{path}, area)
+
+	object.logger.Infof("adding file %s:%s", area, path)
+
+	newPath, err := object.extensionManager.BuildObjectStatePath(object, path, area)
+	if err != nil {
+		return errors.Wrapf(err, "cannot map external path '%s'", path)
+	}
+
+	object.updateFiles = append(object.updateFiles, newPath)
+
+	var dataReader = bytes.NewReader(data)
+	if checkDuplicate {
+		// do the checksum
+		digest, err = checksum.Checksum(dataReader, object.i.GetDigestAlgorithm())
+		if err != nil {
+			return errors.Wrapf(err, "cannot create digest of '%s'", path)
+		}
+		// set filepointer to beginning
+		if _, err := dataReader.Seek(0, 0); err != nil {
+			return errors.Wrapf(err, "cannot seek in datareader")
+		}
+		// if file is already there we do nothing
+		dup, err := object.i.AlreadyExists(newPath, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", names.InternalPath, digest)
+		}
+		if dup {
+			object.logger.Infof("[%s] '%s' already exists. ignoring", object.GetID(), newPath)
+			return nil
+		}
+		// file already ingested, but new virtual name
+		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
+			object.logger.Infof("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
+			if err := object.i.CopyFile(newPath, digest); err != nil {
+				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, names.InternalPath)
+			}
+			return nil
+		}
+	} else {
+		if !slices.Contains(digestAlgorithms, object.i.GetDigestAlgorithm()) {
+			digestAlgorithms = append(digestAlgorithms, object.i.GetDigestAlgorithm())
+		}
+	}
+
+	if !noExtensionHook {
+		if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, false); err != nil {
+			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
+		}
+	}
+
+	var r = io.NopCloser(dataReader)
+	if !isDir {
+		digest, err = object.addReader(r, names, noExtensionHook)
+		if err != nil {
+			return errors.Wrapf(err, "cannot add file '%s' to object", path)
+		}
+	}
+
+	if !noExtensionHook {
+		if err := object.extensionManager.AddFileAfter(object, nil, names.ExternalPaths, names.ManifestPath, digest, area, isDir); err != nil {
+			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
+		}
+	}
+
+	return nil
+}
+
 func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
 	object.logger.Infof("adding file %s:%s", area, path)
 
@@ -839,7 +916,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 		if err != nil {
 			return errors.Wrapf(err, "cannot open file '%v/%s'", fsys, path)
 		}
-		newPath, err := object.extensionManager.BuildObjectStatePath(object, path, "")
+		newPath, err := object.extensionManager.BuildObjectStatePath(object, path, area)
 		if err != nil {
 			file.Close()
 			return errors.Wrapf(err, "cannot map external path '%s'", path)
@@ -921,7 +998,7 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 		return errors.New("object not writeable")
 	}
 
-	// if file is already there we do nothing
+	// if file is not there we do nothing
 	dup, err := object.i.AlreadyExists(virtualFilename, digest)
 	if err != nil {
 		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilename, digest)
@@ -932,6 +1009,30 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 	}
 	if err := object.i.DeleteFile(virtualFilename); err != nil {
 		return errors.Wrapf(err, "cannot delete '%s'", virtualFilename)
+	}
+	return nil
+
+}
+
+func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error {
+	virtualFilenameSource = filepath.ToSlash(virtualFilenameSource)
+	object.logger.Debugf("removing '%s' [%s]", virtualFilenameSource, digest)
+
+	if !object.i.IsWriteable() {
+		return errors.New("object not writeable")
+	}
+
+	// if file is not there we do nothing
+	dup, err := object.i.AlreadyExists(virtualFilenameSource, digest)
+	if err != nil {
+		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilenameSource, digest)
+	}
+	if !dup {
+		object.logger.Debugf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest)
+		return nil
+	}
+	if err := object.i.RenameFile(virtualFilenameSource, virtualFilenameDest); err != nil {
+		return errors.Wrapf(err, "cannot delete '%s'", virtualFilenameSource)
 	}
 	return nil
 
@@ -1363,16 +1464,16 @@ func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	return allDigestAlgs, nil
 }
 
-func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool) error {
+func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool, area string) error {
 	var manifest strings.Builder
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()
 	if err := object.i.IterateStateFiles(version, func(internals, externals []string, digest string) error {
 		for _, external := range externals {
-			external, err = object.extensionManager.BuildObjectExtractPath(object, external, "")
+			external, err = object.extensionManager.BuildObjectExtractPath(object, external, area)
 			if err != nil {
 				errCause := errors.Cause(err)
-				if errCause == ExtensionObjectExtractPathWrongAreaError {
+				if errors.Is(errCause, ExtensionObjectExtractPathWrongAreaError) {
 					return nil
 				}
 				return errors.Wrapf(err, "cannot map path '%s'", external)

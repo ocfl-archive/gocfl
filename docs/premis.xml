@@ -1,0 +1,733 @@
+<premis xmlns="http://www.loc.gov/premis/v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/premis/v3&#xA;schemas/premis.xsd&#xA;http://www.w3.org/1999/xlink&#xA;schemas/xlink.xsd" xmlns:xlink="http://www.w3.org/1999/xlink" version="3.0">
+  <object xsi:type="file" xmlID="uuid-39b61790-3269-4d34-81c0-43180c62f2f0">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-39b61790-3269-4d34-81c0-43180c62f2f0</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>6f6a6418e72610c0021412627ac89a5d1acb3c90a6fdef7d8c408c96bdbaa2f528b307f99fb72dd83458d796a10601ce012d7749d4b4493c163cd09ec5ce9b89</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>2ecbccede07a979200f155b9e1ceb1a5</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>936b8d593f88f09abb9f42ba6a1b9869e8fc076defbd5479ad558311c4872c0c</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>8254f2998b55824d6c614cf66fa854b11e4fd50c</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>171</size>
+      <format>
+        <formatDesignation>
+          <formatName>text/plain; charset=ISO-8859-1</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>Markdown</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/1149</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match md</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/README.md</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/README.md</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-c1723658-408b-4ba6-9de6-62a3abbeff52">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-c1723658-408b-4ba6-9de6-62a3abbeff52</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>c01998516db0d82750fd76a3ad0c36a1aa260aa047dcdade3259424d4332f19cca176a19cded59b6a19942f090b4f077ed645bc66a0c73368c5d2ef799105bb9</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>6befa853d5762985a3c23f40400a9b828fbf9b18e330c41808d072b0ed0a8d76</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>13faaf9b22ca46d2da642618cdd917593ccf18a5</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>a3433930b34a6f8e9df86809816183fa</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>7193</size>
+      <format>
+        <formatDesignation>
+          <formatName>application/xml</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>XML Schema Definition</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>x-fmt/280</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match xsd</formatNote>
+        <formatNote>Basis: byte match at [[0 19] [7178 13]]</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/metadata/schemas/MARC21slim.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>metadata/schemas/MARC21slim.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-f21db3a8-6f74-4883-b168-f572c429161f">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-f21db3a8-6f74-4883-b168-f572c429161f</objectIdentifierValue>
+    </objectIdentifier>
+    <significantProperties>
+      <significantPropertiesType>width</significantPropertiesType>
+      <significantPropertiesValue>640</significantPropertiesValue>
+    </significantProperties>
+    <significantProperties>
+      <significantPropertiesType>height</significantPropertiesType>
+      <significantPropertiesValue>426</significantPropertiesValue>
+    </significantProperties>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>513a24ad462336ecde15ddd1c50594ea98bcfd0c4d76af522743fe2f0da7d2d8e5e3deb1a52e8215c5e072e420cfa0facc3a87a782cbd9c1eb31a5ea3a659aba</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>468b31b42cfd9e8567c6b528c721a648</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>9a6ea40a7179d9a42d278c5f849c9fd040fae29509b51fe5723235501393cb91</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>bf58c8c6d3ccc5a4fd49daa7cf1955ef667fb0b9</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>534159</size>
+      <format>
+        <formatDesignation>
+          <formatName>video/x-mng</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>Multiple-image Network Graphics</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/528</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match mng</formatNote>
+        <formatNote>Basis: byte match at [[0 16] [534151 8]]</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/sample_640×426.mng</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/sample_640×426.mng/sample_640×426.mng</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-57b65118-8ae8-4544-8ffa-dbda29977633">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-57b65118-8ae8-4544-8ffa-dbda29977633</objectIdentifierValue>
+    </objectIdentifier>
+    <significantProperties>
+      <significantPropertiesType>width</significantPropertiesType>
+      <significantPropertiesValue>595</significantPropertiesValue>
+    </significantProperties>
+    <significantProperties>
+      <significantPropertiesType>height</significantPropertiesType>
+      <significantPropertiesValue>842</significantPropertiesValue>
+    </significantProperties>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>6c9fec902ab8ab76c4e8a7c1943d9b235f6d7f1232bb3ae5dfbf2e6c68e93054315647f1c257d401486b421c3eb7eeaecf27e0c4ec675cfe3f35a30bf82374e2</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>86462f2409d9bcd80a6300ec5017265543d65187</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>21c04277358d6c9946fbc65568087356</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>7652c7e041b9a41b2f60ea5fbadfa2ab5299433c37d82c891924b360e90c0eec</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>669241</size>
+      <format>
+        <formatDesignation>
+          <formatName>application/pdf</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>Acrobat PDF 1.4 - Portable Document Format</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/18</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match pdf</formatNote>
+        <formatNote>Basis: byte match at [[0 8] [669234 5]]</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/Modulhandbuch_MA_Gestaltung.pdf</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/Modulhandbuch_MA_Gestaltung.pdf/Modulhandbuch_MA_Gestaltung.pdf</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-33d28d29-fbb6-416c-97c2-94beddb59c8d">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-33d28d29-fbb6-416c-97c2-94beddb59c8d</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>8d3bcd70f291caa723de68c8fe7d6301e2f1f0a4395e558d977f14eb98cc8d6e486c6cbb3d3614f04894d0fc9f164aead167a552c7c1405452942717f24b6356</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>68db286ad33332ba002319b63abd43fa8ae94545f6f08cc70da727980809e77a</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>392f7fe93fb4ec62f6e1c2528f378c3fdbbc9fca</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>bd674ea39d80718f4736b9bdb7db1a38</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>4456</size>
+      <format>
+        <formatDesignation>
+          <formatName>application/vnd.oasis.opendocument.text</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>OpenDocument Text</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/1756</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match odt</formatNote>
+        <formatNote>Basis: container name META-INF/manifest.xml with byte match at 188, 60; name content.xml with byte match at [[58 23] [1517 20]]</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/test=u0020-=u0020Kopie.odt</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/test.odt</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/test - Kopie.odt</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-87de77e5-93e9-4eb3-8f65-25519c1ca8e2">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-87de77e5-93e9-4eb3-8f65-25519c1ca8e2</objectIdentifierValue>
+    </objectIdentifier>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>8d3bcd70f291caa723de68c8fe7d6301e2f1f0a4395e558d977f14eb98cc8d6e486c6cbb3d3614f04894d0fc9f164aead167a552c7c1405452942717f24b6356</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>68db286ad33332ba002319b63abd43fa8ae94545f6f08cc70da727980809e77a</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>392f7fe93fb4ec62f6e1c2528f378c3fdbbc9fca</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>bd674ea39d80718f4736b9bdb7db1a38</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>4456</size>
+      <format>
+        <formatDesignation>
+          <formatName>application/vnd.oasis.opendocument.text</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>OpenDocument Text</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/1756</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match odt</formatNote>
+        <formatNote>Basis: container name META-INF/manifest.xml with byte match at 188, 60; name content.xml with byte match at [[58 23] [1517 20]]</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/test=u0020-=u0020Kopie.odt</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/test.odt</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/test.odt</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-76ec61a5-7d32-4436-9e49-773863947f14">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-76ec61a5-7d32-4436-9e49-773863947f14</objectIdentifierValue>
+    </objectIdentifier>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/metadata/schemas/xlink.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>metadata/schemas/xlink.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-eb8dd254-b01e-4e60-bdba-14d9d17d25d6">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-eb8dd254-b01e-4e60-bdba-14d9d17d25d6</objectIdentifierValue>
+    </objectIdentifier>
+    <significantProperties>
+      <significantPropertiesType>width</significantPropertiesType>
+      <significantPropertiesValue>640</significantPropertiesValue>
+    </significantProperties>
+    <significantProperties>
+      <significantPropertiesType>height</significantPropertiesType>
+      <significantPropertiesValue>426</significantPropertiesValue>
+    </significantProperties>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>e2346bffdd0d99580eb1a5253850841eb5bf0d361758c66da3979f30507aff3a3ac398c9596515a750146d5893b9e9ae1cb34a4f1fe7beae571c1348e713e41a</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>60bd8827b0a85f0011233e66024cf9e04e871f4fb32b5bd415a18be560692ddb</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>edcc0d541cdcdf0ac7265dd753de528a892c9ec9</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>b4bb7298f945ead18a4dd8651691ea00</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>534319</size>
+      <format>
+        <formatDesignation>
+          <formatName>image/png</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>Portable Network Graphics</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/11</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match png</formatNote>
+        <formatNote>Basis: byte match at [[0 16] [534307 12]]</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v2/content/data/sample_640×426.mng/v2.sample_640×426.mng.png</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/sample_640×426.mng/v2.sample_640×426.mng.png</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-7cdd0db2-a4c2-4172-acbe-cbab3bb66cdc">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-7cdd0db2-a4c2-4172-acbe-cbab3bb66cdc</objectIdentifierValue>
+    </objectIdentifier>
+    <significantProperties>
+      <significantPropertiesType>width</significantPropertiesType>
+      <significantPropertiesValue>3008</significantPropertiesValue>
+    </significantProperties>
+    <significantProperties>
+      <significantPropertiesType>height</significantPropertiesType>
+      <significantPropertiesValue>2000</significantPropertiesValue>
+    </significantProperties>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>77b918ce6a21852e49c47ed01409b3ff53362f4a06f2e771583a86111faa2403ba694945697a9625cbc03fc2fde41e7758003d7677d591b566e4bf95cae7918c</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>4e6c79b5297f7484dceb8888519e46a0fad9241bc983ca204678a36b03646bff</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>b0c432771dfaab94671554c2db11a8e9d4736456</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>35400818519f0c6ff61ad8fc320faf6f</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>759114</size>
+      <format>
+        <formatDesignation>
+          <formatName>image/jpeg</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>Exchangeable Image File Format (Compressed)</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/645</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match jpg</formatNote>
+        <formatNote>Basis: byte match at [[0 16] [278 12] [759112 2]] (signature 1/2)</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/data/DSC_0111.JPG</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/DSC_0111.JPG</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-82b38065-c67d-4676-ad94-0a48b65a8812">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-82b38065-c67d-4676-ad94-0a48b65a8812</objectIdentifierValue>
+    </objectIdentifier>
+    <significantProperties>
+      <significantPropertiesType>width</significantPropertiesType>
+      <significantPropertiesValue>595</significantPropertiesValue>
+    </significantProperties>
+    <significantProperties>
+      <significantPropertiesType>height</significantPropertiesType>
+      <significantPropertiesValue>842</significantPropertiesValue>
+    </significantProperties>
+    <objectCharacteristics>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha512">SHA-512</messageDigestAlgorithm>
+        <messageDigest>47d69b29c84181b4d62ba042c40c016793a82de2201a5bc083be81ae62f7189d86b26801617f201e7f726cd2f96ebada3435af095a7d993c9418b42a3971bcc8</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha1">SHA-1</messageDigestAlgorithm>
+        <messageDigest>3f049bf700327b4c85de25dd16baa23f3f3fcfec</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/md5">MD5</messageDigestAlgorithm>
+        <messageDigest>69414d1bc73c12ee7447f792bf25e767</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <fixity>
+        <messageDigestAlgorithm authority="cryptographicHashFunctions" authorityURI="http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions" valueURI="https://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/sha256">SHA-256</messageDigestAlgorithm>
+        <messageDigest>58364f7b955a97a3cc4c076207c44971b48fc3e8ad24fe2f87f4f13d059dc842</messageDigest>
+        <messageDigestOriginator>gocfl v2.0-beta.2</messageDigestOriginator>
+      </fixity>
+      <size>362900</size>
+      <format>
+        <formatDesignation>
+          <formatName>application/pdf</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatNote>IANA MIME-type</formatNote>
+      </format>
+      <format>
+        <formatDesignation>
+          <formatName>Acrobat PDF/A - Portable Document Format</formatName>
+          <formatVersion></formatVersion>
+        </formatDesignation>
+        <formatRegistry>
+          <formatRegistryName>PRONOM</formatRegistryName>
+          <formatRegistryKey>fmt/477</formatRegistryKey>
+          <formatRegistryRole authority="http://id.loc.gov/vocabulary/preservation/formatRegistryRole" valueURI="http://id.loc.gov/vocabulary/preservation/formatRegistryRole/spe">specification</formatRegistryRole>
+        </formatRegistry>
+        <formatNote>siegfried</formatNote>
+        <formatNote>Basis: extension match pdf</formatNote>
+        <formatNote>Basis: byte match at [[0 8] [356851 44] [356898 38]] (signature 1/2)</formatNote>
+      </format>
+    </objectCharacteristics>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v2/content/data/Modulhandbuch_MA_Gestaltung.pdf/v2.Modulhandbuch_MA_Gestaltung.pdf</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>data/Modulhandbuch_MA_Gestaltung.pdf/v2.Modulhandbuch_MA_Gestaltung.pdf</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-ad8e54ad-2913-41ae-8f6e-6a334455ff14">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-ad8e54ad-2913-41ae-8f6e-6a334455ff14</objectIdentifierValue>
+    </objectIdentifier>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/metadata/schemas/mets.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>metadata/schemas/mets.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <object xsi:type="file" xmlID="uuid-89fa17bc-cec4-4975-bf3a-3f501da51e12">
+    <objectIdentifier>
+      <objectIdentifierType>uuid</objectIdentifierType>
+      <objectIdentifierValue>uuid-89fa17bc-cec4-4975-bf3a-3f501da51e12</objectIdentifierValue>
+    </objectIdentifier>
+    <storage>
+      <contentLocation>
+        <contentLocationType>internal</contentLocationType>
+        <contentLocationValue>v1/content/metadata/schemas/premis.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>OCFL Object Root</storageMedium>
+    </storage>
+    <storage>
+      <contentLocation>
+        <contentLocationType>external</contentLocationType>
+        <contentLocationValue>metadata/schemas/premis.xsd</contentLocationValue>
+      </contentLocation>
+      <storageMedium>extracted OCFL</storageMedium>
+    </storage>
+  </object>
+  <event>
+    <eventIdentifier>
+      <eventIdentifierType>local</eventIdentifierType>
+      <eventIdentifierValue>Image#01</eventIdentifierValue>
+    </eventIdentifier>
+    <eventType>MIGRATION</eventType>
+    <eventDateTime>2023-10-20T19:05:49+02:00</eventDateTime>
+    <eventOutcomeInformation>
+      <eventOutcome>success</eventOutcome>
+    </eventOutcomeInformation>
+    <linkingObjectIdentifier>
+      <linkingObjectIdentifierType>uuid</linkingObjectIdentifierType>
+      <linkingObjectIdentifierValue>uuid-eb8dd254-b01e-4e60-bdba-14d9d17d25d6</linkingObjectIdentifierValue>
+      <linkingObjectRole>TARGET</linkingObjectRole>
+    </linkingObjectIdentifier>
+    <linkingObjectIdentifier>
+      <linkingObjectIdentifierType>uuid</linkingObjectIdentifierType>
+      <linkingObjectIdentifierValue>uuid-f21db3a8-6f74-4883-b168-f572c429161f</linkingObjectIdentifierValue>
+      <linkingObjectRole>SOURCE</linkingObjectRole>
+    </linkingObjectIdentifier>
+  </event>
+  <event>
+    <eventIdentifier>
+      <eventIdentifierType>local</eventIdentifierType>
+      <eventIdentifierValue>PDFA#01</eventIdentifierValue>
+    </eventIdentifier>
+    <eventType>MIGRATION</eventType>
+    <eventDateTime>2023-10-20T19:05:49+02:00</eventDateTime>
+    <eventOutcomeInformation>
+      <eventOutcome>success</eventOutcome>
+    </eventOutcomeInformation>
+    <linkingObjectIdentifier>
+      <linkingObjectIdentifierType>uuid</linkingObjectIdentifierType>
+      <linkingObjectIdentifierValue>uuid-82b38065-c67d-4676-ad94-0a48b65a8812</linkingObjectIdentifierValue>
+      <linkingObjectRole>TARGET</linkingObjectRole>
+    </linkingObjectIdentifier>
+    <linkingObjectIdentifier>
+      <linkingObjectIdentifierType>uuid</linkingObjectIdentifierType>
+      <linkingObjectIdentifierValue>uuid-57b65118-8ae8-4544-8ffa-dbda29977633</linkingObjectIdentifierValue>
+      <linkingObjectRole>SOURCE</linkingObjectRole>
+    </linkingObjectIdentifier>
+  </event>
+</premis>

@@ -27,6 +27,7 @@ func initExtract() {
 	extractCmd.Flags().StringP("object-id", "i", "", "object id to extract")
 	extractCmd.Flags().Bool("with-manifest", false, "generate manifest file in object extraction folder")
 	extractCmd.Flags().String("version", "", "version to extract")
+	extractCmd.Flags().String("area", "content", "data area to extract")
 }
 func doExtractConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "object-path"); str != "" {
@@ -40,6 +41,9 @@ func doExtractConf(cmd *cobra.Command) {
 	}
 	if str := getFlagString(cmd, "version"); str != "" {
 		conf.Extract.Version = str
+	}
+	if str := getFlagString(cmd, "area"); str != "" {
+		conf.Extract.Area = str
 	}
 	if conf.Extract.Version == "" {
 		conf.Extract.Version = "latest"
@@ -122,7 +126,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := storageRoot.Extract(destFS, oPath, oID, conf.Extract.Version, conf.Extract.Manifest); err != nil {
+	if err := storageRoot.Extract(destFS, oPath, oID, conf.Extract.Version, conf.Extract.Manifest, conf.Extract.Area); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		daLogger.Errorf("cannot extract storage root: %v\n", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
