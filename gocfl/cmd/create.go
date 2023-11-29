@@ -30,10 +30,10 @@ var createCmd = &cobra.Command{
 
 // initCreate initializes the gocfl create command
 func initCreate() {
-
 	createCmd.Flags().String("default-storageroot-extensions", "", "folder with initial extension configurations for new OCFL Storage Root")
 	createCmd.Flags().String("ocfl-version", "1.1", "ocfl version for new storage root")
 	createCmd.Flags().StringVarP(&flagObjectID, "object-id", "i", "", "object id to update (required)")
+	createCmd.MarkFlagRequired("object-id")
 	createCmd.Flags().String("default-object-extensions", "", "folder with initial extension configurations for new OCFL objects")
 	createCmd.Flags().StringP("message", "m", "", "message for new object version (required)")
 	createCmd.Flags().StringP("user-name", "u", "", "user name for new object version (required)")
@@ -54,6 +54,12 @@ func initCreate() {
 // initCreate executes the gocfl create command
 func doCreate(cmd *cobra.Command, args []string) {
 	var err error
+
+	if err := cmd.ValidateRequiredFlags(); err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+
 	ocflPath := filepath.ToSlash(args[0])
 	srcPath := filepath.ToSlash(args[1])
 

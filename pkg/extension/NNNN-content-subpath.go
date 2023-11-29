@@ -121,6 +121,9 @@ func (sl *ContentSubPath) WriteConfig() error {
 
 func (sl *ContentSubPath) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
 	if area == "" {
+		area = sl.area
+	}
+	if area == "full" {
 		return originalPath, nil
 	}
 	subpath, ok := sl.Paths[area]
@@ -149,7 +152,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 
 	//buf := bytes.NewBuffer([]byte(readme.String()))
 	//if err := object.AddReader(io.NopCloser(buf), []string{"README.md"}, "", false, false); err != nil {
-	if err := object.AddData([]byte(readme.String()), "README.md", true, "", false, false); err != nil {
+	if err := object.AddData([]byte(readme.String()), "README.md", true, "full", false, false); err != nil {
 		return errors.Wrap(err, "cannot write 'README.md'")
 	}
 	return nil

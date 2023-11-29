@@ -5,7 +5,7 @@
 # NOTICE = 3
 # INFO = 4
 # DEBUG = 5
-LogLevel="WARNING"
+LogLevel="ERROR"
 # --log-file
 #logFile="C:/temp/gocfl.log"
 
@@ -22,15 +22,15 @@ LogLevel="WARNING"
 
 [AES]
 Enable=false
-#KeepassFile="c:/temp/test.kdbx"
-#KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
-#KeepassKey="%%GOCFL_KEEPASS_KEY%%"
+KeepassFile="c:/temp/test.kdbx"
+KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
+KeepassKey="%%GOCFL_KEEPASS_KEY%%"
 
 [Init]
 # --ocfl-version
 OCFLVersion="1.1"
 # --default-storageroot-extensions
-StorageRootExtensions="./data/defaultextensions/storageroot"
+#StorageRootExtensions="./data/defaultextensions/storageroot"
 # --digest
 Digest="sha512"
 
@@ -42,17 +42,29 @@ Digest="sha512"
 # --fixity
 Fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
-ObjectExtensions="./data/defaultextensions/object"
+#ObjectExtensions="./data/fullextensions/object"
 
 DefaultArea="content"
 
 [Add.User]
 # --user-name
-Name="John Doe"
+Name="unknown user"
 # --user-address
-Address="http://inter.net"
+Address="https://github.com/je4/gocfl"
 
-# global config for all indexer operations
+#
+# Extension parameter
+#
+[Extension]
+[Extension.NNNN-metafile]
+Source=""
+
+[Extension.NNNN-mets]
+# --ext-NNNN-mets-descriptive-metadata
+descriptive-metadata="other:metadata:info.json"
+#
+# Indexer
+#
 [Indexer]
 Enabled=true
 # Enable this, if there are problem detecting length of audio files with ffmpeg
@@ -60,7 +72,7 @@ LocalCache=false
 
 [Indexer.Checksum]
 Enabled=true
-Digest=[]
+Digest=["sha512"]
 
 [Indexer.Siegfried]
 Enabled=true
@@ -129,7 +141,7 @@ Regexp = "^.+/x-.+"
 Weight = 80
 
 [Indexer.FFMPEG]
-ffprobe = "ffprobe.exe"
+ffprobe = "C:/Users/micro/Downloads/ffmpeg-5.1.2-full_build/bin/ffprobe.exe"
 wsl = false  # true, if executable is within linux subsystem on windows
 timeout = "25s"
 online = true
@@ -151,8 +163,8 @@ format = "mov,mp4,m4a,3gp,3g2,mj2"
 mime = "video/mp4"
 
 [Indexer.ImageMagick]
-identify = "identify"
-convert = "convert"
+identify = "C:/Program Files/ImageMagick-7.1.0-Q16/identify.exe"
+convert = "C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe"
 wsl = false  # true, if executable is within linux subsystem on windows
 timeout = "480s"
 online = true
@@ -170,3 +182,139 @@ regexpMimeMetaNot = "^(image|video|audio)/.*$"
 online = true
 enabled = false
 
+#
+# Thumbnail
+#
+[Thumbnail]
+Enable=false
+Background="none"
+
+[Thumbnail.Function.CR2]
+ID = "CR2#01"
+Title = "Thumbnail from Canon CR2"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Thumbnail.Function.Images]
+ID = "Image#01"
+Title = "Thumbnail from Image"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Mime = ["image/.+"]
+
+[Thumbnail.Function.Audio]
+ID = "Audio#01"
+Title = "Spectrogram from Audio"
+Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Mime = ["audio/.+"]
+
+[Thumbnail.Function.PDF]
+ID = "PDF#01"
+Title = "Thumbnail from Image"
+Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/pdf2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = ["application/pdf"]
+
+[Thumbnail.Function.Video]
+ID = "Video#01"
+Title = "Thumbnail from Video"
+Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/video2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = ["video/.+"]
+
+#
+# Migration
+#
+[Migration]
+# --with-migration
+Enable=false
+
+[Migration.Function.CR2]
+ID = "CR2#01"
+Title = "Convert Canon CR2 to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' '{destination}' "
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.png"
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Migration.Function.Image]
+ID = "Image#01"
+Title = "Convert Image to PNG"
+Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' '{destination}' "
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.png"
+Timeout = "2m"
+Pronoms = ["fmt/202","fmt/436","fmt/437","x-fmt/367","fmt/528","fmt/662", "fmt/1101"]
+
+[Migration.Function.PDFA]
+ID = "PDFA#01"
+Title = "Convert Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}"
+Timeout = "2m"
+Pronoms = ["fmt/14","fmt/15","fmt/16","fmt/17","fmt/18","fmt/19","fmt/276","fmt/95","fmt/354","fmt/493","fmt/144","fmt/145","fmt/157","fmt/146","fmt/147","fmt/158","fmt/148","fmt/488","fmt/489","fmt/490","fmt/492","fmt/491","fmt/1129","fmt/1451"]
+# "fmt/14": Acrobat PDF 1.0 - Portable Document Format
+# "fmt/15": Acrobat PDF 1.1 - Portable Document Format
+# "fmt/16": Acrobat PDF 1.2 - Portable Document Format
+# "fmt/17": Acrobat PDF 1.3 - Portable Document Format
+# "fmt/18": Acrobat PDF 1.4 - Portable Document Format
+# "fmt/19": Acrobat PDF 1.5 - Portable Document Format
+# "fmt/20": Acrobat PDF 1.6 - Portable Document Format
+# "fmt/276": Acrobat PDF 1.7 - Portable Document Format
+# "fmt/95": Acrobat PDF/A - Portable Document Format	1a
+# "fmt/354": Acrobat PDF/A - Portable Document Format	1b
+# "fmt/476": Acrobat PDF/A - Portable Document Format	2a
+# "fmt/477": Acrobat PDF/A - Portable Document Format	2b
+# "fmt/478": Acrobat PDF/A - Portable Document Format	2u
+# "fmt/479": Acrobat PDF/A - Portable Document Format	3a
+# "fmt/480": Acrobat PDF/A - Portable Document Format	3b
+# "fmt/481": Acrobat PDF/A - Portable Document Format	3u
+# "fmt/493": Acrobat PDF/E - Portable Document Format for Engineering PDF/E-1
+# "fmt/144": Acrobat PDF/X - Portable Document Format - Exchange 1:1999
+# "fmt/145": Acrobat PDF/X - Portable Document Format - Exchange 2:2001
+# "fmt/157": Acrobat PDF/X - Portable Document Format - Exchange 1a:2001
+# "fmt/146": Acrobat PDF/X - Portable Document Format - Exchange 1a:2003
+# "fmt/147": Acrobat PDF/X - Portable Document Format - Exchange 2:2002
+# "fmt/158": Acrobat PDF/X - Portable Document Format - Exchange 3:2002
+# "fmt/148": Acrobat PDF/X - Portable Document Format - Exchange 3:2003
+# "fmt/488": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4
+# "fmt/489": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-4p
+# "fmt/490": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5g
+# "fmt/492": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5n
+# "fmt/491": Acrobat PDF/X - Portable Document Format - Exchange PDF/X-5pg
+# "fmt/1129": PDF 2.0 - Portable Document Format - 2.0
+# "fmt/1451": PDF Portfolio - 1.7
+
+[Migration.Function.PDFA2]
+ID = "PDFA#02"
+Title = "Convert non Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.pdf"
+Timeout = "2m"
+Pronoms = ["fmt/20"]
+
+
+[Migration.Function.EPS]
+ID = "EPS#01"
+Title = "Convert non Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gswin64.exe -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "gswin64.exe -dBATCH -dNODISPLAY -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='C:/Users/micro/AppData/Local/Temp/' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+#Command = "powershell -command C:/daten/go/dev/gocfl/data/migration/pdfa.ps1"
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.pdf"
+Timeout = "2m"
+Pronoms = ["fmt/124"]
