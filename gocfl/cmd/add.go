@@ -98,6 +98,11 @@ func doAddConf(cmd *cobra.Command) {
 func doAdd(cmd *cobra.Command, args []string) {
 	var err error
 
+	if err := cmd.ValidateRequiredFlags(); err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+
 	ocflPath := filepath.ToSlash(args[0])
 	srcPath := filepath.ToSlash(args[1])
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, conf.LogLevel) {

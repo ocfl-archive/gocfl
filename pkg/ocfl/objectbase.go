@@ -769,7 +769,7 @@ func (object *ObjectBase) BuildNames(files []string, area string) (*NamesStruct,
 	}
 	result.InternalPath, err = object.extensionManager.BuildObjectManifestPath(object, files[0], area)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", files[0])
+		return nil, errors.Wrapf(err, "cannot create manifest path for '%s'", files[0])
 	}
 	result.ManifestPath = object.i.BuildManifestName(result.InternalPath)
 	if err != nil {
@@ -824,6 +824,10 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 	var digest string
 
 	names, err := object.BuildNames([]string{path}, area)
+	if err != nil {
+		return errors.Wrapf(err, "cannot names for '%s'", path)
+
+	}
 
 	object.logger.Infof("adding file %s:%s", area, path)
 
