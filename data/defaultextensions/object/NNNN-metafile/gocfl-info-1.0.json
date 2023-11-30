@@ -23,6 +23,11 @@
           "title": "organisation name",
           "description": "name of organisation responsible for the object"
         },
+        "organisation_address": {
+          "type": "string",
+          "title": "address",
+          "description": "adress of person ingesting this archive (email"
+        },
         "collection_id": {
           "type": "string",
           "pattern": "[a-zA-Z0-9/._:-]+",
@@ -128,6 +133,7 @@
         "signature",
         "organisation_id",
         "organisation",
+        "organisation_address",
         "title",
         "user",
         "address",

@@ -1,5 +1,5 @@
-config/* linguist-vendored
-data/* linguist-vendored
-docs/* linguist-vendored
-fixtures/* linguist-vendored
+config/* linguist-vendored=true
+data/* linguist-vendored=true
+docs/* linguist-vendored=true
+fixtures/* linguist-vendored=true
 *.go linguist-language=Go
