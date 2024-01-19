@@ -48,9 +48,9 @@ DefaultArea="content"
 
 [Add.User]
 # --user-name
-Name="Jürgen Enge"
+Name="User OCFL"
 # --user-address
-Address="mailto:juergen.enge@unibas.ch"
+Address="mailto:ocfl.user@unibas.ch"
 
 #
 # Extension parameter

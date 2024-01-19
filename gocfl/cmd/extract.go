@@ -9,7 +9,6 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"io/fs"
-	"path/filepath"
 )
 
 var extractCmd = &cobra.Command{
@@ -56,8 +55,16 @@ func doExtract(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
 
-	ocflPath := filepath.ToSlash(args[0])
-	destPath := filepath.ToSlash(args[1])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+	destPath, err := ocfl.Fullpath(args[1])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
 
 	doExtractConf(cmd)
 

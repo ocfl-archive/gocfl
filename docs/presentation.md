@@ -2,42 +2,43 @@
 
 ## Create test dataset
 ```bash
-../build/gocfl_windows_amd64.exe create c:/temp/test/ocfl_test0.zip c:/temp/test/data/ --object-id "id:abc_123" -m "Initial Commit" -u "Juergen Enge" -a "mailto:juergen@info-age.net"
+gocfl create c:/temp/ocfl/ocfl_test0.zip c:/temp/ocfl/sip/payload/ --object-id "id:abc_123" -m "Initial Commit" -u "Juergen Enge" -a "mailto:juergen@info-age.net"
 ```
 
 ## Validate it
 ```bash
-../build/gocfl_windows_amd64.exe validate c:/temp/test/ocfl_test0.zip 
+gocfl validate c:/temp/ocfl/ocfl_test0.zip 
 ```
 
 ## Extract Metadata
 ```bash
-../build/gocfl_windows_amd64.exe extractmeta c:/temp/test/ocfl_test0.zip --output c:/temp/test/ocfl_test0.json
+gocfl extractmeta c:/temp/ocfl/ocfl_test0.zip --output c:/temp/ocfl/ocfl_test0.json
 ```
 
 ## Look inside
 ```bash
-../build/gocfl_windows_amd64.exe display c:/temp/test/ocfl_test0.zip 
+gocfl display c:/temp/ocfl/ocfl_test0.zip 
 ```
 
 # Extended (Extension) Version 
 
 ## Create test dataset
 ```bash
-../build/gocfl_windows_amd64.exe create c:/temp/test/ocfl_test1.zip --config ../config/gocfl.toml c:/temp/test/data/ --object-id "id:abc_123" -m "Initial Commit" -u "Juergen Enge" -a "mailto:juergen@info-age.net"
+cd /temp/ocfl
+gocfl create c:/temp/ocfl/ocfl_test1.zip c:/temp/ocfl/sip/payload metadata:c:/temp/ocfl/sip/meta --config c:/temp/ocfl/gocfl2.toml --ext-NNNN-metafile-source file://C:/temp/ocfl/sip/info.json --object-id "id:abc_123" -m "Initial Commit" -u "Juergen Enge" -a "mailto:juergen@info-age.net"
 ```
 
 ## Validate it
 ```bash
-../build/gocfl_windows_amd64.exe validate c:/temp/test/ocfl_test1.zip --config ../config/gocfl.toml 
+gocfl validate c:/temp/ocfl/ocfl_test1.zip --config c:/temp/ocfl/gocfl2.toml 
 ```
 
 ## Extract Metadata
 ```bash
-../build/gocfl_windows_amd64.exe extractmeta c:/temp/test/ocfl_test1.zip --output c:/temp/test/ocfl_test1.json
+gocfl extractmeta c:/temp/ocfl/ocfl_test1.zip --output c:/temp/ocfl/ocfl_test1.json
 ```
 
 ## Look inside
 ```bash
-../build/gocfl_windows_amd64.exe display c:/temp/test/ocfl_test1.zip --config ../config/gocfl.toml 
+gocfl display c:/temp/ocfl/ocfl_test1.zip --config c:/temp/ocfl/gocfl2.toml 
 ```

@@ -139,6 +139,12 @@ func initConfig() {
 
 	// load config file
 	if persistentFlagConfigFile != "" {
+		var err error
+		persistentFlagConfigFile, err = ocfl.Fullpath(persistentFlagConfigFile)
+		if err != nil {
+			cobra.CheckErr(errors.Errorf("cannot convert '%s' to absolute path: %v", persistentFlagConfigFile, err))
+			return
+		}
 		log.Infof("loading configuration from %s", persistentFlagLogfile)
 		data, err := os.ReadFile(persistentFlagConfigFile)
 		if err != nil {

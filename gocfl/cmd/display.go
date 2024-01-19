@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -65,7 +64,11 @@ func doDisplayConf(cmd *cobra.Command) {
 }
 
 func doDisplay(cmd *cobra.Command, args []string) {
-	ocflPath := filepath.ToSlash(args[0])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()
