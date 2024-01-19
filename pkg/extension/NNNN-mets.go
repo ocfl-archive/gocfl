@@ -192,6 +192,7 @@ func checksumTypeToMets(t string) string {
 	}
 }
 
+/*
 type metaFileBase struct {
 	Address             string   `json:"address,omitempty"`
 	AlternativeTitles   []string `json:"alternative_titles,omitempty"`
@@ -214,6 +215,8 @@ type metaFileBase struct {
 	User                string   `json:"user,omitempty"`
 }
 
+*/
+
 func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	inventory := object.GetInventory()
 	metadata, err := object.GetMetadata()
@@ -222,12 +225,17 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	}
 
 	head := inventory.GetHead()
+	versions := inventory.GetVersions()
+	v, ok := versions[head]
+	if !ok {
+		return errors.Wrapf(err, "object has no version %s", head)
+	}
 
 	var contentSubPath = map[string]ContentSubPathEntry{}
-	var premisOrgAgentName string
-	var premisOrgAgentIdentifier string
-	var premisPersonAgentIdentifier string
-	var premisPersonAgentName string
+	var metafileOrgAgentName string
+	var metafileOrgAgentIdentifier string
+	var metafilePersonAgentIdentifier string
+	var metafilePersonAgentName string
 	if extensionMap, _ := metadata.Extension.(map[string]any); extensionMap != nil {
 		if contentSubPathAny, ok := extensionMap[ContentSubPathName]; ok {
 			contentSubPath, _ = contentSubPathAny.(map[string]ContentSubPathEntry)
@@ -235,16 +243,16 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if metaFileAny, ok := extensionMap[MetaFileName]; ok {
 			if metaFile, ok := metaFileAny.(map[string]any); ok {
 				if str, ok := metaFile["organisation"]; ok {
-					premisOrgAgentName, _ = str.(string)
+					metafileOrgAgentName, _ = str.(string)
 				}
 				if str, ok := metaFile["organisation_address"]; ok {
-					premisOrgAgentIdentifier, _ = str.(string)
+					metafileOrgAgentIdentifier, _ = str.(string)
 				}
 				if str, ok := metaFile["address"]; ok {
-					premisPersonAgentIdentifier, _ = str.(string)
+					metafilePersonAgentIdentifier, _ = str.(string)
 				}
 				if str, ok := metaFile["user"]; ok {
-					premisPersonAgentName, _ = str.(string)
+					metafilePersonAgentName, _ = str.(string)
 				}
 			}
 		}
@@ -438,7 +446,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 								LinkAgentXmlIDAttr:          "",
 								SimpleLinkAttr:              "",
 								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
-								LinkingAgentIdentifierValue: premisOrgAgentIdentifier,
+								LinkingAgentIdentifierValue: metafileOrgAgentIdentifier,
 							},
 							&premis.LinkingAgentIdentifierComplexType{
 								XMLName:                     xml.Name{},
@@ -982,6 +990,13 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 	}
 
+	agentIdentifier := metafilePersonAgentIdentifier
+	agentName := metafilePersonAgentName
+	if agentName == "" {
+		agentName = v.User.Name.String()
+		agentIdentifier = v.User.Address.String()
+	}
+
 	premisStruct := &premis.PremisComplexType{
 		XMLName:           xml.Name{},
 		XMLNS:             "http://www.loc.gov/premis/v3",
@@ -1001,10 +1016,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						XMLName:              xml.Name{},
 						SimpleLinkAttr:       "",
 						AgentIdentifierType:  premis.NewStringPlusAuthority("organization", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/org.html"),
-						AgentIdentifierValue: premisOrgAgentIdentifier,
+						AgentIdentifierValue: metafileOrgAgentIdentifier,
 					}},
 				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(premisOrgAgentName, "", "", ""),
+					premis.NewStringPlusAuthority(metafileOrgAgentName, "", "", ""),
 				},
 			},
 			&premis.AgentComplexType{
@@ -1016,10 +1031,10 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						XMLName:              xml.Name{},
 						SimpleLinkAttr:       "",
 						AgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
-						AgentIdentifierValue: premisPersonAgentIdentifier,
+						AgentIdentifierValue: agentIdentifier,
 					}},
 				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(premisPersonAgentName, "", "", ""),
+					premis.NewStringPlusAuthority(agentName, "", "", ""),
 				},
 			},
 			&premis.AgentComplexType{
@@ -1104,12 +1119,6 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		}
 		amdSecs = append(amdSecs, sec)
-	}
-
-	versions := inventory.GetVersions()
-	v, ok := versions[head]
-	if !ok {
-		return errors.Wrapf(err, "object has no version %s", head)
 	}
 
 	structMapPhysicalId := uuid.New()
@@ -1207,6 +1216,12 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		structMapSemantical.Div.Div = append(structMapSemantical.Div.Div, div)
 	}
 	structMaps = append(structMaps, structMapSemantical)
+	archivistName := metafilePersonAgentName
+	archivistAddress := metafilePersonAgentIdentifier
+	if archivistName == "" {
+		archivistName = v.User.Name.String()
+		archivistAddress = v.User.Address.String()
+	}
 
 	m := &mets.Mets{
 		XMLNS:             "http://www.loc.gov/METS/",
@@ -1240,11 +1255,11 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					&mets.Agent{
 						XMLName:  xml.Name{},
 						ROLEAttr: "ARCHIVIST",
-						Name:     v.User.Name.String(),
+						Name:     archivistName,
 						Note: []*mets.Note{
 							&mets.Note{
 								XMLName: xml.Name{},
-								Value:   v.User.Address.String(),
+								Value:   archivistAddress,
 							},
 						},
 					},
