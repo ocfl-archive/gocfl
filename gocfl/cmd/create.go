@@ -13,7 +13,6 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"io/fs"
-	"path/filepath"
 	"strings"
 )
 
@@ -60,8 +59,16 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflPath := filepath.ToSlash(args[0])
-	srcPath := filepath.ToSlash(args[1])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+	srcPath, err := ocfl.Fullpath(args[1])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()
@@ -136,7 +143,12 @@ func doCreate(cmd *cobra.Command, args []string) {
 			daLogger.Errorf("no area given in areapath '%s'", args[i])
 			continue
 		}
-		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
+		path, err := ocfl.Fullpath(matches[2])
+		if err != nil {
+			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			daLogger.Panicf("cannot get fullpath for '%s': %v", matches[2], err)
+		}
+		areaPaths[matches[1]], err = fsFactory.Get(path)
 		if err != nil {
 			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			daLogger.Panicf("cannot get filesystem for '%s': %v", args[i], err)

@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"io/fs"
 	"os"
-	"path/filepath"
 )
 
 var updateCmd = &cobra.Command{
@@ -77,8 +76,16 @@ func doUpdateConf(cmd *cobra.Command) {
 func doUpdate(cmd *cobra.Command, args []string) {
 	var err error
 
-	ocflPath := filepath.ToSlash(args[0])
-	srcPath := filepath.ToSlash(args[1])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+	srcPath, err := ocfl.Fullpath(args[1])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()

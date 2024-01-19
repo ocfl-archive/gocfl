@@ -8,7 +8,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
-	"path/filepath"
 )
 
 var initCmd = &cobra.Command{
@@ -48,8 +47,11 @@ func doInitConf(cmd *cobra.Command) {
 }
 
 func doInit(cmd *cobra.Command, args []string) {
-	//ocflPath := filepath.ToSlash(filepath.Clean(args[0]))
-	ocflPath := filepath.ToSlash(args[0])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.LogLevel, LOGFORMAT)
 	defer lf.Close()

@@ -10,7 +10,6 @@ import (
 	lm "github.com/je4/utils/v2/pkg/logger"
 	"github.com/spf13/cobra"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -51,7 +50,11 @@ func doStatConf(cmd *cobra.Command) {
 }
 
 func doStat(cmd *cobra.Command, args []string) {
-	ocflPath := filepath.ToSlash(args[0])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
 
 	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
 	defer lf.Close()

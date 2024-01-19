@@ -16,7 +16,6 @@ import (
 	"golang.org/x/exp/slices"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -103,8 +102,17 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflPath := filepath.ToSlash(args[0])
-	srcPath := filepath.ToSlash(args[1])
+	ocflPath, err := ocfl.Fullpath(args[0])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+	srcPath, err := ocfl.Fullpath(args[1])
+	if err != nil {
+		cobra.CheckErr(err)
+		return
+	}
+
 	if !slices.Contains([]string{"DEBUG", "ERROR", "WARNING", "INFO", "CRITICAL"}, conf.LogLevel) {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid log level '%s' for flag 'log-level' or 'LogLevel' config file entry", persistentFlagLoglevel))
