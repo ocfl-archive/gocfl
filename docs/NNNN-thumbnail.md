@@ -39,6 +39,10 @@ the content.
     * **Description:** Thumbnail height
     * **Type:** integer
     * **Default:** 256
+* **Name:** `shortFilename`
+    * **Description:** instead of using the full checksum from manifest, use the SHA1-1 digest of the manifest checksum
+    * **Type:** boolean
+    * **Default:** false
 
 
 ## Procedure (tbd.)

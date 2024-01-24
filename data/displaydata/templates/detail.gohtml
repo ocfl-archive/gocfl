@@ -205,7 +205,7 @@
                     {{ end }}
                     <tr>
                         <td class="table-active text-end"><strong>Image</strong></td>
-                        <td><img src="../extension/NNNN-thumbnail/download/data/{{ substr 0 1 $status.Checksum }}/{{ substr 1 2 $status.Checksum }}/{{ $status.Checksum }}.{{ $status.Thumbnail.Ext }}" /></td>
+                        <td><img src="../extension/NNNN-thumbnail/download/{{ $status.Thumbnail.Filename }}" /></td>
                     </tr>
                     </tbody>
                 </table>
