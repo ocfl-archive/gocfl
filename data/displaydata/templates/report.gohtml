@@ -364,7 +364,7 @@
             <tr>
                 <td class="image">
                     {{if and $thumb (not $thumb.Error)}}
-                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="extension/NNNN-thumbnail/download/data/{{ substr 0 1 $cs }}/{{ substr 1 2 $cs }}/{{ $cs }}.{{ $thumb.Ext }}" />
+                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="extension/NNNN-thumbnail/download/{{ $thumb.Filename }}" />
                     {{else}}
                         <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=" style="width: 160px; height:160px;" />
                     {{end}}

@@ -21,7 +21,7 @@ LogLevel="DEBUG"
 #Region="%%GOCFL_S3_REGION%%"
 
 [AES]
-Enable=true
+Enable=false
 KeepassFile="c:/temp/test.kdbx"
 KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeepassKey="%%GOCFL_KEEPASS_KEY%%"

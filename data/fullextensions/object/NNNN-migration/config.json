@@ -2,7 +2,8 @@
   "extensionName": "NNNN-migration",
   "storageType": "area",
   "storageName": "metadata",
-  "compress": "gzip"
+  "compress": "gzip",
+  "shortName": true
 }
 
 

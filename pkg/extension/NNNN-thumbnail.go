@@ -3,6 +3,7 @@ package extension
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha1"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -29,7 +30,13 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
 
-	var config = &ThumbnailConfig{}
+	var config = &ThumbnailConfig{
+		ShortFilename: false,
+		Ext:           "png",
+		Width:         256,
+		Height:        256,
+		Compress:      "gzip",
+	}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
@@ -46,7 +53,7 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.
 	}
 	ext, err := NewThumbnail(config, thumbnail, logger)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
+		return nil, errors.Wrap(err, "cannot create new thumbnail")
 	}
 	return ext, nil
 }
@@ -69,10 +76,11 @@ func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger *log
 
 type ThumbnailConfig struct {
 	*ocfl.ExtensionConfig
-	Compress string
-	Ext      string
-	Width    uint64
-	Height   uint64
+	Compress      string `json:"compress"`
+	ShortFilename bool   `json:"shortFilename"`
+	Ext           string `json:"ext"`
+	Width         uint64 `json:"width"`
+	Height        uint64 `json:"height"`
 }
 
 type ThumbnailTarget struct {
@@ -83,9 +91,10 @@ type ThumbnailTarget struct {
 }
 
 type ThumbnailResult struct {
-	Ext   string `json:"ext"`
-	Error string `json:"error,omitempty"`
-	ID    string `json:"id"`
+	Ext      string `json:"ext"`
+	Error    string `json:"error,omitempty"`
+	ID       string `json:"id"`
+	Filename string `json:"filename,omitempty"`
 }
 
 type thumbnailLine struct {
@@ -241,7 +250,11 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 
-		targetFile := fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(cs)[0]), string([]rune(cs)[1]), cs, strings.ToLower(thumb.ThumbnailConfig.Ext))
+		var fname = cs
+		if thumb.ShortFilename {
+			fname = fmt.Sprintf("%x", sha1.Sum([]byte(cs)))
+		}
+		targetFile := fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(fname)[0]), string([]rune(fname)[1]), fname, strings.ToLower(thumb.ThumbnailConfig.Ext))
 
 		var file io.ReadCloser
 		var ext string
@@ -281,9 +294,10 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 				ml = &thumbnailLine{
 					Checksum: cs,
 					ThumbnailResult: ThumbnailResult{
-						Ext:   thumb.ThumbnailConfig.Ext,
-						Error: errStr,
-						ID:    thumbnailFunction.GetID(),
+						Filename: targetFile,
+						Ext:      thumb.ThumbnailConfig.Ext,
+						Error:    errStr,
+						ID:       thumbnailFunction.GetID(),
 					},
 				}
 
@@ -359,6 +373,8 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
 				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
 			}
+
+			// just to make sure, that we have a corresponding file in manifest
 			var digest string
 			for cs, _ := range manifest {
 				if cs == meta.Checksum {
@@ -368,6 +384,10 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 			}
 			if digest == "" {
 				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Checksum, object.GetID())
+			}
+			// old versions do not have a filename
+			if meta.Filename == "" {
+				meta.Filename = fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(meta.Checksum)[0]), string([]rune(meta.Checksum)[1]), meta.Checksum, strings.ToLower(thumb.ThumbnailConfig.Ext))
 			}
 			result[digest] = &meta.ThumbnailResult
 		}
