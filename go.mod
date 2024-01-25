@@ -16,10 +16,10 @@ require (
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.13.1
 	github.com/invopop/jsonschema v0.12.0
-	github.com/je4/filesystem/v2 v2.0.2
+	github.com/je4/filesystem/v2 v2.0.3
 	github.com/je4/indexer/v2 v2.0.5
 	github.com/je4/utils/v2 v2.0.18
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
