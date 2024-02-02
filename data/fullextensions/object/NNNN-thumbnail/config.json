@@ -3,7 +3,8 @@
   "compress": "gzip",
   "width": 256,
   "height": 256,
-  "shortFilename": true
+  "shortFilename": true,
+  "singleDirectory": true
 }
 
 
