@@ -39,10 +39,6 @@ the content.
     * **Description:** Thumbnail height
     * **Type:** integer
     * **Default:** 256
-* **Name:** `shortFilename`
-    * **Description:** instead of using the full checksum from manifest, use the SHA1-1 digest of the manifest checksum
-    * **Type:** boolean
-    * **Default:** false
 * **Name:** `singleDirectory`
     * **Description:** Write all thumbnails to a single directory. This is useful, if the number of thumbnails do not create problems with directory size.
     * **Type:** boolean

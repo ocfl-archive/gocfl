@@ -30,7 +30,6 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.
 	}
 
 	var config = &ThumbnailConfig{
-		ShortFilename:   false,
 		Ext:             "png",
 		Width:           256,
 		Height:          256,
