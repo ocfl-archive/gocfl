@@ -125,16 +125,26 @@ func (manager *ExtensionManager) Add(ext Extension) error {
 
 func (manager *ExtensionManager) SetFS(fsys fs.FS) {
 	for _, ext := range manager.extensions {
-		extFS, err := writefs.SubFSCreate(fsys, ext.GetName())
+		extFS, err := fs.Sub(fsys, ext.GetName())
 		if err != nil {
-			panic(err)
+			if errors.Is(err, fs.ErrNotExist) {
+				extFS, err = writefs.SubFSCreate(fsys, ext.GetName())
+			}
+			if err != nil {
+				panic(err)
+			}
 		}
 		ext.SetFS(extFS)
 	}
 	var err error
-	manager.fsys, err = writefs.SubFSCreate(fsys, "initial")
+	manager.fsys, err = fs.Sub(fsys, "initial")
 	if err != nil {
-		panic(err)
+		if errors.Is(err, fs.ErrNotExist) {
+			manager.fsys, err = writefs.SubFSCreate(fsys, "initial")
+		}
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
