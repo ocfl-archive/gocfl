@@ -54,6 +54,12 @@ func newStorageRoot(ctx context.Context, fsys fs.FS, version OCFLVersion, extens
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
+	case Version2_0:
+		sr, err := NewStorageRootV2_0(ctx, fsys, extensionFactory, logger)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return sr, nil
 	default:
 		return nil, errors.New(fmt.Sprintf("Storage Root Version %s not supported", version))
 	}
@@ -64,6 +70,8 @@ func ValidVersion(version OCFLVersion) bool {
 	case Version1_0:
 		return true
 	case Version1_1:
+		return true
+	case Version2_0:
 		return true
 	default:
 		return false

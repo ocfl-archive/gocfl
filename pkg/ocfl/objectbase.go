@@ -475,7 +475,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	}
 	object.extensionManager.Finalize()
 
-	subfs, err := fs.Sub(object.fsys, "extensions")
+	subfs, err := writefs.SubFSCreate(object.fsys, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}
@@ -590,23 +590,24 @@ func (object *ObjectBase) Close() error {
 	return nil
 }
 
-func (object *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string, echo bool) error {
+func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error) {
 	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	object.echo = echo
 
-	subfs, err := fs.Sub(object.fsys, "extensions")
+	subfs, err := writefs.SubFSCreate(object.fsys, "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
+		return nil, errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}
 	object.extensionManager.SetFS(subfs)
 
 	if err := object.i.NewVersion(msg, UserName, UserAddress); err != nil {
-		return errors.Wrap(err, "cannot create new object version")
+		return nil, errors.Wrap(err, "cannot create new object version")
 	}
 	if err := object.extensionManager.UpdateObjectBefore(object); err != nil {
-		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
+		return nil, errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
-	return nil
+	var versionFS fs.FS
+	return versionFS, nil
 }
 
 func (object *ObjectBase) EndUpdate() error {
@@ -639,7 +640,7 @@ func (object *ObjectBase) EndUpdate() error {
 	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
-		if err := object.StartUpdate("automated version", "gocfl", "https://github.com/je4/gocfl", false); err != nil {
+		if _, err := object.StartUpdate(nil, "automated version", "gocfl", "https://github.com/je4/gocfl", false); err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
 		if err := object.extensionManager.DoNewVersion(object); err != nil {
@@ -673,11 +674,11 @@ func (object *ObjectBase) EndArea() error {
 	return nil
 }
 
-func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool, area string) error {
+func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error {
 	object.logger.Debugf("walking '%v'", fsys)
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
-		if err := object.AddFile(fsys, path, checkDuplicate, area, false, info.IsDir()); err != nil {
+		if err := object.AddFile(fsys, versionFS, path, checkDuplicate, area, false, info.IsDir()); err != nil {
 			return errors.Wrapf(err, "cannot add file '%s'", path)
 		}
 		return nil
@@ -688,7 +689,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, checkDuplicate bool, area string
 	return nil
 }
 
-func (object *ObjectBase) addReader(r io.ReadCloser, names *NamesStruct, noExtensionHook bool) (string, error) {
+func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *NamesStruct, noExtensionHook bool) (string, error) {
 
 	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
 
@@ -798,7 +799,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 
 	var digest string
 	if !isDir {
-		digest, err = object.addReader(r, names, noExtensionHook)
+		digest, err = object.addReader(r, nil, names, noExtensionHook)
 		if err != nil {
 			return errors.Wrapf(err, "cannot add file '%s' to object", path)
 		}
@@ -880,7 +881,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 
 	var r = io.NopCloser(dataReader)
 	if !isDir {
-		digest, err = object.addReader(r, names, noExtensionHook)
+		digest, err = object.addReader(r, nil, names, noExtensionHook)
 		if err != nil {
 			return errors.Wrapf(err, "cannot add file '%s' to object", path)
 		}
@@ -895,7 +896,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 	return nil
 }
 
-func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
+func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
 	object.logger.Infof("adding file %s:%s", area, path)
 
 	path = filepath.ToSlash(path)
@@ -975,7 +976,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, path string, checkDuplicate bool, 
 			}
 		}
 
-		digest, err = object.addReader(file, names, noExtensionHook)
+		digest, err = object.addReader(file, versionFS, names, noExtensionHook)
 		if err != nil {
 			file.Close()
 			return errors.Wrapf(err, "cannot add file '%s' to object", path)

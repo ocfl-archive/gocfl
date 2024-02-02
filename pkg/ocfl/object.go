@@ -24,12 +24,12 @@ type Object interface {
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
 	Load() error
-	StartUpdate(msg string, UserName string, UserAddress string, echo bool) error
+	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
 	EndUpdate() error
 	BeginArea(area string)
 	EndArea() error
-	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
-	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
+	AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error
+	AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) error
 	DeleteFile(virtualFilename string, digest string) error
@@ -92,6 +92,12 @@ func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot
 	switch version {
 	case Version1_1:
 		o, err := newObjectV1_1(ctx, fsys, storageRoot, logger)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return o, nil
+	case Version2_0:
+		o, err := newObjectV2_0(ctx, fsys, storageRoot, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

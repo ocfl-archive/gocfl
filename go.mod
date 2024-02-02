@@ -16,10 +16,10 @@ require (
 	github.com/google/martian v2.1.0+incompatible
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.13.1
 	github.com/invopop/jsonschema v0.12.0
-	github.com/je4/filesystem/v2 v2.0.2
+	github.com/je4/filesystem/v2 v2.0.4
 	github.com/je4/indexer/v2 v2.0.5
 	github.com/je4/utils/v2 v2.0.18
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
@@ -32,8 +32,6 @@ require (
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/aead/argon2 v0.0.0-20180111183520-a87724528b07 // indirect
-	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/sonic v1.10.2 // indirect
@@ -60,11 +58,9 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/iancoleman/orderedmap v0.3.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d // indirect
-	github.com/je4/indexer v0.0.0-20230317101220-dbdc214894c4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect

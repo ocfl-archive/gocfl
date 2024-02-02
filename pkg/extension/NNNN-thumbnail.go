@@ -3,7 +3,6 @@ package extension
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha1"
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
@@ -31,11 +30,11 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.
 	}
 
 	var config = &ThumbnailConfig{
-		ShortFilename: false,
-		Ext:           "png",
-		Width:         256,
-		Height:        256,
-		Compress:      "gzip",
+		Ext:             "png",
+		Width:           256,
+		Height:          256,
+		Compress:        "gzip",
+		SingleDirectory: false,
 	}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
@@ -63,6 +62,7 @@ func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger *log
 		logger:          logger,
 		thumbnail:       mig,
 		buffer:          map[string]*bytes.Buffer{},
+		counter:         map[string]int64{},
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if config.ExtensionName != sl.GetName() {
@@ -76,11 +76,12 @@ func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger *log
 
 type ThumbnailConfig struct {
 	*ocfl.ExtensionConfig
-	Compress      string `json:"compress"`
-	ShortFilename bool   `json:"shortFilename"`
-	Ext           string `json:"ext"`
-	Width         uint64 `json:"width"`
-	Height        uint64 `json:"height"`
+	Compress        string `json:"compress"`
+	ShortFilename   bool   `json:"shortFilename"`
+	Ext             string `json:"ext"`
+	Width           uint64 `json:"width"`
+	Height          uint64 `json:"height"`
+	SingleDirectory bool   `json:"singleDirectory"`
 }
 
 type ThumbnailTarget struct {
@@ -120,6 +121,7 @@ type Thumbnail struct {
 	sourceFS    fs.FS
 	currentHead string
 	done        bool
+	counter     map[string]int64
 }
 
 func (thumb *Thumbnail) GetFS() fs.FS {
@@ -224,6 +226,10 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 		return errors.Errorf("inventory is nil")
 	}
 
+	if _, ok := thumb.counter[head]; !ok {
+		thumb.counter[head] = 0
+	}
+
 	// first get the metadata from the object
 	meta, err := object.GetMetadata()
 	if err != nil {
@@ -250,11 +256,13 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 
-		var fname = cs
-		if thumb.ShortFilename {
-			fname = fmt.Sprintf("%x", sha1.Sum([]byte(cs)))
+		var targetFile string
+		if thumb.SingleDirectory {
+			targetFile = fmt.Sprintf("data/%s/%05d.%s", head, thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
+		} else {
+			targetFile = fmt.Sprintf("data/%s/%s/%s/%05d.%s", head, string([]rune(cs)[0]), string([]rune(cs)[1]), thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
 		}
-		targetFile := fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(fname)[0]), string([]rune(fname)[1]), fname, strings.ToLower(thumb.ThumbnailConfig.Ext))
+		thumb.counter[head]++
 
 		var file io.ReadCloser
 		var ext string
@@ -286,28 +294,30 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 					// return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", thumb.sourceFS, external)
 				}
 				ext = filepath.Ext(external)
-				var ml *thumbnailLine
-				var errStr string
-				if err := thumb.DoThumbnail(object, thumbnailFunction, ext, targetFile, file); err != nil {
-					errStr = err.Error()
-				}
-				ml = &thumbnailLine{
-					Checksum: cs,
-					ThumbnailResult: ThumbnailResult{
-						Filename: targetFile,
-						Ext:      thumb.ThumbnailConfig.Ext,
-						Error:    errStr,
-						ID:       thumbnailFunction.GetID(),
-					},
-				}
+			}
+		}
+		if file != nil {
+			var ml *thumbnailLine
+			var errStr string
+			if err := thumb.DoThumbnail(object, thumbnailFunction, ext, targetFile, file); err != nil {
+				errStr = err.Error()
+			}
+			ml = &thumbnailLine{
+				Checksum: cs,
+				ThumbnailResult: ThumbnailResult{
+					Filename: targetFile,
+					Ext:      thumb.ThumbnailConfig.Ext,
+					Error:    errStr,
+					ID:       thumbnailFunction.GetID(),
+				},
+			}
 
-				data, err := json.Marshal(ml)
-				if err != nil {
-					return errors.Wrapf(err, "cannot marshal thumbnail line for file '%s' in object '%s'", targetFile, object.GetID())
-				}
-				if _, err := thumb.writer.Write(append(data, []byte("\n")...)); err != nil {
-					return errors.Wrapf(err, "cannot write thumbnail line for file '%s' in object '%s'", targetFile, object.GetID())
-				}
+			data, err := json.Marshal(ml)
+			if err != nil {
+				return errors.Wrapf(err, "cannot marshal thumbnail line for file '%s' in object '%s'", targetFile, object.GetID())
+			}
+			if _, err := thumb.writer.Write(append(data, []byte("\n")...)); err != nil {
+				return errors.Wrapf(err, "cannot write thumbnail line for file '%s' in object '%s'", targetFile, object.GetID())
 			}
 		}
 	}

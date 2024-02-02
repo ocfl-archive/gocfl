@@ -327,16 +327,17 @@ func addObjectByPath(
 			return false, errors.Wrapf(err, "cannot create object %s", id)
 		}
 	}
-	if err := o.StartUpdate(message, userName, userAddress, echo); err != nil {
+	versionFS, err := o.StartUpdate(sourceFS, message, userName, userAddress, echo)
+	if err != nil {
 		return false, errors.Wrapf(err, "cannot start update for object %s", id)
 	}
 
-	if err := o.AddFolder(sourceFS, checkDuplicates, area); err != nil {
+	if err := o.AddFolder(sourceFS, versionFS, checkDuplicates, area); err != nil {
 		return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", sourceFS, id)
 	}
 	if areaPaths != nil {
 		for a, aPath := range areaPaths {
-			if err := o.AddFolder(aPath, checkDuplicates, a); err != nil {
+			if err := o.AddFolder(aPath, versionFS, checkDuplicates, a); err != nil {
 				return false, errors.Wrapf(err, "cannot add area '%s' folder '%s' to '%s'", a, aPath, id)
 			}
 		}

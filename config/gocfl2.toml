@@ -141,7 +141,7 @@ Regexp = "^.+/x-.+"
 Weight = 80
 
 [Indexer.FFMPEG]
-ffprobe = "C:/Users/micro/Downloads/ffmpeg-5.1.2-full_build/bin/ffprobe.exe"
+ffprobe = "ffprobe.exe"
 wsl = false  # true, if executable is within linux subsystem on windows
 timeout = "25s"
 online = true
@@ -163,8 +163,8 @@ format = "mov,mp4,m4a,3gp,3g2,mj2"
 mime = "video/mp4"
 
 [Indexer.ImageMagick]
-identify = "C:/Program Files/ImageMagick-7.1.0-Q16/identify.exe"
-convert = "C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe"
+identify = "identify.exe"
+convert = "convert.exe"
 wsl = false  # true, if executable is within linux subsystem on windows
 timeout = "480s"
 online = true
@@ -192,14 +192,14 @@ Background="none"
 [Thumbnail.Function.CR2]
 ID = "CR2#01"
 Title = "Thumbnail from Canon CR2"
-Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Command = "convert.exe 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
 Timeout = "2m"
 Pronoms = ["fmt/592"]
 
 [Thumbnail.Function.Images]
 ID = "Image#01"
 Title = "Thumbnail from Image"
-Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Command = "convert.exe '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
 Timeout = "2m"
 Mime = ["image/.+"]
 
@@ -234,7 +234,7 @@ Enable=true
 [Migration.Function.CR2]
 ID = "CR2#01"
 Title = "Convert Canon CR2 to PNG"
-Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' '{destination}' "
+Command = "convert.exe 'CR2:{source}' '{destination}' "
 Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
 FilenameReplacement = "${2}.png"
@@ -244,7 +244,7 @@ Pronoms = ["fmt/592"]
 [Migration.Function.Image]
 ID = "Image#01"
 Title = "Convert Image to PNG"
-Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' '{destination}' "
+Command = "convert.exe '{source}' '{destination}' "
 Strategy = "folder"
 FilenameRegexp = "^(.+/)?([^/]+)$"
 FilenameReplacement = "${2}.png"
