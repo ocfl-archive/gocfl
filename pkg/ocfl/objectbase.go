@@ -594,7 +594,7 @@ func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName strin
 	object.logger.Debugf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	object.echo = echo
 
-	subfs, err := fs.Sub(object.fsys, "extensions")
+	subfs, err := writefs.SubFSCreate(object.fsys, "extensions")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}

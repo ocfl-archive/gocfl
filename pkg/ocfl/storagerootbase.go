@@ -139,7 +139,7 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		}
 	}
 	osr.extensionManager.Finalize()
-	subfs, err := fs.Sub(osr.fsys, "extensions")
+	subfs, err := writefs.SubFSCreate(osr.fsys, "extensions")
 	if err == nil {
 		osr.extensionManager.SetFS(subfs)
 		if err := osr.extensionManager.WriteConfig(); err != nil {
