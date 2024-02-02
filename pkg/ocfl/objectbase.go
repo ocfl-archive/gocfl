@@ -779,12 +779,12 @@ func (object *ObjectBase) BuildNames(files []string, area string) (*NamesStruct,
 	return result, nil
 }
 
-func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) error {
+func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) (string, error) {
 	if len(files) == 0 {
-		return errors.New("no files given")
+		return "", errors.New("no files given")
 	}
 	if !object.i.IsWriteable() {
-		return errors.New("object not writeable")
+		return "", errors.New("object not writeable")
 	}
 	path := files[0]
 	names, err := object.BuildNames(files, area)
@@ -793,7 +793,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 
 	if !noExtensionHook {
 		if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, false); err != nil {
-			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
+			return "", errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
 
@@ -801,7 +801,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 	if !isDir {
 		digest, err = object.addReader(r, nil, names, noExtensionHook)
 		if err != nil {
-			return errors.Wrapf(err, "cannot add file '%s' to object", path)
+			return "", errors.Wrapf(err, "cannot add file '%s' to object", path)
 		}
 	} else {
 		io.Copy(io.Discard, r)
@@ -809,11 +809,11 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 
 	if !noExtensionHook {
 		if err := object.extensionManager.AddFileAfter(object, nil, names.ExternalPaths, names.ManifestPath, digest, area, isDir); err != nil {
-			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
+			return "", errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
 
-	return nil
+	return digest, nil
 }
 
 func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {

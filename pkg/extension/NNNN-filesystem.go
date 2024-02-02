@@ -157,7 +157,7 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 		if isDir {
 			newEmptyFile := filepath.ToSlash(filepath.Join(src, extFS.Folders))
 			if !emptyExists {
-				if err := object.AddReader(io.NopCloser(bytes.NewReader([]byte{})), []string{newEmptyFile}, area, true, false); err != nil {
+				if _, err := object.AddReader(io.NopCloser(bytes.NewReader([]byte{})), []string{newEmptyFile}, area, true, false); err != nil {
 					return errors.Wrapf(err, "cannot add empty file '%s'", newEmptyFile)
 				}
 				emptyExists = true

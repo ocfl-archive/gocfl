@@ -1294,7 +1294,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if err := object.AddData(metsBytes, metsName, false, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, me.StorageName, true, false); err != nil {
+		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
@@ -1321,7 +1321,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		if err := object.AddData(metsBytes, metsName, false, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, "", true, false); err != nil {
+		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {

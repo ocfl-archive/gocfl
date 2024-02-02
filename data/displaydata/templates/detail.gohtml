@@ -205,7 +205,13 @@
                     {{ end }}
                     <tr>
                         <td class="table-active text-end"><strong>Image</strong></td>
-                        <td><img src="../extension/NNNN-thumbnail/download/{{ $status.Thumbnail.Filename }}" /></td>
+                        {{- $imgUrl := "" }}
+                        {{- if eq $status.Thumbnail.StorageType "extension" }}
+                            {{- $imgUrl = printf "../extension/NNNN-thumbnail/download/%s" $status.Thumbnail.Filename }}"
+                        {{- else }}
+                            {{- $imgUrl = printf "../download/%s/%s" $status.Thumbnail.ThumbDigest (basename $status.Thumbnail.Filename) }}
+                        {{- end }}
+                        <td><img src="{{ $imgUrl }}" /></td>
                     </tr>
                     </tbody>
                 </table>

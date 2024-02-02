@@ -364,7 +364,14 @@
             <tr>
                 <td class="image">
                     {{if and $thumb (not $thumb.Error)}}
-                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="extension/NNNN-thumbnail/download/{{ $thumb.Filename }}" />
+                        {{- $imgUrl := "" }}
+                        {{- if eq $thumb.StorageType "extension" }}
+                            {{- $imgUrl = printf "extension/NNNN-thumbnail/download/%s" $thumb.Filename }}"
+                        {{- else }}
+                            {{- $imgUrl = printf "download/%s/%s" $thumb.ThumbDigest (basename $thumb.Filename) }}
+                        {{- end }}
+
+                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="{{ $imgUrl }}" />
                     {{else}}
                         <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=" style="width: 160px; height:160px;" />
                     {{end}}

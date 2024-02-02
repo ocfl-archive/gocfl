@@ -308,7 +308,7 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 	switch strings.ToLower(sl.StorageType) {
 	case "area":
 		targetname := strings.TrimLeft(sl.MetaName, "/")
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, sl.StorageName, true, false); err != nil {
+		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, sl.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
@@ -319,7 +319,7 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, sl.StorageName, sl.MetaName)), "/")
 
 		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
-		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, "", true, false); err != nil {
+		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
