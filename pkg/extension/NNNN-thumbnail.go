@@ -96,17 +96,14 @@ type ThumbnailTarget struct {
 }
 
 type ThumbnailResult struct {
-	Ext         string `json:"ext"`
+	Ext         string `json:"ext,omitempty"`
 	Error       string `json:"error,omitempty"`
-	ID          string `json:"id"`
+	ID          string `json:"id,omitempty"`
 	Filename    string `json:"filename,omitempty"`
 	StorageType string `json:"storageType,omitempty"`
 	ThumbDigest string `json:"thumbDigest,omitempty"`
-}
-
-type thumbnailLine struct {
-	ThumbnailResult
-	Checksum string `json:"checksum"`
+	Checksum    string `json:"checksum,omitempty"`
+	Source      string `json:"source,omitempty"`
 }
 
 // map pronom to thumbnail
@@ -330,21 +327,19 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 		if file != nil {
-			var ml *thumbnailLine
+			var ml *ThumbnailResult
 			var errStr string
 			targetFile, digest, err := thumb.DoThumbnail(object, head, cs, thumbnailFunction, ext, file)
 			if err != nil {
 				errStr = err.Error()
 			}
-			ml = &thumbnailLine{
-				Checksum: cs,
-				ThumbnailResult: ThumbnailResult{
-					Filename:    targetFile,
-					Ext:         thumb.ThumbnailConfig.Ext,
-					Error:       errStr,
-					ID:          thumbnailFunction.GetID(),
-					ThumbDigest: digest,
-				},
+			ml = &ThumbnailResult{
+				Checksum:    cs,
+				Filename:    targetFile,
+				Ext:         thumb.ThumbnailConfig.Ext,
+				Error:       errStr,
+				ID:          thumbnailFunction.GetID(),
+				ThumbDigest: digest,
 			}
 
 			data, err := json.Marshal(ml)
@@ -385,13 +380,16 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
-	path2digest := map[string]string{}
-	for checksum, names := range manifest {
-		for _, name := range names {
-			path2digest[name] = checksum
+	/*
+		path2digest := map[string]string{}
+		for checksum, names := range manifest {
+			for _, name := range names {
+				path2digest[name] = checksum
+			}
 		}
-	}
-	for v := range inventory.GetVersions() {
+	*/
+	versions := inventory.GetVersions()
+	for v := range versions {
 		var data []byte
 		if buf, ok := thumb.buffer[v]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
@@ -415,21 +413,34 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 		r.Split(bufio.ScanLines)
 		for r.Scan() {
 			line := r.Text()
-			var meta = thumbnailLine{}
+			var meta = ThumbnailResult{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
 				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
 			}
+			meta.Checksum = strings.ToLower(meta.Checksum)       // paranoia
+			meta.ThumbDigest = strings.ToLower(meta.ThumbDigest) // paranoia
 
 			// just to make sure, that we have a corresponding file in manifest
-			var digest string
-			for cs, _ := range manifest {
-				if cs == meta.Checksum {
-					digest = cs
-					break
-				}
-			}
-			if digest == "" {
+
+			_, ok := manifest[meta.Checksum]
+			if !ok {
 				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Checksum, object.GetID())
+			}
+
+			if _, ok := manifest[meta.ThumbDigest]; ok {
+				source := meta.ThumbDigest
+				if state, err := inventory.GetStateFiles(inventory.GetHead(), meta.Checksum); err == nil && len(state) > 0 {
+					source = state[0]
+				}
+				result[meta.ThumbDigest] = &ThumbnailResult{
+					Ext:         "",
+					Error:       "",
+					ID:          "",
+					Filename:    "",
+					StorageType: "",
+					Source:      source,
+					Checksum:    "",
+				}
 			}
 			// old versions do not have a filename
 			if meta.Filename == "" {
@@ -458,8 +469,8 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 				return nil, errors.Errorf("unsupported storage type '%s'", thumb.StorageType)
 			}
 
-			meta.ThumbnailResult.StorageType = thumb.StorageType
-			result[digest] = &meta.ThumbnailResult
+			meta.StorageType = thumb.StorageType
+			result[meta.Checksum] = &meta
 		}
 		if err := r.Err(); err != nil {
 			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
