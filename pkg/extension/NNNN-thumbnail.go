@@ -104,6 +104,7 @@ type ThumbnailResult struct {
 	ThumbDigest string `json:"thumbDigest,omitempty"`
 	Checksum    string `json:"checksum,omitempty"`
 	Source      string `json:"source,omitempty"`
+	SourceName  string `json:"sourceName,omitempty"`
 }
 
 // map pronom to thumbnail
@@ -428,7 +429,7 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 			}
 
 			if _, ok := manifest[meta.ThumbDigest]; ok {
-				source := meta.ThumbDigest
+				source := ""
 				if state, err := inventory.GetStateFiles(inventory.GetHead(), meta.Checksum); err == nil && len(state) > 0 {
 					source = state[0]
 				}
@@ -438,7 +439,8 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 					ID:          "",
 					Filename:    "",
 					StorageType: "",
-					Source:      source,
+					SourceName:  source,
+					Source:      meta.Checksum,
 					Checksum:    "",
 				}
 			}

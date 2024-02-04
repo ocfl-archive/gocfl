@@ -193,6 +193,12 @@
                     </tr>
                     </thead>
                     <tbody>
+                    {{ if ne $status.Thumbnail.Source ""}}
+                        <tr>
+                            <td class="table-active text-end"><strong>Thumbnail Source</strong></td>
+                            <td><a href="{{ $status.Thumbnail.Source }}">{{ $status.Thumbnail.SourceName }}</a></td>
+                        </tr>
+                    {{ else }}
                     <tr>
                         <td class="table-active text-end"><strong>Thumbnail Process</strong></td>
                         <td>{{ $status.Thumbnail.ID }}</td>
@@ -213,6 +219,7 @@
                         {{- end }}
                         <td><img src="{{ $imgUrl }}" /></td>
                     </tr>
+                    {{ end }}
                     </tbody>
                 </table>
             </div>
