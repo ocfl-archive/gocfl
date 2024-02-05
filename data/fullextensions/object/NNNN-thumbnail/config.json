@@ -1,4 +1,6 @@
 {
+  "storageType": "area",
+  "storageName": "metadata",
   "extensionName": "NNNN-thumbnail",
   "compress": "gzip",
   "width": 256,

@@ -59,13 +59,13 @@
         }
         table.work {
             break-inside: avoid;
-            height: 170px;
+            min-height: 15px;
         }
 
         td.image {
             vertical-align: top;
             width: 170px;
-            height: 160px;
+            min-height: 15px;
         }
         td.description {
             vertical-align: top;
@@ -104,7 +104,6 @@
         }
         table.type td {
             text-align: right;
-            border-top: thin solid black;
             border-left: thin solid black;
         }
         table.type th {
@@ -122,6 +121,7 @@
 
         table.file td {
             text-align: left;
+            border-left: none;
             border-left: thin solid black;
         }
         table.file td.head {
@@ -279,6 +279,10 @@
             <td>Total Length of A/V Media</td>
             <td>{{ .avLength }}</td>
         </tr>
+        <tr>
+            <td>Files without size data</td>
+            <td>{{ .filesNoData }}</td>
+        </tr>
     </table>
 
     <table class="type" style="width: 100%; margin-left: auto; margin-right: auto;">
@@ -351,22 +355,30 @@
 
 <div class="chapter">
     {{range $cs, $file := .files}}
-        {{ $thumb := (index $file.Extension "NNNN-thumbnail") }}
-        {{ $indexer := (index $file.Extension "NNNN-indexer") }}
-        {{ $filesystem := (index $file.Extension "NNNN-filesystem") }}
-        {{ $extNames := (index $file.VersionName $data.head) }}
-        {{ if eq (len $extNames) 0 }}
-            {{ continue }}
-        {{ end }}
-
+        {{- $thumb := (index $file.Extension "NNNN-thumbnail") }}
+        {{- $indexer := (index $file.Extension "NNNN-indexer") }}
+        {{- $filesystem := (index $file.Extension "NNNN-filesystem") }}
+        {{- $extNames := (index $file.VersionName $data.head) }}
+        {{- $hasThumb := and (and $thumb (not $thumb.Error)) (eq $thumb.SourceDigest $cs) }}
+        {{- $isThumb := and (and $thumb (not $thumb.Error)) (eq $thumb.ThumbDigest $cs) }}
+        {{- if eq (len $extNames) 0 }}
+            {{- continue }}
+        {{- end }}
         <hr>
         <table class="work">
             <tr>
                 <td class="image">
-                    {{if and $thumb (not $thumb.Error)}}
-                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="extension/NNNN-thumbnail/download/{{ $thumb.Filename }}" />
+                    {{if $hasThumb }}
+                        {{- $imgUrl := "" }}
+                        {{- if eq $thumb.StorageType "extension" }}
+                            {{- $imgUrl = printf "extension/NNNN-thumbnail/download/%s" $thumb.Filename }}
+                        {{- else }}
+                            {{- $imgUrl = printf "download/%s/%s" $thumb.ThumbDigest (basename $thumb.Filename) }}
+                        {{- end }}
+
+                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: none;" src="{{ $imgUrl }}" />
                     {{else}}
-                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:160px; border-right: thin black solid;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=" style="width: 160px; height:160px;" />
+                        <img style="margin-right: 5px; padding-right: 5px; width: 160px; height:12px; border-right: none;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=" style="width: 160px; height:160px;" />
                     {{end}}
 
                 </td>
@@ -396,8 +408,8 @@
                         {{ end }}
                         {{ range $key,$extName := $extNames }}
                             <tr>
-                                <td style="border-top: thin solid black;" class="head">Filename</td>
-                                <td style="border-top: thin solid black;word-break: break-all;" >{{ $extName }}</td>
+                                <td style="border-top: none; width: 110px;" class="head">Filename</td>
+                                <td style="border-top: none; word-break: break-all;" >{{ $extName }}</td>
                             </tr>
                             {{ if $filesystem }}
                                 {{ range $ver,$fss := $filesystem }}
@@ -427,6 +439,12 @@
                                     {{ end }}
                                 {{ end }}
                             {{ end }}
+                            {{if $isThumb }}
+                                <tr>
+                                    <td class="head">Thumbnail Source</td>
+                                    <td>{{ $thumb.SourceName }}</td>
+                                </tr>
+                            {{end}}
                         {{ end }}
                     </table>
                 </td>

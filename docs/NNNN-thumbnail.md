@@ -20,6 +20,24 @@ the content.
 
 ### Summary
 
+* **Name:** `storageType`
+  * **Description:** Location Type where the technical metadata is stored. Possible values are
+    `area`, `path` or `extension`.
+    * **area:** within an `area` defined by [NNNN-content-subpath](NNNN-content-subpath.md)
+      extension
+    * **path:** directly within content folder
+    * **extension:** within the extension subfolder
+  * **Type:** string
+  * **Default:** "extension"
+
+* **Name:** `storageName`
+  * **Description:** Location within the specified Type
+    * **area:** area name
+    * **path:** subfolder within content folder
+    * **extension:** subfolder within extension folder
+  * **Type:** string
+  * **Default:** "data"
+* 
 * **Name:** `compress`
     * **Description:** Compression type for JSONL file
         * **none:** no compression

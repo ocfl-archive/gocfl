@@ -113,6 +113,14 @@
                 <td class="table-active text-end"><strong>{{ $status.DigestAlgorithm }}</strong></td>
                 <td>{{ $status.Checksum }}</td>
             </tr>
+            <tr>
+                <td class="table-active text-end"><strong>ThumbDigest</strong></td>
+                <td>{{ $status.Thumbnail.ThumbDigest }}</td>
+            </tr>
+            <tr>
+                <td class="table-active text-end"><strong>SourceDigest</strong></td>
+                <td>{{ $status.Thumbnail.SourceDigest }}</td>
+            </tr>
             {{ range $alg, $digest := $status.Fixity }}
                 <tr>
                     <td class="table-active text-end">{{ $alg }}</td>
@@ -193,6 +201,12 @@
                     </tr>
                     </thead>
                     <tbody>
+                    {{ if eq $status.Thumbnail.ThumbDigest $status.Checksum }}
+                        <tr>
+                            <td class="table-active text-end"><strong>Thumbnail Source</strong></td>
+                            <td><a href="{{ $status.Thumbnail.SourceDigest }}">{{ $status.Thumbnail.SourceName }}</a></td>
+                        </tr>
+                    {{ else }}
                     <tr>
                         <td class="table-active text-end"><strong>Thumbnail Process</strong></td>
                         <td>{{ $status.Thumbnail.ID }}</td>
@@ -204,9 +218,16 @@
                         </tr>
                     {{ end }}
                     <tr>
-                        <td class="table-active text-end"><strong>Image</strong></td>
-                        <td><img src="../extension/NNNN-thumbnail/download/{{ $status.Thumbnail.Filename }}" /></td>
+                        <td class="table-active text-end"><strong>Image ({{ $status.Thumbnail.Filename }})</strong></td>
+                        {{- $imgUrl := "" }}
+                        {{- if eq $status.Thumbnail.StorageType "extension" }}
+                            {{- $imgUrl = printf "../extension/NNNN-thumbnail/download/%s" $status.Thumbnail.Filename }}"
+                        {{- else }}
+                            {{- $imgUrl = printf "../download/%s/%s" $status.Thumbnail.ThumbDigest (basename $status.Thumbnail.Filename) }}
+                        {{- end }}
+                        <td><img src="{{ $imgUrl }}" /></td>
                     </tr>
+                    {{ end }}
                     </tbody>
                 </table>
             </div>

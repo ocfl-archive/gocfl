@@ -463,7 +463,7 @@ func WriteJsonL(object Object, name string, brotliData []byte, compress, storage
 	switch strings.ToLower(storageType) {
 	case "area":
 		targetname := fmt.Sprintf("%s_%s.jsonl%s", name, head, ext)
-		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, storageName, true, false); err != nil {
+		if _, err := object.AddReader(io.NopCloser(reader), []string{targetname}, storageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
@@ -474,7 +474,7 @@ func WriteJsonL(object Object, name string, brotliData []byte, compress, storage
 		targetname := fmt.Sprintf("%s/%s/%s_%s.jsonl%s", path, storageName, name, head, ext)
 
 		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
-		if err := object.AddReader(io.NopCloser(reader), []string{targetname}, "", true, false); err != nil {
+		if _, err := object.AddReader(io.NopCloser(reader), []string{targetname}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
