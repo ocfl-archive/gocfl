@@ -96,15 +96,14 @@ type ThumbnailTarget struct {
 }
 
 type ThumbnailResult struct {
-	Ext         string `json:"ext,omitempty"`
-	Error       string `json:"error,omitempty"`
-	ID          string `json:"id,omitempty"`
-	Filename    string `json:"filename,omitempty"`
-	StorageType string `json:"storageType,omitempty"`
-	ThumbDigest string `json:"thumbDigest,omitempty"`
-	Checksum    string `json:"checksum,omitempty"`
-	Source      string `json:"source,omitempty"`
-	SourceName  string `json:"sourceName,omitempty"`
+	Ext          string `json:"ext,omitempty"`
+	Error        string `json:"error,omitempty"`
+	ID           string `json:"id,omitempty"`
+	Filename     string `json:"filename,omitempty"`
+	StorageType  string `json:"storageType,omitempty"`
+	ThumbDigest  string `json:"thumbDigest,omitempty"`
+	SourceDigest string `json:"sourceDigest,omitempty"`
+	SourceName   string `json:"sourceName,omitempty"`
 }
 
 // map pronom to thumbnail
@@ -177,10 +176,14 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, cs string, 
 	}
 
 	var targetName string
+	subfolder := thumb.StorageName
+	if thumb.StorageType == "area" {
+		subfolder = "thumbnails"
+	}
 	if thumb.SingleDirectory {
-		targetName = fmt.Sprintf("thumbnails/%s/%05d.%s", head, thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
+		targetName = fmt.Sprintf("%s/%s/%05d.%s", subfolder, head, thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
 	} else {
-		targetName = fmt.Sprintf("thumbnails/%s/%s/%s/%05d.%s", head, string([]rune(cs)[0]), string([]rune(cs)[1]), thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
+		targetName = fmt.Sprintf("%s/%s/%s/%s/%05d.%s", subfolder, head, string([]rune(cs)[0]), string([]rune(cs)[1]), thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
 	}
 	thumb.counter[head]++
 	tmpFilename := filepath.ToSlash(tmpFile.Name())
@@ -335,12 +338,12 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 				errStr = err.Error()
 			}
 			ml = &ThumbnailResult{
-				Checksum:    cs,
-				Filename:    targetFile,
-				Ext:         thumb.ThumbnailConfig.Ext,
-				Error:       errStr,
-				ID:          thumbnailFunction.GetID(),
-				ThumbDigest: digest,
+				SourceDigest: cs,
+				Filename:     targetFile,
+				Ext:          thumb.ThumbnailConfig.Ext,
+				Error:        errStr,
+				ID:           thumbnailFunction.GetID(),
+				ThumbDigest:  digest,
 			}
 
 			data, err := json.Marshal(ml)
@@ -418,35 +421,28 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
 				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
 			}
-			meta.Checksum = strings.ToLower(meta.Checksum)       // paranoia
-			meta.ThumbDigest = strings.ToLower(meta.ThumbDigest) // paranoia
+			meta.SourceDigest = strings.ToLower(meta.SourceDigest) // paranoia
+			meta.ThumbDigest = strings.ToLower(meta.ThumbDigest)   // paranoia
+			meta.StorageType = thumb.StorageType
 
 			// just to make sure, that we have a corresponding file in manifest
 
-			_, ok := manifest[meta.Checksum]
+			_, ok := manifest[meta.SourceDigest]
 			if !ok {
-				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Checksum, object.GetID())
+				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.SourceDigest, object.GetID())
 			}
 
 			if _, ok := manifest[meta.ThumbDigest]; ok {
 				source := ""
-				if state, err := inventory.GetStateFiles(inventory.GetHead(), meta.Checksum); err == nil && len(state) > 0 {
+				if state, err := inventory.GetStateFiles(inventory.GetHead(), meta.SourceDigest); err == nil && len(state) > 0 {
 					source = state[0]
 				}
-				result[meta.ThumbDigest] = &ThumbnailResult{
-					Ext:         "",
-					Error:       "",
-					ID:          "",
-					Filename:    "",
-					StorageType: "",
-					SourceName:  source,
-					Source:      meta.Checksum,
-					Checksum:    "",
-				}
+				meta.SourceName = source
+				result[meta.ThumbDigest] = meta
 			}
 			// old versions do not have a filename
 			if meta.Filename == "" {
-				meta.Filename = fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(meta.Checksum)[0]), string([]rune(meta.Checksum)[1]), meta.Checksum, strings.ToLower(thumb.ThumbnailConfig.Ext))
+				meta.Filename = fmt.Sprintf("data/%s/%s/%s.%s", string([]rune(meta.SourceDigest)[0]), string([]rune(meta.SourceDigest)[1]), meta.SourceDigest, strings.ToLower(thumb.ThumbnailConfig.Ext))
 			}
 			switch strings.ToLower(thumb.StorageType) {
 			case "area":
@@ -466,13 +462,13 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 					meta.Filename = fmt.Sprintf("%s/%s/%s", areaPath, thumb.StorageName, meta.Filename)
 				}
 			case "extension":
-				meta.Filename = fmt.Sprintf("extension/%s/%s/%s", thumb.StorageName, meta.Filename)
+				//				meta.Filename = fmt.Sprintf("extension/%s", meta.Filename)
 			default:
 				return nil, errors.Errorf("unsupported storage type '%s'", thumb.StorageType)
 			}
 
 			meta.StorageType = thumb.StorageType
-			result[meta.Checksum] = &meta
+			result[meta.SourceDigest] = &meta
 		}
 		if err := r.Err(); err != nil {
 			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)

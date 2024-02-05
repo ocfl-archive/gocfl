@@ -279,6 +279,10 @@
             <td>Total Length of A/V Media</td>
             <td>{{ .avLength }}</td>
         </tr>
+        <tr>
+            <td>Files without size data</td>
+            <td>{{ .filesNoData }}</td>
+        </tr>
     </table>
 
     <table class="type" style="width: 100%; margin-left: auto; margin-right: auto;">
@@ -355,8 +359,8 @@
         {{- $indexer := (index $file.Extension "NNNN-indexer") }}
         {{- $filesystem := (index $file.Extension "NNNN-filesystem") }}
         {{- $extNames := (index $file.VersionName $data.head) }}
-        {{- $isThumb := and (and $thumb (not $thumb.Error)) (ne $thumb.Source "") }}
-        {{- $hasThumb := and (and $thumb (not $thumb.Error)) (ne $thumb.ThumbDigest "") }}
+        {{- $hasThumb := and (and $thumb (not $thumb.Error)) (eq $thumb.SourceDigest $cs) }}
+        {{- $isThumb := and (and $thumb (not $thumb.Error)) (eq $thumb.ThumbDigest $cs) }}
         {{- if eq (len $extNames) 0 }}
             {{- continue }}
         {{- end }}
@@ -367,7 +371,7 @@
                     {{if $hasThumb }}
                         {{- $imgUrl := "" }}
                         {{- if eq $thumb.StorageType "extension" }}
-                            {{- $imgUrl = printf "extension/NNNN-thumbnail/download/%s" $thumb.Filename }}"
+                            {{- $imgUrl = printf "extension/NNNN-thumbnail/download/%s" $thumb.Filename }}
                         {{- else }}
                             {{- $imgUrl = printf "download/%s/%s" $thumb.ThumbDigest (basename $thumb.Filename) }}
                         {{- end }}

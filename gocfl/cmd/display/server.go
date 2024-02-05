@@ -415,12 +415,14 @@ func (s *Server) detail(c *gin.Context) {
 	}
 
 	extThumbnailAny, _ := file.Extension[extension.ThumbnailName]
-	var extThumbnail *extension.ThumbnailResult
 	if extThumbnailAny != nil {
-		extThumbnail, _ = extThumbnailAny.(*extension.ThumbnailResult)
-	}
-	if extThumbnail != nil {
-		status.Thumbnail = extThumbnail
+		if extThumbnail, ok := extThumbnailAny.(extension.ThumbnailResult); ok {
+			status.Thumbnail = &extThumbnail
+		} else {
+			if extThumbnail, ok := extThumbnailAny.(*extension.ThumbnailResult); ok {
+				status.Thumbnail = extThumbnail
+			}
+		}
 	}
 
 	var params = map[string]any{
@@ -1065,6 +1067,12 @@ func (s *Server) report(c *gin.Context) {
 	if full {
 		files = s.metadata.Files
 	}
+	var filesNoData int64
+	for _, file := range s.metadata.Files {
+		if file.Extension[extension.IndexerName] == nil && file.Extension[extension.FilesystemName] == nil {
+			filesNoData++
+		}
+	}
 
 	var params = map[string]any{
 		"objectpath":     objectpath,
@@ -1074,6 +1082,7 @@ func (s *Server) report(c *gin.Context) {
 		"versions":       s.metadata.Versions,
 		"differentFiles": len(s.metadata.Files),
 		"numFiles":       numFiles,
+		"filesNoData":    filesNoData,
 		"size":           size,
 		"noSizeFiles":    noSizeFiles,
 		"mimeTypes":      mimeTypes,

@@ -113,6 +113,14 @@
                 <td class="table-active text-end"><strong>{{ $status.DigestAlgorithm }}</strong></td>
                 <td>{{ $status.Checksum }}</td>
             </tr>
+            <tr>
+                <td class="table-active text-end"><strong>ThumbDigest</strong></td>
+                <td>{{ $status.Thumbnail.ThumbDigest }}</td>
+            </tr>
+            <tr>
+                <td class="table-active text-end"><strong>SourceDigest</strong></td>
+                <td>{{ $status.Thumbnail.SourceDigest }}</td>
+            </tr>
             {{ range $alg, $digest := $status.Fixity }}
                 <tr>
                     <td class="table-active text-end">{{ $alg }}</td>
@@ -193,10 +201,10 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {{ if ne $status.Thumbnail.Source ""}}
+                    {{ if eq $status.Thumbnail.ThumbDigest $status.Checksum }}
                         <tr>
                             <td class="table-active text-end"><strong>Thumbnail Source</strong></td>
-                            <td><a href="{{ $status.Thumbnail.Source }}">{{ $status.Thumbnail.SourceName }}</a></td>
+                            <td><a href="{{ $status.Thumbnail.SourceDigest }}">{{ $status.Thumbnail.SourceName }}</a></td>
                         </tr>
                     {{ else }}
                     <tr>
@@ -210,7 +218,7 @@
                         </tr>
                     {{ end }}
                     <tr>
-                        <td class="table-active text-end"><strong>Image</strong></td>
+                        <td class="table-active text-end"><strong>Image ({{ $status.Thumbnail.Filename }})</strong></td>
                         {{- $imgUrl := "" }}
                         {{- if eq $status.Thumbnail.StorageType "extension" }}
                             {{- $imgUrl = printf "../extension/NNNN-thumbnail/download/%s" $status.Thumbnail.Filename }}"
