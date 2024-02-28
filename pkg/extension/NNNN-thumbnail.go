@@ -192,6 +192,14 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, cs string, 
 	if err := tmpFile.Close(); err != nil {
 		return "", "", errors.Wrap(err, "cannot close temp file")
 	}
+	defer func() {
+		if err := os.Remove(tmpFilename); err != nil {
+			thumb.logger.Errorf("cannot remove temp file '%s': %v", tmpFilename, err)
+		}
+		if err := os.Remove(targetTempName); err != nil {
+			thumb.logger.Errorf("cannot remove temp file '%s': %v", targetTempName, err)
+		}
+	}()
 	if err := mig.Thumbnail(tmpFilename, targetTempName, thumb.ThumbnailConfig.Width, thumb.ThumbnailConfig.Height, thumb.logger); err != nil {
 		//_ = os.Remove(tmpFilename)
 		return "", "", errors.Wrapf(err, "cannot create thumbnail file '%v' to object '%s'", targetName, object.GetID())
@@ -206,7 +214,11 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, cs string, 
 	if err != nil {
 		return "", "", errors.Wrapf(err, "cannot open file '%s'", targetTempName)
 	}
-	defer mFile.Close()
+	defer func() {
+		if err := mFile.Close(); err != nil {
+			thumb.logger.Errorf("cannot close file '%s': %v", targetTempName, err)
+		}
+	}()
 
 	var digest string
 	switch strings.ToLower(thumb.StorageType) {

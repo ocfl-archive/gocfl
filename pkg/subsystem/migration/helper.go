@@ -88,12 +88,12 @@ func DoMigrate(object ocfl.Object, mig *Function, ext string, targetNames []stri
 	if err := tmpFile.Close(); err != nil {
 		return errors.Wrap(err, "cannot close temp file")
 	}
-	if err := mig.Migrate(tmpFilename, targetFilename); err != nil {
+	defer func() {
 		_ = os.Remove(tmpFilename)
+		_ = os.Remove(targetFilename)
+	}()
+	if err := mig.Migrate(tmpFilename, targetFilename); err != nil {
 		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
-	}
-	if err := os.Remove(tmpFilename); err != nil {
-		return errors.Wrapf(err, "cannot remove temp file '%s'", tmpFilename)
 	}
 
 	mFile, err := os.Open(targetFilename)
@@ -105,9 +105,6 @@ func DoMigrate(object ocfl.Object, mig *Function, ext string, targetNames []stri
 	}
 	if err := mFile.Close(); err != nil {
 		return errors.Wrapf(err, "cannot close file '%s'", targetFilename)
-	}
-	if err := os.Remove(targetFilename); err != nil {
-		return errors.Wrapf(err, "cannot remove temp file '%s'", targetFilename)
 	}
 	return nil
 }
