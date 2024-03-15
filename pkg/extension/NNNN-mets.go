@@ -16,7 +16,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/version"
 	"github.com/je4/indexer/v2/pkg/indexer"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"io"

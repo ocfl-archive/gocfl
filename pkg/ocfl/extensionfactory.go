@@ -3,7 +3,7 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io/fs"
 )
 

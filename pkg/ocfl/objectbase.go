@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"

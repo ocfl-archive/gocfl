@@ -5,7 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
 	"regexp"

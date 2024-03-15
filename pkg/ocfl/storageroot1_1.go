@@ -4,7 +4,7 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io/fs"
 )
 

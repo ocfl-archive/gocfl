@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
 	github.com/invopop/jsonschema v0.12.0
-	github.com/je4/filesystem/v2 v2.0.5
+	github.com/je4/filesystem/v2 v2.0.6
 	github.com/je4/indexer/v2 v2.0.7
 	github.com/je4/utils/v2 v2.0.27
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
