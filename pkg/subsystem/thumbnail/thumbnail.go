@@ -31,7 +31,7 @@ type Function struct {
 	mime    []*regexp.Regexp
 }
 
-func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger *logging.Logger) error {
+func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger zLogger.ZWrapper) error {
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	args := []string{}

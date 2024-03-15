@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger *logging.Logger) (*ironmaiden.ActionDispatcher, error) {
+func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger zLogger.ZWrapper) (*ironmaiden.ActionDispatcher, error) {
 	ad := ironmaiden.NewActionDispatcher(relevance)
 	signatureData, err := os.ReadFile(siegfried.Signature)
 	if err != nil {

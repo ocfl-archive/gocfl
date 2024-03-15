@@ -22,7 +22,7 @@ import (
 const FilesystemName = "NNNN-filesystem"
 const FilesystemDescription = "preserves filesytem metadata"
 
-func NewFilesystemFS(fsys fs.FS, logger *logging.Logger) (*Filesystem, error) {
+func NewFilesystemFS(fsys fs.FS, logger zLogger.ZWrapper) (*Filesystem, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")

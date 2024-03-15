@@ -34,7 +34,7 @@ type ObjectBase struct {
 	versionFolders     []string
 	versionInventories map[string]Inventory
 	changed            bool
-	logger             *logging.Logger
+	logger             zLogger.ZWrapper
 	version            OCFLVersion
 	digest             checksum.DigestAlgorithm
 	echo               bool
@@ -43,7 +43,7 @@ type ObjectBase struct {
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, logger zLogger.ZWrapper) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:         ctx,
 		fsys:        fsys,

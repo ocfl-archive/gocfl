@@ -14,10 +14,10 @@ type ExtensionFactory struct {
 	defaultStorageRoot []Extension
 	defaultObject      []Extension
 	extensionParams    map[string]string
-	logger             *logging.Logger
+	logger             zLogger.ZWrapper
 }
 
-func NewExtensionFactory(params map[string]string, logger *logging.Logger) (*ExtensionFactory, error) {
+func NewExtensionFactory(params map[string]string, logger zLogger.ZWrapper) (*ExtensionFactory, error) {
 	m := &ExtensionFactory{
 		creators:        map[string]creatorFunc{},
 		extensionParams: params,

@@ -81,7 +81,7 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err 
 	return version, nil
 }
 
-func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
+func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, logger zLogger.ZWrapper) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)

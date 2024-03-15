@@ -23,7 +23,7 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger *logging.Logger) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.ZWrapper) (*Migration, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")

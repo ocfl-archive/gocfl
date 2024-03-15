@@ -24,7 +24,7 @@ type StorageRootBase struct {
 	extensionFactory *ExtensionFactory
 	extensionManager *ExtensionManager
 	changed          bool
-	logger           *logging.Logger
+	logger           zLogger.ZWrapper
 	version          OCFLVersion
 	digest           checksum.DigestAlgorithm
 	modified         bool
@@ -33,7 +33,7 @@ type StorageRootBase struct {
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, logger *logging.Logger) (*StorageRootBase, error) {
+func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, logger zLogger.ZWrapper) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:              ctx,

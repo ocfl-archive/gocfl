@@ -37,7 +37,7 @@ type Server struct {
 	linkTokenExp   time.Duration
 	jwtKey         string
 	jwtAlg         []string
-	log            *logging.Logger
+	log            zLogger.ZWrapper
 	urlExt         *url.URL
 	accessLog      io.Writer
 	dataFS         fs.FS
@@ -47,7 +47,7 @@ type Server struct {
 	templateFS     fs.FS
 }
 
-func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log *logging.Logger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZWrapper, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)

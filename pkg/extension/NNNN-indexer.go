@@ -44,7 +44,7 @@ func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger *logging.Logger) (*Indexer, error) {
+func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZWrapper) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -65,7 +65,7 @@ func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.Actio
 	}
 	return ext, nil
 }
-func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger *logging.Logger) (*Indexer, error) {
+func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZWrapper) (*Indexer, error) {
 	var err error
 
 	if len(config.Actions) == 0 {
@@ -125,7 +125,7 @@ type Indexer struct {
 	indexerActions *ironmaiden.ActionDispatcher
 	currentHead    string
 	localCache     bool
-	logger         *logging.Logger
+	logger         zLogger.ZWrapper
 }
 
 func (sl *Indexer) GetFS() fs.FS {

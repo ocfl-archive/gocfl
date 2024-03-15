@@ -13,7 +13,7 @@ type ObjectV2_0 struct {
 	*ObjectBase
 }
 
-func newObjectV2_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, logger *logging.Logger) (*ObjectV2_0, error) {
+func newObjectV2_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, logger zLogger.ZWrapper) (*ObjectV2_0, error) {
 	ob, err := newObjectBase(ctx, fsys, Version2_0, storageRoot, logger)
 	if err != nil {
 		return nil, errors.WithStack(err)
