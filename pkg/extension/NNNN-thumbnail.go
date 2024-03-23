@@ -30,7 +30,7 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.Z
 	}
 
 	var config = &ThumbnailConfig{
-		StorageType:     "extensions",
+		StorageType:     "extension",
 		StorageName:     "data",
 		Ext:             "png",
 		Width:           256,

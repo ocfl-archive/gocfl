@@ -21,8 +21,8 @@ This extension is intended to be used when you want the internal OCFL layout to 
 the logical structure of the stored objects as closely as possible, while also
 ensuring all file and directory names do not include problematic characters.
 
-One example could be complete filesystems, which come from estates, and are not
-under control of the archivists.
+An example could be complete file systems (disks) that come from estates or research 
+data and are not under the control of archivists.
 
 ### Caveat
 
@@ -31,9 +31,8 @@ This extension provides injective (one-to-one) projections only if
 `encodeUTF == true`.  
 If you don't want to use the verbose UTF-Code replacements (`encodeUTF == false`), first check your source to make sure, that there's no chance of
 different names to be mapped on one target. This happens on whitespace replacement as well as on
-the removal of leading `-`, `~` and ` ` (blank) or trailing ` ` (blank)
-Software which generates the OCFL
-structure should raise an error in this case.
+the removal of leading `-`, `~` and ` ` (blank) or trailing ` ` (blank).
+Software which generates the OCFL structure should raise an error in this case.
 ##### Example names, that would map to the same target
 * `~file` => `file`
 * `-file` => `file`
@@ -56,17 +55,17 @@ invalid because the first object contains the second.
 
 * **Name:** `encodeUTF`
     * **Description:** Decides whether "dangerous" characters will be replaced by a
-      defined replacement string or it's utf code (e.g. `=u0020` for blank char)
+      defined replacement string or its UTF code (e.g. `=u0020` for blank char)
     * **Type:** bool
     * **Default:** false
-* **Name:** `maxFilenameLen`
+* **Name:** `maxPathSegmentLen`
     * **Description:** Determines the maximum number of characters within parts of the full pathname separated by `/` (files or folders).   
       A result with more characters will raise an error.
     * **Type:** number
     * **Constraints:** An integer greater than 0
     * **Default:** 127
 * **Name:** `maxPathnameLen`
-    * **Description:** Determines the maximum number of result characters.
+    * **Description:** Determines the maximum number of result characters in the full pathname.
       A result with more characters will raise an error.
     * **Type:** number
     * **Constraints:** An integer greater than 0
@@ -85,25 +84,32 @@ invalid because the first object contains the second.
     * **Default:** " " (U+0020)
 * **Name:** `fallbackDigestAlgorithm`
     * **Description:** Name of the digest algorithm to use for generating fallback filenames.
-      Restricted to Algorithms supported by OCFL
+      Restricted to algorithms supported by [OCFL](https://ocfl.io/1.1/spec/#digests)
     * **Type:** string
     * **Default:** `md5`
 * **Name:** `fallbackFolder`
     * **Description:** Name of the folder, the fallback files will appear
     * **Type:** string
     * **Default:** `fallback`
-* **Name:** `fallbackSubdirs`
+* **Name:** `numberOfFallbackTuples`
     * **Description:** Number of sub-folder build from prefix of fallback digest.  
       **Hint:** only needed if a large number of fallback entries is expected
-    * **Type:** string
+    * **Type:** number
+    * **Constraints:** An integer greater than or equal to 0 // `numberOfFallbackTuples * fallbackTupleSize` must be less than `fallbackDigestAlgorithm`'s output size
     * **Default:** `0`
+* **Name:** `fallbackTupleSize`
+    * **Description:** Number of characters in each sub-folder of fallback digest.  
+      **Hint:** only needed if `numberOfFallbackTuples` is greater than 0
+    * **Type:** number
+    * **Constraints:** An integer greater than 0 // `numberOfFallbackTuples * fallbackTupleSize` must be less than `fallbackDigestAlgorithm`'s output size
+    * **Default:** `1`
 
 ### Definition of terms
-* **`maxFilenameLen`/`maxPathnameLen`:**
+* **`maxPathSegmentLen`/`maxPathnameLen`:**
   Several filesystems (e.g. Ext2/3/4) have byte restrictions on filename length.
-  When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quad of the character length.
+  When using UTF16 (i.e. NTFS) or UTF32 characters in the filesystem, the byte length is double or quadruple the character length.
   For filesystems which are using UTF8 character sets, the length of a name in bytes
-  can be calculated only by building the UTF8 string and count the byte length afterwards.
+  can be calculated only by building the UTF8 string and counting the byte length afterwards.
 
   **Hint:** UTF8 has always less or equal bytes than UTF32 which means, that
   assuming UTF32 instead of UTF8 for length calculation is safe, but would give you
@@ -116,24 +122,24 @@ The following is an outline to the steps for mapping an identifier/filepath.
 [UTF Replacement Character List](#utf-replacement-character-list)
 is a list of UTF characters mentioned below.
 
-### When `utfEncode` is `true`
+### When `encodeUTF` is `true`
 
 1. Replace all non-UTF8 characters with `replacementString`
 2. Split the string at path separator `/`
 3. For each part do the following
     1. Replace `=` with `=u003D` if it is followed by `u` and four hex digits
-    2. Replace any character from this list with its utf code in the form `=uXXXX`
+    2. Replace any character from this list with its UTF code in the form `=uXXXX`
        where `XXXX` is the code:
        `U+0000-U+001F` `U+007F` `U+0020` `U+0085` `U+00A0` `U+1680` `U+2000-U+200F`
        `U+2028` `U+2029` `U+202F` `U+205F` `U+3000` `\n` `\t` `*` `?` `:` `[` `]` `"`
        `<` `>` `|` `(` `)` `{` `}` `&` `'` `!` `;` `#` `@`
     3. If part only contains periods, replace first period (`.`), with UTF Code (`U+002E`)
     4. Remove part completely, if its length is 0
-    5. When length of part is larger than `maxFilenameLen` use fallback function and return
+    5. When length of part is larger than `maxPathSegmentLen` use fallback function and return
 4. Join the parts with path separator `/`
 5. When length of result is larger than `maxPathnameLen` use fallback function and return
 
-### When `utfEncode` is `false`
+### When `encodeUTF` is `false`
 
 1. Replace all non-UTF8 characters with `replacementString`
 2. Split the string at path separator `/`
@@ -147,17 +153,19 @@ is a list of UTF characters mentioned below.
     3. Remove leading spaces, `-` and `~` / remove trailing spaces
     4. If part only contains periods, replace first period (`.`) with `replacementString`
     5. Remove part completely, if its length is 0
-    6. When length of part is larger than `maxFilenameLen` use fallback function and return
+    6. When length of part is larger than `maxPathSegmentLen` use fallback function and return
 4. Join the parts with path separator `/`
 5. When length of result is larger than `maxPathnameLen` use fallback function and return
 
 ### Fallback function
 
-1. Create digest with `fallbackDigestAlgorithm` from initial parameter as lower case hex string
-2. When digest is longer than `maxFilenameLen` add folder separator `/` after `maxFilenameLen` (character or byte based)
-   until all parts are smaller or equal `maxFilenameLen`
-3. Prepend `fallbackSubdirs` number of digest characters as prefix folders with separator `/`
-4. Prepend `fallbackFolder` with separator `/`
+1. Create digest with `fallbackDigestAlgorithm` from initial identifier/filepath as lower case hex string
+2. When digest is longer than `maxPathSegmentLen` add folder separator `/` after `maxPathSegmentLen` (character or byte based)
+   until all parts are smaller or equal `maxPathSegmentLen`
+3. Take the first `numberOfFallbackTuples * fallbackTupleSize` characters from digest
+4. Split the characters in `numberOfFallbackTuples` parts of `fallbackTupleSize` characters
+5. Prepend parts as prefix folders with separator `/`
+6. Prepend `fallbackFolder` with separator `/`
 
 
 ## Examples
@@ -170,32 +178,32 @@ However, if you were to do so, it would look like the following:
 ```json
 {
     "extensionName": "NNNN-direct-clean-path-layout",
-    "maxFilenameLen": 127,
-    "maxFilenameLen": 32000,
-    "utfEncode": false,
+    "maxPathSegmentLen": 127,
+    "maxPathnameLen": 32000,
+    "encodeUTF": false,
     "replacementString": "_",
     "whitespaceReplacementString": " ",
     "fallbackDigestAlgorithm": "md5",
     "fallbackFolder": "fallback",
-    "fallbackSubdirs": 0
+    "numberOfFallbackTuples": 0
 }
 ```
 
 ### Mappings
 
-#### #1 `utfEncode == false`
+#### #1 `encodeUTF == false`
 
 ```json
 {
     "extensionName": "NNNN-direct-clean-path-layout",
-    "maxFilenameLen": 127,
-    "maxFilenameLen": 32000,
-    "utfEncode": false,
+    "maxPathSegmentLen": 127,
+    "maxPathnameLen": 32000,
+    "encodeUTF": false,
     "replacementString": "_",
     "whitespaceReplacementString": " ",
     "fallbackDigestAlgorithm": "md5",
     "fallbackFolder": "fallback",
-    "fallbackSubdirs": 2
+    "numberOfFallbackTuples": 2
 }
 ```
 
@@ -208,19 +216,19 @@ However, if you were to do so, it would look like the following:
 | `https://hdl.handle.net/XXXXX/test/bl ah`                                                                                                                                                                                                                                          | `https_/hdl.handle.net/XXXXX/test/bl ah`        |
 | `abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij abcdefghijabcdefghij` | `fallback/0/e/0eafabb38fa7f1583d1461afe980ebdc` |
 
-#### #2 `utfEncode == true`
+#### #2 `encodeUTF == true`
 
 ```json
 {
     "extensionName": "NNNN-direct-clean-path-layout",
-    "maxFilenameLen": 127,
-    "maxFilenameLen": 32000,
-    "utfEncode": true,
+    "maxPathSegmentLen": 127,
+    "PathFilenameLen": 32000,
+    "encodeUTF": true,
     "replacementString": "_",
     "whitespaceReplacementString": " ",
     "fallbackDigestAlgorithm": "sha512",
     "fallbackFolder": "fallback",
-    "fallbackSubdirs": 2
+    "numberOfFallbackTuples": 2
 }
 ```
 
@@ -262,13 +270,13 @@ var directCleanErrPathnameTooLong = errors.New("pathname too long")
 type DirectCleanConfig struct {
     [...]
 	MaxPathnameLen              int                      `json:"maxPathnameLen"`
-	MaxFilenameLen              int                      `json:"maxFilenameLen"`
+	MaxFilenameLen              int                      `json:"maxPathSegmentLen"`
 	ReplacementString           string                   `json:"replacementString"`
 	WhitespaceReplacementString string                   `json:"whitespaceReplacementString"`
-	UTFEncode                   bool                     `json:"utfEncode"`
+	UTFEncode                   bool                     `json:"encodeUTF"`
 	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
 	FallbackFolder              string                   `json:"fallbackFolder"`
-	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
+	FallbackSubFolders          int                      `json:"numberOfFallbackTuples"`
 	hash                        hash.Hash                `json:"-"`
 	hashMutex                   sync.Mutex               `json:"-"`
 }
@@ -297,28 +305,22 @@ func (sl *DirectClean) fallback(fname string) (string, error) {
 	digestString := hex.EncodeToString(sl.hash.Sum(nil))
 
 	// check whether digest fits in filename length
-	parts := len(digestString) / sl.MaxFilenameLen
-	rest := len(digestString) % sl.MaxFilenameLen
+	parts := len(digestString) / sl.MaxPathSegmentLen
+	rest := len(digestString) % sl.MaxPathSegmentLen
 	if rest > 0 {
 		parts++
 	}
 	// cut the digest if it's too long for filename length
 	result := ""
 	for i := 0; i < parts; i++ {
-		result = filepath.Join(result, digestString[i*sl.MaxFilenameLen:min((i+1)*sl.MaxFilenameLen, len(digestString))])
+		result = filepath.Join(result, digestString[i*sl.MaxPathSegmentLen:min((i+1)*sl.MaxPathSegmentLen, len(digestString))])
 	}
 
 	// add all necessary subfolders
-	for i := 0; i < sl.FallbackSubFolders; i++ {
+	for i := 0; i < sl.NumberOfFallbackTuples; i++ {
 		// paranoia, but safe
-		result = filepath.Join(string(([]rune(digestString))[sl.FallbackSubFolders-i-1]), result)
+		result = filepath.Join(string(([]rune(digestString))[sl.NumberOfFallbackTuples-i-1:sl.NumberOfFallbackTuples-i-1+sl.FallbackTupleSize]), result)
 	}
-	/*
-		result = filepath.Join(sl.FallbackFolder, result)
-		result = filepath.Clean(result)
-		result = filepath.ToSlash(result)
-		result = strings.TrimLeft(result, "/")
-	*/
 	result = strings.TrimLeft(filepath.ToSlash(filepath.Clean(filepath.Join(sl.FallbackFolder, result))), "/")
 	if len(result) > sl.MaxPathnameLen {
 		return result, errors.Errorf("result has length of %d which is more than max allowed length of %d", len(result), sl.MaxPathnameLen)

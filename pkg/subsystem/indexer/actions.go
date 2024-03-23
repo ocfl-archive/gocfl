@@ -3,7 +3,7 @@ package indexer
 import (
 	"emperror.dev/errors"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"os"
 	"time"
 )

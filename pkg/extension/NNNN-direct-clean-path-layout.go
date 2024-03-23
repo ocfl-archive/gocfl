@@ -66,8 +66,8 @@ func NewDirectClean(config *DirectCleanConfig) (ocfl.Extension, error) {
 	if config.MaxPathnameLen == 0 {
 		config.MaxPathnameLen = 32000
 	}
-	if config.MaxFilenameLen == 0 {
-		config.MaxFilenameLen = 127
+	if config.MaxPathSegmentLen == 0 {
+		config.MaxPathSegmentLen = 127
 	}
 	if config.FallbackDigestAlgorithm == "" {
 		config.FallbackDigestAlgorithm = checksum.DigestSHA512
@@ -96,13 +96,14 @@ func encodeUTFCode(s string) string {
 type DirectCleanConfig struct {
 	*ocfl.ExtensionConfig
 	MaxPathnameLen              int                      `json:"maxPathnameLen"`
-	MaxFilenameLen              int                      `json:"maxFilenameLen"`
+	MaxPathSegmentLen           int                      `json:"maxPathSegmentLen"`
 	ReplacementString           string                   `json:"replacementString"`
 	WhitespaceReplacementString string                   `json:"whitespaceReplacementString"`
 	UTFEncode                   bool                     `json:"utfEncode"`
 	FallbackDigestAlgorithm     checksum.DigestAlgorithm `json:"fallbackDigestAlgorithm"`
 	FallbackFolder              string                   `json:"fallbackFolder"`
-	FallbackSubFolders          int                      `json:"fallbackSubdirs"`
+	NumberOfFallbackTuples      int                      `json:"numberOfFallbackTuples"`
+	FallbackTupleSize           int                      `json:"fallbackTupleSize"`
 }
 
 type DirectClean struct {
@@ -199,28 +200,22 @@ func (sl *DirectClean) fallback(fname string) (string, error) {
 	digestString := hex.EncodeToString(sl.hash.Sum(nil))
 
 	// check whether digest fits in filename length
-	parts := len(digestString) / sl.MaxFilenameLen
-	rest := len(digestString) % sl.MaxFilenameLen
+	parts := len(digestString) / sl.MaxPathSegmentLen
+	rest := len(digestString) % sl.MaxPathSegmentLen
 	if rest > 0 {
 		parts++
 	}
 	// cut the digest if it's too long for filename length
 	result := ""
 	for i := 0; i < parts; i++ {
-		result = filepath.Join(result, digestString[i*sl.MaxFilenameLen:min((i+1)*sl.MaxFilenameLen, len(digestString))])
+		result = filepath.Join(result, digestString[i*sl.MaxPathSegmentLen:min((i+1)*sl.MaxPathSegmentLen, len(digestString))])
 	}
 
 	// add all necessary subfolders
-	for i := 0; i < sl.FallbackSubFolders; i++ {
+	for i := 0; i < sl.NumberOfFallbackTuples; i++ {
 		// paranoia, but safe
-		result = filepath.Join(string(([]rune(digestString))[sl.FallbackSubFolders-i-1]), result)
+		result = filepath.Join(string(([]rune(digestString))[sl.NumberOfFallbackTuples-i-1:sl.NumberOfFallbackTuples-i-1+sl.FallbackTupleSize]), result)
 	}
-	/*
-		result = filepath.Join(sl.FallbackFolder, result)
-		result = filepath.Clean(result)
-		result = filepath.ToSlash(result)
-		result = strings.TrimLeft(result, "/")
-	*/
 	result = strings.TrimLeft(filepath.ToSlash(filepath.Clean(filepath.Join(sl.FallbackFolder, result))), "/")
 	if len(result) > sl.MaxPathnameLen {
 		return result, errors.Errorf("result has length of %d which is more than max allowed length of %d", len(result), sl.MaxPathnameLen)
@@ -255,7 +250,7 @@ func (sl *DirectClean) build(fname string) (string, error) {
 		}
 
 		lenN := len(n)
-		if lenN > sl.MaxFilenameLen {
+		if lenN > sl.MaxPathSegmentLen {
 			return sl.fallback(fname)
 			//return "", errors.Wrapf(directCleanErrFilenameTooLong, "filename: %s", n)
 		}
