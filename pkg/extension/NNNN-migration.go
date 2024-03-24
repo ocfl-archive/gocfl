@@ -94,7 +94,7 @@ type Migration struct {
 	fsys      fs.FS
 	lastHead  string
 	migration *migration.Migration
-	//buffer         *bytes.Buffer
+	//buffer *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
 	migrationFiles map[string]*migration.Function
@@ -301,6 +301,9 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 					return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", mi.sourceFS, targetNames[len(targetNames)-1])
 				}
 				ext = filepath.Ext(external)
+			} else {
+				// todo: this is not correct
+				continue
 			}
 		}
 		var ml *migrationLine
