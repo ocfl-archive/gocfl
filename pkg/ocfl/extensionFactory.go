@@ -73,7 +73,8 @@ func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (Extension, error) {
 	return ext, nil
 }
 
-func (f *ExtensionFactory) CreateExtensions(fsys fs.FS) ([]Extension, error) {
+func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (ExtensionManager, error) {
+	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folder storageroot")
@@ -83,24 +84,87 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS) ([]Extension, error) {
 		if !file.IsDir() {
 			continue
 		}
-		sub, err := fs.Sub(fsys, file.Name())
+		fName := file.Name()
+		sub, err := fs.Sub(fsys, fName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
 		}
 
 		ext, err := f.Create(sub)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create extension %s", file.Name())
+			errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
+		} else {
+			if !ext.IsRegistered() {
+				if validation != nil {
+					validation.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+				}
+			}
+			result = append(result, ext)
 		}
-		result = append(result, ext)
 	}
-	return result, nil
+	// find the initial extension
+	var initial ExtensionInitial
+	var manager ExtensionManager
+	var result2 = []Extension{}
+	for _, ext := range result {
+		if ext.GetName() != "initial" {
+			result2 = append(result2, ext)
+			continue
+		}
+		var ok bool
+		initial, ok = ext.(ExtensionInitial)
+		if !ok {
+			errs = append(errs, errors.Errorf("extension %s is not an initial extension", ext.GetName()))
+		}
+	}
+	result = result2
+
+	if initial != nil {
+		result2 = []Extension{}
+		extManagerName := initial.GetExtension()
+		for _, ext := range result {
+			if ext.GetName() != extManagerName {
+				result2 = append(result2, ext)
+				continue
+			}
+			var ok bool
+			manager, ok = ext.(ExtensionManager)
+			if !ok {
+				errs = append(errs, errors.Errorf("extension %s is not a manager extension", ext.GetName()))
+				result2 = append(result2, ext)
+			}
+		}
+		result = result2
+	}
+	if manager == nil {
+		creator, ok := f.creators[DefaultExtensionManagerName]
+		if !ok {
+			return nil, errors.Errorf("no default extension manager (%s) found", DefaultExtensionManagerName)
+		}
+		ext, err := creator(nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create default extension manager")
+		}
+		manager, ok = ext.(ExtensionManager)
+		if !ok {
+			return nil, errors.Errorf("default extension manager is not a manager extension")
+		}
+	}
+	for _, ext := range result {
+		if err := manager.Add(ext); err != nil {
+			errs = append(errs, errors.Wrapf(err, "cannot add extension %s to manager", ext.GetName()))
+		}
+	}
+	manager.Finalize()
+	manager.SetInitial(initial)
+	manager.SetFS(fsys)
+	return manager, errors.Combine(errs...)
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys fs.FS) ([]Extension, error) {
-	extensions, err := f.CreateExtensions(fsys)
+func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, validation Validation) (ExtensionManager, error) {
+	manager, err := f.CreateExtensions(fsys, validation)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")
 	}
-	return extensions, nil
+	return manager, nil
 }

@@ -14,8 +14,8 @@ type StorageRootV1_1 struct {
 	*StorageRootBase
 }
 
-func NewStorageRootV1_1(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, logger zLogger.ZWrapper) (*StorageRootV1_1, error) {
-	srb, err := NewStorageRootBase(ctx, fsys, Version1_1, extensionFactory, logger)
+func NewStorageRootV1_1(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZWrapper) (*StorageRootV1_1, error) {
+	srb, err := NewStorageRootBase(ctx, fsys, Version1_1, extensionFactory, extensionManager, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version1_1)
 	}
@@ -24,7 +24,7 @@ func NewStorageRootV1_1(ctx context.Context, fsys fs.FS, extensionFactory *Exten
 	return sr, nil
 }
 
-func (osr *StorageRootV1_1) Init(version OCFLVersion, digest checksum.DigestAlgorithm, extensions []Extension) error {
+func (osr *StorageRootV1_1) Init(version OCFLVersion, digest checksum.DigestAlgorithm, manager ExtensionManager) error {
 	/*
 		specFile := "ocfl_1.1.md"
 		spec, err := writefs.Create(osr.fsys, specFile)
@@ -40,5 +40,5 @@ func (osr *StorageRootV1_1) Init(version OCFLVersion, digest checksum.DigestAlgo
 		}
 
 	*/
-	return osr.StorageRootBase.Init(version, digest, extensions)
+	return osr.StorageRootBase.Init(version, digest, manager)
 }

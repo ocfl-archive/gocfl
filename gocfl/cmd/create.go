@@ -179,7 +179,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageRootExtensions, objectExtensions, err := initDefaultExtensions(extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder)
+	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder)
 	if err != nil {
 		daLogger.Errorf("cannot initialize default extensions: %v", err)
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
@@ -192,7 +192,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		destFS,
 		ocfl.OCFLVersion(conf.Init.OCFLVersion),
 		extensionFactory,
-		storageRootExtensions,
+		storageRootExtensionManager,
 		conf.Init.Digest,
 		daLogger,
 	)
@@ -207,7 +207,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	_, err = addObjectByPath(
 		storageRoot,
 		fixityAlgs,
-		objectExtensions,
+		objectExtensionManager,
 		conf.Add.Deduplicate,
 		flagObjectID,
 		conf.Add.User.Name,

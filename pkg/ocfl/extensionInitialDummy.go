@@ -51,7 +51,7 @@ func (dummy *InitialDummy) IsRegistered() bool {
 }
 
 func (dummy *InitialDummy) GetName() string {
-	return ExtensionManagerName
+	return "dummy"
 }
 
 func (dummy *InitialDummy) SetParams(params map[string]string) error {

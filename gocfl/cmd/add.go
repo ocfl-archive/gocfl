@@ -166,10 +166,15 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot get filesystem for '%s': %v", ocflPath, err)
 	}
+	var doNotClose = false
 	defer func() {
-		if err := writefs.Close(destFS); err != nil {
-			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			daLogger.Panicf("error closing filesystem '%s': %v", destFS, err)
+		if doNotClose {
+			daLogger.Panicf("filesystem '%s' not closed", destFS)
+		} else {
+			if err := writefs.Close(destFS); err != nil {
+				daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+				daLogger.Panicf("error closing filesystem '%s': %v", destFS, err)
+			}
 		}
 	}()
 
@@ -186,6 +191,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
 		if err != nil {
+			doNotClose = true
 			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 			daLogger.Panicf("cannot get filesystem for '%s': %v", args[i], err)
 		}
@@ -193,12 +199,14 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot get migrations: %v", err)
 	}
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot get thumbnails: %v", err)
 	}
@@ -207,11 +215,13 @@ func doAdd(cmd *cobra.Command, args []string) {
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := initExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot initialize extension factory: %v", err)
 	}
-	_, objectExtensions, err := initDefaultExtensions(extensionFactory, "", conf.Add.ObjectExtensionFolder)
+	_, objectExtensionManager, err := initDefaultExtensions(extensionFactory, "", conf.Add.ObjectExtensionFolder)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot initialize default extensions: %v", err)
 	}
@@ -219,6 +229,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	ctx := ocfl.NewContextValidation(context.TODO())
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot open storage root: %v", err)
 	}
@@ -226,12 +237,14 @@ func doAdd(cmd *cobra.Command, args []string) {
 		storageRoot.SetDigest(checksum.DigestAlgorithm(conf.Add.Digest))
 	} else {
 		if storageRoot.GetDigest() != conf.Add.Digest {
+			doNotClose = true
 			daLogger.Panicf("storageroot already uses digest '%s' not '%s'", storageRoot.GetDigest(), conf.Add.Digest)
 		}
 	}
 
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot check for object: %v", err)
 	}
@@ -243,7 +256,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	_, err = addObjectByPath(
 		storageRoot,
 		fixityAlgs,
-		objectExtensions,
+		objectExtensionManager,
 		conf.Add.Deduplicate,
 		flagObjectID,
 		conf.Add.User.Name,
@@ -254,6 +267,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		areaPaths,
 		false)
 	if err != nil {
+		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("error adding content to storageroot filesystem '%s': %v", destFS, err)
 	}

@@ -1,21 +1,4 @@
 {
-  "extensionName": "NNNN-gocfl-extension-manager",
-  "sort": {
-    "StorageRootPath": [
-      "NNNN-direct-clean-path-layout"
-    ]
-  },
-  "exclusion": {
-    "StorageRootPath": [
-      [
-      "NNNN-direct-clean-path-layout",
-      "0003-hash-and-id-n-tuple-storage-layout",
-      "0004-hashed-n-tuple-storage-layout",
-      "0002-flat-direct-storage-layout",
-      "0006-flat-omit-prefix-storage-layout",
-      "NNNN-pairtree-storage-layout",
-      "NNNN-direct-path-layout"
-      ]
-    ]
-  }
+  "extensionName": "initial",
+  "extension": "NNNN-gocfl-extension-manager"
 }
