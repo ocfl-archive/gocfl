@@ -102,6 +102,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// todo: migration not working
+
 	ocflPath, err := ocfl.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
@@ -203,6 +205,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		daLogger.Panicf("cannot get migrations: %v", err)
 	}
+	mig.SetSourceFS(sourceFS)
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
