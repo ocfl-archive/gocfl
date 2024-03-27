@@ -3,12 +3,12 @@ package indexer
 import (
 	"emperror.dev/errors"
 	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"os"
 	"time"
 )
 
-func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger *logging.Logger) (*ironmaiden.ActionDispatcher, error) {
+func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger zLogger.ZWrapper) (*ironmaiden.ActionDispatcher, error) {
 	ad := ironmaiden.NewActionDispatcher(relevance)
 	signatureData, err := os.ReadFile(siegfried.Signature)
 	if err != nil {

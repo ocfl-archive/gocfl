@@ -5,7 +5,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
 )
@@ -22,7 +22,7 @@ type Object interface {
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() Inventory
 	StoreExtensions() error
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) error
 	Load() error
 	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
 	EndUpdate() error
@@ -44,7 +44,7 @@ type Object interface {
 	Extract(fsys fs.FS, version string, withManifest bool, area string) error
 	GetMetadata() (*ObjectMetadata, error)
 	GetAreaPath(area string) (string, error)
-	GetExtensionManager() *ExtensionManager
+	GetExtensionManager() ExtensionManager
 	BuildNames(files []string, area string) (*NamesStruct, error)
 }
 
@@ -81,7 +81,7 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err 
 	return version, nil
 }
 
-func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (Object, error) {
+func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZWrapper) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)
@@ -91,19 +91,19 @@ func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot
 	}
 	switch version {
 	case Version1_1:
-		o, err := newObjectV1_1(ctx, fsys, storageRoot, logger)
+		o, err := newObjectV1_1(ctx, fsys, storageRoot, extensionManager, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	case Version2_0:
-		o, err := newObjectV2_0(ctx, fsys, storageRoot, logger)
+		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	default:
-		o, err := newObjectV1_0(ctx, fsys, storageRoot, logger)
+		o, err := newObjectV1_0(ctx, fsys, storageRoot, extensionManager, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

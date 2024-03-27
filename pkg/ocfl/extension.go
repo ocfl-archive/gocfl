@@ -35,7 +35,14 @@ const (
 	ExtensionAreaName               = "Area"
 	ExtensionStreamName             = "Stream"
 	ExtensionNewVersionName         = "NewVersion"
+	ExtensionInitialName            = "Initial"
 )
+
+type ExtensionInitial interface {
+	Extension
+	GetExtension() string
+	SetExtension(ext string)
+}
 
 type ExtensionStorageRootPath interface {
 	Extension

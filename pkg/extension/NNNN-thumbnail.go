@@ -11,7 +11,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/je4/indexer/v2/pkg/indexer"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
 	"os"
@@ -23,14 +23,14 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
-func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.Logger) (*Thumbnail, error) {
+func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.ZWrapper) (*Thumbnail, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
 
 	var config = &ThumbnailConfig{
-		StorageType:     "extensions",
+		StorageType:     "extension",
 		StorageName:     "data",
 		Ext:             "png",
 		Width:           256,
@@ -58,7 +58,7 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger *logging.
 	}
 	return ext, nil
 }
-func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger *logging.Logger) (*Thumbnail, error) {
+func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZWrapper) (*Thumbnail, error) {
 	sl := &Thumbnail{
 		ThumbnailConfig: config,
 		logger:          logger,
@@ -114,7 +114,7 @@ type ThumbnailFiles map[string]*ThumbnailTarget
 
 type Thumbnail struct {
 	*ThumbnailConfig
-	logger    *logging.Logger
+	logger    zLogger.ZWrapper
 	fsys      fs.FS
 	lastHead  string
 	thumbnail *thumbnail.Thumbnail

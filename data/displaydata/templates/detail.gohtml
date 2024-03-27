@@ -113,6 +113,7 @@
                 <td class="table-active text-end"><strong>{{ $status.DigestAlgorithm }}</strong></td>
                 <td>{{ $status.Checksum }}</td>
             </tr>
+            {{ if $status.Thumbnail }}
             <tr>
                 <td class="table-active text-end"><strong>ThumbDigest</strong></td>
                 <td>{{ $status.Thumbnail.ThumbDigest }}</td>
@@ -121,6 +122,7 @@
                 <td class="table-active text-end"><strong>SourceDigest</strong></td>
                 <td>{{ $status.Thumbnail.SourceDigest }}</td>
             </tr>
+            {{ end }}
             {{ range $alg, $digest := $status.Fixity }}
                 <tr>
                     <td class="table-active text-end">{{ $alg }}</td>

@@ -5,7 +5,7 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 )
 
@@ -54,7 +54,7 @@ type Inventory interface {
 	echoDelete(existing []string, pathprefix string) error
 }
 
-func newInventory(ctx context.Context, object Object, folder string, version OCFLVersion, logger *logging.Logger) (Inventory, error) {
+func newInventory(ctx context.Context, object Object, folder string, version OCFLVersion, logger zLogger.ZWrapper) (Inventory, error) {
 	switch version {
 	case Version1_1:
 		sr, err := newInventoryV1_1(ctx, object, folder, logger)

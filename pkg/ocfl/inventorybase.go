@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/uri"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 	"net/url"
 	"path/filepath"
@@ -34,10 +34,10 @@ type InventoryBase struct {
 	Manifest               *OCFLManifest                                    `json:"manifest,omitempty"`
 	Versions               *OCFLVersions                                    `json:"versions"`
 	Fixity                 map[checksum.DigestAlgorithm]map[string][]string `json:"fixity,omitempty"`
-	logger                 *logging.Logger
+	logger                 zLogger.ZWrapper
 }
 
-func newInventoryBase(ctx context.Context, object Object, folder string, objectType *url.URL, contentDir string, logger *logging.Logger) (*InventoryBase, error) {
+func newInventoryBase(ctx context.Context, object Object, folder string, objectType *url.URL, contentDir string, logger zLogger.ZWrapper) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:                    ctx,
 		object:                 object,

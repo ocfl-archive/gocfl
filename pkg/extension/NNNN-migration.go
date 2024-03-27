@@ -11,7 +11,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/indexer/v2/pkg/indexer"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"io"
@@ -23,7 +23,7 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger *logging.Logger) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.ZWrapper) (*Migration, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -94,7 +94,7 @@ type Migration struct {
 	fsys      fs.FS
 	lastHead  string
 	migration *migration.Migration
-	//buffer         *bytes.Buffer
+	//buffer *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
 	migrationFiles map[string]*migration.Function
@@ -301,6 +301,9 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 					return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", mi.sourceFS, targetNames[len(targetNames)-1])
 				}
 				ext = filepath.Ext(external)
+			} else {
+				// todo: this is not correct
+				continue
 			}
 		}
 		var ml *migrationLine

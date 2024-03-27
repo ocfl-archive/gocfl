@@ -3,7 +3,7 @@ package ocfl
 import (
 	"context"
 	"emperror.dev/errors"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io/fs"
 )
 
@@ -13,8 +13,8 @@ type ObjectV2_0 struct {
 	*ObjectBase
 }
 
-func newObjectV2_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, logger *logging.Logger) (*ObjectV2_0, error) {
-	ob, err := newObjectBase(ctx, fsys, Version2_0, storageRoot, logger)
+func newObjectV2_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZWrapper) (*ObjectV2_0, error) {
+	ob, err := newObjectBase(ctx, fsys, Version2_0, storageRoot, extensionManager, logger)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

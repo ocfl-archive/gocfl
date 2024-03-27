@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/je4/filesystem/v2/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
@@ -27,14 +27,14 @@ import (
 
 type ObjectBase struct {
 	storageRoot        StorageRoot
-	extensionManager   *ExtensionManager
+	extensionManager   ExtensionManager
 	ctx                context.Context
 	fsys               fs.FS
 	i                  Inventory
 	versionFolders     []string
 	versionInventories map[string]Inventory
 	changed            bool
-	logger             *logging.Logger
+	logger             zLogger.ZWrapper
 	version            OCFLVersion
 	digest             checksum.DigestAlgorithm
 	echo               bool
@@ -43,22 +43,14 @@ type ObjectBase struct {
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, logger *logging.Logger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZWrapper) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
-		ctx:         ctx,
-		fsys:        fsys,
-		version:     defaultVersion,
-		storageRoot: storageRoot,
-		extensionManager: &ExtensionManager{
-			extensions:        []Extension{},
-			storageRootPath:   []ExtensionStorageRootPath{},
-			objectContentPath: []ExtensionObjectContentPath{},
-			ExtensionManagerConfig: &ExtensionManagerConfig{
-				Sort:      map[string][]string{},
-				Exclusion: map[string][][]string{},
-			},
-		},
-		logger: logger,
+		ctx:              ctx,
+		fsys:             fsys,
+		version:          defaultVersion,
+		storageRoot:      storageRoot,
+		extensionManager: extensionManager,
+		logger:           logger,
 	}
 	return ocfl, nil
 }
@@ -67,24 +59,24 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
-func (o *ObjectBase) GetExtensionManager() *ExtensionManager {
-	return o.extensionManager
+func (object *ObjectBase) GetExtensionManager() ExtensionManager {
+	return object.extensionManager
 }
 
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
-func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
+func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
-	addValidationErrors(object.ctx, valError)
+	return errors.WithStack(addValidationErrors(object.ctx, valError))
 }
 
-func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
+func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
-	addValidationWarnings(object.ctx, valError)
+	return errors.WithStack(addValidationWarnings(object.ctx, valError))
 }
 
 func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
@@ -207,13 +199,13 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 		}
 	}
 	if slices.Contains(statInfo, StatObjectExtensionConfigs) || len(statInfo) == 0 {
-		data, err := json.MarshalIndent(object.extensionManager.ExtensionManagerConfig, "", "  ")
+		data, err := json.MarshalIndent(object.extensionManager.GetConfig(), "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
 		}
 		fmt.Fprintf(w, "[%s] Initial Extension:\n---\n%s\n---\n", object.GetID(), string(data))
 		fmt.Fprintf(w, "[%s] Extension Configurations:\n", object.GetID())
-		for _, ext := range object.extensionManager.extensions {
+		for _, ext := range object.extensionManager.GetExtensions() {
 			cfg := ext.GetConfig()
 			str, _ := json.MarshalIndent(cfg, "", "  ")
 
@@ -431,11 +423,13 @@ func (object *ObjectBase) StoreExtensions() error {
 	return nil
 }
 
-func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensions []Extension) error {
+func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager ExtensionManager) error {
 	object.logger.Debugf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
+
+	object.extensionManager = extensionManager
 
 	// first check whether object is not empty
 	fp, err := object.fsys.Open(objectConformanceDeclarationFile)
@@ -465,16 +459,6 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 		return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, objectConformanceDeclarationFile)
 	}
 
-	for _, ext := range extensions {
-		if !ext.IsRegistered() {
-			object.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
-		}
-		if err := object.extensionManager.Add(ext); err != nil {
-			return errors.Wrapf(err, "cannot add extension '%s'", ext.GetName())
-		}
-	}
-	object.extensionManager.Finalize()
-
 	subfs, err := writefs.SubFSCreate(object.fsys, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
@@ -498,48 +482,18 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 }
 
 func (object *ObjectBase) Load() (err error) {
-	// first check whether object already exists
-	//object.version, err = GetObjectVersion(object.ctx, object.fs)
-	//if err != nil {
-	//	return err
-	//}
-	// read path from extension folder...
-	exts, err := fs.ReadDir(object.fsys, "extensions")
-	if err != nil {
-		// if directory does not exist - no problem
-		if err != fs.ErrNotExist {
-			return errors.Wrapf(err, "cannot read extensions folder %v/%s", object.fsys, "extensions")
-		}
-		exts = []fs.DirEntry{}
-	}
-	for _, extFolder := range exts {
-		if !extFolder.IsDir() {
-			object.addValidationError(E067, "invalid file '%v/%s' in extension dir", object.fsys, extFolder.Name())
-			continue
-		}
-		extConfig := fmt.Sprintf("extensions/%s", extFolder.Name())
-		subfs, err := fs.Sub(object.fsys, extConfig)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create subfs of %v for '%s'", object.fsys, extConfig)
-		}
-		if ext, err := object.storageRoot.CreateExtension(subfs); err != nil {
-			//return errors.Wrapf(err, "create extension of extensions/%s", extFolder.Name())
-			object.addValidationWarning(W000, "cannot initialize extension in folder '%s'", subfs)
-		} else {
-			if !ext.IsRegistered() {
-				object.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
-			}
-			if err := object.extensionManager.Add(ext); err != nil {
-				return errors.Wrapf(err, "cannot add extension '%s'", extFolder.Name())
-			}
-		}
-	}
-
-	subfs, err := fs.Sub(object.fsys, "extensions")
+	extFolder, err := fs.Sub(object.fsys, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}
-	object.extensionManager.SetFS(subfs)
+	manager, err := object.storageRoot.CreateExtensions(extFolder, object)
+	if err != nil {
+		object.addValidationWarning(W000, "cannot initialize all extensions in folder '%s': %v", extFolder, err)
+		if manager == nil {
+			return errors.Wrap(err, "cannot create extension manager")
+		}
+	}
+	object.extensionManager = manager
 
 	// load the inventory
 	if object.i, err = object.LoadInventory("."); err != nil {

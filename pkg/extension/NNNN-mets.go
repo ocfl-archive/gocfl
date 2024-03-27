@@ -16,7 +16,7 @@ import (
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/version"
 	"github.com/je4/indexer/v2/pkg/indexer"
-	"github.com/op/go-logging"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"io"
@@ -72,7 +72,7 @@ func GetMetsParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewMetsFS(fsys fs.FS, logger *logging.Logger) (*Mets, error) {
+func NewMetsFS(fsys fs.FS, logger zLogger.ZWrapper) (*Mets, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -92,7 +92,7 @@ func NewMetsFS(fsys fs.FS, logger *logging.Logger) (*Mets, error) {
 
 	return NewMets(config, logger)
 }
-func NewMets(config *MetsConfig, logger *logging.Logger) (*Mets, error) {
+func NewMets(config *MetsConfig, logger zLogger.ZWrapper) (*Mets, error) {
 	me := &Mets{
 		MetsConfig: config,
 		logger:     logger,
@@ -114,7 +114,7 @@ type MetsConfig struct {
 type Mets struct {
 	*MetsConfig
 	fsys   fs.FS
-	logger *logging.Logger
+	logger zLogger.ZWrapper
 	//	descriptiveMetadata     string
 	//	descriptiveMetadataType string
 }
