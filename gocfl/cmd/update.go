@@ -165,6 +165,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		doNotClose = true
 		return
 	}
+	mig.SetSourceFS(sourceFS)
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {

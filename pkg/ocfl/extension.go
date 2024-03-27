@@ -41,6 +41,7 @@ const (
 type ExtensionInitial interface {
 	Extension
 	GetExtension() string
+	SetExtension(ext string)
 }
 
 type ExtensionStorageRootPath interface {

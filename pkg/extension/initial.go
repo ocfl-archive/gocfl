@@ -29,7 +29,7 @@ func NewInitialFS(fsys fs.FS) (*Initial, error) {
 		ExtensionConfig: &ocfl.ExtensionConfig{
 			ExtensionName: InitialName,
 		},
-		Extension: "NNNN-gocfl-extension-manager",
+		Extension: ocfl.DefaultExtensionManagerName,
 	}
 	if fsys != nil {
 		fp, err := fsys.Open("config.json")
@@ -70,6 +70,10 @@ type InitialConfig struct {
 type Initial struct {
 	*InitialConfig
 	fsys fs.FS
+}
+
+func (sl *Initial) SetExtension(ext string) {
+	sl.ExtensionName = ext
 }
 
 func (sl *Initial) GetExtension() string {

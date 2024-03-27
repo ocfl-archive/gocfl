@@ -104,12 +104,7 @@ func (manager *GOCFLExtensionManager) GetConfigName(extName string) (any, error)
 func (manager *GOCFLExtensionManager) Add(ext ocfl.Extension) error {
 	// set extensionmanager config...
 	if ext.GetName() == GOCFLExtensionManagerName {
-		dummy, ok := ext.(*ocfl.InitialDummy)
-		if !ok {
-			return errors.Errorf("extension '%s' not of type *InitialDummy", ext)
-		}
-		manager.ExtensionManagerConfig = dummy.ExtensionManagerConfig
-		return nil
+		return errors.Errorf("cannot add extension '%s' to itself", GOCFLExtensionManagerName)
 	}
 	manager.extensions = append(manager.extensions, ext)
 
@@ -159,6 +154,7 @@ func (manager *GOCFLExtensionManager) SetFS(fsys fs.FS) {
 		}
 		extFS, err := fs.Sub(fsys, ext.GetName())
 		if err != nil {
+			// todo: do not create...
 			if errors.Is(err, fs.ErrNotExist) {
 				extFS, err = writefs.SubFSCreate(fsys, ext.GetName())
 			}

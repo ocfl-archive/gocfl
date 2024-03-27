@@ -3,6 +3,7 @@ package ocfl
 import "io/fs"
 
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
+const DefaultExtensionInitialName = "initial"
 
 type ExtensionManager interface {
 	Extension
