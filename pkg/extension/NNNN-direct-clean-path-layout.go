@@ -59,6 +59,15 @@ func NewDirectCleanFS(fsys fs.FS) (ocfl.Extension, error) {
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
+	// compatibility with old config
+	if config.MaxFilenameLen > 0 && config.MaxPathnameLen == 0 {
+		config.MaxPathnameLen = config.MaxFilenameLen
+		config.MaxFilenameLen = 0
+	}
+	if config.FallbackSubFolders > 0 && config.NumberOfFallbackTuples == 0 {
+		config.NumberOfFallbackTuples = config.FallbackSubFolders
+		config.FallbackSubFolders = 0
+	}
 	return NewDirectClean(config)
 }
 
@@ -104,6 +113,10 @@ type DirectCleanConfig struct {
 	FallbackFolder              string                   `json:"fallbackFolder"`
 	NumberOfFallbackTuples      int                      `json:"numberOfFallbackTuples"`
 	FallbackTupleSize           int                      `json:"fallbackTupleSize"`
+
+	// compatibility with old config
+	MaxFilenameLen     int `json:"maxFilenameLen,omitempty"`
+	FallbackSubFolders int `json:"fallbackSubdirs,omitempty"`
 }
 
 type DirectClean struct {
