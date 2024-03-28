@@ -68,8 +68,8 @@ func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.Actio
 func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZWrapper) (*Indexer, error) {
 	var err error
 
-	if len(config.Actions) == 0 {
-		config.Actions = []string{"siegfried"}
+	if config.Actions == nil {
+		config.Actions = []string{}
 	}
 	as := []string{}
 	for _, a := range config.Actions {
