@@ -177,7 +177,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := initExtensionFactory(
+	extensionFactory, err := InitExtensionFactory(
 		extensionParams,
 		addr,
 		localCache,

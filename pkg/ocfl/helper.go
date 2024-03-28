@@ -365,6 +365,9 @@ func ReadFile(object Object, name, version, storageType, storageName string, fsy
 }
 
 func ReadJsonL(object Object, name, version, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+	if fsys == nil {
+		return nil, errors.Errorf("[%s/%s] %s: fsys is nil", object.GetID(), version, name)
+	}
 	var ext string
 	switch compress {
 	case "brotli":

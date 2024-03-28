@@ -83,7 +83,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := initExtensionFactory(
+	extensionFactory, err := InitExtensionFactory(
 		extensionParams,
 		"",
 		false,
