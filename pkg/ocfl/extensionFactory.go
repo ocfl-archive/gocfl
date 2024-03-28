@@ -205,7 +205,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 	// do final steps
 	manager.Finalize()
 	manager.SetInitial(initial)
-	//	manager.SetFS(fsys)
+	manager.SetFS(fsys)
 	return manager, errors.Combine(errs...)
 }
 

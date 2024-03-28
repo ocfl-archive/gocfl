@@ -343,6 +343,7 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", subfs, "extensions")
 	}
 	extensionManager, err := osr.extensionFactory.CreateExtensions(extFSys, osr)
+	//	extensionManager.SetFS(extFSys)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extension manager")
 	}
