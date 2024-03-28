@@ -216,7 +216,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
 	if err != nil {
 		doNotClose = true
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

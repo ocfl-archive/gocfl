@@ -172,7 +172,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := initExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))

@@ -46,7 +46,7 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func initExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger zLogger.ZWrapper) (*ocfl.ExtensionFactory, error) {
+func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger zLogger.ZWrapper) (*ocfl.ExtensionFactory, error) {
 	logger.Debugf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {

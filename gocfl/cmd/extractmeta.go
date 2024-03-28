@@ -104,7 +104,7 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := initExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, daLogger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, daLogger)
 	if err != nil {
 		daLogger.Errorf("cannot initialize extension factory: %v", err)
 		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
