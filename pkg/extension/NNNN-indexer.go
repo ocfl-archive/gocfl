@@ -30,7 +30,7 @@ type indexerLine struct {
 	Indexer *ironmaiden.ResultV2
 }
 
-var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext"}
+var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext", "xml"}
 var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {
