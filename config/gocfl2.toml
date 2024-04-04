@@ -74,6 +74,14 @@ LocalCache=false
 Enabled=true
 Digest=["sha512", "blake2b-384"]
 
+[Indexer.XML]
+Enabled=true
+[Indexer.XML.Format.document]
+Attributes.xmlns = "http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.xml"
+Type = "OCR"
+Subtype = "FineReader"
+Mime = "application/xml"
+
 [Indexer.Siegfried]
 Enabled=true
 #Signature = "/usr/share/siegfried/default.sig"

@@ -22,7 +22,7 @@ require (
 	github.com/gosimple/slug v1.14.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/je4/filesystem/v2 v2.0.11
-	github.com/je4/indexer/v2 v2.0.8
+	github.com/je4/indexer/v2 v2.0.9
 	github.com/je4/utils/v2 v2.0.30
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1

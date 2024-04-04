@@ -10,12 +10,14 @@ import (
 
 func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger zLogger.ZWrapper) (*ironmaiden.ActionDispatcher, error) {
 	ad := ironmaiden.NewActionDispatcher(relevance)
-	signatureData, err := os.ReadFile(siegfried.Signature)
-	if err != nil {
-		logger.Warningf("no siegfried signature file provided. using default signature file. please provide a recent signature file.")
+	if siegfried != nil && siegfried.Signature != "" {
+		signatureData, err := os.ReadFile(siegfried.Signature)
+		if err != nil {
+			logger.Warningf("no siegfried signature file provided. using default signature file. please provide a recent signature file.")
+		}
+		logger.Info("indexer action siegfried added")
+		_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, nil, ad)
 	}
-	logger.Info("indexer action siegfried added")
-	_ = ironmaiden.NewActionSiegfried("siegfried", signatureData, siegfried.MimeMap, nil, ad)
 	if ffmpeg != nil && ffmpeg.Enabled {
 		timeout, err := time.ParseDuration(ffmpeg.Timeout)
 		if err != nil {
