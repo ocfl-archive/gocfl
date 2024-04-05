@@ -251,6 +251,10 @@
                     </tr>
                     {{ end }}
                 {{ end }}
+                <tr>
+                    <td class="table-active text-end"><strong>Type</strong></td>
+                    <td>{{ $status.Indexer.Type }} - {{ $status.Indexer.Subtype }}</td>
+                </tr>
                 {{ if $status.Indexer.Mimetypes }}
                     <tr>
                         <td class="table-active text-end"><strong>Mimetypes</strong></td>

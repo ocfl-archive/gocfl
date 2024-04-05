@@ -78,8 +78,14 @@ Digest=["sha512", "blake2b-384"]
 Enabled=true
 [Indexer.XML.Format.document]
 Attributes.xmlns = "http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.xml"
-Type = "OCR"
-Subtype = "FineReader"
+Type = "ocr"
+Subtype = "FineReader10"
+Mime = "application/xml"
+[Indexer.XML.Format."mets:mets"]
+Regexp = true
+Attributes."xmlns:mets" = "^https?://www.loc.gov/METS/?$"
+Type = "metadata"
+Subtype = "METS"
 Mime = "application/xml"
 
 [Indexer.Siegfried]

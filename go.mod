@@ -2,7 +2,7 @@ module github.com/je4/gocfl/v2
 
 go 1.22.0
 
-toolchain go1.22.1
+toolchain go1.22.2
 
 require (
 	emperror.dev/emperror v0.33.0
@@ -12,7 +12,7 @@ require (
 	github.com/andybalholm/brotli v1.1.0
 	github.com/atsushinee/go-markdown-generator v0.0.0-20231027094725-92d26ffbe778
 	github.com/dustin/go-humanize v1.0.1
-	github.com/gin-contrib/multitemplate v0.0.0-20231230012943-32b233489a81
+	github.com/gin-contrib/multitemplate v1.0.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/gomiran/volmgmt v0.0.0-20221201020756-5e535b6f4941
 	github.com/google/martian v2.1.0+incompatible
@@ -20,22 +20,18 @@ require (
 	github.com/google/tink/go v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
-	github.com/invopop/jsonschema v0.12.0
 	github.com/je4/filesystem/v2 v2.0.11
-	github.com/je4/indexer/v2 v2.0.9
+	github.com/je4/indexer/v2 v2.0.10
 	github.com/je4/utils/v2 v2.0.30
-	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.0
-	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
+	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/sonic v1.11.3 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -68,7 +64,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
@@ -78,6 +73,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.6 // indirect
@@ -92,14 +88,14 @@ require (
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/rs/zerolog v1.32.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/tamerh/xml-stream-parser v1.5.0 // indirect
+	github.com/tamerh/xpath v1.0.0 // indirect
 	github.com/tobischo/argon2 v0.1.0 // indirect
 	github.com/tobischo/gokeepasslib/v3 v3.5.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.9 // indirect
 	go.opencensus.io v0.24.0 // indirect
@@ -110,8 +106,6 @@ require (
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/api v0.164.0 // indirect
-	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
