@@ -22,7 +22,7 @@ require (
 	github.com/gosimple/slug v1.14.0
 	github.com/je4/filesystem/v2 v2.0.11
 	github.com/je4/indexer/v2 v2.0.10
-	github.com/je4/utils/v2 v2.0.30
+	github.com/je4/utils/v2 v2.0.33
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
