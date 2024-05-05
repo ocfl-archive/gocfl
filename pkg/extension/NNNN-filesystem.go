@@ -84,6 +84,10 @@ type Filesystem struct {
 	writer      *brotli.Writer
 }
 
+func (extFS *Filesystem) Terminate() error {
+	return nil
+}
+
 func (extFS *Filesystem) GetFS() fs.FS {
 	return extFS.fsys
 }

@@ -76,6 +76,16 @@ type GOCFLExtensionManager struct {
 	initial            ocfl.ExtensionInitial
 }
 
+func (manager *GOCFLExtensionManager) Terminate() error {
+	var errs = []error{}
+	for _, ext := range manager.extensions {
+		if err := ext.Terminate(); err != nil {
+			errs = append(errs, errors.Wrapf(err, "cannot terminate '%s'", ext.GetName()))
+		}
+	}
+	return errors.Combine(errs...)
+}
+
 func (manager *GOCFLExtensionManager) SetInitial(initial ocfl.ExtensionInitial) {
 	manager.initial = initial
 }

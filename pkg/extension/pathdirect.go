@@ -46,6 +46,10 @@ type PathDirect struct {
 	*PathDirectConfig
 }
 
+func (sl *PathDirect) Terminate() error {
+	return nil
+}
+
 func (sl *PathDirect) GetFS() fs.FS {
 	return sl.fsys
 }

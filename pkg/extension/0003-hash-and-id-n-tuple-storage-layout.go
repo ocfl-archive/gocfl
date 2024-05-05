@@ -69,6 +69,10 @@ type StorageLayoutHashAndIdNTuple struct {
 	fsys fs.FS
 }
 
+func (sl *StorageLayoutHashAndIdNTuple) Terminate() error {
+	return nil
+}
+
 func (sl *StorageLayoutHashAndIdNTuple) GetFS() fs.FS {
 	return sl.fsys
 }

@@ -126,6 +126,10 @@ type DirectClean struct {
 	hashMutex sync.Mutex `json:"-"`
 }
 
+func (sl *DirectClean) Terminate() error {
+	return nil
+}
+
 func (sl *DirectClean) GetFS() fs.FS {
 	return sl.fsys
 }

@@ -48,6 +48,10 @@ type FlatOmitPrefixStorageLayout struct {
 	fsys fs.FS
 }
 
+func (sl *FlatOmitPrefixStorageLayout) Terminate() error {
+	return nil
+}
+
 func (sl *FlatOmitPrefixStorageLayout) GetFS() fs.FS {
 	return sl.fsys
 }

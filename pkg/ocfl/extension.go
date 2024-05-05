@@ -21,6 +21,7 @@ type Extension interface {
 	GetConfig() any
 	IsRegistered() bool
 	//	Stat(w io.Writer, statInfo []StatInfo) error
+	Terminate() error
 }
 
 const (

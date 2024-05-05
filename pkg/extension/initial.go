@@ -72,6 +72,10 @@ type Initial struct {
 	fsys fs.FS
 }
 
+func (sl *Initial) Terminate() error {
+	return nil
+}
+
 func (sl *Initial) SetExtension(ext string) {
 	sl.ExtensionName = ext
 }

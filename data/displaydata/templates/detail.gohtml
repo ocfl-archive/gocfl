@@ -204,9 +204,15 @@
                     </thead>
                     <tbody>
                     {{ if eq $status.Thumbnail.ThumbDigest $status.Checksum }}
+
                         <tr>
                             <td class="table-active text-end"><strong>Thumbnail Source</strong></td>
-                            <td><a href="{{ $status.Thumbnail.SourceDigest }}">{{ $status.Thumbnail.SourceName }}</a></td>
+                            <td>
+                                {{- range $key, $sn := $status.Thumbnail.SourceName }}
+                                {{- if gt $key 0 }}<br />{{ end }}
+                                <a href="{{ $status.Thumbnail.SourceDigest }}">{{ $sn }}</a>
+                                {{- end }}
+                            </td>
                         </tr>
                     {{ else }}
                     <tr>

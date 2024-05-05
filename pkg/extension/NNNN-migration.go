@@ -104,6 +104,10 @@ type Migration struct {
 	done           bool
 }
 
+func (mi *Migration) Terminate() error {
+	return nil
+}
+
 func (mi *Migration) GetFS() fs.FS {
 	return mi.fsys
 }

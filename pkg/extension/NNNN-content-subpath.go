@@ -70,6 +70,10 @@ type ContentSubPath struct {
 	area string
 }
 
+func (sl *ContentSubPath) Terminate() error {
+	return nil
+}
+
 func (sl *ContentSubPath) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	return map[string]any{"": sl.Paths}, nil
 }

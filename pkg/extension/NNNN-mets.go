@@ -119,6 +119,10 @@ type Mets struct {
 	//	descriptiveMetadataType string
 }
 
+func (me *Mets) Terminate() error {
+	return nil
+}
+
 func (me *Mets) GetFS() fs.FS {
 	return me.fsys
 }
@@ -153,7 +157,7 @@ func (me *Mets) WriteConfig() error {
 	}
 	configWriter, err := writefs.Create(me.fsys, "config.json")
 	if err != nil {
-		return errors.Wrap(err, "cannot open config.json")
+		return errors.Wrap(err, "cannot create config.json")
 	}
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)

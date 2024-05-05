@@ -20,9 +20,10 @@ require (
 	github.com/google/tink/go v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
-	github.com/je4/filesystem/v2 v2.0.11
+	github.com/je4/filesystem/v2 v2.0.12
 	github.com/je4/indexer/v2 v2.0.10
 	github.com/je4/utils/v2 v2.0.33
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
@@ -107,6 +108,7 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
+	gopkg.in/gographics/imagick.v3 v3.5.3 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

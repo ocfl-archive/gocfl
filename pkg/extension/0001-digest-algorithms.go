@@ -59,6 +59,10 @@ type DigestAlgorithms struct {
 	fsys fs.FS
 }
 
+func (sl *DigestAlgorithms) Terminate() error {
+	return nil
+}
+
 func (sl *DigestAlgorithms) GetFS() fs.FS {
 	return sl.fsys
 }
