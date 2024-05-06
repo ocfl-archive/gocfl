@@ -1,62 +1,19 @@
-//go:build !imagick
+//go:build !(imagick && !vips && cgo) && !(!imagick && vips && cgo)
 
 package extension
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/andybalholm/brotli"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
 	"image/png"
 	"io"
-	"io/fs"
 	"slices"
 	"strings"
 )
-
-func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZWrapper) (*Thumbnail, error) {
-	sl := &Thumbnail{
-		ThumbnailConfig: config,
-		logger:          logger,
-		thumbnail:       mig,
-		buffer:          map[string]*bytes.Buffer{},
-		counter:         map[string]int64{},
-		streamInfo:      map[string]map[string]*ThumbnailResult{},
-	}
-	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-	if mig != nil {
-		sl.sourceFS = mig.SourceFS
-	}
-	return sl, nil
-}
-
-type Thumbnail struct {
-	*ThumbnailConfig
-	logger      zLogger.ZWrapper
-	fsys        fs.FS
-	lastHead    string
-	thumbnail   *thumbnail.Thumbnail
-	buffer      map[string]*bytes.Buffer
-	writer      *brotli.Writer
-	sourceFS    fs.FS
-	currentHead string
-	done        bool
-	counter     map[string]int64
-	streamInfo  map[string]map[string]*ThumbnailResult
-}
-
-func (thumb *Thumbnail) Terminate() error {
-	return nil
-}
 
 func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(stateFiles) == 0 {

@@ -1,12 +1,12 @@
-//go:build imagick && !vips && cgo
+//go:build vips && !imagick && cgo
 
 package extension
 
 import (
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/davidbyttow/govips/v2/vips"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"gopkg.in/gographics/imagick.v3/imagick"
 	"io"
 	"slices"
 	"strings"
@@ -35,51 +35,49 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 	//ext := filepath.Ext(stateFiles[0])
 
-	imgBytes, err := io.ReadAll(reader)
+	img, err := vips.NewImageFromReader(reader)
 	if err != nil {
-		return errors.Wrap(err, "cannot read image")
-	}
-
-	mw := imagick.NewMagickWand()
-	defer mw.Destroy()
-
-	if err := mw.ReadImageBlob(imgBytes); err != nil {
 		thumb.logger.Infof("cannot decode image '%s': %v", stateFiles[0], err)
 		return nil
 	}
-	imgBytes = nil // free memory
-	width, height, err := mw.GetSize()
-	if err != nil {
-		thumb.logger.Infof("cannot get image size of '%s': %v", stateFiles[0], err)
-		return nil
-	}
+	defer img.Close()
+
+	width := img.Width()
+	height := img.Height()
 	if width == 0 || height == 0 {
 		thumb.logger.Infof("image '%s' has zero size", stateFiles[0])
 		return nil
 	}
-	thumb.logger.Infof("image '%s' format: %s, size: %d x %d", stateFiles[0], mw.GetFormat(), width, height)
 
-	rectAspect := width / height
-	thumbAspect := uint(thumb.Width) / uint(thumb.Height)
-	newHeight := uint(thumb.Height)
-	newWidth := uint(thumb.Width)
+	thumb.logger.Infof("image '%s' format: %s, size: %d x %d", stateFiles[0], img.Format().FileExt(), width, height)
+
+	rectAspect := float64(width) / float64(height)
+	thumbAspect := float64(thumb.Width) / float64(thumb.Height)
+	newHeight := int(thumb.Height)
+	newWidth := int(thumb.Width)
+	_ = newWidth
 	if rectAspect > thumbAspect {
-		newHeight = uint(height * uint(thumb.Width) / width)
+		newHeight = (height * int(thumb.Width)) / width
 	} else {
-		newWidth = uint(width * uint(thumb.Height) / height)
+		newWidth = (width * int(thumb.Height)) / height
 	}
-
-	if err := mw.ResizeImage(newWidth, newHeight, imagick.FILTER_LANCZOS); err != nil {
+	scale := float64(newHeight) / float64(height)
+	if err := img.Resize(scale, vips.KernelLanczos3); err != nil {
 		thumb.logger.Infof("cannot resize image '%s': %v", stateFiles[0], err)
 		return nil
 	}
-
-	if err := mw.SetImageFormat(thumb.ThumbnailConfig.Ext); err != nil {
-		thumb.logger.Infof("cannot set image '%s' format '%s': %v", stateFiles[0], thumb.ThumbnailConfig.Ext, err)
+	var imgBytes []byte
+	var meta *vips.ImageMetadata
+	switch thumb.ThumbnailConfig.Ext {
+	case "png":
+		imgBytes, meta, err = img.ExportPng(vips.NewPngExportParams())
+	case "jpeg":
+		imgBytes, meta, err = img.ExportJpeg(vips.NewJpegExportParams())
+	default:
+		thumb.logger.Infof("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext)
 		return nil
 	}
-	mw.ResetIterator()
-	imgBytes = mw.GetImageBlob()
+	_ = meta
 
 	fsys := object.GetFS()
 	if fsys == nil {
@@ -99,7 +97,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		Filename:    targetFile,
 		Ext:         thumb.ThumbnailConfig.Ext,
 		Error:       "",
-		ID:          "internal imagick",
+		ID:          "internal vips",
 		ThumbDigest: digest,
 	}
 	thumb.streamInfo[head][infoName] = ml

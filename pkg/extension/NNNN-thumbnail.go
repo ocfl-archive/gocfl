@@ -104,6 +104,44 @@ type ThumbnailMap map[string]*ThumbnailTarget
 // map checksum to thumbnail
 type ThumbnailFiles map[string]*ThumbnailTarget
 
+func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZWrapper) (*Thumbnail, error) {
+	sl := &Thumbnail{
+		ThumbnailConfig: config,
+		logger:          logger,
+		thumbnail:       mig,
+		buffer:          map[string]*bytes.Buffer{},
+		counter:         map[string]int64{},
+		streamInfo:      map[string]map[string]*ThumbnailResult{},
+	}
+	//	sl.writer = brotli.NewWriter(sl.buffer)
+	if config.ExtensionName != sl.GetName() {
+		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	}
+	if mig != nil {
+		sl.sourceFS = mig.SourceFS
+	}
+	return sl, nil
+}
+
+type Thumbnail struct {
+	*ThumbnailConfig
+	logger      zLogger.ZWrapper
+	fsys        fs.FS
+	lastHead    string
+	thumbnail   *thumbnail.Thumbnail
+	buffer      map[string]*bytes.Buffer
+	writer      *brotli.Writer
+	sourceFS    fs.FS
+	currentHead string
+	done        bool
+	counter     map[string]int64
+	streamInfo  map[string]map[string]*ThumbnailResult
+}
+
+func (thumb *Thumbnail) Terminate() error {
+	return nil
+}
+
 func (thumb *Thumbnail) GetFS() fs.FS {
 	return thumb.fsys
 }
