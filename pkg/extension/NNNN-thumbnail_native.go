@@ -1,4 +1,4 @@
-//go:build !(imagick && !vips && cgo) && !(!imagick && vips && cgo)
+//go:build (!(imagick && !vips) && !(!imagick && vips)) || !cgo
 
 package extension
 
