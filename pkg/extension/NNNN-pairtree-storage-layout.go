@@ -34,6 +34,10 @@ type StorageLayoutPairTree struct {
 	fsys fs.FS
 }
 
+func (sl *StorageLayoutPairTree) Terminate() error {
+	return nil
+}
+
 func (sl *StorageLayoutPairTree) GetFS() fs.FS {
 	return sl.fsys
 }

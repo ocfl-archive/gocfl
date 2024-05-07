@@ -70,6 +70,10 @@ type StorageLayoutHashedNTuple struct {
 	fsys fs.FS
 }
 
+func (sl *StorageLayoutHashedNTuple) Terminate() error {
+	return nil
+}
+
 func (sl *StorageLayoutHashedNTuple) GetFS() fs.FS {
 	return sl.fsys
 }

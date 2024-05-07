@@ -11,6 +11,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/andybalholm/brotli v1.1.0
 	github.com/atsushinee/go-markdown-generator v0.0.0-20231027094725-92d26ffbe778
+	github.com/davidbyttow/govips/v2 v2.14.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-contrib/multitemplate v1.0.0
 	github.com/gin-gonic/gin v1.9.1
@@ -20,12 +21,15 @@ require (
 	github.com/google/tink/go v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
-	github.com/je4/filesystem/v2 v2.0.11
+	github.com/je4/filesystem/v2 v2.0.12
 	github.com/je4/indexer/v2 v2.0.10
-	github.com/je4/utils/v2 v2.0.30
+	github.com/je4/utils/v2 v2.0.33
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
+	golang.org/x/image v0.15.0
+	gopkg.in/gographics/imagick.v3 v3.5.3
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -102,7 +106,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

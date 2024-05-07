@@ -68,6 +68,10 @@ type NTupleOmitPrefixStorageLayout struct {
 	fsys fs.FS
 }
 
+func (sl *NTupleOmitPrefixStorageLayout) Terminate() error {
+	return nil
+}
+
 func (sl *NTupleOmitPrefixStorageLayout) GetFS() fs.FS {
 	return sl.fsys
 }

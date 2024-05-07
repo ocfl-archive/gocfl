@@ -37,6 +37,10 @@ type InitialDummy struct {
 	*ExtensionManagerConfig
 }
 
+func (dummy *InitialDummy) Terminate() error {
+	return nil
+}
+
 func (dummy *InitialDummy) GetFS() fs.FS {
 	//TODO implement me
 	panic("implement me")

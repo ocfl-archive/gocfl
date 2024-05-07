@@ -20,6 +20,10 @@ type LoggingIndexer struct {
 	metadata map[string]any
 }
 
+func (sl *LoggingIndexer) Terminate() error {
+	return nil
+}
+
 func (sl *LoggingIndexer) GetFS() fs.FS {
 	//TODO implement me
 	panic("implement me")

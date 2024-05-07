@@ -128,6 +128,10 @@ type Indexer struct {
 	logger         zLogger.ZWrapper
 }
 
+func (sl *Indexer) Terminate() error {
+	return nil
+}
+
 func (sl *Indexer) GetFS() fs.FS {
 	return sl.fsys
 }

@@ -46,6 +46,10 @@ type StorageLayoutFlatDirect struct {
 	fsys fs.FS
 }
 
+func (sl *StorageLayoutFlatDirect) Terminate() error {
+	return nil
+}
+
 func (sl *StorageLayoutFlatDirect) GetFS() fs.FS {
 	return sl.fsys
 }

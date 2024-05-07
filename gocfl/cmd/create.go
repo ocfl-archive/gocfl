@@ -185,6 +185,14 @@ func doCreate(cmd *cobra.Command, args []string) {
 		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
 		return
 	}
+	defer func() {
+		if err := objectExtensionManager.Terminate(); err != nil {
+			daLogger.Errorf("cannot terminate object extension manager: %v", err)
+		}
+		if err := storageRootExtensionManager.Terminate(); err != nil {
+			daLogger.Errorf("cannot terminate storage root extension manager: %v", err)
+		}
+	}()
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	storageRoot, err := ocfl.CreateStorageRoot(

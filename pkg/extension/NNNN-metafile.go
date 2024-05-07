@@ -115,6 +115,10 @@ type MetaFile struct {
 	info           map[string][]byte
 }
 
+func (sl *MetaFile) Terminate() error {
+	return nil
+}
+
 func (sl *MetaFile) GetFS() fs.FS {
 	return sl.fsys
 }
