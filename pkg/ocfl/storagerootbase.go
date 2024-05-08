@@ -129,7 +129,7 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 
 	subfs, err := writefs.SubFSCreate(osr.fsys, "extensions")
 	if err == nil {
-		osr.extensionManager.SetFS(subfs)
+		osr.extensionManager.SetFS(subfs, true)
 		if err := osr.extensionManager.WriteConfig(); err != nil {
 			return errors.Wrap(err, "cannot store extension configs")
 		}

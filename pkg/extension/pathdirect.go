@@ -62,7 +62,7 @@ func (sl *PathDirect) IsRegistered() bool {
 	return false
 }
 
-func (sl *PathDirectConfig) SetFS(fsys fs.FS) {
+func (sl *PathDirectConfig) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

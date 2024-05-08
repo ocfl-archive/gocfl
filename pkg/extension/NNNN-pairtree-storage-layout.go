@@ -70,7 +70,7 @@ func (sl *StorageLayoutPairTree) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS) {
+func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

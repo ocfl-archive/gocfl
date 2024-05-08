@@ -319,7 +319,7 @@ func (extFS *Filesystem) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (extFS *Filesystem) SetFS(fsys fs.FS) {
+func (extFS *Filesystem) SetFS(fsys fs.FS, create bool) {
 	extFS.fsys = fsys
 }
 

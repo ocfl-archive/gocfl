@@ -90,7 +90,7 @@ func (sl *ContentSubPath) IsRegistered() bool {
 	return false
 }
 
-func (sl *ContentSubPath) SetFS(fsys fs.FS) {
+func (sl *ContentSubPath) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

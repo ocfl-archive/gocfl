@@ -71,7 +71,7 @@ func (dummy *InitialDummy) WriteConfig() error {
 	panic("never call me")
 }
 
-func (dummy *InitialDummy) SetFS(fsys fs.FS) {
+func (dummy *InitialDummy) SetFS(fsys fs.FS, create bool) {
 	panic("never call me")
 }
 

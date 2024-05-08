@@ -38,7 +38,7 @@ func (sl *LoggingIndexer) IsRegistered() bool {
 	return false
 }
 
-func (li *LoggingIndexer) SetFS(fsys fs.FS) {
+func (li *LoggingIndexer) SetFS(fsys fs.FS, create bool) {
 	//TODO implement me
 	panic("implement me")
 }

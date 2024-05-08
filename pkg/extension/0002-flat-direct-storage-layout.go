@@ -66,8 +66,8 @@ func (sl *StorageLayoutFlatDirect) Stat(w io.Writer, statInfo []ocfl.StatInfo) e
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) SetFS(fs fs.FS) {
-	sl.fsys = fs
+func (sl *StorageLayoutFlatDirect) SetFS(fsys fs.FS, create bool) {
+	sl.fsys = fsys
 }
 
 func (sl *StorageLayoutFlatDirect) SetParams(params map[string]string) error {

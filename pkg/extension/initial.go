@@ -96,7 +96,7 @@ func (sl *Initial) IsRegistered() bool {
 	return true
 }
 
-func (sl *Initial) SetFS(fsys fs.FS) {
+func (sl *Initial) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

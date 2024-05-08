@@ -145,7 +145,7 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *MetaFile) SetFS(fsys fs.FS) {
+func (sl *MetaFile) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 
