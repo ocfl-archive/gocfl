@@ -146,7 +146,7 @@ func (sl *DirectClean) IsRegistered() bool {
 
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
-func (sl *DirectClean) SetFS(fsys fs.FS) {
+func (sl *DirectClean) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

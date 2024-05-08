@@ -13,7 +13,7 @@ type ExtensionConfig struct {
 
 type Extension interface {
 	GetName() string
-	SetFS(fsys fs.FS)
+	SetFS(fsys fs.FS, create bool)
 	GetFS() fs.FS
 	SetParams(params map[string]string) error
 	WriteConfig() error

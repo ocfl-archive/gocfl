@@ -88,7 +88,7 @@ func (sl *StorageLayoutHashedNTuple) IsRegistered() bool {
 
 func (sl *StorageLayoutHashedNTuple) GetName() string { return StorageLayoutHashedNTupleName }
 
-func (sl *StorageLayoutHashedNTuple) SetFS(fsys fs.FS) {
+func (sl *StorageLayoutHashedNTuple) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

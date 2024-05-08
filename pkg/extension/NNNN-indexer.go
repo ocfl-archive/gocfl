@@ -144,7 +144,7 @@ func (sl *Indexer) IsRegistered() bool { return false }
 
 func (sl *Indexer) GetName() string { return IndexerName }
 
-func (sl *Indexer) SetFS(fsys fs.FS) { sl.fsys = fsys }
+func (sl *Indexer) SetFS(fsys fs.FS, create bool) { sl.fsys = fsys }
 
 func (sl *Indexer) SetParams(params map[string]string) error {
 	var err error

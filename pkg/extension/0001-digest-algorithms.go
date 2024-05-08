@@ -79,7 +79,7 @@ func (sl *DigestAlgorithms) GetFixityDigests() []checksum.DigestAlgorithm {
 	return algorithms
 }
 
-func (sl *DigestAlgorithms) SetFS(fsys fs.FS) {
+func (sl *DigestAlgorithms) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

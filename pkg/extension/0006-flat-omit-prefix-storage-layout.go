@@ -68,7 +68,7 @@ func (sl *FlatOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []ocfl.StatInf
 	return nil
 }
 
-func (sl *FlatOmitPrefixStorageLayout) SetFS(fsys fs.FS) {
+func (sl *FlatOmitPrefixStorageLayout) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

@@ -88,7 +88,7 @@ func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []ocfl.StatI
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) SetFS(fsys fs.FS) {
+func (sl *NTupleOmitPrefixStorageLayout) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

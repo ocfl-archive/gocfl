@@ -154,7 +154,7 @@ func (thumb *Thumbnail) IsRegistered() bool { return false }
 
 func (thumb *Thumbnail) GetName() string { return ThumbnailName }
 
-func (thumb *Thumbnail) SetFS(fsys fs.FS) { thumb.fsys = fsys }
+func (thumb *Thumbnail) SetFS(fsys fs.FS, create bool) { thumb.fsys = fsys }
 
 func (thumb *Thumbnail) SetParams(map[string]string) error {
 	return nil

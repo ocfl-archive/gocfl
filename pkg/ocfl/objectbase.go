@@ -463,7 +463,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}
-	object.extensionManager.SetFS(subfs)
+	object.extensionManager.SetFS(subfs, true)
 
 	// check fixity here
 	algs := []checksum.DigestAlgorithm{
@@ -552,7 +552,7 @@ func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName strin
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}
-	object.extensionManager.SetFS(subfs)
+	object.extensionManager.SetFS(subfs, false)
 
 	if err := object.i.NewVersion(msg, UserName, UserAddress); err != nil {
 		return nil, errors.Wrap(err, "cannot create new object version")

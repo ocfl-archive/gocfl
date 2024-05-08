@@ -120,7 +120,7 @@ func (mi *Migration) IsRegistered() bool { return false }
 
 func (mi *Migration) GetName() string { return MigrationName }
 
-func (mi *Migration) SetFS(fsys fs.FS) { mi.fsys = fsys }
+func (mi *Migration) SetFS(fsys fs.FS, create bool) { mi.fsys = fsys }
 
 func (mi *Migration) SetParams(map[string]string) error {
 	return nil

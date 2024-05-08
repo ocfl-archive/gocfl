@@ -89,7 +89,7 @@ func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) SetFS(fsys fs.FS) {
+func (sl *StorageLayoutHashAndIdNTuple) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 

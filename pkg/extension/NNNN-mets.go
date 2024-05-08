@@ -145,7 +145,7 @@ func (me *Mets) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (me *Mets) SetFS(fsys fs.FS) {
+func (me *Mets) SetFS(fsys fs.FS, create bool) {
 	me.fsys = fsys
 }
 
