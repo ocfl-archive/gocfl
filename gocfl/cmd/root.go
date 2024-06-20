@@ -170,10 +170,10 @@ func initConfig() {
 
 	// overwrite config file with command line data
 	if persistentFlagLogfile != "" {
-		conf.Logfile = persistentFlagLogfile
+		conf.Log.File = persistentFlagLogfile
 	}
 	if persistentFlagLoglevel != "" {
-		conf.LogLevel = persistentFlagLoglevel
+		conf.Log.Level = persistentFlagLoglevel
 	}
 	if persistenFlagS3Endpoint != "" {
 		conf.S3.Endpoint = configutil.EnvString(persistenFlagS3Endpoint)

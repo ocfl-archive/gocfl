@@ -3,9 +3,10 @@ package config
 import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
-	"github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
+	"github.com/je4/utils/v2/pkg/zLogger"
 )
 
 type InitConfig struct {
@@ -121,9 +122,6 @@ type S3Config struct {
 
 type GOCFLConfig struct {
 	ErrorTemplate string
-	Logfile       string
-	LogLevel      string
-	LogFormat     string
 	AccessLog     string
 	Extension     map[string]map[string]string
 	Indexer       *indexer.IndexerConfig
@@ -140,12 +138,14 @@ type GOCFLConfig struct {
 	Validate      *ValidateConfig
 	S3            *S3Config
 	DefaultArea   string
+	Log           zLogger.Config `toml:"log"`
 }
 
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
-		LogFormat:   `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`,
-		LogLevel:    "ERROR",
+		Log: zLogger.Config{
+			Level: "ERROR",
+		},
 		DefaultArea: "content",
 		Extension:   map[string]map[string]string{},
 		Indexer:     indexer.GetDefaultConfig(),

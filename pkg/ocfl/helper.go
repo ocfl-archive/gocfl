@@ -8,7 +8,9 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/errorDetails"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	"io"
@@ -244,20 +246,20 @@ func sliceInsertAt[E comparable](data []E, i int, v E) []E {
 	return data
 }
 
-func showStatus(ctx context.Context) error {
+func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	status, err := GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot get status of validation")
 	}
 	status.Compact()
 	for _, _err := range status.Errors {
-		fmt.Println(_err.Error())
-		//logger.Infof("ERROR: %v", err)
+		//fmt.Println(_err.Error())
+		logger.Error().Err(errorDetails.WithDetail(_err, _err.DetailString()))
 	}
 	/*
 		for _, warning := range status.Warnings {
 			fmt.Println(warning.Error())
-			//logger.Infof("WARN:  %v", err)
+			//logger.Info().Msgf("WARN:  %v", err)
 		}
 		fmt.Println("\n")
 	*/

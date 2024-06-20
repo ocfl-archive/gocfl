@@ -2,13 +2,20 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	lm "github.com/je4/utils/v2/pkg/logger"
+	"github.com/je4/trustutil/v2/pkg/loader"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
+	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger"
+	"io"
+	"log"
 	"os"
 	"strings"
 )
@@ -56,8 +63,39 @@ func doStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
-	defer lf.Close()
+	// create logger instance
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("cannot get hostname: %v", err)
+	}
+
+	var loggerTLSConfig *tls.Config
+	var loggerLoader io.Closer
+	if conf.Log.Stash.TLS != nil {
+		loggerTLSConfig, loggerLoader, err = loader.CreateClientLoader(conf.Log.Stash.TLS, nil)
+		if err != nil {
+			log.Fatalf("cannot create client loader: %v", err)
+		}
+		defer loggerLoader.Close()
+	}
+
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	_logger, _logstash, _logfile := ublogger.CreateUbMultiLoggerTLS(conf.Log.Level, conf.Log.File,
+		ublogger.SetDataset(conf.Log.Stash.Dataset),
+		ublogger.SetLogStash(conf.Log.Stash.LogstashHost, conf.Log.Stash.LogstashPort, conf.Log.Stash.Namespace, conf.Log.Stash.LogstashTraceLevel),
+		ublogger.SetTLS(conf.Log.Stash.TLS != nil),
+		ublogger.SetTLSConfig(loggerTLSConfig),
+	)
+	if _logstash != nil {
+		defer _logstash.Close()
+	}
+
+	if _logfile != nil {
+		defer _logfile.Close()
+	}
+
+	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
+	var logger zLogger.ZLogger = &l2
 
 	doStatConf(cmd)
 
@@ -86,35 +124,31 @@ func doStat(cmd *cobra.Command, args []string) {
 	}
 
 	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	daLogger.Infof("opening '%s'", ocflPath)
+	logger.Info().Msgf("opening '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory(nil, nil, nil, true, false, daLogger)
+	fsFactory, err := initializeFSFactory(nil, nil, nil, true, false, logger)
 	if err != nil {
-		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
-		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			daLogger.Errorf("cannot close filesystem: %v", err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, daLogger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
 	if err != nil {
-		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot initialize extension factory")
 		return
 	}
 
@@ -122,17 +156,15 @@ func doStat(cmd *cobra.Command, args []string) {
 	if !writefs.HasContent(destFS) {
 
 	}
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, daLogger)
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
 	if err != nil {
-		daLogger.Errorf("cannot open storage root: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return
 	}
 
 	if err := storageRoot.Stat(os.Stdout, oPath, oID, statInfo); err != nil {
-		daLogger.Errorf("cannot get statistics: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot get statistics")
 		return
 	}
-	showStatus(ctx)
+	_ = showStatus(ctx, logger)
 }

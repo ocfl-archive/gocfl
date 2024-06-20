@@ -1,7 +1,7 @@
 package indexer
 
 import (
-	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 )
 
 type Siegfried struct {

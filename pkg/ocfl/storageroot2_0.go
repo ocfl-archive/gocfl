@@ -14,7 +14,7 @@ type StorageRootV2_0 struct {
 	*StorageRootBase
 }
 
-func NewStorageRootV2_0(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZWrapper) (*StorageRootV2_0, error) {
+func NewStorageRootV2_0(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootV2_0, error) {
 	srb, err := NewStorageRootBase(ctx, fsys, Version2_0, extensionFactory, extensionManager, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version2_0)

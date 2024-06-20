@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/BurntSushi/toml"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
@@ -155,7 +155,7 @@ func (sl *MetaFile) WriteConfig() error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	if err := writefs.WriteFile(sl.fsys, sl.MetaSchema, sl.schema); err != nil {
+	if _, err := writefs.WriteFile(sl.fsys, sl.MetaSchema, sl.schema); err != nil {
 		return errors.Wrapf(err, "cannot write schema to %v/%s", sl.fsys, sl.MetaSchema)
 	}
 	configWriter, err := writefs.Create(sl.fsys, "config.json")
@@ -328,7 +328,7 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 		}
 	case "extension":
 		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(sl.StorageName, sl.MetaName)), "/")
-		if err := writefs.WriteFile(sl.fsys, targetname, infoData); err != nil {
+		if _, err := writefs.WriteFile(sl.fsys, targetname, infoData); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", sl.fsys, targetname)
 		}
 	default:

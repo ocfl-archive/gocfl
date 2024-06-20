@@ -2,12 +2,20 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"emperror.dev/errors"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/je4/trustutil/v2/pkg/loader"
 	"github.com/je4/utils/v2/pkg/checksum"
-	lm "github.com/je4/utils/v2/pkg/logger"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
+	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger"
+	"io"
+	"log"
+	"os"
 )
 
 var initCmd = &cobra.Command{
@@ -53,32 +61,60 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	daLogger, lf := lm.CreateLogger("ocfl", conf.Logfile, nil, conf.LogLevel, LOGFORMAT)
-	defer lf.Close()
+	// create logger instance
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("cannot get hostname: %v", err)
+	}
+
+	var loggerTLSConfig *tls.Config
+	var loggerLoader io.Closer
+	if conf.Log.Stash.TLS != nil {
+		loggerTLSConfig, loggerLoader, err = loader.CreateClientLoader(conf.Log.Stash.TLS, nil)
+		if err != nil {
+			log.Fatalf("cannot create client loader: %v", err)
+		}
+		defer loggerLoader.Close()
+	}
+
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	_logger, _logstash, _logfile := ublogger.CreateUbMultiLoggerTLS(conf.Log.Level, conf.Log.File,
+		ublogger.SetDataset(conf.Log.Stash.Dataset),
+		ublogger.SetLogStash(conf.Log.Stash.LogstashHost, conf.Log.Stash.LogstashPort, conf.Log.Stash.Namespace, conf.Log.Stash.LogstashTraceLevel),
+		ublogger.SetTLS(conf.Log.Stash.TLS != nil),
+		ublogger.SetTLSConfig(loggerTLSConfig),
+	)
+	if _logstash != nil {
+		defer _logstash.Close()
+	}
+
+	if _logfile != nil {
+		defer _logfile.Close()
+	}
+
+	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
+	var logger zLogger.ZLogger = &l2
 
 	doInitConf(cmd)
 
-	daLogger.Infof("creating '%s'", ocflPath)
+	logger.Info().Msgf("creating '%s'", ocflPath)
 	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, daLogger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, logger)
 	if err != nil {
-		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
-		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			daLogger.Errorf("cannot close filesystem: %v", err)
-			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
 	}()
 
@@ -91,21 +127,20 @@ func doInit(cmd *cobra.Command, args []string) {
 		nil,
 		nil,
 		nil,
-		daLogger,
+		(logger),
 	)
 	if err != nil {
-		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot create extension factory")
 		return
 	}
 	storageRootExtensions, _, err := initDefaultExtensions(
 		extensionFactory,
 		conf.Init.StorageRootExtensionFolder,
 		"",
+		logger,
 	)
 	if err != nil {
-		daLogger.Errorf("cannot initialize default extensions: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot initialize default extensions")
 		return
 	}
 
@@ -116,15 +151,14 @@ func doInit(cmd *cobra.Command, args []string) {
 		ocfl.OCFLVersion(conf.Init.OCFLVersion),
 		extensionFactory, storageRootExtensions,
 		conf.Init.Digest,
-		daLogger,
+		(logger),
 	); err != nil {
 		if err := writefs.Close(destFS); err != nil {
-			daLogger.Errorf("cannot discard filesystem '%s': %v", destFS, err)
+			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
-		daLogger.Errorf("cannot create new storageroot: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot create new storageroot")
 		return
 	}
 
-	_ = showStatus(ctx)
+	_ = showStatus(ctx, logger)
 }

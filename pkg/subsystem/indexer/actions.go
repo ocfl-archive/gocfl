@@ -2,13 +2,13 @@ package indexer
 
 import (
 	"emperror.dev/errors"
-	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"os"
 	"time"
 )
 
-func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger zLogger.ZWrapper) (*ironmaiden.ActionDispatcher, error) {
+func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger zLogger.ZLogger) (*ironmaiden.ActionDispatcher, error) {
 	ad := ironmaiden.NewActionDispatcher(relevance)
 	if siegfried != nil && siegfried.Signature != "" {
 		signatureData, err := os.ReadFile(siegfried.Signature)
