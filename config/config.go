@@ -170,7 +170,7 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 		},
 		Update: &UpdateConfig{
 			Deduplicate: true,
-			NoCompress:  false,
+			NoCompress:  true,
 			User:        &UserConfig{},
 			Echo:        false,
 		},

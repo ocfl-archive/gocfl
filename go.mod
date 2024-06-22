@@ -24,7 +24,7 @@ require (
 	github.com/je4/filesystem/v3 v3.0.11
 	github.com/je4/indexer/v3 v3.0.1
 	github.com/je4/trustutil/v2 v2.0.19
-	github.com/je4/utils/v2 v2.0.39
+	github.com/je4/utils/v2 v2.0.41
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/rs/zerolog v1.33.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1

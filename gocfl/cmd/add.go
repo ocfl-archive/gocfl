@@ -191,7 +191,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		logger.Panic().Err(err).Msgf("cannot stat '%s'", srcPath)
 	}
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, true, false, logger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, conf.Add.NoCompress, false, logger)
 	if err != nil {
 		logger.Debug().Stack().Err(err)
 		logger.Panic().Err(err).Msg("cannot create filesystem factory")

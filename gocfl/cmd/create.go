@@ -147,7 +147,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, logger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, conf.Add.NoCompress, false, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
@@ -231,7 +231,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		extensionFactory,
 		storageRootExtensionManager,
 		conf.Init.Digest,
-		(logger),
+		logger,
 	)
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {
