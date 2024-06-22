@@ -8,9 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 	"io"
@@ -44,7 +44,7 @@ func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZWrapper) (*Indexer, error) {
+func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZLogger) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -65,7 +65,7 @@ func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.Actio
 	}
 	return ext, nil
 }
-func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZWrapper) (*Indexer, error) {
+func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZLogger) (*Indexer, error) {
 	var err error
 
 	if config.Actions == nil {
@@ -125,7 +125,7 @@ type Indexer struct {
 	indexerActions *ironmaiden.ActionDispatcher
 	currentHead    string
 	localCache     bool
-	logger         zLogger.ZWrapper
+	logger         zLogger.ZLogger
 }
 
 func (sl *Indexer) Terminate() error {

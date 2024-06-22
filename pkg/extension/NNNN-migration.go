@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
-	"github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -23,7 +23,7 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.ZWrapper) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.ZLogger) (*Migration, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -130,9 +130,8 @@ func (mi *Migration) WriteConfig() error {
 	if mi.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	str, _ := json.MarshalIndent(mi.MigrationConfig, "", "  ")
-	err := writefs.WriteFile(mi.fsys, "config.json", []byte(str))
-	if err != nil {
+	jsonData, _ := json.MarshalIndent(mi.MigrationConfig, "", "  ")
+	if _, err := writefs.WriteFile(mi.fsys, "config.json", jsonData); err != nil {
 		return errors.Wrap(err, "cannot write config.json")
 	}
 	return nil

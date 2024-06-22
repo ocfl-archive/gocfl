@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/data/specs"
 	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
 	"github.com/je4/gocfl/v2/pkg/dilcis/premis"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/version"
-	"github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -72,7 +72,7 @@ func GetMetsParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewMetsFS(fsys fs.FS, logger zLogger.ZWrapper) (*Mets, error) {
+func NewMetsFS(fsys fs.FS, logger zLogger.ZLogger) (*Mets, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -92,7 +92,7 @@ func NewMetsFS(fsys fs.FS, logger zLogger.ZWrapper) (*Mets, error) {
 
 	return NewMets(config, logger)
 }
-func NewMets(config *MetsConfig, logger zLogger.ZWrapper) (*Mets, error) {
+func NewMets(config *MetsConfig, logger zLogger.ZLogger) (*Mets, error) {
 	me := &Mets{
 		MetsConfig: config,
 		logger:     logger,
@@ -114,7 +114,7 @@ type MetsConfig struct {
 type Mets struct {
 	*MetsConfig
 	fsys   fs.FS
-	logger zLogger.ZWrapper
+	logger zLogger.ZLogger
 	//	descriptiveMetadata     string
 	//	descriptiveMetadataType string
 }
@@ -1343,19 +1343,19 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 	case "extension":
 		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
 		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
-		if err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
+		if _, err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, metsName)
 		}
-		if err := writefs.WriteFile(me.fsys, premisName, metsBytes); err != nil {
+		if _, err := writefs.WriteFile(me.fsys, premisName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, premisName)
 		}
-		if err := writefs.WriteFile(me.fsys, "schemas/mets.xsd", specs.METSXSD); err != nil {
+		if _, err := writefs.WriteFile(me.fsys, "schemas/mets.xsd", specs.METSXSD); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, "schemas/mets.xsd")
 		}
-		if err := writefs.WriteFile(me.fsys, "schemas/premis.xsd", specs.PremisXSD); err != nil {
+		if _, err := writefs.WriteFile(me.fsys, "schemas/premis.xsd", specs.PremisXSD); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, "schemas/premis.xsd")
 		}
-		if err := writefs.WriteFile(me.fsys, "schemas/xlink.xsd", specs.XLinkXSD); err != nil {
+		if _, err := writefs.WriteFile(me.fsys, "schemas/xlink.xsd", specs.XLinkXSD); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, "schemas/xlink.xsd")
 		}
 	default: // cannot happen here

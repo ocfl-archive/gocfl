@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
-	"github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 	_ "golang.org/x/image/bmp"
@@ -32,7 +32,7 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
-func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.ZWrapper) (*Thumbnail, error) {
+func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.ZLogger) (*Thumbnail, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -104,7 +104,7 @@ type ThumbnailMap map[string]*ThumbnailTarget
 // map checksum to thumbnail
 type ThumbnailFiles map[string]*ThumbnailTarget
 
-func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZWrapper) (*Thumbnail, error) {
+func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZLogger) (*Thumbnail, error) {
 	sl := &Thumbnail{
 		ThumbnailConfig: config,
 		logger:          logger,
@@ -125,7 +125,7 @@ func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLog
 
 type Thumbnail struct {
 	*ThumbnailConfig
-	logger      zLogger.ZWrapper
+	logger      zLogger.ZLogger
 	fsys        fs.FS
 	lastHead    string
 	thumbnail   *thumbnail.Thumbnail
@@ -249,10 +249,10 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *
 	}
 	defer func() {
 		if err := os.Remove(tmpFilename); err != nil {
-			thumb.logger.Errorf("cannot remove temp file '%s': %v", tmpFilename, err)
+			thumb.logger.Error().Err(err).Msgf("cannot remove temp file '%s'", tmpFilename)
 		}
 		if err := os.Remove(targetTempName); err != nil {
-			thumb.logger.Errorf("cannot remove temp file '%s': %v", targetTempName, err)
+			thumb.logger.Error().Err(err).Msgf("cannot remove temp file '%s'", targetTempName)
 		}
 	}()
 	if err := thumbFunc.Thumbnail(tmpFilename, targetTempName, thumb.ThumbnailConfig.Width, thumb.ThumbnailConfig.Height, thumb.logger); err != nil {
@@ -266,7 +266,7 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *
 	}
 	defer func() {
 		if err := mFile.Close(); err != nil {
-			thumb.logger.Errorf("cannot close file '%s': %v", targetTempName, err)
+			thumb.logger.Error().Err(err).Msgf("cannot close file '%s'", targetTempName)
 		}
 	}()
 
@@ -339,7 +339,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 			}
 			if file == nil {
 				if thumb.sourceFS != nil {
-					thumb.logger.Infof("create thumbnail for %s", m.InternalName[0])
+					thumb.logger.Info().Msgf("create thumbnail for %s", m.InternalName[0])
 					stateFiles, err := inventory.GetStateFiles("", cs)
 					if err != nil {
 						return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())

@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/je4/gocfl/v2/pkg/extension"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"github.com/je4/indexer/v2/pkg/indexer"
+	"github.com/je4/indexer/v3/pkg/indexer"
 	dcert "github.com/je4/utils/v2/pkg/cert"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
@@ -37,7 +37,7 @@ type Server struct {
 	linkTokenExp   time.Duration
 	jwtKey         string
 	jwtAlg         []string
-	log            zLogger.ZWrapper
+	log            zLogger.ZLogger
 	urlExt         *url.URL
 	accessLog      io.Writer
 	dataFS         fs.FS
@@ -47,7 +47,7 @@ type Server struct {
 	templateFS     fs.FS
 }
 
-func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZWrapper, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
@@ -131,7 +131,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	}
 
 	if cert == "auto" || key == "auto" {
-		s.log.Info("generating new certificate")
+		s.log.Info().Msg("generating new certificate")
 		cert, err := dcert.DefaultCertificate()
 		if err != nil {
 			return errors.Wrap(err, "cannot generate default certificate")

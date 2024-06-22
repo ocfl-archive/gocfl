@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -22,7 +22,7 @@ import (
 const FilesystemName = "NNNN-filesystem"
 const FilesystemDescription = "preserves filesytem metadata"
 
-func NewFilesystemFS(fsys fs.FS, logger zLogger.ZWrapper) (*Filesystem, error) {
+func NewFilesystemFS(fsys fs.FS, logger zLogger.ZLogger) (*Filesystem, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")

@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/nfnt/resize"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/vp8"
+	_ "golang.org/x/image/vp8l"
+	_ "golang.org/x/image/webp"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -20,7 +25,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}
 	if !slices.Contains([]string{"png", "jpeg"}, strings.ToLower(thumb.ThumbnailConfig.Ext)) {
-		thumb.logger.Infof("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext)
+		thumb.logger.Info().Msgf("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext)
 		return nil
 	}
 	inventory := object.GetInventory()
@@ -33,18 +38,18 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 	infoName := fmt.Sprintf("%s/content/%s", head, stateFiles[0])
 	if _, ok := thumb.streamInfo[head][infoName]; ok {
-		thumb.logger.Infof("thumbnail for '%s' already created", stateFiles[0])
+		thumb.logger.Info().Msgf("thumbnail for '%s' already created", stateFiles[0])
 		return nil
 	}
 	//ext := filepath.Ext(stateFiles[0])
 
 	img, format, err := image.Decode(reader)
 	if err != nil {
-		thumb.logger.Infof("cannot decode image '%s': %v", stateFiles[0], err)
+		thumb.logger.Info().Msgf("cannot decode image '%s': %v", stateFiles[0], err)
 		return nil
 	}
 	rect := img.Bounds()
-	thumb.logger.Infof("image format: %s, size: %d x %d", format, rect.Dx(), rect.Dy())
+	thumb.logger.Info().Msgf("image format: %s, size: %d x %d", format, rect.Dx(), rect.Dy())
 
 	rectAspect := rect.Dx() / rect.Dy()
 	thumbAspect := int(thumb.Width) / int(thumb.Height)
@@ -90,7 +95,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	<-done
 
 	_ = digest
-	thumb.logger.Infof("thumbnail stored: %s", targetFile)
+	thumb.logger.Info().Msgf("thumbnail stored: %s", targetFile)
 	ml := &ThumbnailResult{
 		//SourceDigest: cs,
 		Filename:    targetFile,

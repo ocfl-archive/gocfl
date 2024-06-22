@@ -147,6 +147,7 @@ type ValidationError struct {
 	Ref          string
 	Description2 string
 	Context      string
+	Version      OCFLVersion
 }
 
 type ValidationStatus struct {
@@ -241,6 +242,15 @@ func (verr *ValidationError) Error() string {
 		return fmt.Sprintf("[%s] Validation Warning #%s - %s (%s) [%s]", verr.Context, verr.Code, verr.Description, verr.Ref, verr.Description2)
 	} else {
 		return fmt.Sprintf("[%s] Validation Error #%s - %s (%s) [%s]", verr.Context, verr.Code, verr.Description, verr.Ref, verr.Description2)
+	}
+}
+
+func (ve *ValidationError) DetailString() string {
+	switch ve.Version {
+	case "1.1":
+		return fmt.Sprintf("ocfl11.%s", ve.Code)
+	default:
+		return fmt.Sprintf("ocfl10.%s", ve.Code)
 	}
 }
 

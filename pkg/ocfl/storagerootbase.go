@@ -5,9 +5,10 @@ import (
 	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/docs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/errorDetails"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"golang.org/x/exp/slices"
 	"io"
@@ -24,7 +25,7 @@ type StorageRootBase struct {
 	extensionFactory *ExtensionFactory
 	extensionManager ExtensionManager
 	changed          bool
-	logger           zLogger.ZWrapper
+	logger           zLogger.ZLogger
 	version          OCFLVersion
 	digest           checksum.DigestAlgorithm
 	modified         bool
@@ -33,7 +34,7 @@ type StorageRootBase struct {
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZWrapper) (*StorageRootBase, error) {
+func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:              ctx,
@@ -67,14 +68,14 @@ func (osr *StorageRootBase) setModified() {
 func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%v' ", osr.fsys)
 	_, file, line, _ := runtime.Caller(1)
-	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
+	osr.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
 	return errors.WithStack(addValidationErrors(osr.ctx, valError))
 }
 
 func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%v' ", osr.fsys)
 	_, file, line, _ := runtime.Caller(1)
-	osr.logger.Debugf("[%s:%v] %s", file, line, valError.Error())
+	osr.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
 	return errors.WithStack(addValidationWarnings(osr.ctx, valError))
 }
 
@@ -93,13 +94,14 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		if err := osr.addValidationError(E069, "storage root not empty"); err != nil {
 			return errors.Wrapf(err, "cannot add validation error %v", E069)
 		}
-		return errors.Wrapf(GetValidationError(version, E069), "storage root %v not empty", osr.fsys)
+		err := GetValidationError(version, E069)
+		return errors.Wrapf(errorDetails.WithDetail(err, err.DetailString()), "storage root %v not empty", osr.fsys)
 	}
 
 	rootConformanceDeclaration := "ocfl_" + string(osr.version)
 	rootConformanceDeclarationFile := "0=" + rootConformanceDeclaration
 
-	if err := writefs.WriteFile(osr.fsys, rootConformanceDeclarationFile, []byte(rootConformanceDeclaration+"\n")); err != nil {
+	if _, err := writefs.WriteFile(osr.fsys, rootConformanceDeclarationFile, []byte(rootConformanceDeclaration+"\n")); err != nil {
 		return errors.Wrapf(err, "cannot write %s", rootConformanceDeclarationFile)
 	}
 
@@ -420,7 +422,7 @@ func (osr *StorageRootBase) Check() error {
 	if err := osr.CheckDirectory(); err != nil {
 		return errors.WithStack(err)
 	} else {
-		osr.logger.Infof("StorageRoot with version '%s' found", osr.version)
+		osr.logger.Info().Msgf("StorageRoot with version '%s' found", osr.version)
 	}
 	if err := osr.CheckObjects(); err != nil {
 		return errors.WithStack(err)
@@ -612,7 +614,7 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 		Objects: map[string]*ObjectMetadata{},
 	}
 	if path == "" && id == "" {
-		osr.logger.Debug("Extracting storage root with all objects")
+		osr.logger.Debug().Msg("Extracting storage root with all objects")
 		objectFolders, err := osr.GetObjectFolders()
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot get object folders")
@@ -628,7 +630,7 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 			}
 		}
 	} else {
-		osr.logger.Debugf("Extracting object '%s%s'", path, id)
+		osr.logger.Debug().Msgf("Extracting object '%s%s'", path, id)
 		var o Object
 		var err error
 		if path != "" {
@@ -644,7 +646,7 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 			return nil, errors.Wrapf(err, "cannot extract metadata from object '%s'", o.GetID())
 		}
 	}
-	osr.logger.Debugf("extraction done")
+	osr.logger.Debug().Msgf("extraction done")
 	return result, nil
 }
 
@@ -653,7 +655,7 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 		version = "latest"
 	}
 	if path == "" && id == "" {
-		osr.logger.Debugf("Extracting storage root with all objects version '%s'", version)
+		osr.logger.Debug().Msgf("Extracting storage root with all objects version '%s'", version)
 		objectFolders, err := osr.GetObjectFolders()
 		if err != nil {
 			return errors.Wrap(err, "cannot get object folders")
@@ -672,7 +674,7 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 			}
 		}
 	} else {
-		osr.logger.Debugf("Extracting object '%s%s' with version '%s'", path, id, version)
+		osr.logger.Debug().Msgf("Extracting object '%s%s' with version '%s'", path, id, version)
 		var o Object
 		var err error
 		if path != "" {
@@ -687,6 +689,6 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 			return errors.Wrapf(err, "cannot extract object '%s%s'", path, id)
 		}
 	}
-	osr.logger.Debugf("extraction done")
+	osr.logger.Debug().Msgf("extraction done")
 	return nil
 }

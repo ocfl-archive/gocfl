@@ -31,7 +31,7 @@ type Function struct {
 	mime    []*regexp.Regexp
 }
 
-func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger zLogger.ZWrapper) error {
+func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger zLogger.ZLogger) error {
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	args := []string{}
@@ -43,7 +43,7 @@ func (f *Function) Thumbnail(source string, dest string, width uint64, height ui
 		arg = strings.ReplaceAll(arg, "{height}", strconv.FormatUint(height, 10))
 		args = append(args, arg)
 	}
-	logger.Debugf("%s %v", f.command, args)
+	logger.Debug().Msgf("%s %v", f.command, args)
 	cmd := exec.CommandContext(ctx, f.command, args...)
 	cmd.Dir = filepath.Dir(source)
 	return errors.Wrapf(cmd.Run(), "cannot run command '%s %s'", f.command, strings.Join(args, " "))

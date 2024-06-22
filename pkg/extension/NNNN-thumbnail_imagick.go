@@ -17,7 +17,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}
 	if !slices.Contains([]string{"png", "jpeg"}, strings.ToLower(thumb.ThumbnailConfig.Ext)) {
-		thumb.logger.Infof("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext)
+		thumb.logger.Info().Msgf("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext)
 		return nil
 	}
 	inventory := object.GetInventory()
@@ -30,7 +30,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 	infoName := fmt.Sprintf("%s/content/%s", head, stateFiles[0])
 	if _, ok := thumb.streamInfo[head][infoName]; ok {
-		thumb.logger.Infof("thumbnail for '%s' already created", stateFiles[0])
+		thumb.logger.Info().Msgf("thumbnail for '%s' already created", stateFiles[0])
 		return nil
 	}
 	//ext := filepath.Ext(stateFiles[0])
@@ -44,20 +44,20 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	defer mw.Destroy()
 
 	if err := mw.ReadImageBlob(imgBytes); err != nil {
-		thumb.logger.Infof("cannot decode image '%s': %v", stateFiles[0], err)
+		thumb.logger.Info().Msgf("cannot decode image '%s': %v", stateFiles[0], err)
 		return nil
 	}
 	imgBytes = nil // free memory
 	width, height, err := mw.GetSize()
 	if err != nil {
-		thumb.logger.Infof("cannot get image size of '%s': %v", stateFiles[0], err)
+		thumb.logger.Info().Msgf("cannot get image size of '%s': %v", stateFiles[0], err)
 		return nil
 	}
 	if width == 0 || height == 0 {
-		thumb.logger.Infof("image '%s' has zero size", stateFiles[0])
+		thumb.logger.Info().Msgf("image '%s' has zero size", stateFiles[0])
 		return nil
 	}
-	thumb.logger.Infof("image '%s' format: %s, size: %d x %d", stateFiles[0], mw.GetFormat(), width, height)
+	thumb.logger.Info().Msgf("image '%s' format: %s, size: %d x %d", stateFiles[0], mw.GetFormat(), width, height)
 
 	rectAspect := width / height
 	thumbAspect := uint(thumb.Width) / uint(thumb.Height)
@@ -70,12 +70,12 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 
 	if err := mw.ResizeImage(newWidth, newHeight, imagick.FILTER_LANCZOS); err != nil {
-		thumb.logger.Infof("cannot resize image '%s': %v", stateFiles[0], err)
+		thumb.logger.Info().Msgf("cannot resize image '%s': %v", stateFiles[0], err)
 		return nil
 	}
 
 	if err := mw.SetImageFormat(thumb.ThumbnailConfig.Ext); err != nil {
-		thumb.logger.Infof("cannot set image '%s' format '%s': %v", stateFiles[0], thumb.ThumbnailConfig.Ext, err)
+		thumb.logger.Info().Msgf("cannot set image '%s' format '%s': %v", stateFiles[0], thumb.ThumbnailConfig.Ext, err)
 		return nil
 	}
 	mw.ResetIterator()
@@ -93,7 +93,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 	imgBytes = nil // free memory
 
-	thumb.logger.Infof("thumbnail stored: %s", targetFile)
+	thumb.logger.Info().Msgf("thumbnail stored: %s", targetFile)
 	ml := &ThumbnailResult{
 		//SourceDigest: cs,
 		Filename:    targetFile,

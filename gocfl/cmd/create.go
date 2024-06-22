@@ -2,17 +2,25 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/internal"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/je4/gocfl/v2/pkg/subsystem/migration"
 	"github.com/je4/gocfl/v2/pkg/subsystem/thumbnail"
-	ironmaiden "github.com/je4/indexer/v2/pkg/indexer"
+	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
+	"github.com/je4/trustutil/v2/pkg/loader"
 	"github.com/je4/utils/v2/pkg/checksum"
-	lm "github.com/je4/utils/v2/pkg/logger"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
+	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger"
+	"io"
 	"io/fs"
+	"log"
+	"os"
 	"strings"
 )
 
@@ -70,8 +78,39 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
-	defer lf.Close()
+	// create logger instance
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("cannot get hostname: %v", err)
+	}
+
+	var loggerTLSConfig *tls.Config
+	var loggerLoader io.Closer
+	if conf.Log.Stash.TLS != nil {
+		loggerTLSConfig, loggerLoader, err = loader.CreateClientLoader(conf.Log.Stash.TLS, nil)
+		if err != nil {
+			log.Fatalf("cannot create client loader: %v", err)
+		}
+		defer loggerLoader.Close()
+	}
+
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	_logger, _logstash, _logfile := ublogger.CreateUbMultiLoggerTLS(conf.Log.Level, conf.Log.File,
+		ublogger.SetDataset(conf.Log.Stash.Dataset),
+		ublogger.SetLogStash(conf.Log.Stash.LogstashHost, conf.Log.Stash.LogstashPort, conf.Log.Stash.Namespace, conf.Log.Stash.LogstashTraceLevel),
+		ublogger.SetTLS(conf.Log.Stash.TLS != nil),
+		ublogger.SetTLSConfig(loggerTLSConfig),
+	)
+	if _logstash != nil {
+		defer _logstash.Close()
+	}
+
+	if _logfile != nil {
+		defer _logfile.Close()
+	}
+
+	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
+	var logger zLogger.ZLogger = &l2
 
 	doInitConf(cmd)
 	doAddConf(cmd)
@@ -81,15 +120,15 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, daLogger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
 	if err != nil {
-		daLogger.Panicf("cannot init indexer: %v", err)
+		logger.Panic().Stack().Err(err).Msg("cannot init indexer")
 	}
 
 	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	daLogger.Infof("creating '%s'", ocflPath)
+	logger.Info().Msgf("creating '%s'", ocflPath)
 
 	//	extensionFlags := getExtensionFlags(cmd)
 
@@ -102,33 +141,29 @@ func doCreate(cmd *cobra.Command, args []string) {
 			continue
 		}
 		if _, err := checksum.GetHash(checksum.DigestAlgorithm(alg)); err != nil {
-			daLogger.Errorf("unknown hash function '%s': %v", alg, err)
+			logger.Error().Msgf("unknown hash function '%s'", alg)
 			return
 		}
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, daLogger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, logger)
 	if err != nil {
-		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	sourceFS, err := fsFactory.Get(srcPath)
 	if err != nil {
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		daLogger.Panicf("cannot get filesystem for '%s': %v", srcPath, err)
+		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		daLogger.Panicf("cannot get filesystem for '%s': %v", ocflPath, err)
+		logger.Panic().Stack().Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			daLogger.Panicf("error closing filesystem '%s': %v", destFS, err)
+			logger.Panic().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
 		}
 	}()
 
@@ -140,57 +175,51 @@ func doCreate(cmd *cobra.Command, args []string) {
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
-			daLogger.Errorf("no area given in areapath '%s'", args[i])
+			logger.Error().Msgf("no area given in areapath '%s'", args[i])
 			continue
 		}
 		path, err := ocfl.Fullpath(matches[2])
 		if err != nil {
-			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			daLogger.Panicf("cannot get fullpath for '%s': %v", matches[2], err)
+			logger.Panic().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(path)
 		if err != nil {
-			daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-			daLogger.Panicf("cannot get filesystem for '%s': %v", args[i], err)
+			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
 		}
 	}
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
-		daLogger.Errorf("cannot get migrations: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot get migrations")
 		return
 	}
 	mig.SetSourceFS(sourceFS)
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
-		daLogger.Errorf("cannot get thumbnails: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot get thumbnails")
 		return
 	}
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, daLogger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, (logger))
 	if err != nil {
-		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot create extension factory")
 		return
 	}
 
-	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder)
+	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
-		daLogger.Errorf("cannot initialize default extensions: %v", err)
-		daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot initialize default extensions")
 		return
 	}
 	defer func() {
 		if err := objectExtensionManager.Terminate(); err != nil {
-			daLogger.Errorf("cannot terminate object extension manager: %v", err)
+			logger.Error().Stack().Err(err).Msg("cannot terminate object extension manager")
 		}
 		if err := storageRootExtensionManager.Terminate(); err != nil {
-			daLogger.Errorf("cannot terminate storage root extension manager: %v", err)
+			logger.Error().Stack().Err(err).Msg("cannot terminate storage root extension manager")
 		}
 	}()
 
@@ -202,14 +231,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 		extensionFactory,
 		storageRootExtensionManager,
 		conf.Init.Digest,
-		daLogger,
+		(logger),
 	)
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {
-			daLogger.Errorf("cannot discard filesystem '%v': %v", destFS, err)
+			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		daLogger.Panicf("cannot create new storageroot: %v", err)
+		logger.Panic().Stack().Err(err).Msg("cannot create new storage root")
 	}
 
 	_, err = addObjectByPath(
@@ -226,9 +254,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 		areaPaths,
 		false)
 	if err != nil {
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
-		daLogger.Panicf("error adding content to storageroot filesystem '%s': %v", destFS, err)
+		logger.Panic().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
 	}
-	_ = showStatus(ctx)
+	_ = showStatus(ctx, logger)
 
 }

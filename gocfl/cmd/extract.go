@@ -2,13 +2,21 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/filesystem/v2/pkg/writefs"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/gocfl/v2/pkg/ocfl"
-	lm "github.com/je4/utils/v2/pkg/logger"
+	"github.com/je4/trustutil/v2/pkg/loader"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
+	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger"
+	"io"
 	"io/fs"
+	"log"
+	"os"
 )
 
 var extractCmd = &cobra.Command{
@@ -50,10 +58,42 @@ func doExtractConf(cmd *cobra.Command) {
 }
 
 func doExtract(cmd *cobra.Command, args []string) {
-	daLogger, lf := lm.CreateLogger("ocfl", persistentFlagLogfile, nil, conf.LogLevel, conf.LogFormat)
-	defer lf.Close()
+	// create logger instance
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("cannot get hostname: %v", err)
+	}
+
+	var loggerTLSConfig *tls.Config
+	var loggerLoader io.Closer
+	if conf.Log.Stash.TLS != nil {
+		loggerTLSConfig, loggerLoader, err = loader.CreateClientLoader(conf.Log.Stash.TLS, nil)
+		if err != nil {
+			log.Fatalf("cannot create client loader: %v", err)
+		}
+		defer loggerLoader.Close()
+	}
+
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	_logger, _logstash, _logfile := ublogger.CreateUbMultiLoggerTLS(conf.Log.Level, conf.Log.File,
+		ublogger.SetDataset(conf.Log.Stash.Dataset),
+		ublogger.SetLogStash(conf.Log.Stash.LogstashHost, conf.Log.Stash.LogstashPort, conf.Log.Stash.Namespace, conf.Log.Stash.LogstashTraceLevel),
+		ublogger.SetTLS(conf.Log.Stash.TLS != nil),
+		ublogger.SetTLSConfig(loggerTLSConfig),
+	)
+	if _logstash != nil {
+		defer _logstash.Close()
+	}
+
+	if _logfile != nil {
+		defer _logfile.Close()
+	}
+
+	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
+	var logger zLogger.ZLogger = &l2
+
 	t := startTimer()
-	defer func() { daLogger.Infof("Duration: %s", t.String()) }()
+	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
 	ocflPath, err := ocfl.Fullpath(args[0])
 	if err != nil {
@@ -76,69 +116,61 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	daLogger.Infof("extracting '%s'", ocflPath)
+	logger.Info().Msgf("extracting '%s'", ocflPath)
 
-	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, daLogger)
+	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
-		daLogger.Errorf("cannot create filesystem factory: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	ocflFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
-		daLogger.Errorf("cannot get filesystem for '%s': %v", ocflPath, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 
 	destFS, err := fsFactory.Get(destPath)
 	if err != nil {
-		daLogger.Errorf("cannot get filesystem for '%s': %v", destPath, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", destPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			daLogger.Errorf("cannot close filesystem: %v", err)
-			daLogger.Errorf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+			logger.Error().Err(err).Msgf("cannot close filesystem: %v", destFS)
 		}
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, daLogger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
 	if err != nil {
-		daLogger.Errorf("cannot initialize extension factory: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot initialize extension factory")
 		return
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, daLogger)
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, (logger))
 	if err != nil {
-		daLogger.Errorf("cannot open storage root: %v", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return
 	}
 
 	dirs, err := fs.ReadDir(destFS, ".")
 	if err != nil {
-		daLogger.Errorf("cannot read target folder '%v': %v", destFS, err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msgf("cannot read target folder '%v'", destFS)
 		return
 	}
 	if len(dirs) > 0 {
 		fmt.Printf("target folder '%s' is not empty\n", destFS)
-		daLogger.Debugf("target folder '%s' is not empty", destFS)
+		logger.Debug().Msgf("target folder '%s' is not empty", destFS)
 		return
 	}
 
 	if err := storageRoot.Extract(destFS, oPath, oID, conf.Extract.Version, conf.Extract.Manifest, conf.Extract.Area); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
-		daLogger.Errorf("cannot extract storage root: %v\n", err)
-		daLogger.Debugf("%v%+v", err, ocfl.GetErrorStacktrace(err))
+		logger.Error().Stack().Err(err).Msg("cannot extract storage root")
 		return
 	}
 	fmt.Printf("extraction done without errors\n")
-	showStatus(ctx)
+	_ = showStatus(ctx, logger)
 }
