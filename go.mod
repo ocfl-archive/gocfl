@@ -22,7 +22,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
 	github.com/je4/filesystem/v3 v3.0.11
-	github.com/je4/indexer/v3 v3.0.1
+	github.com/je4/indexer/v3 v3.0.2
 	github.com/je4/trustutil/v2 v2.0.19
 	github.com/je4/utils/v2 v2.0.41
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
