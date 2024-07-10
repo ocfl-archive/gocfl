@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/je4/gocfl/v2/gocfl/cmd"
+	"github.com/ocfl-archive/gocfl/v2/gocfl/cmd"
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 

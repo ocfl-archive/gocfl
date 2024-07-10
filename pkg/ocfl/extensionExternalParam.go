@@ -2,7 +2,7 @@ package ocfl
 
 import (
 	"fmt"
-	"github.com/je4/gocfl/v2/config"
+	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
 )

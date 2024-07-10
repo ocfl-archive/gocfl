@@ -6,7 +6,7 @@
     </agent>
     <agent ROLE="ARCHIVIST">
       <name>gocfl</name>
-      <note>https://github.com/je4/gocfl</note>
+      <note>https://github.com/ocfl-archive/gocfl</note>
     </agent>
     <metsDocumentID>mets.xml</metsDocumentID>
   </metsHdr>

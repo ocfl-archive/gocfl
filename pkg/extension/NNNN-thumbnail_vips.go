@@ -6,7 +6,7 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/davidbyttow/govips/v2/vips"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"io"
 	"slices"
 	"strings"

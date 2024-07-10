@@ -3,8 +3,8 @@ package migration
 import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
-	"github.com/je4/gocfl/v2/config"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/config"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"io"
 	"os"
 	"path/filepath"

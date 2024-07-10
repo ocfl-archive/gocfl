@@ -3,8 +3,8 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
-	"github.com/je4/gocfl/v2/version"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/version"
 	"io/fs"
 )
 

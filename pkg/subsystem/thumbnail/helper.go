@@ -3,7 +3,7 @@ package thumbnail
 import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
-	"github.com/je4/gocfl/v2/config"
+	"github.com/ocfl-archive/gocfl/v2/config"
 	"regexp"
 	"strings"
 	"time"
