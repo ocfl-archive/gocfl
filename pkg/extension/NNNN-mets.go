@@ -10,13 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/gocfl/v2/data/specs"
-	"github.com/je4/gocfl/v2/pkg/dilcis/mets"
-	"github.com/je4/gocfl/v2/pkg/dilcis/premis"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"github.com/je4/gocfl/v2/version"
 	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/data/specs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
+	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/version"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"io"
@@ -457,7 +457,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 								LinkAgentXmlIDAttr:          "",
 								SimpleLinkAttr:              "",
 								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
-								LinkingAgentIdentifierValue: "https://github.com/je4/gocfl",
+								LinkingAgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 							},
 						},
 						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{
@@ -1050,7 +1050,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						XMLName:              xml.Name{},
 						SimpleLinkAttr:       "",
 						AgentIdentifierType:  premis.NewStringPlusAuthority("software", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/sof.html"),
-						AgentIdentifierValue: "https://github.com/je4/gocfl",
+						AgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 					}},
 				AgentName: []*premis.StringPlusAuthority{
 					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", version.VERSION), "", "", ""),

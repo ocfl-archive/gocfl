@@ -5,8 +5,8 @@ package extension
 import (
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
 	"github.com/nfnt/resize"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	_ "golang.org/x/image/bmp"
 	_ "golang.org/x/image/tiff"
 	_ "golang.org/x/image/vp8"

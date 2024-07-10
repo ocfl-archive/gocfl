@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/atsushinee/go-markdown-generator/doc"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
 	"path/filepath"

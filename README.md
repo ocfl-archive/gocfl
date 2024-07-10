@@ -4,7 +4,7 @@ Look at [gocfl2.toml](./config/gocfl2.toml)
 
 # Installation
 
-`go install github.com/je4/gocfl/v2/gocfl@latest`
+`go install github.com/ocfl-archive/gocfl/v2/gocfl@latest`
 
 # Go OCFL Implementation
 
@@ -101,7 +101,7 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
 
 ```
 A fast and reliable OCFL creator, extractor and validator.
-https://github.com/je4/gocfl
+https://github.com/ocfl-archive/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
 Version v1.0-beta.7
 

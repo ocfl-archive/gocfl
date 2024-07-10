@@ -65,7 +65,7 @@ helpful. It is an aid to reporting as well as to preservation management.
 ## Caveat
 
 Make sure, that there's an indexer service available to use this extension for ingest.
-[gocfl](https://github.com/je4/gocfl) comes with a build in service.
+[gocfl](https://github.com/ocfl-archive/gocfl) comes with a build in service.
 
 ## Procedure (tbd.)
 

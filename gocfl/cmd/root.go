@@ -4,10 +4,10 @@ import (
 	"emperror.dev/errors"
 	"fmt"
 	"github.com/google/martian/log"
-	"github.com/je4/gocfl/v2/config"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
-	"github.com/je4/gocfl/v2/version"
 	configutil "github.com/je4/utils/v2/pkg/config"
+	"github.com/ocfl-archive/gocfl/v2/config"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/spf13/cobra"
 	"os"
 	"regexp"
@@ -109,7 +109,7 @@ var rootCmd = &cobra.Command{
 	Use:   "gocfl",
 	Short: "gocfl is a fast ocfl creator/extractor/validator with focus on zip containers",
 	Long: fmt.Sprintf(`A fast and reliable OCFL creator, extractor and validator.
-https://github.com/je4/gocfl
+https://github.com/ocfl-archive/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
 Version %s`, version.VERSION),
 	Run: func(cmd *cobra.Command, args []string) {

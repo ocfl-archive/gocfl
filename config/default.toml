@@ -50,7 +50,7 @@ DefaultArea="content"
 # --user-name
 Name="unknown user"
 # --user-address
-Address="https://github.com/je4/gocfl"
+Address="https://github.com/ocfl-archive/gocfl"
 
 #
 # Extension parameter

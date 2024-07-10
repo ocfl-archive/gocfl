@@ -594,7 +594,7 @@ func (object *ObjectBase) EndUpdate() error {
 	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
-		if _, err := object.StartUpdate(nil, "automated version", "gocfl", "https://github.com/je4/gocfl", false); err != nil {
+		if _, err := object.StartUpdate(nil, "automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false); err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
 		if err := object.extensionManager.DoNewVersion(object); err != nil {

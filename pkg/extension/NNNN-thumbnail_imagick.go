@@ -5,7 +5,7 @@ package extension
 import (
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"gopkg.in/gographics/imagick.v3/imagick"
 	"io"
 	"slices"

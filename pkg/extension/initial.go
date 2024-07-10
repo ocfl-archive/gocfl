@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"io"
 	"io/fs"
 )

@@ -73,6 +73,6 @@ The schema file is stored next to the config.json file within the extension fold
   "storageName": "metadata",
   "name": "info.json",
   "schema": "gocfl-info-1.0.json",
-  "schemaUrl": "https://raw.githubusercontent.com/je4/gocfl/main/gocfl-info-1.0.json"
+  "schemaUrl": "https://raw.githubusercontent.com/ocfl-archive/gocfl/main/gocfl-info-1.0.json"
 }
 ```
