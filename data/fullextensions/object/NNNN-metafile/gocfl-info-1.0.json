@@ -71,6 +71,20 @@
           "title": "alternative titles",
           "description": "list of alternative titles of this object or parts of it"
         },
+        "holding": {
+          "type": "string",
+          "title": "holding",
+          "description": "name of the holding institution"
+        },
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true,
+          "title": "authors",
+          "description": "list of authors"
+        },
         "description": {
           "type": "string"
         },
@@ -102,6 +116,12 @@
           "format": "date-time",
           "title": "last changed",
           "description": "date"
+        },
+        "expiration": {
+          "type": "string",
+          "format": "date-time",
+          "title": "expiration date",
+          "description": "expiration date"
         },
         "deprecates": {
           "type": "string",
