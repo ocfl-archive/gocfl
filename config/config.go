@@ -6,7 +6,7 @@ import (
 	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
-	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/je4/utils/v2/pkg/stashconfig"
 )
 
 type InitConfig struct {
@@ -138,12 +138,12 @@ type GOCFLConfig struct {
 	Validate      *ValidateConfig
 	S3            *S3Config
 	DefaultArea   string
-	Log           zLogger.Config `toml:"log"`
+	Log           stashconfig.Config `toml:"log"`
 }
 
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
-		Log: zLogger.Config{
+		Log: stashconfig.Config{
 			Level: "ERROR",
 		},
 		DefaultArea: "content",

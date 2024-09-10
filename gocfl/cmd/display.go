@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"github.com/je4/certloader/v2/pkg/loader"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/trustutil/v2/pkg/loader"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/data/displaydata"
 	"github.com/ocfl-archive/gocfl/v2/gocfl/cmd/display"
