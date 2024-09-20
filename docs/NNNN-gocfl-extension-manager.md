@@ -36,8 +36,8 @@ For change of the Storage Root Object Path.
 This hook is used by "Storage Root Layout Extensions" i.e. extension [0002-flat-direct-storage-layout](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0002-flat-direct-storage-layout.md), [0003-hash-and-id-n-tuple-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0003-hash-and-id-n-tuple-storage-layout.md), [0004-hashed-n-tuple-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0004-hashed-n-tuple-storage-layout.md), [0006-flat-omit-prefix-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0006-flat-omit-prefix-storage-layout.md), [0006-flat-omit-prefix-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0006-flat-omit-prefix-storage-layout.md) or [0010-differential-n-tuple-omit-prefix-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0010-differential-n-tuple-omit-prefix-storage-layout.md).
 
 There are two hooks
-* ˋWriteLayoutˋ for writing the correct ˋocfl_layout.jsonˋ
-* ˋBuildStorageRootPathˋ Executed after the storage root path is known to the OCFL tool. 
+* `WriteLayout` for writing the correct `ocfl_layout.json`
+* `BuildStorageRootPath` Executed after the storage root path is known to the OCFL tool. 
 
 ### Object Hooks
 #### `ObjectContentPath`
@@ -45,23 +45,31 @@ For change of the filepath within the Object versions content folder.
 Used by extensions, which manipulate the path like [0011-direct-clean-path-layout](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0011-direct-clean-path-layout.md) or move content do subdirectories like [NNNN-content-subpath](https://github.com/ocfl-archive/gocfl/blob/3fa65107121024aaa3cfc17bbfa02ba2d89e679f/docs/NNNN-content-subpath.md).
 
 There is one hook
-* ˋBuildObjectManifestPathˋ Executed after the path within the version content folder is known to the OCFL tool. 
+* `BuildObjectManifestPath` Executed after the path within the version content folder is known to the OCFL tool. 
 
 #### `ObjectExtractPath`
 For change of the content file extraction path. Used by extensions like [NNNN-content-subpath](https://github.com/ocfl-archive/gocfl/blob/3fa65107121024aaa3cfc17bbfa02ba2d89e679f/docs/NNNN-content-subpath.md) which have inserted additional folders and want to remove them before extractions.
 
 There is one hook
-* ˋBuildObjectExtractPathˋ This extension hook is executed after the relative path of the external file is known to the OCFL tool. 
+* `BuildObjectExtractPath` This extension hook is executed after the relative path of the external file is known to the OCFL tool. 
 
 #### `ObjectStatePath`
 For change of the version path within the inventory. This hook can be used by migration extensions, which have moved files from the manifest area to different folders and want to reflect a correct external path for extraction utilities.
 
 There is one hook
-* ˋBuildObjectStatePathˋ This extension hook is executed before the state filepath of the current version is written into the inventory. 
+* `BuildObjectStatePath` This extension hook is executed before the state filepath of the current version is written into the inventory. 
 
 #### `ContentChange`
 
+Whenever a file within the version content is written, a hook is called. Since there are no "real" update or delete operations within OCFL they are emulated for the hookd.
 
+There are six hooks available.
+* `AddFileBefore` Before a new file is added to the content
+* `UpdateFileBefore` Before a file, which is already in the prior version, is added to the content
+* `DeleteFileBefore` Before a file is not written to the state, which is already in the prior version
+* `AddFileAfter` After a new file was added to the content
+* `UpdateFileAfter` After a file, which was already in a prior version, was added to the content
+* `DeleteFileAfter` After a file was not written to the state, which is already in the prior version
 
 #### `ObjectChange`
 
