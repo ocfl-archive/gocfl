@@ -147,7 +147,7 @@ not defined, it is added to the end of the list.
 
 Create a list of extensions which fit to the same extension type. If more than one extension is listed in 
 the `exclude` parameter corresponding to the type, only the extension with the highest priority is will be
-used. Extensions which are not listed are kept in the list.
+used. Extensions which are not listed are kept in the list of active extensions.
 
 ## Example
 
