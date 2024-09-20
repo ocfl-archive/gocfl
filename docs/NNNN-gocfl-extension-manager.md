@@ -16,24 +16,24 @@ There are two functionalities provided by this extension:
 
 ### Sorting of extensions
 
-The extensions are sorted in the order they are defined in the `config.json` file. This is important for
-the correct execution order of the extensions. This is especially important for the extensions manipulating 
+The extensions are sorted in the order they are defined in the `config.json` file. This enforces the correct execution order of the extensions. This is especially important for the extensions manipulating 
 the object content path. 
 
 ### Exclusion of extension
 
 Several extensions must not be executed together for the same object. For example extensions which map 
 Object Ids to file paths must not be executed together. This extension provides a mechanism to exclude 
-extensions from execution.
+extensions from execution if conflicting extensions are enabled.
 
 ## Extension Types
 
 Since extensions can be used in different contexts, there are different types of extensions which are
 separated by the hooks, they are using. The following types are defined till now:
 
-* Storage Root
-  * `StorageRootPath`
-* Object
+### Storage Root
+#### `StorageRootPath`
+Executed after the storage root path is known to the OCFL tool. This hook is used by "Storage Root Layout Extensions" i.e. extension 0002, 0003, 0004, 0006, 0007, 0010, 0011.
+### Object
   * `ObjectContentPath`
   * `ObjectExtractPath`
   * `ObjectExternalPath`
