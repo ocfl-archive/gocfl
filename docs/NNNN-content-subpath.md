@@ -9,16 +9,12 @@
 
 ## Overview
 
-This object extension allows the creation of an additional path hierarchy within the content folder
-of an object version.  
-
-Internally, the paths are called `area` and OCFL software which supports this extension is able to
-add or extract data from these specific areas.
+This object extension permits the creation of an additional path hierarchy within the content folder of an object version. In essence, the concept of an "area" encompasses both a folder name and a description. This allows for the alteration of subfolders while ensuring that the gocfl tools are able to identify the location of the content.
+It is imperative that one ˋareaˋ is designated as "content" to guarantee that the payload can be readily accessed by any ocfl tool.
 
 ### Usage Scenario
 
-With this additional path layer, there can be for example a metadata, a data and a log subfolder
-whereas the data folder contains the payload of the archived object.
+This extra path layer lets you create subfolders for meta, data and log, for example. The data folder is where you'll find the payload for the archived object. You can use these three folders to organise content, metadata and logging.
 
 ## Parameters
 
@@ -68,7 +64,7 @@ However, if you were to do so, it would look like the following:
       "description": "Payload of archival object"
     },
     "metadata": {
-      "path": "metadata",
+      "path": "meta",
       "description": "additional semantic metadata"
     },
     "index": {
@@ -91,6 +87,8 @@ However, if you were to do so, it would look like the following:
     |   |   [...]
     |   |
     |   \---[...]
+    +---meta
+    |   |   [...]
     |
     \---index
             indexer_v1.jsonl
@@ -104,7 +102,7 @@ However, if you were to do so, it would look like the following:
 ##### data
 Payload of archival object
 
-##### metadata
+##### meta
 additional semantic metadata
 
 ##### index
