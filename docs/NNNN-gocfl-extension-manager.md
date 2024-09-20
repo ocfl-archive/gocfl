@@ -14,7 +14,7 @@ to manage the OCFL extensions used in an OCFL storage root or object.
 
 
 > One core assumption is, that the OCFL object is written as single data stream. 
-> This means, that there is no possibility to access already written content reading or updating.
+> This means, that there is no possibility to access already written content for reading or updating.
 
 There are two functionalities provided by this extension:
 
