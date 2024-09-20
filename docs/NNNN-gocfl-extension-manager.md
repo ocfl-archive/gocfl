@@ -10,7 +10,11 @@
 ## Overview
 
 This extension is used as an [initial extension](https://github.com/OCFL/extensions#optional-initial-extension)
-to manage the OCFL extensions used in an OCFL repository.
+to manage the OCFL extensions used in an OCFL storage root or object.
+
+
+> One core assumption is, that the OCFL object is written as single data stream. 
+> This means, that there is no possibility to access already written content reading or updating.
 
 There are two functionalities provided by this extension:
 
