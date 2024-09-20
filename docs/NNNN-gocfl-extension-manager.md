@@ -33,7 +33,7 @@ separated by the hooks, they are using. The following types are defined till now
 ### Storage Root Hooks
 #### `StorageRootPath`
 For change of the Storage Root Object Path.
-Executed after the storage root path is known to the OCFL tool. This hook is used by "Storage Root Layout Extensions" i.e. extension 0002, 0003, 0004, 0006, 0007, 0010.
+Executed after the storage root path is known to the OCFL tool. This hook is used by "Storage Root Layout Extensions" i.e. extension [0002-flat-direct-storage-layout](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0002-flat-direct-storage-layout.md), [0003-hash-and-id-n-tuple-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0003-hash-and-id-n-tuple-storage-layout.md), [0004-hashed-n-tuple-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0004-hashed-n-tuple-storage-layout.md), [0006-flat-omit-prefix-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0006-flat-omit-prefix-storage-layout.md), [0006-flat-omit-prefix-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0006-flat-omit-prefix-storage-layout.md) or [0010-differential-n-tuple-omit-prefix-storage-layout.md](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0010-differential-n-tuple-omit-prefix-storage-layout.md).
 
 ### Object Hooks
 #### `ObjectContentPath`
