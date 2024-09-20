@@ -27,8 +27,8 @@ extensions from execution if conflicting extensions are enabled.
 
 ## Hook Groups
 
-Since extensions can be used in different contexts, there are different types of extensions which are
-separated by the hooks, they are using. The following types are defined till now:
+Since extensions can be used in different contexts, there are different groups of extensions which are
+separated by the hooks, they are using. Sorting and Exclusion is configured per hook group. This reduces the amount of configuration needed. 
 
 ### Storage Root Hook Groups
 #### `StorageRootPath`
@@ -121,17 +121,17 @@ There is one hook available
 ### Summary
 
 * **Name:** `sort`
-    * **Description:** Map of extension types to a list of extension names
-    * **Type:** map[string][]string
+    * **Description:** Map of named list of extension names. Within the named hook group the extension hooks are called in the order of appearence.
+    * **Type:** map of string list
     * **Constraints:** 
-        * The keys must be one of the extension types
+        * The name must be a hook group name
         * The values must be a list of extension names
     * **Default:** empty map
 * **Name:** `exclude`
-    * **Description:** Map of extension types to a list of extension names
-    * **Type:** map[string][]string
+    * **Description:** Map of named list of extension names. If more than one extension is listed within the named hook group, the first one is the only one which is called.
+    * **Type:** map of string list
     * **Constraints:**
-        * The keys must be one of the extension types
+        * The keys must be a hook group
         * The values must be a list of extension names
     * **Default:** empty map
 
