@@ -30,18 +30,31 @@ extensions from execution if conflicting extensions are enabled.
 Since extensions can be used in different contexts, there are different types of extensions which are
 separated by the hooks, they are using. The following types are defined till now:
 
-### Storage Root
+### Storage Root Hooks
 #### `StorageRootPath`
-Executed after the storage root path is known to the OCFL tool. This hook is used by "Storage Root Layout Extensions" i.e. extension 0002, 0003, 0004, 0006, 0007, 0010, 0011.
-### Object
-  * `ObjectContentPath`
-  * `ObjectExtractPath`
-  * `ObjectExternalPath`
-  * `ContentChange`
-  * `ObjectChange`
-  * `FixityDigest`
-  * `Metadata`
-  * `Area`
+For change of the Storage Root Object Path.
+Executed after the storage root path is known to the OCFL tool. This hook is used by "Storage Root Layout Extensions" i.e. extension 0002, 0003, 0004, 0006, 0007, 0010.
+
+### Object Hooks
+#### `ObjectContentPath`
+For change of the filepath within the Object versions content folder.
+Executed after the path within the version content folder is known to the OCFL tool. Used by extensions, which manipulate the path like [0011-direct-clean-path-layout](https://github.com/OCFL/extensions/blob/00bd9dcec83d9b27a2e4faae854a8c1e66997e0c/docs/0011-direct-clean-path-layout.md) or move content do subdirectories like [NNNN-content-subpath](https://github.com/ocfl-archive/gocfl/blob/3fa65107121024aaa3cfc17bbfa02ba2d89e679f/docs/NNNN-content-subpath.md).
+
+#### `ObjectExtractPath`
+
+
+#### `ObjectExternalPath`
+
+#### `ContentChange`
+
+#### `ObjectChange`
+
+#### `FixityDigest`
+
+#### `Metadata`
+
+#### `Area`
+
 
 ## Parameters
 
