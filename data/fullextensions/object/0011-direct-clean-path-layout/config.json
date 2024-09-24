@@ -1,5 +1,5 @@
 {
-  "extensionName": "NNNN-direct-clean-path-layout",
+  "extensionName": "0011-direct-clean-path-layout",
   "maxPathnameLen": 32000,
   "maxPathSegmentLen": 127,
   "replacementString": "_",
