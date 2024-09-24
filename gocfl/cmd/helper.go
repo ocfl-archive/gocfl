@@ -99,6 +99,11 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 		return extension.NewDirectCleanFS(fsys)
 	})
 
+	logger.Debug().Msgf("adding creator for extension %s", extension.LegacyDirectCleanName)
+	extensionFactory.AddCreator(extension.LegacyDirectCleanName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewLegacyDirectCleanFS(fsys)
+	})
+
 	logger.Debug().Msgf("adding creator for extension %s", extension.PathDirectName)
 	extensionFactory.AddCreator(extension.PathDirectName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewPathDirectFS(fsys)
