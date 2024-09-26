@@ -49,7 +49,14 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		return nil
 	}
 	rect := img.Bounds()
-	thumb.logger.Info().Msgf("image format: %s, size: %d x %d", format, rect.Dx(), rect.Dy())
+	dx := rect.Dx()
+	dy := rect.Dy()
+	thumb.logger.Info().Msgf("image format: %s, size: %d x %d", format, dx, dy)
+
+	if dx == 0 || dy == 0 {
+		thumb.logger.Info().Msgf("image '%s' has no size", stateFiles[0])
+		return nil
+	}
 
 	rectAspect := rect.Dx() / rect.Dy()
 	thumbAspect := int(thumb.Width) / int(thumb.Height)

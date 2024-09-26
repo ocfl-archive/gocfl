@@ -135,9 +135,27 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 	if params != nil {
 		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")
 		if urlString, ok := params[name]; ok {
+			urlString = strings.TrimSpace(urlString)
+			if urlString == "" {
+				return errors.Errorf("no value for parameter '%s'", name)
+			}
 			u, err := url.Parse(urlString)
-			if err != nil {
-				return errors.Wrapf(err, "invalid url parameter '%s' - '%s'", name, urlString)
+			if err != nil || u.Scheme == "" {
+				if urlString[0] == '/' {
+					u, err = url.Parse("file://" + urlString)
+					if err != nil {
+						return errors.Wrapf(err, "cannot parse '%s'", urlString)
+					}
+				} else {
+					d, err := os.Getwd()
+					if err != nil {
+						return errors.Wrap(err, "cannot get working directory")
+					}
+					u, err = url.Parse("file://" + filepath.ToSlash(filepath.Join(d, urlString)))
+					if err != nil {
+						return errors.Wrapf(err, "cannot parse '%s'", urlString)
+					}
+				}
 			}
 			sl.metadataSource = u
 		}
