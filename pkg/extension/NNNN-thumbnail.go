@@ -186,7 +186,7 @@ func (thumb *Thumbnail) storeThumbnail(object ocfl.Object, head string, mFile io
 	if thumb.SingleDirectory {
 		targetName = fmt.Sprintf("%s/%s/%05d.%s", subfolder, head, thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
 	} else {
-		cs := fmt.Sprintf("%x", rand.Intn(64))
+		cs := fmt.Sprintf("%02x", rand.Intn(64))
 		targetName = fmt.Sprintf("%s/%s/%s/%s/%05d.%s", subfolder, head, string([]rune(cs)[0]), string([]rune(cs)[1]), thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
 	}
 	switch strings.ToLower(thumb.StorageType) {
