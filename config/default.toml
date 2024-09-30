@@ -203,41 +203,6 @@ enabled = false
 Enable=true
 Background="none"
 
-[Thumbnail.Function.CR2]
-ID = "CR2#01"
-Title = "Thumbnail from Canon CR2"
-Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
-Timeout = "2m"
-Pronoms = ["fmt/592"]
-
-[Thumbnail.Function.Images]
-ID = "Image#01"
-Title = "Thumbnail from Image"
-Command = "\"C:/Program Files/ImageMagick-7.1.0-Q16/convert.exe\" '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
-Timeout = "2m"
-Mime = ["image/.+"]
-
-[Thumbnail.Function.Audio]
-ID = "Audio#01"
-Title = "Spectrogram from Audio"
-Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
-Timeout = "2m"
-Mime = ["audio/.+"]
-
-[Thumbnail.Function.PDF]
-ID = "PDF#01"
-Title = "Thumbnail from Image"
-Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/pdf2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
-Timeout = "2m"
-Mime = ["application/pdf"]
-
-[Thumbnail.Function.Video]
-ID = "Video#01"
-Title = "Thumbnail from Video"
-Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/video2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
-Timeout = "2m"
-Mime = ["video/.+"]
-
 #
 # Migration
 #
