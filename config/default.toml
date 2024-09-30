@@ -200,7 +200,7 @@ enabled = false
 # Thumbnail
 #
 [Thumbnail]
-Enable=false
+Enable=true
 Background="none"
 
 [Thumbnail.Function.CR2]
