@@ -95,7 +95,7 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fsFactory, err := initializeFSFactory(nil, nil, nil, true, false, logger)
+	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
@@ -113,7 +113,7 @@ func validate(cmd *cobra.Command, args []string) {
 	}()
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storageroot")
 		return

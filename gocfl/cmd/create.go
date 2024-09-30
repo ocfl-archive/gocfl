@@ -58,6 +58,20 @@ func initCreate() {
 	createCmd.Flags().String("keypass-key", "", "key to use for keypass2 database decryption")
 }
 
+func isEmpty(name string) (bool, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1) // Or f.Readdir(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err // Either not empty or error, suits both cases
+}
+
 // initCreate executes the gocfl create command
 func doCreate(cmd *cobra.Command, args []string) {
 	var err error
@@ -151,6 +165,21 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
+	}
+
+	if fi, err := os.Stat(ocflPath); err == nil {
+		if fi.IsDir() {
+			if empty, err := isEmpty(ocflPath); err != nil {
+				logger.Error().Err(err).Msgf("cannot check if directory '%s' is empty", ocflPath)
+				return
+			} else if !empty {
+				logger.Error().Msgf("directory '%s' is not empty", ocflPath)
+				return
+			}
+		} else {
+			logger.Error().Msgf("'%s' already exists and is not an empty directory", ocflPath)
+			return
+		}
 	}
 
 	sourceFS, err := fsFactory.Get(srcPath)

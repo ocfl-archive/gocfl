@@ -1,0 +1,12 @@
+{
+  "storageType": "extension",
+  "storageName": "metadata",
+  "extensionName": "NNNN-thumbnail",
+  "compress": "gzip",
+  "width": 256,
+  "height": 256,
+  "singleDirectory": false
+}
+
+
+

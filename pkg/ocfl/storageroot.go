@@ -94,7 +94,7 @@ func CreateStorageRoot(ctx context.Context, fsys fs.FS, version OCFLVersion, ext
 
 func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, logger zLogger.ZLogger) (StorageRoot, error) {
 	version, err := getVersion(ctx, fsys, ".", "ocfl_")
-	if err != nil && err != errVersionNone {
+	if err != nil && !errors.Is(err, errVersionNone) {
 		return nil, errors.WithStack(err)
 	}
 	if version == "" {
