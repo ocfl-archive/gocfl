@@ -74,6 +74,20 @@ LocalCache=false
 Enabled=true
 Digest=["sha512"]
 
+[Indexer.XML]
+Enabled=true
+[Indexer.XML.Format.document]
+Attributes.xmlns = "http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.xml"
+Type = "ocr"
+Subtype = "FineReader10"
+Mime = "application/xml"
+[Indexer.XML.Format."mets:mets"]
+Regexp = true
+Attributes."xmlns:mets" = "^https?://www.loc.gov/METS/?$"
+Type = "metadata"
+Subtype = "METS"
+Mime = "application/xml"
+
 [Indexer.Siegfried]
 Enabled=true
 #Signature = "/usr/share/siegfried/default.sig"
