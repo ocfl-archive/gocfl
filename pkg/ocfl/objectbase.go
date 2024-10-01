@@ -679,11 +679,13 @@ func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *Nam
 			}
 		}()
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer, pw)
-		_ = pw.Close()
+		if err := pw.Close(); err != nil {
+			object.logger.Error().Err(err).Msg("cannot close pipe writer")
+		}
+		wg.Wait()
 		if err != nil {
 			return "", errors.Wrapf(err, "cannot copy '%s' -> '%s'", names.ExternalPaths, names.ManifestPath)
 		}
-		wg.Wait()
 		close(extErrors)
 		select {
 		case err, ok := <-extErrors:

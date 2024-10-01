@@ -19,6 +19,7 @@ import (
 	_ "golang.org/x/image/vp8"
 	_ "golang.org/x/image/vp8l"
 	_ "golang.org/x/image/webp"
+	"image"
 	_ "image/gif"
 	"io"
 	"io/fs"
@@ -112,6 +113,7 @@ func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLog
 		buffer:          map[string]*bytes.Buffer{},
 		counter:         map[string]int64{},
 		streamInfo:      map[string]map[string]*ThumbnailResult{},
+		streamImg:       map[string]map[string]image.Image{},
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if config.ExtensionName != sl.GetName() {
@@ -136,6 +138,7 @@ type Thumbnail struct {
 	done        bool
 	counter     map[string]int64
 	streamInfo  map[string]map[string]*ThumbnailResult
+	streamImg   map[string]map[string]image.Image
 }
 
 func (thumb *Thumbnail) Terminate() error {
