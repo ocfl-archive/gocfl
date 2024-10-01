@@ -1,14 +1,3 @@
-# --log-level
-# CRITICAL = 0
-# ERROR = 1
-# WARNING = 2
-# NOTICE = 3
-# INFO = 4
-# DEBUG = 5
-LogLevel="DEBUG"
-# --log-file
-#logFile="C:/temp/gocfl.log"
-
 # global config for all operations on S3 storages
 [S3]
 # --s3-endpoint
@@ -21,7 +10,14 @@ LogLevel="DEBUG"
 #Region="%%GOCFL_S3_REGION%%"
 
 [log]
-level = "debug"
+# "trace"
+# "debug"
+# "info" 
+# "warn" 
+# "error"
+# "fatal"
+# "panic"
+level = "info"
 
 [log.stash]
 #logstash_host="sb-uwf4.swissbib.unibas.ch"
