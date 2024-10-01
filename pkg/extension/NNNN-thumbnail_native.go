@@ -16,6 +16,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"io/fs"
 	"slices"
 	"strings"
 )
@@ -70,7 +71,85 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 
 	newImg := resize.Resize(newWidth, newHeight, img, resize.Lanczos3)
 	img = nil // free memory
+	if newImg == nil {
+		return errors.Errorf("cannot resize image '%s'", stateFiles[0])
+	}
+	if _, ok := thumb.streamImg[head]; !ok {
+		thumb.streamImg[head] = map[string]image.Image{}
+	}
+	thumb.streamImg[head][infoName] = newImg
+	/*
+		fsys := object.GetFS()
+		if fsys == nil {
+			return errors.New("no filesystem set")
+		}
+		pr, pw := io.Pipe()
+		done := make(chan bool, 1)
+		go func() {
+			var err error = nil
+			defer func() {
+				if err == nil {
+					if err := pw.Close(); err != nil {
+						thumb.logger.Error().Err(err).Msg("cannot close pipe")
+					}
+				} else {
+					if err := pw.CloseWithError(errors.Wrap(err, "cannot encode image")); err != nil {
+						thumb.logger.Error().Err(err).Msg("cannot close pipe")
+					}
+				}
+				done <- true
+			}()
+			switch thumb.ThumbnailConfig.Ext {
+			case "png":
+				err = png.Encode(pw, newImg)
+			case "jpeg":
+				err = jpeg.Encode(pw, newImg, nil)
+			default:
+				err = errors.Errorf("unsupported image format '%s'", thumb.ThumbnailConfig.Ext)
+			}
+		}()
 
+		thumb.counter[head]++
+		targetFile, digest, err := thumb.storeThumbnail(object, head, pr)
+		if err != nil {
+			return errors.Wrap(err, "cannot store thumbnail")
+		}
+		<-done
+
+		_ = digest
+		thumb.logger.Info().Msgf("thumbnail stored: %s", targetFile)
+		ml := &ThumbnailResult{
+			//SourceDigest: cs,
+			Filename:    targetFile,
+			Ext:         thumb.ThumbnailConfig.Ext,
+			Error:       "",
+			ID:          "internal",
+			ThumbDigest: digest,
+		}
+		thumb.streamInfo[head][infoName] = ml
+
+	*/
+	return nil
+}
+
+func (thumb *Thumbnail) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source []string, internalPath string, digest string, area string, isDir bool) error {
+	inventory := object.GetInventory()
+	head := inventory.GetHead()
+	if _, ok := thumb.counter[head]; !ok {
+		thumb.counter[head] = 0
+	}
+	infoName := internalPath // fmt.Sprintf("%s/content/%s", head, dest)
+	if _, ok := thumb.streamInfo[head]; !ok {
+		return nil
+	}
+	newImg, ok := thumb.streamImg[head][infoName]
+	if !ok {
+		return nil
+	}
+	defer func() {
+		delete(thumb.streamImg[head], infoName)
+		newImg = nil
+	}()
 	fsys := object.GetFS()
 	if fsys == nil {
 		return errors.New("no filesystem set")
@@ -78,8 +157,19 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	pr, pw := io.Pipe()
 	done := make(chan bool, 1)
 	go func() {
-		defer pw.Close()
 		var err error = nil
+		defer func() {
+			if err == nil {
+				if err := pw.Close(); err != nil {
+					thumb.logger.Error().Err(err).Msg("cannot close pipe")
+				}
+			} else {
+				if err := pw.CloseWithError(errors.Wrap(err, "cannot encode image")); err != nil {
+					thumb.logger.Error().Err(err).Msg("cannot close pipe")
+				}
+			}
+			done <- true
+		}()
 		switch thumb.ThumbnailConfig.Ext {
 		case "png":
 			err = png.Encode(pw, newImg)
@@ -88,10 +178,6 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		default:
 			err = errors.Errorf("unsupported image format '%s'", thumb.ThumbnailConfig.Ext)
 		}
-		if err != nil {
-			_ = pw.CloseWithError(errors.Wrap(err, "cannot encode image"))
-		}
-		done <- true
 	}()
 
 	thumb.counter[head]++
@@ -99,9 +185,6 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	if err != nil {
 		return errors.Wrap(err, "cannot store thumbnail")
 	}
-	<-done
-
-	_ = digest
 	thumb.logger.Info().Msgf("thumbnail stored: %s", targetFile)
 	ml := &ThumbnailResult{
 		//SourceDigest: cs,
@@ -114,3 +197,25 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	thumb.streamInfo[head][infoName] = ml
 	return nil
 }
+
+func (thumb *Thumbnail) AddFileBefore(object ocfl.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+	return nil
+}
+
+func (thumb *Thumbnail) UpdateFileBefore(object ocfl.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+	return nil
+}
+
+func (thumb *Thumbnail) DeleteFileBefore(object ocfl.Object, dest string, area string) error {
+	return nil
+}
+
+func (thumb *Thumbnail) UpdateFileAfter(object ocfl.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+	return nil
+}
+
+func (thumb *Thumbnail) DeleteFileAfter(object ocfl.Object, dest string, area string) error {
+	return nil
+}
+
+var _ ocfl.ExtensionContentChange = &Thumbnail{}
