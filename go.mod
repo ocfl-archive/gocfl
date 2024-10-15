@@ -29,7 +29,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.1
-	gitlab.switch.ch/ub-unibas/go-ublogger v0.0.0-20240612084645-ba4f8357c0d4
+	gitlab.switch.ch/ub-unibas/go-ublogger/v2 v2.0.1-0.20241015124430-bd70d8b1ee14
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	golang.org/x/image v0.20.0
 	gopkg.in/gographics/imagick.v3 v3.7.0

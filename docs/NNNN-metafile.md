@@ -1,6 +1,6 @@
 # OCFL Community Extension NNNN: Metafile
 
-* **Extension Name:** NNNN-metafile
+* __Extension Name:__ NNNN-metafile
 * **Authors:** Jürgen Enge (Basel)
 * **Minimum OCFL Version:** 1.0
 * **OCFL Community Extensions Version:** 1.0
