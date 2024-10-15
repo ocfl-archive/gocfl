@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
-	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger"
+	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"io"
 	"log"
 	"os"
@@ -83,12 +83,15 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}
 
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-	_logger, _logstash, _logfile := ublogger.CreateUbMultiLoggerTLS(conf.Log.Level, conf.Log.File,
+	_logger, _logstash, _logfile, err := ublogger.CreateUbMultiLoggerTLS(conf.Log.Level, conf.Log.File,
 		ublogger.SetDataset(conf.Log.Stash.Dataset),
 		ublogger.SetLogStash(conf.Log.Stash.LogstashHost, conf.Log.Stash.LogstashPort, conf.Log.Stash.Namespace, conf.Log.Stash.LogstashTraceLevel),
 		ublogger.SetTLS(conf.Log.Stash.TLS != nil),
 		ublogger.SetTLSConfig(loggerTLSConfig),
 	)
+	if err != nil {
+		log.Fatalf("cannot create logger: %v", err)
+	}
 	if _logstash != nil {
 		defer _logstash.Close()
 	}
