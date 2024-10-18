@@ -86,7 +86,7 @@ LocalCache=false
 
 [Indexer.Checksum]
 Enabled=true
-Digest=["sha512", "blake2b-384"]
+Digest=["sha512"]
 
 [Indexer.XML]
 Enabled=true

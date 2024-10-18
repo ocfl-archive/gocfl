@@ -287,7 +287,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
 	inventoryBytes, err := fs.ReadFile(object.fsys, filename)
 	if err != nil {
-		if errors.Cause(err) == fs.ErrNotExist {
+		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
 		return newInventory(object.ctx, object, folder, object.version, object.logger)
@@ -302,7 +302,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
 	sidecarBytes, err := fs.ReadFile(object.fsys, sidecarPath)
 	if err != nil {
-		if errors.Cause(err) == fs.ErrNotExist {
+		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			object.addValidationError(E058, "sidecar '%v/%s' does not exist", object.fsys, sidecarPath)
 		} else {
 			object.addValidationError(E060, "cannot read sidecar '%v/%s': %v", object.fsys, sidecarPath, err.Error())

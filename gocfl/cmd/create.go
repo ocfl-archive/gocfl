@@ -235,7 +235,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, (logger))
+	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create extension factory")
 		return
