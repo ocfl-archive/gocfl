@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"github.com/je4/certloader/v2/pkg/loader"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/data/displaydata"
@@ -13,6 +12,7 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
+	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
 	"io"
 	"io/fs"
 	"log"
