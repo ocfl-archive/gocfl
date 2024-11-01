@@ -3,7 +3,7 @@
 The `init` command initializes an OCFL Storage Root.   
 [Default extension configs](../data/defaultextensions/storageroot) are used. 
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe init --help
 initializes an empty ocfl structure
 
@@ -14,23 +14,20 @@ Examples:
 gocfl init ./archive.zip
 
 Flags:
-      --aes-iv string                           initialisation vector to use for encrypted container in hex format (32 chars, empty: generate random vector)
-      --aes-key string                          key to use for encrypted container in hex format (64 chars, empty: generate random key)
       --default-storageroot-extensions string   folder with initial extension configurations for new OCFL Storage Root
   -d, --digest string                           digest to use for ocfl checksum
-      --encrypt-aes                             create encrypted container (only for container target)
   -h, --help                                    help for init
-      --no-compress                          do not compress data in zip file
-      --ocfl-version string                     ocfl version for new storage root (default "1.1")
+      --no-compress                             do not compress data in zip file
+      --ocfl-version string                     ocfl version for new storage root
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 
 ## Examples

@@ -3,7 +3,7 @@
 Extractmeta is used for OCFL Object content metadata extraction. In Addition to the Inventory data, 
 extensions, which provide additional metadata are integrated.
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe extractmeta --help
 extract metadata from ocfl structure
 
@@ -14,22 +14,21 @@ Examples:
 gocfl extractmeta ./archive.zip --output-json ./archive_meta.json
 
 Flags:
+      --format string        output format (json) (default "json")
   -h, --help                 help for extractmeta
   -i, --object-id string     object id to extract
   -p, --object-path string   object path to extract
-      --output-json string   path to json file with metadata
+      --output string        output file (default stdout)
       --version string       version to extract (default "latest")
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
       --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
-
 ```
 
 # Examples

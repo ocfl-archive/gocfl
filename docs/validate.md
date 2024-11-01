@@ -3,7 +3,7 @@
 Validates an OCFL Storage Root with one or all Objects. Validation is non-blocking which allows to 
 get a list of multiple errors (which may be follow-ups of previous ones).
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe validate --help
 validates an ocfl structure
 
@@ -18,17 +18,17 @@ gocfl validate ./archive.zip
 
 Flags:
   -h, --help                 help for validate
-  -o, --object-path string   validate only the selected object in storage root
+      --object-id string     validate only the object with the specified id in storage root
+  -o, --object-path string   validate only the object at the specified path in storage root
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
-      
 ```
 
 ## Fixtures (OCFL 1.1)

@@ -6,7 +6,7 @@ Deduplication is enabled by default.
 
 The [default extension configs](../data/defaultextensions/object) are used for that.
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe update --help
 opens an existing ocfl structure and updates an object. if an object with the given id does not exist, an error is produced
 
@@ -14,31 +14,32 @@ Usage:
   gocfl update [path to ocfl structure] [flags]
 
 Examples:
-gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'first update' -object-id 'id:abc123'
+gocfl update ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
 
 Flags:
-      --aes-iv string                     initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector
-      --aes-key string                    key to use for encrypted container in hex format (64 chars, empty: generate random key
-  -d, --digest string                     digest to use for zip file checksum
-      --echo                              update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'
-      --encrypt-aes                       set flag to create encrypted container (only for container target)
-      --ext-NNNN-metafile-source string   url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
-  -h, --help                              help for update
-  -m, --message string                    message for new object version (required)
-      --no-compress                    do not compress data in zip file
-      --no-deduplicate                    disable deduplication (faster)
-  -i, --object-id string                  object id to update (required)
-  -a, --user-address string               user address for new object version (required)
-  -u, --user-name string                  user name for new object version (required)
+      --aes-iv string                               initialisation vector to use for encrypted container in hex format (32 charsempty: generate random vector
+      --aes-key string                              key to use for encrypted container in hex format (64 chars, empty: generate random key
+  -d, --digest string                               digest to use for zip file checksum
+      --echo                                        update strategy 'echo' (reflects deletions). if not set, update strategy is 'contribute'
+      --encrypt-aes                                 set flag to create encrypted container (only for container target)
+      --ext-NNNN-metafile-source string             url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
+      --ext-NNNN-mets-descriptive-metadata string   reference to archived descriptive metadata (i.e. ead:metadata:ead.xml)
+  -h, --help                                        help for update
+  -m, --message string                              message for new object version (required)
+      --no-compress                                 do not compress data in zip file
+      --no-deduplicate                              disable deduplication (faster)
+  -i, --object-id string                            object id to update (required)
+  -a, --user-address string                         user address for new object version (required)
+  -u, --user-name string                            user name for new object version (required)
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 
 ## Examples

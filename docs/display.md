@@ -5,7 +5,9 @@ Displays content of OCFL object in a webbrowser
 This functionality has been implemented mainly for debugging purposes.
 It's not for large Storage Roots or large Objects (several hundreds of thousands elements)
 
-```
+```text
+show content of ocfl object in webbrowser
+
 Usage:
   gocfl display [path to ocfl structure] [flags]
 
@@ -19,17 +21,18 @@ Flags:
   -a, --display-addr string            address to listen on (default "localhost:8080")
   -e, --display-external-addr string   external address to access the server (default "http://localhost:8080")
   -t, --display-templates string       path to templates
+  -c, --display-tls-cert string        path to tls certificate
+  -k, --display-tls-key string         path to tls certificate key
   -h, --help                           help for display
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
       --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 
 ## Examples

@@ -6,7 +6,7 @@ Deduplication is disabled by default.
 
 The [default extension configs](../data/defaultextensions/object) are used for that.
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe create --help
 initializes an empty ocfl structure and adds contents of a directory subtree to it
 This command is a combination of init and add
@@ -18,31 +18,36 @@ Examples:
 gocfl create ./archive.zip /tmp/testdata --digest sha512 -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
 
 Flags:
-      --aes-iv string                           initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)
-      --aes-key string                          key to use for encrypted container in hex format (64 chars, empty: generate random key)
-      --deduplicate                             force deduplication (slower)
-      --default-object-extensions string        folder with initial extension configurations for new OCFL objects
-      --default-storageroot-extensions string   folder with initial extension configurations for new OCFL Storage Root
-  -d, --digest string                           digest to use for ocfl checksum
-      --encrypt-aes                             create encrypted container (only for container target)
-      --ext-NNNN-metafile-source string         url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
-  -f, --fixity string                           comma separated list of digest algorithms for fixity [sha512 blake2b-160 blake2b-256 blake2b-384 blake2b-512 md5 sha1 sha256]
-  -h, --help                                    help for create
-  -m, --message string                          message for new object version (required)
-      --no-compress                          do not compress data in zip file
-  -i, --object-id string                        object id to update (required)
-      --ocfl-version string                     ocfl version for new storage root (default "1.1")
-  -a, --user-address string                     user address for new object version (required)
-  -u, --user-name string                        user name for new object version (required)
+      --aes-iv string                               initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)
+      --aes-key string                              key to use for encrypted container in hex format (64 chars, empty: generate random key)
+      --deduplicate                                 force deduplication (slower)
+      --default-area string                         default area for update or ingest (default: content)
+      --default-object-extensions string            folder with initial extension configurations for new OCFL objects
+      --default-storageroot-extensions string       folder with initial extension configurations for new OCFL Storage Root
+  -d, --digest string                               digest to use for ocfl checksum
+      --encrypt-aes                                 create encrypted container (only for container target)
+      --ext-NNNN-metafile-source string             url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
+      --ext-NNNN-mets-descriptive-metadata string   reference to archived descriptive metadata (i.e. ead:metadata:ead.xml)
+  -f, --fixity string                               comma separated list of digest algorithms for fixity [blake2b-512 md5 sha1 sha256 sha512 blake2b-160 blake2b-256 blake2b-384]
+  -h, --help                                        help for create
+      --keypass-entry string                        keypass2 entry to use for key encryption
+      --keypass-file string                         file with keypass2 database
+      --keypass-key string                          key to use for keypass2 database decryption
+  -m, --message string                              message for new object version (required)
+      --no-compress                                 do not compress data in zip file
+  -i, --object-id string                            object id to update (required)
+      --ocfl-version string                         ocfl version for new storage root (default "1.1")
+  -a, --user-address string                         user address for new object version (required)
+  -u, --user-name string                            user name for new object version (required)
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 ## Examples
 

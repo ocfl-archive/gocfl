@@ -15,22 +15,23 @@ Examples:
 gocfl extract ./archive.zip /tmp/archive
 
 Flags:
+      --area string                            data area to extract (default "content")
       --ext-NNNN-content-subpath-area string   subpath for extraction (default: 'content'). 'all' for complete extraction
       --ext-NNNN-metafile-target string        url with metadata target folder
   -h, --help                                   help for extract
   -i, --object-id string                       object id to extract
   -p, --object-path string                     object path to extract
-      --version string                         version to extract (default "latest")
+      --version string                         version to extract
       --with-manifest                          generate manifest file in object extraction folder
 
 Global Flags:
       --config string                 config file (default is $HOME/.gocfl.toml)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 
 # Examples
