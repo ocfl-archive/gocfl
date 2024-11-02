@@ -2,7 +2,7 @@
 
 Shows statistic on content.
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe info --help
 statistics of an ocfl structure
 
@@ -19,16 +19,16 @@ Flags:
   -h, --help                 help for stat
   -i, --object-id string     object id to show statistics for
   -p, --object-path string   object path to show statistics for
-      --stat-info string     comma separated list of info fields to show [ObjectManifest,ObjectFolders,ExtensionConfigs,Objects,ObjectVersions,Extension,ObjectVersionState,ObjectExtension,ObjectExtensionConfigs]
+      --stat-info string     comma separated list of info fields to show [ObjectFolders,ExtensionConfigs,ObjectVersionState,ObjectExtension,ObjectExtensionConfigs,Extension,Objects,ObjectVersions,ObjectManifest]
 
 Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
+      --config string                 config file (default is embedded)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 
 ## Examples

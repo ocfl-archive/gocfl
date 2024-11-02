@@ -6,7 +6,7 @@ If the object already exists, an error will occur.
 
 The [default extension configs](../data/defaultextensions/object) are used for that.
 
-```
+```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe add --help
 opens an existing ocfl structure and adds a new object. if an object with the given id already exists, an error is produced
 
@@ -17,29 +17,27 @@ Examples:
 gocfl add ./archive.zip /tmp/testdata -u 'Jane Doe' -a 'mailto:user@domain' -m 'initial add' -object-id 'id:abc123'
 
 Flags:
-      --aes-iv string                      initialisation vector to use for encrypted container in hex format (32 chars empty: generate random vector)
-      --aes-key string                     key to use for encrypted container in hex format (64 chars, empty: generate random key)
-      --deduplicate                        force deduplication (slower)
-      --default-object-extensions string   folder with initial extension configurations for new OCFL objects
-  -d, --digest string                      digest to use for ocfl checksum
-      --encrypt-aes                        create encrypted container (only for container target)
-      --ext-NNNN-metafile-source string    url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
-  -f, --fixity string                      comma separated list of digest algorithms for fixity
-  -h, --help                               help for add
-  -m, --message string                     message for new object version (required)
-      --no-compress                          do not compress data in zip file
-  -i, --object-id string                   object id to update (required)
-  -a, --user-address string                user address for new object version (required)
-  -u, --user-name string                   user name for new object version (required)
+      --deduplicate                                 force deduplication (slower)
+      --default-object-extensions string            folder with initial extension configurations for new OCFL objects
+  -d, --digest string                               digest to use for ocfl checksum
+      --ext-NNNN-metafile-source string             url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json
+      --ext-NNNN-mets-descriptive-metadata string   reference to archived descriptive metadata (i.e. ead:metadata:ead.xml)
+  -f, --fixity string                               comma separated list of digest algorithms for fixity
+  -h, --help                                        help for add
+  -m, --message string                              message for new object version (required)
+      --no-compress                                 do not compress data in zip file
+  -i, --object-id string                            object id to update (required)
+  -a, --user-address string                         user address for new object version (required)
+  -u, --user-name string                            user name for new object version (required)
 
 Global Flags:
-      --config string                 config file (default is $HOME/.gocfl.toml)
+      --config string                 config file (default is embedded)
       --log-file string               log output file (default is console)
-      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG) (default "ERROR")
+      --log-level string              log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)
       --s3-access-key-id string       Access Key ID for S3 Buckets
       --s3-endpoint string            Endpoint for S3 Buckets
+      --s3-region string              Region for S3 Access
       --s3-secret-access-key string   Secret Access Key for S3 Buckets
-      --with-indexer                  starts indexer as a local service
 ```
 
 ## Examples
