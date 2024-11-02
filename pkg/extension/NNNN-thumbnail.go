@@ -106,9 +106,10 @@ type ThumbnailMap map[string]*ThumbnailTarget
 type ThumbnailFiles map[string]*ThumbnailTarget
 
 func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZLogger) (*Thumbnail, error) {
+	_logger := logger.With().Str("extension", ThumbnailName).Logger()
 	sl := &Thumbnail{
 		ThumbnailConfig: config,
-		logger:          logger,
+		logger:          &_logger,
 		thumbnail:       mig,
 		buffer:          map[string]*bytes.Buffer{},
 		counter:         map[string]int64{},

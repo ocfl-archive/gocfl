@@ -269,6 +269,8 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 				s3fsrw.ARNRegexStr,
 				false,
 				nil,
+				"",
+				"",
 				logger,
 			),
 			s3fsrw.ARNRegexStr,
