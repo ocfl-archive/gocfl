@@ -204,7 +204,7 @@ func init() {
 
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is $HOME/.gocfl.toml)")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is embedded)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
