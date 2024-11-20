@@ -4,5 +4,5 @@ import (
 	"embed"
 )
 
-//go:embed siegfried/default.sig
+//go:embed siegfried/default.sig errors.toml
 var InternalFS embed.FS

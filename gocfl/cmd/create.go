@@ -180,7 +180,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 				return
 			}
 		} else {
-			logger.Error().Msgf("'%s' already exists and is not an empty directory", ocflPath)
+			logger.Error().
+				Any("archive_error", ErrorFactory.NewError(ERRORTest2, "already exists", nil)).
+				Msgf("'%s' already exists and is not an empty directory", ocflPath)
 			return
 		}
 	}

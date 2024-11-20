@@ -246,17 +246,22 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *
 	}
 	thumb.counter[head]++
 	tmpFilename := filepath.ToSlash(tmpFile.Name())
-	targetTempName := filepath.ToSlash(filepath.Join(filepath.Dir(tmpFilename), fmt.Sprintf("target.%s.%s", filepath.Base(tmpFilename), strings.ToLower(thumb.ThumbnailConfig.Ext))))
+	targetTempName := filepath.ToSlash(
+		filepath.Join(
+			filepath.Dir(tmpFilename),
+			fmt.Sprintf("target.%s.%s", filepath.Base(tmpFilename), strings.ToLower(thumb.ThumbnailConfig.Ext)),
+		))
 
 	if err := tmpFile.Close(); err != nil {
 		return "", "", errors.Wrap(err, "cannot close temp file")
 	}
+	// todo: make it better, there should be no warnings
 	defer func() {
 		if err := os.Remove(tmpFilename); err != nil {
-			thumb.logger.Error().Err(err).Msgf("cannot remove temp file '%s'", tmpFilename)
+			thumb.logger.Warn().Err(err).Msgf("cannot remove temp file '%s'", tmpFilename)
 		}
 		if err := os.Remove(targetTempName); err != nil {
-			thumb.logger.Error().Err(err).Msgf("cannot remove temp file '%s'", targetTempName)
+			thumb.logger.Warn().Err(err).Msgf("cannot remove temp file '%s'", targetTempName)
 		}
 	}()
 	if err := thumbFunc.Thumbnail(tmpFilename, targetTempName, thumb.ThumbnailConfig.Width, thumb.ThumbnailConfig.Height, thumb.logger); err != nil {

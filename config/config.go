@@ -122,6 +122,7 @@ type S3Config struct {
 
 type GOCFLConfig struct {
 	ErrorTemplate string
+	ErrorConfig   string
 	AccessLog     string
 	Extension     map[string]map[string]string
 	Indexer       *indexer.IndexerConfig
