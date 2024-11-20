@@ -1,0 +1,11 @@
+[[errors]]
+id = "Test2"
+type = "unknown"
+weight = 50
+message = "Testing two for error"
+
+[[errors]]
+id = "Test"
+type = "unknown"
+weight = 50
+message = "Testing for error"

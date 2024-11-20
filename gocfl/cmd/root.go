@@ -3,13 +3,16 @@ package cmd
 import (
 	"emperror.dev/errors"
 	"fmt"
-	"github.com/google/martian/log"
 	configutil "github.com/je4/utils/v2/pkg/config"
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/config"
+	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/version"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 	"regexp"
 )
 
@@ -79,6 +82,8 @@ var DigestIds = map[DigestFlag][]string{
 // all possible flags of all modules go here
 var persistentFlagConfigFile string
 
+var persistentFlagErrorConfig string
+
 var persistentFlagLogfile string
 var persistentFlagLoglevel string
 
@@ -102,6 +107,7 @@ var flagStatInfo = []string{}
 // var flagDigestSHA256, flagDigestSHA512 bool
 
 var conf *config.GOCFLConfig
+var ErrorFactory = archiveerror.NewFactory()
 
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
@@ -145,17 +151,17 @@ func initConfig() {
 			cobra.CheckErr(errors.Errorf("cannot convert '%s' to absolute path: %v", persistentFlagConfigFile, err))
 			return
 		}
-		log.Infof("loading configuration from %s", persistentFlagLogfile)
+		log.Info().Msgf("loading configuration from %s", persistentFlagLogfile)
 		data, err := os.ReadFile(persistentFlagConfigFile)
 		if err != nil {
 			_ = rootCmd.Help()
-			log.Errorf("error reading config file %s: %v\n", persistentFlagConfigFile, err)
+			log.Error().Msgf("error reading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 		conf, err = config.LoadGOCFLConfig(string(data))
 		if err != nil {
 			_ = rootCmd.Help()
-			log.Errorf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
+			log.Error().Msgf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 	} else {
@@ -163,12 +169,15 @@ func initConfig() {
 		conf, err = config.LoadGOCFLConfig(string(config.DefaultConfig))
 		if err != nil {
 			_ = rootCmd.Help()
-			log.Errorf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
+			log.Error().Msgf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
 			os.Exit(1)
 		}
 	}
 
 	// overwrite config file with command line data
+	if persistentFlagErrorConfig != "" {
+		conf.ErrorConfig = persistentFlagErrorConfig
+	}
 	if persistentFlagLogfile != "" {
 		conf.Log.File = persistentFlagLogfile
 	}
@@ -188,6 +197,31 @@ func initConfig() {
 		conf.S3.AccessKey = configutil.EnvString(persistenFlagS3SecretAccessKey)
 	}
 
+	var archiveErrs []*archiveerror.Error
+	if conf.ErrorConfig != "" {
+		errorExt := filepath.Ext(conf.ErrorConfig)
+		var err error
+		switch errorExt {
+		case ".toml":
+			archiveErrs, err = archiveerror.LoadTOMLFile(conf.ErrorConfig)
+		case ".yaml":
+			archiveErrs, err = archiveerror.LoadYAMLFile(conf.ErrorConfig)
+		default:
+			err = errors.Errorf("unknown error config file extension %s", errorExt)
+		}
+		if err != nil {
+			log.Fatal().Err(err).Msgf("cannot load error config file %s", conf.ErrorConfig)
+		}
+	} else {
+		var err error
+		archiveErrs, err = archiveerror.LoadTOMLFileFS(internal.InternalFS, "errors.toml")
+		if err != nil {
+			log.Fatal().Err(err).Msg("cannot load error config file")
+		}
+	}
+	if err := ErrorFactory.RegisterErrors(archiveErrs); err != nil {
+		log.Fatal().Err(err).Msg("cannot register errors")
+	}
 	return
 }
 
@@ -205,6 +239,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&persistentFlagConfigFile, "config", "", "config file (default is embedded)")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagErrorConfig, "error-config", "", "error config file (default is embedded)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
