@@ -19,8 +19,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.14.0
 	github.com/je4/filesystem/v3 v3.0.18
-	github.com/je4/indexer/v3 v3.0.6
-	github.com/je4/utils/v2 v2.0.55
+	github.com/je4/indexer/v3 v3.0.7
+	github.com/je4/utils/v2 v2.0.56
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/ocfl-archive/error v1.0.1
 	github.com/rs/zerolog v1.33.0
