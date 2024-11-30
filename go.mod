@@ -27,7 +27,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.8.1
 	gitlab.switch.ch/ub-unibas/go-ublogger/v2 v2.0.1
-	go.ub.unibas.ch/cloud/certloader/v2 v2.0.17
+	go.ub.unibas.ch/cloud/certloader/v2 v2.0.18
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	golang.org/x/image v0.22.0
 	gopkg.in/gographics/imagick.v3 v3.7.1
