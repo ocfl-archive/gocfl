@@ -3,8 +3,14 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"emperror.dev/errors"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"os"
+	"strings"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -19,11 +25,6 @@ import (
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
 	"golang.org/x/exp/slices"
-	"io"
-	"io/fs"
-	"log"
-	"os"
-	"strings"
 )
 
 var addCmd = &cobra.Command{
