@@ -228,7 +228,9 @@ func doAdd(cmd *cobra.Command, args []string) {
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
-			logger.Error().Msgf("no area given in areapath '%s'", args[i])
+			logger.Error().Any(
+				factoryError(ErrorReplaceMe, fmt.Sprintf("no area given in areapath '%s'", args[i]), nil, ""),
+			).Msg("")
 			continue
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
