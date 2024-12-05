@@ -173,7 +173,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
 	if err != nil {
-		logger.Panic().Err(err).Msg("cannot init indexer")
+		logger.Panic().Stack().Err(err).Msg("cannot init indexer")
 	}
 
 	t := startTimer()
@@ -192,7 +192,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	if _, err := os.Stat(srcPath); err != nil {
-		logger.Panic().Err(err).Msgf("cannot stat '%s'", srcPath)
+		logger.Panic().Stack().Err(err).Msgf("cannot stat '%s'", srcPath)
 	}
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, conf.Add.NoCompress, false, logger)
@@ -207,7 +207,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
-		logger.Panic().Stack().Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
 	var doNotClose = false
 	defer func() {
@@ -215,7 +215,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 			logger.Panic().Msgf("filesystem '%s' not closed", destFS)
 		} else {
 			if err := writefs.Close(destFS); err != nil {
-				logger.Panic().Stack().Msgf("error closing filesystem '%s'", destFS)
+				logger.Panic().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
 			}
 		}
 	}()
@@ -234,14 +234,14 @@ func doAdd(cmd *cobra.Command, args []string) {
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
 		if err != nil {
 			doNotClose = true
-			logger.Panic().Stack().Msgf("cannot get filesystem for '%s'", args[i])
+			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
 		}
 	}
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Msg("cannot get migrations")
+		logger.Panic().Err(err).Msg("cannot get migrations")
 	}
 	mig.SetSourceFS(sourceFS)
 
@@ -261,7 +261,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	_, objectExtensionManager, err := initDefaultExtensions(extensionFactory, "", conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Msg("cannot initialize default extensions")
+		logger.Panic().Stack().Err(err).Msg("cannot initialize default extensions")
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
