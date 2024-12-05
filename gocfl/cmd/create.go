@@ -215,7 +215,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 		path, err := ocfl.Fullpath(matches[2])
 		if err != nil {
-			logger.Panic().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
+			logger.Panic().Stack().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(path)
 		if err != nil {
