@@ -141,6 +141,34 @@ func getFlagBool(cmd *cobra.Command, flag string) bool {
 	return b
 }
 
+func configErrorFactory() {
+	var archiveErrs []*archiveerror.Error
+	if conf.ErrorConfig != "" {
+		errorExt := filepath.Ext(conf.ErrorConfig)
+		var err error
+		switch errorExt {
+		case ".toml":
+			archiveErrs, err = archiveerror.LoadTOMLFile(conf.ErrorConfig)
+		case ".yaml":
+			archiveErrs, err = archiveerror.LoadYAMLFile(conf.ErrorConfig)
+		default:
+			err = errors.Errorf("unknown error config file extension %s", errorExt)
+		}
+		if err != nil {
+			log.Fatal().Err(err).Msgf("cannot load error config file %s", conf.ErrorConfig)
+		}
+	} else {
+		var err error
+		archiveErrs, err = archiveerror.LoadTOMLFileFS(internal.InternalFS, "errors.toml")
+		if err != nil {
+			log.Fatal().Err(err).Msg("cannot load error config file")
+		}
+	}
+	if err := ErrorFactory.RegisterErrors(archiveErrs); err != nil {
+		log.Fatal().Err(err).Msg("cannot register errors")
+	}
+}
+
 func initConfig() {
 
 	// load config file
@@ -197,31 +225,7 @@ func initConfig() {
 		conf.S3.AccessKey = configutil.EnvString(persistenFlagS3SecretAccessKey)
 	}
 
-	var archiveErrs []*archiveerror.Error
-	if conf.ErrorConfig != "" {
-		errorExt := filepath.Ext(conf.ErrorConfig)
-		var err error
-		switch errorExt {
-		case ".toml":
-			archiveErrs, err = archiveerror.LoadTOMLFile(conf.ErrorConfig)
-		case ".yaml":
-			archiveErrs, err = archiveerror.LoadYAMLFile(conf.ErrorConfig)
-		default:
-			err = errors.Errorf("unknown error config file extension %s", errorExt)
-		}
-		if err != nil {
-			log.Fatal().Err(err).Msgf("cannot load error config file %s", conf.ErrorConfig)
-		}
-	} else {
-		var err error
-		archiveErrs, err = archiveerror.LoadTOMLFileFS(internal.InternalFS, "errors.toml")
-		if err != nil {
-			log.Fatal().Err(err).Msg("cannot load error config file")
-		}
-	}
-	if err := ErrorFactory.RegisterErrors(archiveErrs); err != nil {
-		log.Fatal().Err(err).Msg("cannot register errors")
-	}
+	configErrorFactory()
 	return
 }
 

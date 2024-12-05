@@ -173,16 +173,17 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if fi, err := os.Stat(ocflPath); err == nil {
 		if fi.IsDir() {
 			if empty, err := isEmpty(ocflPath); err != nil {
-				logger.Error().Err(err).Msgf("cannot check if directory '%s' is empty", ocflPath)
+				msg := fmt.Sprintf("cannot check if directory '%s' is empty", ocflPath)
+				logger.Error().Any(factoryError(ErrorReplaceMe, msg, err, "")).Msg("")
 				return
 			} else if !empty {
-				logger.Error().Msgf("directory '%s' is not empty", ocflPath)
+				msg := fmt.Sprintf("directory '%s' is not empty", ocflPath)
+				logger.Error().Any(factoryError(ErrorReplaceMe, msg, nil, "")).Msg("")
 				return
 			}
 		} else {
-			logger.Error().
-				Any("archive_error", ErrorFactory.NewError(ERRORTest2, "already exists", nil)).
-				Msgf("'%s' already exists and is not an empty directory", ocflPath)
+			msg := fmt.Sprintf("'%s' already exists and is not an empty directory", ocflPath)
+			logger.Error().Any(factoryError(ErrorReplaceMe, msg, nil, "")).Msg("")
 			return
 		}
 	}

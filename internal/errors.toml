@@ -1,11 +1,14 @@
-[[errors]]
-id = "Test2"
-type = "unknown"
-weight = 50
-message = "Testing two for error"
+# Error registry to register errors with the GOCFL error factory.
+# Docs: https://pkg.go.dev/github.com/ocfl-archive/error/pkg/error#Error
 
 [[errors]]
-id = "Test"
-type = "unknown"
+id = "ErrorReplaceMe"
+type = "CUSTOMTYPE"
 weight = 50
-message = "Testing for error"
+message = "provide meaning to this error here"
+
+[[errors]]
+id = "ErrorReplaceMeAsWell"
+type = "CUSTOMTYPE"
+weight = 50
+message = "provide meaning to this error here"
