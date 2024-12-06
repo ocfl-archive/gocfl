@@ -7,6 +7,16 @@ type = "CUSTOMTYPE"
 weight = 50
 message = "provide meaning to this error here"
 
+# System errors that might be encountered during startup and processing.
+
+[[errors]]
+id = "ErrorExtensionConfig"
+type = "CONFIGURATION"
+weight = 50
+message = "provide meaning to this error here"
+
+# Indexer errors affecting preservation.
+
 [[errors]]
 id = "ErrorIndexerSiegfried"
 type = "PRESERVATION"

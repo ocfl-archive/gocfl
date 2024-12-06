@@ -24,8 +24,13 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-const IndexerName = "NNNN-indexer"
-const IndexerDescription = "technical metadata for all files"
+const (
+	IndexerName        = "NNNN-indexer"
+	IndexerDescription = "technical metadata for all files"
+
+	// Errors.
+	errorExtensionConfig = "ErrorExtensionConfig"
+)
 
 type indexerLine struct {
 	Path    string
@@ -41,6 +46,8 @@ var actions = []string{
 	ironmaiden.NameXML,
 }
 var compress = []string{"brotli", "gzip", "none"}
+
+type errorID = archiveerror.ID
 
 func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
@@ -63,21 +70,23 @@ func NewIndexerFS(
 ) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+		return nil, errorFactory.NewError(errorExtensionConfig, "cannot open config.json", err)
 	}
 	defer fp.Close()
 	data, err := io.ReadAll(fp)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
+		return nil, errorFactory.NewError(errorExtensionConfig, "cannot read config.json", err)
 	}
-
 	var config = &IndexerConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+		return nil, errorFactory.NewError(
+			errorExtensionConfig, fmt.Sprintf("cannot unmarshal DirectCleanConfig '%s'", string(data)),
+			err,
+		)
 	}
 	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger, errorFactory)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
+		return nil, errorFactory.NewError(errorExtensionConfig, "cannot create new indexer", err)
 	}
 	return ext, nil
 }
@@ -91,7 +100,6 @@ func NewIndexer(
 	errorFactory *archiveerror.Factory,
 ) (*Indexer, error) {
 	var err error
-
 	if config.Actions == nil {
 		config.Actions = []string{}
 	}
@@ -99,21 +107,25 @@ func NewIndexer(
 	for _, a := range config.Actions {
 		a = strings.ToLower(a)
 		if !slices.Contains(actions, a) {
-			return nil, errors.Errorf("invalid action '%s' in config file", a)
+			return nil, errorFactory.NewError(
+				errorExtensionConfig, fmt.Sprintf("invalid action '%s' in config file", a),
+				err,
+			)
 		}
 		as = append(as, a)
 	}
 	config.Actions = as
-
 	if config.Compress == "" {
 		config.Compress = "none"
 	}
 	c := strings.ToLower(config.Compress)
 	if !slices.Contains(compress, c) {
-		return nil, errors.Errorf("invalid compression '%s' in config file", c)
+		return nil, errorFactory.NewError(
+			errorExtensionConfig, fmt.Sprintf("invalid compression '%s' in config file", c),
+			err,
+		)
 	}
 	config.Compress = c
-
 	sl := &Indexer{
 		IndexerConfig:  config,
 		buffer:         map[string]*bytes.Buffer{},
@@ -125,10 +137,17 @@ func NewIndexer(
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
-		return nil, errors.Wrapf(err, "cannot parse url '%s'", urlString)
+		return nil, errorFactory.NewError(
+			errorExtensionConfig, fmt.Sprintf("cannot parse url '%s'", urlString),
+			err,
+		)
 	}
 	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+		return nil, errorFactory.NewError(
+			errorExtensionConfig,
+			fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()),
+			err,
+		)
 	}
 	return sl, nil
 }
@@ -166,6 +185,15 @@ func (sl *Indexer) GetConfig() any {
 	return sl.IndexerConfig
 }
 
+// factoryError provides a helper to return a factory error across the
+// cmd package. The function ensures that the correct process slice is
+// retrieved and returned to the caller to aid in debugging.
+func (sl *Indexer) factoryError(lookup errorID, detail string, err error, module string) error {
+	factoryErr := sl.errorFactory.NewError(lookup, detail, nil)
+	errWithAdditional := factoryErr.WithAdditional(module, 2, nil)
+	return errWithAdditional
+}
+
 func (sl *Indexer) IsRegistered() bool { return false }
 
 func (sl *Indexer) GetName() string { return IndexerName }
@@ -180,10 +208,17 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 		if sl.indexerURL != nil && sl.indexerURL.String() != "" {
 			result, code, err := sl.post("{}")
 			if err != nil {
-				return errors.Wrapf(err, "cannot post to '%s'", urlString)
+				return sl.factoryError(
+					errorExtensionConfig, fmt.Sprintf("cannot post to '%s'", urlString), err, "",
+				)
 			}
 			if code != http.StatusBadRequest {
-				return errors.Errorf("cannot post to '%s' - %v:'%s'", urlString, code, result)
+				return sl.factoryError(
+					errorExtensionConfig,
+					fmt.Sprintf("cannot post to '%s' - %v:'%s'", urlString, code, result),
+					nil,
+					"",
+				)
 			}
 			_ = result
 			return nil
@@ -197,10 +232,17 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 
 	result, code, err := sl.post("")
 	if err != nil {
-		return errors.Wrapf(err, "cannot post to '%s'", urlString)
+		return sl.factoryError(
+			errorExtensionConfig, fmt.Sprintf("cannot post to '%s'", urlString), err, "",
+		)
 	}
 	if code != http.StatusBadRequest {
-		return errors.Errorf("cannot post to '%s' - %v:'%s'", urlString, code, result)
+		return sl.factoryError(
+			errorExtensionConfig,
+			fmt.Sprintf("cannot post to '%s' - %v:'%s'", urlString, code, result),
+			nil,
+			"",
+		)
 	}
 	_ = result
 
@@ -209,20 +251,34 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 
 func (sl *Indexer) post(data any) ([]byte, int, error) {
 	if !(sl.indexerURL != nil && sl.indexerURL.String() != "") {
-		return nil, 0, errors.New("indexer url not set")
+		return nil, 0, sl.factoryError(
+			errorExtensionConfig, "indexer url not set", nil, "",
+		)
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, 0, errors.Wrapf(err, "cannot marshal %v", data)
+		return nil, 0, sl.factoryError(
+			errorExtensionConfig, fmt.Sprintf("cannot marshal %v", data), err, "",
+		)
 	}
 	resp, err := http.Post(sl.indexerURL.String(), "test/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return nil, 0, errors.Wrapf(err, "cannot post %v to %s", data, sl.indexerURL)
+		return nil, 0, sl.factoryError(
+			errorExtensionConfig,
+			fmt.Sprintf("cannot post %v to %s", data, sl.indexerURL),
+			err,
+			"",
+		)
 	}
 	defer resp.Body.Close()
 	result, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, 0, errors.Wrapf(err, "cannot read result of post %v to %s", data, sl.indexerURL)
+		return nil, 0, sl.factoryError(
+			errorExtensionConfig,
+			fmt.Sprintf("cannot read result of post %v to %s", data, sl.indexerURL),
+			err,
+			"",
+		)
 	}
 	return result, resp.StatusCode, nil
 }
