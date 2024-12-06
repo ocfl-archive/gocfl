@@ -81,6 +81,7 @@ func NewIndexerFS(
 	}
 	return ext, nil
 }
+
 func NewIndexer(
 	config *IndexerConfig,
 	urlString string,
@@ -188,7 +189,6 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 			return nil
 		}
 		return nil
-		// return errors.Errorf("url '%s' not set", name)
 	}
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
 		return errors.Wrapf(err, "cannot parse '%s' '%s'", name, urlString)
@@ -252,12 +252,9 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	if sl.indexerActions == nil {
 		return errors.New("Please enable indexer in config file")
 	}
-
 	if sl.writer == nil {
 		return nil
 	}
-	//var err error
-	//	sl.active = false
 	if err := sl.writer.Flush(); err != nil {
 		return errors.Wrap(err, "cannot flush brotli writer")
 	}
