@@ -19,6 +19,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"golang.org/x/exp/slices"
 )
@@ -45,7 +46,14 @@ func GetIndexerParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZLogger) (*Indexer, error) {
+func NewIndexerFS(
+	fsys fs.FS,
+	urlString string,
+	indexerActions *ironmaiden.ActionDispatcher,
+	localCache bool,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -60,13 +68,20 @@ func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.Actio
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger)
+	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger, errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create new indexer")
 	}
 	return ext, nil
 }
-func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger zLogger.ZLogger) (*Indexer, error) {
+func NewIndexer(
+	config *IndexerConfig,
+	urlString string,
+	indexerActions *ironmaiden.ActionDispatcher,
+	localCache bool,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*Indexer, error) {
 	var err error
 
 	if config.Actions == nil {
@@ -98,6 +113,7 @@ func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmai
 		indexerActions: indexerActions,
 		localCache:     localCache,
 		logger:         logger,
+		errorFactory:   errorFactory,
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
@@ -127,6 +143,7 @@ type Indexer struct {
 	currentHead    string
 	localCache     bool
 	logger         zLogger.ZLogger
+	errorFactory   *archiveerror.Factory
 }
 
 func (sl *Indexer) Terminate() error {
@@ -310,6 +327,55 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	return result, nil
 }
 
+// errorfactory lookup constants.
+const (
+	errorIndexerSiegfried = "ErrorIndexerSiegfried"
+	errorIndexerXML       = "ErrorIndexerXML"
+	errorIndexerChecksum  = "ErrorIndexerChecksum"
+	errorIndexerTika      = "ErrorIndexerTika"
+	errorIndexerFFProbe   = "ErrorIndexerFFProbe"
+	errorIndexerIdentify  = "ErrorIndexerIdentify"
+	errorIndexerFullText  = "ErrorIndexerFullText"
+)
+
+// extractIndexErrors extracts from the metadata errors that have
+// occured that might impact archiving or preservation.
+func (sl *Indexer) extractIndexErrors(indexErrors map[string]string) {
+	for k, v := range indexErrors {
+		switch k {
+		// this switch treats all errors the same at the tooling level,
+		// in future, these can be parsed so that they can return
+		// specificly weighted errors to the caller.
+		case ironmaiden.NameSiegfried:
+			err := sl.errorFactory.NewError(errorIndexerSiegfried, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		case ironmaiden.NameXML:
+			err := sl.errorFactory.NewError(errorIndexerXML, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		case ironmaiden.NameChecksum:
+			err := sl.errorFactory.NewError(errorIndexerChecksum, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		case ironmaiden.NameTika:
+			err := sl.errorFactory.NewError(errorIndexerTika, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		case ironmaiden.NameFFProbe:
+			err := sl.errorFactory.NewError(errorIndexerFFProbe, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		case ironmaiden.NameIdentify:
+			err := sl.errorFactory.NewError(errorIndexerIdentify, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		case ironmaiden.NameFullText:
+			err := sl.errorFactory.NewError(errorIndexerFullText, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg("")
+		default:
+			err := sl.errorFactory.NewError(archiveerror.IDUnknownError, v, nil)
+			sl.logger.Error().Any(fmt.Sprintf("%s", err.Type), err).Msg(
+				"unknown indexer error in dispatcher",
+			)
+		}
+	}
+}
+
 func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if !sl.active {
 		return nil
@@ -356,6 +422,10 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 		return errors.Wrapf(err, "cannot index '%s'", stateFiles)
 	}
 	if result != nil {
+		// errors hidden in the metadata extract need to be discovered
+		// and returned to aid in analysis.
+		sl.extractIndexErrors(result.Errors)
+		// build our JSON object and output it to JSONL.
 		var indexerline = indexerLine{
 			Path:    filepath.ToSlash(inventory.BuildManifestName(dest)),
 			Indexer: result,

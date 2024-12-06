@@ -8,7 +8,43 @@ weight = 50
 message = "provide meaning to this error here"
 
 [[errors]]
-id = "ErrorReplaceMeAsWell"
-type = "CUSTOMTYPE"
+id = "ErrorIndexerSiegfried"
+type = "PRESERVATION"
 weight = 50
-message = "provide meaning to this error here"
+message = "indexer: siegfried returned an error"
+
+[[errors]]
+id = "ErrorIndexerXML"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: xml returned an error"
+
+[[errors]]
+id = "ErrorIndexerChecksum"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: checksum returned an error"
+
+[[errors]]
+id = "ErrorIndexerTika"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: tika returned an error"
+
+[[errors]]
+id = "ErrorIndexerFFProbe"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: ffprobe returned an error"
+
+[[errors]]
+id = "ErrorIndexerIdentify"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: identify returned an error"
+
+[[errors]]
+id = "ErrorIndexerFullText"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: full-text returned an error"
