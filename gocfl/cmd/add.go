@@ -3,8 +3,14 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"emperror.dev/errors"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"os"
+	"strings"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -19,11 +25,6 @@ import (
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
 	"golang.org/x/exp/slices"
-	"io"
-	"io/fs"
-	"log"
-	"os"
-	"strings"
 )
 
 var addCmd = &cobra.Command{
@@ -172,7 +173,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
 	if err != nil {
-		logger.Panic().Err(err).Msg("cannot init indexer")
+		logger.Panic().Stack().Err(err).Msg("cannot init indexer")
 	}
 
 	t := startTimer()
@@ -191,7 +192,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	if _, err := os.Stat(srcPath); err != nil {
-		logger.Panic().Err(err).Msgf("cannot stat '%s'", srcPath)
+		logger.Panic().Stack().Err(err).Msgf("cannot stat '%s'", srcPath)
 	}
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, conf.Add.NoCompress, false, logger)
@@ -206,7 +207,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 	destFS, err := fsFactory.Get(ocflPath)
 	if err != nil {
-		logger.Panic().Stack().Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
 	var doNotClose = false
 	defer func() {
@@ -214,7 +215,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 			logger.Panic().Msgf("filesystem '%s' not closed", destFS)
 		} else {
 			if err := writefs.Close(destFS); err != nil {
-				logger.Panic().Stack().Msgf("error closing filesystem '%s'", destFS)
+				logger.Panic().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
 			}
 		}
 	}()
@@ -227,20 +228,22 @@ func doAdd(cmd *cobra.Command, args []string) {
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
-			logger.Error().Msgf("no area given in areapath '%s'", args[i])
+			logger.Error().Any(
+				factoryError(ErrorReplaceMe, fmt.Sprintf("no area given in areapath '%s'", args[i]), nil, ""),
+			).Msg("")
 			continue
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
 		if err != nil {
 			doNotClose = true
-			logger.Panic().Stack().Msgf("cannot get filesystem for '%s'", args[i])
+			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
 		}
 	}
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Msg("cannot get migrations")
+		logger.Panic().Err(err).Msg("cannot get migrations")
 	}
 	mig.SetSourceFS(sourceFS)
 
@@ -260,7 +263,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	_, objectExtensionManager, err := initDefaultExtensions(extensionFactory, "", conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Msg("cannot initialize default extensions")
+		logger.Panic().Stack().Err(err).Msg("cannot initialize default extensions")
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())

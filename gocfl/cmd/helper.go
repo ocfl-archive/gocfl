@@ -2,8 +2,12 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
+	"io/fs"
+	"path/filepath"
+	"time"
+
+	"emperror.dev/errors"
 	"github.com/google/tink/go/core/registry"
 	"github.com/je4/filesystem/v3/pkg/osfsrw"
 	"github.com/je4/filesystem/v3/pkg/s3fsrw"
@@ -22,9 +26,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/spf13/cobra"
-	"io/fs"
-	"path/filepath"
-	"time"
 )
 
 func startTimer() *timer {
@@ -46,6 +47,8 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
+// InitExtensionFactory initializes the extension factory so that they
+// can be called upon within the primary GOCL runner.
 func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger zLogger.ZLogger) (*ocfl.ExtensionFactory, error) {
 	logger.Debug().Msgf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
@@ -126,7 +129,9 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 
 	logger.Debug().Msgf("adding creator for extension %s", extension.IndexerName)
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
-		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions, indexerLocalCache, logger)
+		ext, err := extension.NewIndexerFS(
+			fsys, indexerAddr, indexerActions, indexerLocalCache, logger, ErrorFactory,
+		)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
 		}

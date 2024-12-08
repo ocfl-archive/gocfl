@@ -1,11 +1,60 @@
-[[errors]]
-id = "Test2"
-type = "unknown"
-weight = 50
-message = "Testing two for error"
+# Error registry to register errors with the GOCFL error factory.
+# Docs: https://pkg.go.dev/github.com/ocfl-archive/error/pkg/error#Error
 
 [[errors]]
-id = "Test"
-type = "unknown"
+id = "ErrorReplaceMe"
+type = "CUSTOMTYPE"
 weight = 50
-message = "Testing for error"
+message = "provide meaning to this error here"
+
+# System errors that might be encountered during startup and processing.
+
+[[errors]]
+id = "ErrorExtensionConfig"
+type = "CONFIGURATION"
+weight = 50
+message = "provide meaning to this error here"
+
+# Indexer errors affecting preservation.
+
+[[errors]]
+id = "ErrorIndexerSiegfried"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: siegfried returned an error"
+
+[[errors]]
+id = "ErrorIndexerXML"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: xml returned an error"
+
+[[errors]]
+id = "ErrorIndexerChecksum"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: checksum returned an error"
+
+[[errors]]
+id = "ErrorIndexerTika"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: tika returned an error"
+
+[[errors]]
+id = "ErrorIndexerFFProbe"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: ffprobe returned an error"
+
+[[errors]]
+id = "ErrorIndexerIdentify"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: identify returned an error"
+
+[[errors]]
+id = "ErrorIndexerFullText"
+type = "PRESERVATION"
+weight = 50
+message = "indexer: full-text returned an error"
