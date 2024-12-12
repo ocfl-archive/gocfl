@@ -177,9 +177,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	t := startTimer()
-	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
-
-	fmt.Printf("opening '%s'\n", ocflPath)
+	defer func() { logger.Info().Msgf("duration: %s", t.String()) }()
 	logger.Info().Msgf("opening '%s'", ocflPath)
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
@@ -197,7 +195,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, conf.Add.NoCompress, false, logger)
 	if err != nil {
-		logger.Debug().Stack().Err(err)
+		logger.Debug().Stack().Any(
+			ErrorFactory.LogError(
+				ErrorReplaceMe,
+				"cannot create filesystem factory",
+				err,
+			)).Msg("")
 		logger.Panic().Err(err).Msg("cannot create filesystem factory")
 	}
 
@@ -228,9 +231,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
-			logger.Error().Any(
-				factoryError(ErrorReplaceMe, fmt.Sprintf("no area given in areapath '%s'", args[i]), nil, ""),
-			).Msg("")
+			logger.Error().Stack().Any(
+				ErrorFactory.LogError(
+					ErrorReplaceMe,
+					fmt.Sprintf("no area given in areapath '%s'", args[i]),
+					nil,
+				)).Msg("")
 			continue
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
