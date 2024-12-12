@@ -92,19 +92,8 @@ var persistenFlagS3AccessKeyID string
 var persistenFlagS3SecretAccessKey string
 var persistentFlagS3Region string
 
-//var flagDigest DigestFlag
-
-// var flagExtensionFolder string
-// var flagVersion VersionFlag
 var flagObjectID string
-
 var flagStatInfo = []string{}
-
-// var flagMessage string
-// var flagUserName string
-// var flagUserAddress string
-// var flagFixity string
-// var flagDigestSHA256, flagDigestSHA512 bool
 
 var conf *config.GOCFLConfig
 var ErrorFactory = archiveerror.NewFactory("GOCFL")
