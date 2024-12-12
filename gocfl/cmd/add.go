@@ -287,7 +287,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 		logger.Panic().Stack().Err(err).Msgf("cannot check for object '%s'", flagObjectID)
 	}
 	if exists {
-		fmt.Printf("Object '%s' already exist, exiting", flagObjectID)
+		logger.Warn().Any(
+			ErrorFactory.LogError(
+				ErrorReplaceMe,
+				fmt.Sprintf("object '%s' already exist, exiting", flagObjectID),
+				nil,
+			)).Msg("")
 		return
 	}
 
