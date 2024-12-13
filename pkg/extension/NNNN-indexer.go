@@ -185,15 +185,6 @@ func (sl *Indexer) GetConfig() any {
 	return sl.IndexerConfig
 }
 
-// factoryError provides a helper to return a factory error across the
-// cmd package. The function ensures that the correct process slice is
-// retrieved and returned to the caller to aid in debugging.
-func (sl *Indexer) factoryError(lookup errorID, detail string, err error, module string) error {
-	factoryErr := sl.errorFactory.NewError(lookup, detail, nil)
-	errWithAdditional := factoryErr.WithAdditional(module, 2, nil)
-	return errWithAdditional
-}
-
 func (sl *Indexer) IsRegistered() bool { return false }
 
 func (sl *Indexer) GetName() string { return IndexerName }
@@ -208,17 +199,20 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 		if sl.indexerURL != nil && sl.indexerURL.String() != "" {
 			result, code, err := sl.post("{}")
 			if err != nil {
-				return sl.factoryError(
-					errorExtensionConfig, fmt.Sprintf("cannot post to '%s'", urlString), err, "",
+				_, factoryErr := sl.errorFactory.LogError(
+					errorExtensionConfig,
+					fmt.Sprintf("cannot post to '%s'", urlString),
+					err,
 				)
+				return factoryErr
 			}
 			if code != http.StatusBadRequest {
-				return sl.factoryError(
+				_, factoryErr := sl.errorFactory.LogError(
 					errorExtensionConfig,
 					fmt.Sprintf("cannot post to '%s' - %v:'%s'", urlString, code, result),
 					nil,
-					"",
 				)
+				return factoryErr
 			}
 			_ = result
 			return nil
@@ -232,17 +226,20 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 
 	result, code, err := sl.post("")
 	if err != nil {
-		return sl.factoryError(
-			errorExtensionConfig, fmt.Sprintf("cannot post to '%s'", urlString), err, "",
+		_, factoryErr := sl.errorFactory.LogError(
+			errorExtensionConfig,
+			fmt.Sprintf("cannot post to '%s'", urlString),
+			err,
 		)
+		return factoryErr
 	}
 	if code != http.StatusBadRequest {
-		return sl.factoryError(
+		_, factoryErr := sl.errorFactory.LogError(
 			errorExtensionConfig,
 			fmt.Sprintf("cannot post to '%s' - %v:'%s'", urlString, code, result),
 			nil,
-			"",
 		)
+		return factoryErr
 	}
 	_ = result
 
@@ -250,35 +247,42 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 }
 
 func (sl *Indexer) post(data any) ([]byte, int, error) {
+
+	const statusErr int = 0
+
 	if !(sl.indexerURL != nil && sl.indexerURL.String() != "") {
-		return nil, 0, sl.factoryError(
-			errorExtensionConfig, "indexer url not set", nil, "",
+		_, factoryErr := sl.errorFactory.LogError(
+			errorExtensionConfig, "indexer url not set", nil,
 		)
+		return nil, statusErr, factoryErr
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, 0, sl.factoryError(
-			errorExtensionConfig, fmt.Sprintf("cannot marshal %v", data), err, "",
+		_, factoryErr := sl.errorFactory.LogError(
+			errorExtensionConfig,
+			fmt.Sprintf("cannot marshal %v", data),
+			err,
 		)
+		return nil, statusErr, factoryErr
 	}
 	resp, err := http.Post(sl.indexerURL.String(), "test/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return nil, 0, sl.factoryError(
+		_, factoryErr := sl.errorFactory.LogError(
 			errorExtensionConfig,
 			fmt.Sprintf("cannot post %v to %s", data, sl.indexerURL),
 			err,
-			"",
 		)
+		return nil, statusErr, factoryErr
 	}
 	defer resp.Body.Close()
 	result, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, 0, sl.factoryError(
+		_, factoryErr := sl.errorFactory.LogError(
 			errorExtensionConfig,
 			fmt.Sprintf("cannot read result of post %v to %s", data, sl.indexerURL),
 			err,
-			"",
 		)
+		return nil, statusErr, factoryErr
 	}
 	return result, resp.StatusCode, nil
 }
