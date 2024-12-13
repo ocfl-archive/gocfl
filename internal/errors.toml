@@ -15,6 +15,12 @@ type = "CONFIGURATION"
 weight = 50
 message = "provide meaning to this error here"
 
+[[errors]]
+id = "ErrorExtensionRunner"
+type = "EXTENSIONRUNNER"
+weight = 50
+message = "provide meaning to this error here"
+
 # Indexer errors affecting preservation.
 
 [[errors]]
