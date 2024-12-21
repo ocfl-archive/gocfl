@@ -324,6 +324,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		storageRootExtensionManager,
 		conf.Init.Digest,
 		logger,
+		ErrorFactory,
 	)
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {

@@ -205,7 +205,12 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions, objectExtensions ocfl.ExtensionManager, err error) {
+func initDefaultExtensions(
+	extensionFactory *ocfl.ExtensionFactory,
+	storageRootExtensionsFolder,
+	objectExtensionsFolder string,
+	logger zLogger.ZLogger,
+) (storageRootExtensions, objectExtensions ocfl.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS

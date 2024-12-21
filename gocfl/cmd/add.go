@@ -273,7 +273,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger), ErrorFactory)
 	if err != nil {
 		doNotClose = true
 		logger.Panic().Stack().Err(err).Msg("cannot open storage root")

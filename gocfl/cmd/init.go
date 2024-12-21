@@ -155,6 +155,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		extensionFactory, storageRootExtensions,
 		conf.Init.Digest,
 		(logger),
+		ErrorFactory,
 	); err != nil {
 		if err := writefs.Close(destFS); err != nil {
 			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
