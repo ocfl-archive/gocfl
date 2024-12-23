@@ -166,7 +166,7 @@ func InitExtensionFactory(
 
 	logExtInit(logger, extension.ThumbnailName)
 	extensionFactory.AddCreator(extension.ThumbnailName, func(fsys fs.FS) (ocfl.Extension, error) {
-		return extension.NewThumbnailFS(fsys, thumbnail, logger)
+		return extension.NewThumbnailFS(fsys, thumbnail, logger, ErrorFactory)
 	})
 
 	logExtInit(logger, extension.FilesystemName)
@@ -394,7 +394,7 @@ func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 		logger.Info().Any(
 			ErrorFactory.LogError(
 				ErrorValidationStatus,
-				fmt.Sprintf("   #%s - %s [%s]", err.Code, err.Description, err.Description2),
+				fmt.Sprintf("#%s - %s [%s]", err.Code, err.Description, err.Description2),
 				nil,
 			),
 		).Msg("")
