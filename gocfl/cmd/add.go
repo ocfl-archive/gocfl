@@ -180,7 +180,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	defer func() {
 		logger.Info().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe,
+				ErrorGOCFL,
 				fmt.Sprintf("duration: %s", t.String()),
 				err,
 			),
@@ -205,7 +205,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Debug().Stack().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe,
+				ErrorFS,
 				"cannot create filesystem factory",
 				err,
 			)).Msg("")
@@ -241,7 +241,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		if matches == nil {
 			logger.Error().Stack().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorGOCFL,
 					fmt.Sprintf("no area given in areapath '%s'", args[i]),
 					nil,
 				)).Msg("")
@@ -303,7 +303,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	if exists {
 		logger.Warn().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe,
+				ErrorGOCFL,
 				fmt.Sprintf("object '%s' already exist, exiting", flagObjectID),
 				nil,
 			)).Msg("")

@@ -147,7 +147,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	defer func() {
 		logger.Info().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe,
+				ErrorGOCFL,
 				fmt.Sprintf("duration: %s", t.String()),
 				err,
 			),
@@ -163,7 +163,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if _, err := checksum.GetHash(checksum.DigestAlgorithm(alg)); err != nil {
 			logger.Error().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorExtensionInitErr,
 					fmt.Sprintf("unknown hash function '%s'", alg),
 					err,
 				)).Msg("")
@@ -176,7 +176,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Stack().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe, "cannot create filesystem factory", err,
+				ErrorFS, "cannot create filesystem factory", err,
 			)).Msg("")
 		return
 	}
@@ -186,14 +186,14 @@ func doCreate(cmd *cobra.Command, args []string) {
 			if empty, err := isEmpty(ocflPath); err != nil {
 				logger.Error().Stack().Any(
 					ErrorFactory.LogError(
-						ErrorReplaceMe,
+						ErrorOCFLCreation,
 						fmt.Sprintf("cannot check if directory '%s' is empty", ocflPath),
 						err,
 					)).Msg("")
 			} else if !empty {
 				logger.Error().Any(
 					ErrorFactory.LogError(
-						ErrorReplaceMe,
+						ErrorOCFLCreation,
 						fmt.Sprintf("directory '%s' is not empty", ocflPath),
 						nil,
 					)).Msg("")
@@ -202,7 +202,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		} else {
 			logger.Error().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorOCFLCreation,
 					fmt.Sprintf("'%s' already exists and is not an empty directory", ocflPath),
 					nil,
 				)).Msg("")
@@ -222,7 +222,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if err := writefs.Close(destFS); err != nil {
 			logger.Panic().Stack().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorFS,
 					fmt.Sprintf("error closing filesystem '%s'", destFS),
 					err,
 				),
@@ -240,7 +240,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if matches == nil {
 			logger.Error().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorFS,
 					fmt.Sprintf("no area given in areapath '%s'", args[i]),
 					nil,
 				),
@@ -261,7 +261,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Stack().Err(err).Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe, "cannot get migrations", err,
+				ErrorExtensionInit, "cannot get migrations", err,
 			),
 		).Msg("")
 		return
@@ -272,7 +272,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Stack().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe, "cannot get thumbnails", err,
+				ErrorExtensionInit, "cannot get thumbnails", err,
 			),
 		).Msg("")
 		return
@@ -284,7 +284,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Stack().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe, "cannot create extension factory", err,
+				ErrorExtensionInit, "cannot create extension factory", err,
 			),
 		).Msg("")
 		return
@@ -294,7 +294,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Stack().Any(
 			ErrorFactory.LogError(
-				ErrorReplaceMe,
+				ErrorExtensionInit,
 				"cannot initialize default extensions",
 				err,
 			),
@@ -305,7 +305,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if err := objectExtensionManager.Terminate(); err != nil {
 			logger.Error().Stack().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorExtensionRunner,
 					"cannot terminate object extension manager",
 					err,
 				),
@@ -314,7 +314,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if err := storageRootExtensionManager.Terminate(); err != nil {
 			logger.Error().Stack().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorExtensionRunner,
 					"cannot terminate storage root extension manager",
 					err,
 				),
@@ -337,7 +337,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if err := writefs.Close(destFS); err != nil {
 			logger.Error().Stack().Any(
 				ErrorFactory.LogError(
-					ErrorReplaceMe,
+					ErrorFS,
 					fmt.Sprintf("cannot close filesystem '%s'", destFS),
 					err,
 				),

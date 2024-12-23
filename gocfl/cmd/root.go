@@ -148,7 +148,8 @@ func configErrorFactory() {
 		}
 	} else {
 		var err error
-		archiveErrs, err = archiveerror.LoadTOMLFileFS(internal.InternalFS, "errors.toml")
+		const errorsEmbedToml string = "errors.toml"
+		archiveErrs, err = archiveerror.LoadTOMLFileFS(internal.InternalFS, errorsEmbedToml)
 		if err != nil {
 			log.Fatal().Err(err).Msg("cannot load error config file")
 		}

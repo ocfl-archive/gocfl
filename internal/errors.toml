@@ -2,24 +2,68 @@
 # Docs: https://pkg.go.dev/github.com/ocfl-archive/error/pkg/error#Error
 
 [[errors]]
-id = "ErrorReplaceMe"
-type = "CUSTOMTYPE"
+id = "ErrorGOCFL"
+type = "GOCFL"
 weight = 50
-message = "provide meaning to this error here"
+message = ""
 
 # System errors that might be encountered during startup and processing.
+
+[[errors]]
+id = "ErrorExtensionInit"
+type = "INITIALIZATION"
+weight = 50
+message = "initializing extensions"
+
+[[errors]]
+id = "ErrorExtensionInitErr"
+type = "INITIALIZATION"
+weight = 50
+message = "error initializing extensions"
+
+[[errors]]
+id = "ErrorValidationStatus"
+type = "VALIDATION"
+weight = 50
+message = "ocfl validation status"
+
+[[errors]]
+id = "ErrorValidationStatusErr"
+type = "VALIDATION"
+weight = 50
+message = "ocfl validation error"
 
 [[errors]]
 id = "ErrorExtensionConfig"
 type = "CONFIGURATION"
 weight = 50
-message = "provide meaning to this error here"
+message = "configuring extensions"
 
 [[errors]]
 id = "ErrorExtensionRunner"
 type = "EXTENSIONRUNNER"
 weight = 50
-message = "provide meaning to this error here"
+message = "problem with the given ocfl extension"
+
+[[errors]]
+id = "ErrorOCFL"
+type = "UPDATE"
+weight = 50
+message = "error in the ocfl library"
+
+[[errors]]
+id = "ErrorFS"
+type = "FILESYSTEM"
+weight = 50
+message = "filesystem abstraction issue"
+
+# Extension errors
+
+[[errors]]
+id = "ErrorThumbnailExtension"
+type = "GENERATE THUMBNAIL"
+weight = 50
+message = "thumbnail extension issue"
 
 # Indexer errors affecting preservation.
 
