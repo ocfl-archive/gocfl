@@ -144,8 +144,15 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	t := startTimer()
-	defer func() { logger.Info().Msgf("duration: %s", t.String()) }()
-	logger.Info().Msgf("creating '%s'", ocflPath)
+	defer func() {
+		logger.Info().Any(
+			ErrorFactory.LogError(
+				ErrorReplaceMe,
+				fmt.Sprintf("duration: %s", t.String()),
+				err,
+			),
+		).Msg("")
+	}()
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
 	for _, alg := range conf.Add.Fixity {

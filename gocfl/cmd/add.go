@@ -177,7 +177,15 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	t := startTimer()
-	defer func() { logger.Info().Msgf("duration: %s", t.String()) }()
+	defer func() {
+		logger.Info().Any(
+			ErrorFactory.LogError(
+				ErrorReplaceMe,
+				fmt.Sprintf("duration: %s", t.String()),
+				err,
+			),
+		).Msg("")
+	}()
 	logger.Info().Msgf("opening '%s'", ocflPath)
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
