@@ -237,3 +237,52 @@ Flags:
 
 Use "gocfl [command] --help" for more information about a command.
 ```
+
+## Development
+
+### Justfile
+
+> [`just`][just-1] can be installed via cargo which can be installed via rust.
+Install rust following the commands [here][rust-1] and then run
+`cargo install just`.
+
+[just-1]: https://github.com/casey/just
+[rust-1]: https://doc.rust-lang.org/cargo/getting-started/installation.html
+
+### Goreleaser
+
+Builds are done using goreleaser. A GitHub workflow will take care of this,
+that being said, you can run goreleaser as follows:
+
+> NB. Builds will land in the `dist/` directory.
+
+The commands below are also wrapped in the `justfile` for convenience. Run
+`just` to see those.
+
+#### Update or install goreleaser
+
+```sh
+go install github.com/goreleaser/goreleaser/v2@latest
+```
+
+#### Create a snapshot
+
+E.g. if you haven't a tag of your current repository state.
+
+```sh
+goreleaser build --snapshot --single-target --clean -f .goreleaser.yml
+```
+
+#### Create a release build
+
+To create a release build for the local operating system and architecture:
+
+```sh
+  goreleaser build --single-target --clean -f .goreleaser.yml
+```
+
+#### Create a release
+
+```sh
+goreleaser release --skip=publish --clean -f .goreleaser.yml
+```

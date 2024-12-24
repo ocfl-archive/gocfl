@@ -95,7 +95,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 		ext, err := f.Create(sub)
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
-			validation.addValidationWarning(W000, "extension %s not supported by gocfl %s", file.Name(), version.VERSION)
+			validation.addValidationWarning(W000, "extension %s not supported by gocfl %s", file.Name(), version.Version)
 		} else {
 			if !ext.IsRegistered() {
 				if validation != nil {

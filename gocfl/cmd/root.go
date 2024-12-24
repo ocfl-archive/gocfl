@@ -1,8 +1,12 @@
 package cmd
 
 import (
-	"emperror.dev/errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+
+	"emperror.dev/errors"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/config"
@@ -11,9 +15,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
-	"regexp"
 )
 
 const LOGFORMAT = `%{time:2006-01-02T15:04:05.000} %{shortpkg}::%{longfunc} [%{shortfile}] > %{level:.5s} - %{message}`
@@ -92,32 +93,24 @@ var persistenFlagS3AccessKeyID string
 var persistenFlagS3SecretAccessKey string
 var persistentFlagS3Region string
 
-//var flagDigest DigestFlag
-
-// var flagExtensionFolder string
-// var flagVersion VersionFlag
 var flagObjectID string
-
 var flagStatInfo = []string{}
-
-// var flagMessage string
-// var flagUserName string
-// var flagUserAddress string
-// var flagFixity string
-// var flagDigestSHA256, flagDigestSHA512 bool
 
 var conf *config.GOCFLConfig
 var ErrorFactory = archiveerror.NewFactory("gocfl")
 
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
+var appname = "gocfl"
+
 var rootCmd = &cobra.Command{
-	Use:   "gocfl",
+	Use:   appname,
 	Short: "gocfl is a fast ocfl creator/extractor/validator with focus on zip containers",
-	Long: fmt.Sprintf(`A fast and reliable OCFL creator, extractor and validator.
-https://github.com/ocfl-archive/gocfl
-Jürgen Enge (University Library Basel, juergen@info-age.net)
-Version %s`, version.VERSION),
+	Long: `A fast and reliable OCFL creator, extractor and validator.
+source code is available at: https://github.com/ocfl-archive/gocfl
+
+by Jürgen Enge (University Library Basel, juergen@info-age.net)`,
+	Version: fmt.Sprintf("%s '%s' (%s)", version.Version, version.ShortCommit(), version.Date),
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
