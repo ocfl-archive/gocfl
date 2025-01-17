@@ -482,7 +482,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 }
 
 func (object *ObjectBase) Load() (err error) {
-	extFolder, err := fs.Sub(object.fsys, "extensions")
+	extFolder, err := writefs.Sub(object.fsys, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}

@@ -3,6 +3,7 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"encoding/json"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/version"
 	"io/fs"
@@ -86,7 +87,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 			continue
 		}
 		fName := file.Name()
-		sub, err := fs.Sub(fsys, fName)
+		sub, err := writefs.Sub(fsys, fName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
 		}

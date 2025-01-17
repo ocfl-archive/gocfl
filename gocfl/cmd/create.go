@@ -187,11 +187,11 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	sourceFS, err := fsFactory.Get(srcPath)
+	sourceFS, err := fsFactory.Get(srcPath, true)
 	if err != nil {
 		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
-	destFS, err := fsFactory.Get(ocflPath)
+	destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
 		logger.Panic().Stack().Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
@@ -216,7 +216,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		if err != nil {
 			logger.Panic().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
 		}
-		areaPaths[matches[1]], err = fsFactory.Get(path)
+		areaPaths[matches[1]], err = fsFactory.Get(path, true)
 		if err != nil {
 			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
 		}

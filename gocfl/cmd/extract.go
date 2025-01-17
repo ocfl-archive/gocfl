@@ -127,13 +127,13 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflFS, err := fsFactory.Get(ocflPath)
+	ocflFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 
-	destFS, err := fsFactory.Get(destPath)
+	destFS, err := fsFactory.Get(destPath, false)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", destPath)
 		return

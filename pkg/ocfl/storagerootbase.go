@@ -174,7 +174,7 @@ func (osr *StorageRootBase) Load() error {
 		osr.version = Version1_0
 	}
 
-	extFSys, err := fs.Sub(osr.fsys, "extensions")
+	extFSys, err := writefs.Sub(osr.fsys, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for extensions", osr.fsys)
 	}
@@ -262,7 +262,7 @@ func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot build storage path for id %s", id)
 	}
-	subFS, err := fs.Sub(osr.fsys, folder)
+	subFS, err := writefs.Sub(osr.fsys, folder)
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	}
@@ -336,11 +336,11 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get version in '%s'", folder)
 	}
-	subfs, err := fs.Sub(osr.fsys, folder)
+	subfs, err := writefs.Sub(osr.fsys, folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", osr.fsys, folder)
 	}
-	extFSys, err := fs.Sub(subfs, "extensions")
+	extFSys, err := writefs.Sub(subfs, "extensions")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", subfs, "extensions")
 	}
@@ -665,7 +665,7 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 			if err != nil {
 				return errors.Wrapf(err, "cannot open object in folder '%s'", oFolder)
 			}
-			subFS, err := fs.Sub(fsys, oFolder)
+			subFS, err := writefs.Sub(fsys, oFolder)
 			if err != nil {
 				return errors.Wrapf(err, "cannot create subfolder '%s' of '%v'", oFolder, fsys)
 			}
