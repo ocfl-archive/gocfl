@@ -131,7 +131,7 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflFS, err := fsFactory.Get(ocflPath)
+	ocflFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return

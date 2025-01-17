@@ -162,7 +162,7 @@ func (manager *GOCFLExtensionManager) SetFS(fsys fs.FS, create bool) {
 		if ext == nil {
 			continue
 		}
-		extFS, err := fs.Sub(fsys, ext.GetName())
+		extFS, err := writefs.Sub(fsys, ext.GetName())
 		if err != nil {
 			if create && errors.Is(err, fs.ErrNotExist) {
 				extFS, err = writefs.SubFSCreate(fsys, ext.GetName())
@@ -174,7 +174,7 @@ func (manager *GOCFLExtensionManager) SetFS(fsys fs.FS, create bool) {
 		ext.SetFS(extFS, create)
 	}
 	var err error
-	manager.fsys, err = fs.Sub(fsys, manager.GetName())
+	manager.fsys, err = writefs.Sub(fsys, manager.GetName())
 	if err != nil {
 		if create && errors.Is(err, fs.ErrNotExist) {
 			manager.fsys, err = writefs.SubFSCreate(fsys, manager.GetName())

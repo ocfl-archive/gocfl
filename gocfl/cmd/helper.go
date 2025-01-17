@@ -184,7 +184,7 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
 	} else {
-		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder, logger)
+		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder, true, logger)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot create filesystem for storage root extensions folder %v", storageRootExtensionsFolder)
 		}
@@ -192,7 +192,7 @@ func initDefaultExtensions(extensionFactory *ocfl.ExtensionFactory, storageRootE
 	if objectExtensionsFolder == "" {
 		dObjectExtDirFS = defaultextensions_object.DefaultObjectExtensionFS
 	} else {
-		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder, logger)
+		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder, true, logger)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot create filesystem for object extensions folder %v", objectExtensionsFolder)
 		}

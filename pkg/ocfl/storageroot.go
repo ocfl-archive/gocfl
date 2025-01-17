@@ -4,6 +4,7 @@ import (
 	"context"
 	"emperror.dev/errors"
 	"fmt"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
@@ -109,7 +110,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *Extensio
 		}
 		version = Version1_1
 	}
-	extFSys, err := fs.Sub(fsys, "extensions")
+	extFSys, err := writefs.Sub(fsys, "extensions")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create sub filesystem 'extensions'")
 	}
@@ -145,7 +146,7 @@ func LoadStorageRootRO(ctx context.Context, fsys fs.FS, extensionFactory *Extens
 		}
 		version = Version1_1
 	}
-	extFSys, err := fs.Sub(fsys, "extensions")
+	extFSys, err := writefs.Sub(fsys, "extensions")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create sub filesystem 'extensions'")
 	}

@@ -157,11 +157,11 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		logger.Panic().Stack().Err(err).Msg("cannot create filesystem factory")
 	}
 
-	sourceFS, err := fsFactory.Get(srcPath)
+	sourceFS, err := fsFactory.Get(srcPath, true)
 	if err != nil {
 		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
-	destFS, err := fsFactory.Get(ocflPath)
+	destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
 		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
@@ -187,7 +187,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 			logger.Error().Msgf("invalid areapath '%s'", args[i])
 			continue
 		}
-		areaPaths[matches[1]], err = fsFactory.Get(matches[2])
+		areaPaths[matches[1]], err = fsFactory.Get(matches[2], true)
 		if err != nil {
 			doNotClose = true
 			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])

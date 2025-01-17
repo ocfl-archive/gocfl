@@ -104,7 +104,7 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.Get(ocflPath)
+	destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return

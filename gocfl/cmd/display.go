@@ -126,7 +126,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.Get(ocflPath)
+	destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
@@ -157,7 +157,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	urlC, _ := url.Parse(conf.Display.AddrExt)
 	var templateFS fs.FS
 	if conf.Display.Templates == "" {
-		templateFS, err = fs.Sub(displaydata.TemplateRoot, "templates")
+		templateFS, err = writefs.Sub(displaydata.TemplateRoot, "templates")
 		if err != nil {
 			logger.Error().Stack().Err(err).Msg("cannot get templates")
 			return
