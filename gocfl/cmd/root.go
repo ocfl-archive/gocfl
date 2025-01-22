@@ -107,7 +107,7 @@ var flagStatInfo = []string{}
 // var flagDigestSHA256, flagDigestSHA512 bool
 
 var conf *config.GOCFLConfig
-var ErrorFactory = archiveerror.NewFactory()
+var ErrorFactory = archiveerror.NewFactory("gocfl")
 
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
