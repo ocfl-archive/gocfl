@@ -2,12 +2,7 @@ package ocfl
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/uri"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"golang.org/x/exp/slices"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -15,6 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/uri"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"golang.org/x/exp/slices"
+
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
 
 type InventoryBase struct {
@@ -35,9 +38,18 @@ type InventoryBase struct {
 	Versions               *OCFLVersions                                    `json:"versions"`
 	Fixity                 map[checksum.DigestAlgorithm]map[string][]string `json:"fixity,omitempty"`
 	logger                 zLogger.ZLogger
+	errorFactory           *archiveerror.Factory
 }
 
-func newInventoryBase(ctx context.Context, object Object, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
+func newInventoryBase(
+	ctx context.Context,
+	object Object,
+	folder string,
+	objectType *url.URL,
+	contentDir string,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:                    ctx,
 		object:                 object,
@@ -51,6 +63,7 @@ func newInventoryBase(ctx context.Context, object Object, folder string, objectT
 		Versions:               &OCFLVersions{Versions: map[string]*Version{}},
 		Fixity:                 nil,
 		logger:                 logger,
+		errorFactory:           errorFactory,
 	}
 	return i, nil
 }
@@ -340,9 +353,22 @@ func (i *InventoryBase) check() error {
 
 	return nil
 }
+
 func (i *InventoryBase) checkManifest() error {
-	i.logger.Debug().Msgf("[%s] checkManifest", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkManifest done", i.GetID())
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkManifest", i.GetID()),
+			nil,
+		),
+	).Msg("")
+	defer i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkManifest done", i.GetID()),
+			nil,
+		),
+	).Msg("")
 	versionDigests := []string{}
 	for _, version := range i.Versions.Versions {
 		for digest := range version.State.State {
@@ -387,7 +413,14 @@ func (i *InventoryBase) checkManifest() error {
 		}
 
 	}
-	i.logger.Debug().Msgf("[%s] checkManifest prefix", i.GetID())
+
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkManifest prefix", i.GetID()),
+			nil,
+		),
+	).Msg("")
 	slices.Sort(allPaths)
 	for j := 0; j < len(allPaths)-1; j++ {
 		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
@@ -399,8 +432,20 @@ func (i *InventoryBase) checkManifest() error {
 }
 
 func (i *InventoryBase) checkFixity() error {
-	i.logger.Debug().Msgf("[%s] checkFixity", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkFixity done", i.GetID())
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkFixity", i.GetID()),
+			nil,
+		),
+	).Msg("")
+	defer i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkFixity done", i.GetID()),
+			nil,
+		),
+	).Msg("")
 	for digestAlg, digestMap := range i.Fixity {
 		digests := []string{}
 		for digest, paths := range digestMap {
@@ -436,8 +481,20 @@ func (i *InventoryBase) checkFixity() error {
 }
 
 func (i *InventoryBase) checkVersions() error {
-	i.logger.Debug().Msgf("[%s] checkVersions", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkVersions done", i.GetID())
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkVersions", i.GetID()),
+			nil,
+		),
+	).Msg("")
+	defer i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkVersions done", i.GetID()),
+			nil,
+		),
+	).Msg("")
 	var paddingLength int = -1
 	var versions = []int{}
 	if len(i.Versions.Versions) == 0 {
@@ -453,7 +510,13 @@ func (i *InventoryBase) checkVersions() error {
 	slices.Sort(manifestDigestsLower)
 
 	for ver, version := range i.Versions.Versions {
-		i.logger.Debug().Msgf("[%s] checkVersions '%s'", i.GetID(), ver)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("[%s] checkVersions '%s'", i.GetID(), ver),
+				nil,
+			),
+		).Msg("")
 		vInt, ok := i.versionValue[ver]
 		if !ok {
 			//			i.addValidationError(E104, "invalid ver format '%s'", ver)
@@ -520,7 +583,13 @@ func (i *InventoryBase) checkVersions() error {
 		if version.State.err != nil {
 			i.addValidationError(E050, "invalid state format in version '%s': %v", ver, version.State.err.Error())
 		}
-		i.logger.Debug().Msgf("[%s] checkVersions %s state", i.GetID(), ver)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("[%s] checkVersions %s state", i.GetID(), ver),
+				nil,
+			),
+		).Msg("")
 		for digest, paths := range version.State.State {
 			// massive performance boost by using sorted manifest
 			if _, found := slices.BinarySearch(manifestDigests, digest); !found {
@@ -549,8 +618,20 @@ func (i *InventoryBase) checkVersions() error {
 				}
 			}
 		}
-		i.logger.Debug().Msgf("[%s] checkVersions '%s' state done", i.GetID(), ver)
-		i.logger.Debug().Msgf("[%s] checkVersions '%s' done", i.GetID(), ver)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("[%s] checkVersions '%s' state done", i.GetID(), ver),
+				nil,
+			),
+		).Msg("")
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("[%s] checkVersions '%s' done", i.GetID(), ver),
+				nil,
+			),
+		).Msg("")
 	}
 	slices.Sort(versions)
 	for key, val := range versions {
@@ -603,8 +684,20 @@ func (i *InventoryBase) checkVersions() error {
 }
 
 func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
-	i.logger.Debug().Msgf("[%s] checkFiles", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkFiles done", i.GetID())
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkFiles", i.GetID()),
+			nil,
+		),
+	).Msg("")
+	defer i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] checkFiles done", i.GetID()),
+			nil,
+		),
+	).Msg("")
 	csFiles, ok := fileManifest[i.GetDigestAlgorithm()]
 	if !ok {
 		if len(fileManifest) == 0 {
@@ -789,9 +882,21 @@ func (i *InventoryBase) GetDuplicates(checksum string) []string {
 	return nil
 }
 func (i *InventoryBase) AlreadyExists(stateFilename, checksum string) (bool, error) {
-	i.logger.Debug().Msgf("'%s' [%s]", stateFilename, checksum)
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("'%s' [%s]", stateFilename, checksum),
+			nil,
+		),
+	).Msg("")
 	if checksum == "" {
-		i.logger.Debug().Msgf("'%s' - duplicate %v", stateFilename, false)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("'%s' - duplicate %v", stateFilename, false),
+				nil,
+			),
+		).Msg("")
 		return false, nil
 	}
 
@@ -812,7 +917,13 @@ func (i *InventoryBase) AlreadyExists(stateFilename, checksum string) (bool, err
 		}
 	}
 	if len(css) == 0 {
-		i.logger.Debug().Msgf("'%s' - duplicate %v", stateFilename, false)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("'%s' - duplicate %v", stateFilename, false),
+				nil,
+			),
+		).Msg("")
 		return false, nil
 	}
 	versions := []int{}
@@ -835,14 +946,32 @@ func (i *InventoryBase) AlreadyExists(stateFilename, checksum string) (bool, err
 	if !ok {
 		return false, errors.New(fmt.Sprintf("could not get checksum for v%d", lastVersion))
 	}
-	i.logger.Debug().Msgf("'%s' - duplicate %v", stateFilename, lastChecksum == checksum)
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("'%s' - duplicate %v", stateFilename, lastChecksum == checksum),
+			nil,
+		),
+	).Msg("")
 	return lastChecksum == checksum, nil
 }
 
 func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error) {
-	i.logger.Debug().Msgf("'%s' [%s]", virtualFilename, checksum)
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("'%s' [%s]", virtualFilename, checksum),
+			nil,
+		),
+	).Msg("")
 	if checksum == "" {
-		i.logger.Debug().Msgf("'%s' - update %v", virtualFilename, false)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("'%s' - update %v", virtualFilename, false),
+				nil,
+			),
+		).Msg("")
 		return false, nil
 	}
 
@@ -863,7 +992,13 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 		}
 	}
 	if len(css) == 0 {
-		i.logger.Debug().Msgf("'%s' - update %v", virtualFilename, false)
+		i.logger.Debug().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("'%s' - update %v", virtualFilename, false),
+				nil,
+			),
+		).Msg("")
 		return false, nil
 	}
 	versions := []int{}
@@ -886,7 +1021,13 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 	if !ok {
 		return false, errors.New(fmt.Sprintf("could not get checksum for v%d", lastVersion))
 	}
-	i.logger.Debug().Msgf("'%s' - update %v", virtualFilename, lastChecksum != checksum)
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("'%s' - update %v", virtualFilename, lastChecksum != checksum),
+			nil,
+		),
+	).Msg("")
 	return lastChecksum != checksum, nil
 }
 
@@ -912,7 +1053,6 @@ func (i *InventoryBase) echoDelete(existing []string, pathPrefix string) error {
 
 	}
 	for _, filename := range deleteFiles {
-		//		i.logger.Info().Msgf("removing '%s' from state", filename)
 		if err := i.DeleteFile(filename); err != nil {
 			return errors.Wrapf(err, "cannot delete '%s'", filename)
 		}
@@ -936,7 +1076,13 @@ func (i *InventoryBase) DeleteFile(stateFilename string) error {
 	i.Versions.Versions[i.GetHead()].State.State = newState
 	if found {
 		i.modified = found
-		i.logger.Info().Msgf("[%s] removing '%s' from state", i.GetID(), stateFilename)
+		i.logger.Info().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("[%s] removing '%s' from state", i.GetID(), stateFilename),
+				nil,
+			),
+		).Msg("")
 	}
 	return nil
 }
@@ -958,14 +1104,25 @@ func (i *InventoryBase) RenameFile(stateSource, stateDest string) error {
 	i.Versions.Versions[i.GetHead()].State.State = newState
 	if found {
 		i.modified = found
-		i.logger.Info().Msgf("[%s] rename '%s' to '%s' in state", i.GetID(), stateSource, stateDest)
+		i.logger.Info().Any(
+			i.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("[%s] rename '%s' to '%s' in state", i.GetID(), stateSource, stateDest),
+				nil,
+			),
+		).Msg("")
 	}
 	return nil
 }
 
 func (i *InventoryBase) CopyFile(dest string, digest string) error {
-	i.logger.Info().Msgf("[%s] copying '%s' -> '%s'", i.GetID(), digest, dest)
-
+	i.logger.Info().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] copying '%s' -> '%s'", i.GetID(), digest, dest),
+			nil,
+		),
+	).Msg("")
 	if _, ok := i.Manifest.Manifest[digest]; !ok {
 		return errors.Errorf("cannot find file with digest '%s'", digest)
 	}
@@ -979,7 +1136,13 @@ func (i *InventoryBase) CopyFile(dest string, digest string) error {
 }
 
 func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error {
-	i.logger.Debug().Msgf("[%s] adding '%s' -> '%s'", i.GetID(), stateFilenames, manifestFilename)
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s] adding '%s' -> '%s'", i.GetID(), stateFilenames, manifestFilename),
+			nil,
+		),
+	).Msg("")
 	digest, ok := checksums[i.GetDigestAlgorithm()]
 	if !ok {
 		return errors.Errorf("no digest for '%s' in checksums", i.GetDigestAlgorithm())
@@ -1011,8 +1174,13 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 			return errors.Wrapf(err, "cannot add for duplicate of '%s' [%s]", stateFilenames, digest)
 		}
 		if dup {
-			i.logger.Debug().Msgf("'%s' is a duplicate", stateFilenames)
-			// return nil
+			i.logger.Debug().Any(
+				i.errorFactory.LogError(
+					ErrorOCFL,
+					fmt.Sprintf("'%s' is a duplicate", stateFilenames),
+					nil,
+				),
+			).Msg("")
 		}
 
 		if manifestFilename != "" {
@@ -1031,7 +1199,13 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 			return errors.Wrapf(err, "cannot check for update of '%s' [%s]", stateFilenames, digest)
 		}
 		if upd {
-			i.logger.Debug().Msgf("'%s' is an update - removing old version", stateFilenames)
+			i.logger.Debug().Any(
+				i.errorFactory.LogError(
+					ErrorOCFL,
+					fmt.Sprintf("'%s' is an update - removing old version", stateFilenames),
+					nil,
+				),
+			).Msg("")
 			if err := i.DeleteFile(virtualFilename); err != nil {
 				return errors.Wrapf(err, "cannot delete old version of '%s' [%s]", stateFilenames, digest)
 			}
@@ -1049,7 +1223,6 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 
 // clear unmodified version
 func (i *InventoryBase) Clean() error {
-	i.logger.Debug()
 	// read only means nothing to do
 	if i.IsModified() {
 		return nil
@@ -1058,7 +1231,13 @@ func (i *InventoryBase) Clean() error {
 	if i.GetHead() == "v1" {
 		return nil
 	}
-	i.logger.Debug().Msgf("deleting %v", i.GetHead())
+	i.logger.Debug().Any(
+		i.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("deleting %v", i.GetHead()),
+			nil,
+		),
+	).Msg("")
 	delete(i.Versions.Versions, i.GetHead())
 	lastVersion := i.getLastVersion()
 	if lastVersion == "" {

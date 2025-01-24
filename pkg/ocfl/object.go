@@ -2,12 +2,14 @@ package ocfl
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
+
+	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
 
 type NamesStruct struct {
@@ -81,7 +83,15 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err 
 	return version, nil
 }
 
-func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (Object, error) {
+func newObject(
+	ctx context.Context,
+	fsys fs.FS,
+	version OCFLVersion,
+	storageRoot StorageRoot,
+	extensionManager ExtensionManager,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (Object, error) {
 	var err error
 	if version == "" {
 		version, err = GetObjectVersion(ctx, fsys)
@@ -91,19 +101,19 @@ func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot
 	}
 	switch version {
 	case Version1_1:
-		o, err := newObjectV1_1(ctx, fsys, storageRoot, extensionManager, logger)
+		o, err := newObjectV1_1(ctx, fsys, storageRoot, extensionManager, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	case Version2_0:
-		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, logger)
+		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
 	default:
-		o, err := newObjectV1_0(ctx, fsys, storageRoot, extensionManager, logger)
+		o, err := newObjectV1_0(ctx, fsys, storageRoot, extensionManager, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
