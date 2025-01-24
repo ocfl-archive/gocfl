@@ -18,7 +18,8 @@ jobs:
       - name: "run GoReleaser"
         uses: goreleaser/goreleaser-action@v5
         with:
-          version: latest
-          args: goreleaser release --skip=publish --clean -f .goreleaser.yml
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean -f .goreleaser.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
