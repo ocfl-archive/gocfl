@@ -4,15 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"emperror.dev/emperror"
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/errorDetails"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"os"
@@ -20,6 +12,15 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
+	"github.com/andybalholm/brotli"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/errorDetails"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 )
 
 // FixFilename
@@ -162,7 +163,6 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 		stack = stack[:len(stack)-2]
 	}
 	return stack
-	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
 func getVersion(ctx context.Context, fsys fs.FS, folder, prefix string) (version OCFLVersion, err error) {
@@ -253,16 +253,8 @@ func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	}
 	status.Compact()
 	for _, _err := range status.Errors {
-		//fmt.Println(_err.Error())
 		logger.Error().Err(errorDetails.WithDetail(_err, _err.DetailString()))
 	}
-	/*
-		for _, warning := range status.Warnings {
-			fmt.Println(warning.Error())
-			//logger.Info().Msgf("WARN:  %v", err)
-		}
-		fmt.Println("\n")
-	*/
 	return nil
 }
 

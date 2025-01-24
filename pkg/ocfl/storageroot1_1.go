@@ -2,10 +2,13 @@ package ocfl
 
 import (
 	"context"
+	"io/fs"
+
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"io/fs"
+
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
 
 const Version1_1 OCFLVersion = "1.1"
@@ -14,8 +17,15 @@ type StorageRootV1_1 struct {
 	*StorageRootBase
 }
 
-func NewStorageRootV1_1(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootV1_1, error) {
-	srb, err := NewStorageRootBase(ctx, fsys, Version1_1, extensionFactory, extensionManager, logger)
+func NewStorageRootV1_1(
+	ctx context.Context,
+	fsys fs.FS,
+	extensionFactory *ExtensionFactory,
+	extensionManager ExtensionManager,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*StorageRootV1_1, error) {
+	srb, err := NewStorageRootBase(ctx, fsys, Version1_1, extensionFactory, extensionManager, logger, errorFactory)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version1_1)
 	}

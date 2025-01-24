@@ -4,13 +4,8 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -19,11 +14,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"golang.org/x/exp/slices"
+
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
-
-//const VERSION = "1.0"
-
-//var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type ObjectBase struct {
 	storageRoot        StorageRoot
@@ -35,6 +34,7 @@ type ObjectBase struct {
 	versionInventories map[string]Inventory
 	changed            bool
 	logger             zLogger.ZLogger
+	errorFactory       *archiveerror.Factory
 	version            OCFLVersion
 	digest             checksum.DigestAlgorithm
 	echo               bool
@@ -43,7 +43,15 @@ type ObjectBase struct {
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
+func newObjectBase(
+	ctx context.Context,
+	fsys fs.FS,
+	defaultVersion OCFLVersion,
+	storageRoot StorageRoot,
+	extensionManager ExtensionManager,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
 		fsys:             fsys,
@@ -51,6 +59,7 @@ func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, 
 		storageRoot:      storageRoot,
 		extensionManager: extensionManager,
 		logger:           logger,
+		errorFactory:     errorFactory,
 	}
 	return ocfl, nil
 }
@@ -68,14 +77,26 @@ func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
-	object.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s:%v] %s", file, line, valError.Error()),
+			nil,
+		),
+	).Msg("")
 	return errors.WithStack(addValidationErrors(object.ctx, valError))
 }
 
 func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
-	object.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("[%s:%v] %s", file, line, valError.Error()),
+			nil,
+		),
+	).Msg("")
 	return errors.WithStack(addValidationWarnings(object.ctx, valError))
 }
 
@@ -220,7 +241,15 @@ func (object *ObjectBase) GetFS() fs.FS {
 }
 
 func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
-	inventory, err := newInventory(object.ctx, object, "new", object.GetVersion(), object.logger)
+	const inventoryNew string = "new"
+	inventory, err := newInventory(
+		object.ctx,
+		object,
+		inventoryNew,
+		object.GetVersion(),
+		object.logger,
+		object.errorFactory,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -257,7 +286,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 		// if we don't know anything use the old stuff
 		version = Version1_0
 	}
-	inventory, err := newInventory(object.ctx, object, folder, version, object.logger)
+	inventory, err := newInventory(object.ctx, object, folder, version, object.logger, object.errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -290,7 +319,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		return newInventory(object.ctx, object, folder, object.version, object.logger)
+		return newInventory(object.ctx, object, folder, object.version, object.logger, object.errorFactory)
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {
@@ -337,8 +366,6 @@ func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 	if object.fsys == nil {
 		return errors.Errorf("read only filesystem '%v'", object.fsys)
 	}
-	object.logger.Debug()
-
 	// check whether object filesystem is writeable
 	if !object.i.IsWriteable() {
 		return errors.New("inventory not writeable - not updated")
@@ -415,8 +442,6 @@ func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 }
 
 func (object *ObjectBase) StoreExtensions() error {
-	object.logger.Debug()
-
 	if err := object.extensionManager.WriteConfig(); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}
@@ -424,7 +449,13 @@ func (object *ObjectBase) StoreExtensions() error {
 }
 
 func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager ExtensionManager) error {
-	object.logger.Debug().Msgf("%s", id)
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("%s", id),
+			nil,
+		),
+	).Msg("")
 
 	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
@@ -523,7 +554,13 @@ func (object *ObjectBase) echoDelete() error {
 }
 
 func (object *ObjectBase) Close() error {
-	object.logger.Info().Msgf(fmt.Sprintf("Closing object '%s'", object.GetID()))
+	object.logger.Info().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("object '%s' not writeable", object.GetID()),
+			nil,
+		),
+	).Msg("")
 	if !(object.i.IsWriteable()) {
 		return nil
 	}
@@ -545,7 +582,13 @@ func (object *ObjectBase) Close() error {
 }
 
 func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error) {
-	object.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("'%s' / '%s' / '%s'", msg, UserName, UserAddress),
+			nil,
+		),
+	).Msg("")
 	object.echo = echo
 
 	subfs, err := writefs.SubFSCreate(object.fsys, "extensions")
@@ -565,14 +608,31 @@ func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName strin
 }
 
 func (object *ObjectBase) EndUpdate() error {
-	object.logger.Info().Msgf(fmt.Sprintf("EndUpdate of object '%s'", object.GetID()))
+	object.logger.Info().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("endUpdate of object '%s'", object.GetID()),
+			nil,
+		),
+	).Msg("")
 	if !(object.i.IsWriteable()) {
-		object.logger.Warn().Msgf(fmt.Sprintf("object '%s' not writeable", object.GetID()))
+		object.logger.Warn().Any(
+			object.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("object '%s' not writeable", object.GetID()),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
 	if !(object.i.IsModified()) {
-		object.logger.Info().Msgf(fmt.Sprintf("object '%s' not modified", object.GetID()))
-		return nil
+		object.logger.Info().Any(
+			object.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("object '%s' not modified", object.GetID()),
+				nil,
+			),
+		).Msg("")
 	}
 
 	if object.echo {
@@ -590,21 +650,21 @@ func (object *ObjectBase) EndUpdate() error {
 	if err := object.StoreInventory(true, false); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
 	}
-
 	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
-		if _, err := object.StartUpdate(nil, "automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false); err != nil {
+		if _, err := object.StartUpdate(
+			nil,
+			"automated version",
+			"gocfl",
+			"https://github.com/ocfl-archive/gocfl",
+			false,
+		); err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
 		if err := object.extensionManager.DoNewVersion(object); err != nil {
 			return errors.Wrapf(err, "cannot execute ext.DoNewVersion()")
 		}
-		/*
-			if err := object.extensionManager.UpdateObjectAfter(object); err != nil {
-				return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
-			}
-		*/
 		if err := object.EndUpdate(); err != nil {
 			return errors.Wrap(err, "cannot end update")
 		}
@@ -629,7 +689,13 @@ func (object *ObjectBase) EndArea() error {
 }
 
 func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error {
-	object.logger.Debug().Msgf("walking '%v'", fsys)
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("walking '%v'", fsys),
+			nil,
+		),
+	).Msg("")
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		path = filepath.ToSlash(path)
 		if err := object.AddFile(fsys, versionFS, path, checkDuplicate, area, false, info.IsDir()); err != nil {
@@ -680,7 +746,13 @@ func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *Nam
 		}()
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer, pw)
 		if err := pw.Close(); err != nil {
-			object.logger.Error().Err(err).Msg("cannot close pipe writer")
+			object.logger.Error().Any(
+				object.errorFactory.LogError(
+					ErrorOCFL,
+					"cannot close pipe writer",
+					err,
+				),
+			).Msg("")
 		}
 		wg.Wait()
 		if err != nil {
@@ -713,6 +785,7 @@ func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *Nam
 }
 
 func (object *ObjectBase) BuildNames(files []string, area string) (*NamesStruct, error) {
+
 	var err error
 	result := &NamesStruct{
 		ExternalPaths: []string{},
@@ -745,7 +818,13 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 	path := files[0]
 	names, err := object.BuildNames(files, area)
 
-	object.logger.Info().Msgf("adding file %s:%v", area, files)
+	object.logger.Info().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("adding file %s:%v", area, files),
+			nil,
+		),
+	).Msg("")
 
 	if !noExtensionHook {
 		if err := object.extensionManager.AddFileBefore(object, nil, path, names.InternalPath, area, false); err != nil {
@@ -773,6 +852,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 }
 
 func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
+
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
@@ -786,7 +866,13 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 
 	}
 
-	object.logger.Info().Msgf("adding file %s:%s", area, path)
+	object.logger.Info().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("adding file %s:%s", area, path),
+			nil,
+		),
+	).Msg("")
 
 	newPath, err := object.extensionManager.BuildObjectStatePath(object, path, area)
 	if err != nil {
@@ -812,12 +898,24 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 			return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", names.InternalPath, digest)
 		}
 		if dup {
-			object.logger.Info().Msgf("[%s] '%s' already exists. ignoring", object.GetID(), newPath)
+			object.logger.Info().Any(
+				object.errorFactory.LogError(
+					ErrorOCFL,
+					fmt.Sprintf("[%s] '%s' already exists. ignoring", object.GetID(), newPath),
+					nil,
+				),
+			).Msg("")
 			return nil
 		}
 		// file already ingested, but new virtual name
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
-			object.logger.Info().Msgf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
+			object.logger.Info().Any(
+				object.errorFactory.LogError(
+					ErrorOCFL,
+					fmt.Sprintf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath),
+					nil,
+				),
+			).Msg("")
 			if err := object.i.CopyFile(newPath, digest); err != nil {
 				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, names.InternalPath)
 			}
@@ -853,7 +951,13 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 }
 
 func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
-	object.logger.Info().Msgf("adding file %s:%s", area, path)
+	object.logger.Info().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("adding file %s:%s", area, path),
+			nil,
+		),
+	).Msg("")
 
 	path = filepath.ToSlash(path)
 
@@ -910,12 +1014,24 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 				return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", names.InternalPath, digest)
 			}
 			if dup {
-				object.logger.Info().Msgf("[%s] '%s' already exists. ignoring", object.GetID(), newPath)
+				object.logger.Info().Any(
+					object.errorFactory.LogError(
+						ErrorOCFL,
+						fmt.Sprintf("[%s] '%s' already exists. ignoring", object.GetID(), newPath),
+						nil,
+					),
+				).Msg("")
 				return nil
 			}
 			// file already ingested, but new virtual name
 			if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
-				object.logger.Info().Msgf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
+				object.logger.Info().Any(
+					object.errorFactory.LogError(
+						ErrorOCFL,
+						fmt.Sprintf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath),
+						nil,
+					),
+				).Msg("")
 				if err := object.i.CopyFile(newPath, digest); err != nil {
 					return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, names.InternalPath)
 				}
@@ -953,8 +1069,13 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 
 func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) error {
 	virtualFilename = filepath.ToSlash(virtualFilename)
-	object.logger.Debug().Msgf("removing '%s' [%s]", virtualFilename, digest)
-
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("removing '%s' [%s]", virtualFilename, digest),
+			nil,
+		),
+	).Msg("")
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
 	}
@@ -965,7 +1086,13 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilename, digest)
 	}
 	if !dup {
-		object.logger.Debug().Msgf("'%s' [%s] not in archive - ignoring", virtualFilename, digest)
+		object.logger.Debug().Any(
+			object.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("'%s' [%s] not in archive - ignoring", virtualFilename, digest),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
 	if err := object.i.DeleteFile(virtualFilename); err != nil {
@@ -977,7 +1104,13 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 
 func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error {
 	virtualFilenameSource = filepath.ToSlash(virtualFilenameSource)
-	object.logger.Debug().Msgf("removing '%s' [%s]", virtualFilenameSource, digest)
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("removing '%s' [%s]", virtualFilenameSource, digest),
+			nil,
+		),
+	).Msg("")
 
 	if !object.i.IsWriteable() {
 		return errors.New("object not writeable")
@@ -989,7 +1122,13 @@ func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest 
 		return errors.Wrapf(err, "cannot check duplicate for '%s' [%s]", virtualFilenameSource, digest)
 	}
 	if !dup {
-		object.logger.Debug().Msgf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest)
+		object.logger.Debug().Any(
+			object.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
 	if err := object.i.RenameFile(virtualFilenameSource, virtualFilenameDest); err != nil {
@@ -1269,7 +1408,13 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 func (object *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
 	//object.fs
-	object.logger.Info().Msgf("object '%s' with object version '%s' found", object.GetID(), object.GetVersion())
+	object.logger.Info().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("object '%s' with object version '%s' found", object.GetID(), object.GetVersion()),
+			nil,
+		),
+	).Msg("")
 	// check folders
 	versions := object.i.GetVersionStrings()
 
@@ -1289,7 +1434,13 @@ func (object *ObjectBase) Check() error {
 					if err2 := object.checkVersionFolder(entry.Name()); err2 == nil {
 						object.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
-						fmt.Println(err2)
+						object.logger.Error().Any(
+							object.errorFactory.LogError(
+								ErrorOCFL,
+								"",
+								err2,
+							),
+						).Msg("")
 					}
 				}
 			}
@@ -1335,10 +1486,8 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	for _, version := range versions {
 		if err := fs.WalkDir(
 			object.fsys,
-			//fmt.Sprintf("%s/%s", version, object.i.GetContentDir()),
 			version,
 			func(path string, d fs.DirEntry, err error) error {
-				//object.logger.Debug(path)
 				if d.IsDir() {
 					return nil
 				}
@@ -1454,7 +1603,13 @@ func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool,
 					return errors.Wrapf(err, "cannot create '%v/%s'", fsys, external)
 				}
 				defer target.Close()
-				object.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", object.fsys, internal, fsys, external)
+				object.logger.Debug().Any(
+					object.errorFactory.LogError(
+						ErrorOCFL,
+						fmt.Sprintf("writing '%v/%s' -> '%v/%s'", object.fsys, internal, fsys, external),
+						nil,
+					),
+				).Msg("")
 				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 				if err != nil {
 					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", object.fsys, internal, fsys, external)
@@ -1489,7 +1644,13 @@ func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool,
 		}
 		defer fp.Close()
 	}
-	object.logger.Debug().Msgf("object '%s' extracted", object.GetID())
+	object.logger.Debug().Any(
+		object.errorFactory.LogError(
+			ErrorOCFL,
+			fmt.Sprintf("object '%s' extracted", object.GetID()),
+			nil,
+		),
+	).Msg("")
 	return nil
 }
 

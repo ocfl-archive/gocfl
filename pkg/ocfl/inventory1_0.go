@@ -2,9 +2,12 @@ package ocfl
 
 import (
 	"context"
+	"net/url"
+
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"net/url"
+
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
 
 const (
@@ -15,9 +18,15 @@ type InventoryV1_0 struct {
 	*InventoryBase
 }
 
-func newInventoryV1_0(ctx context.Context, object Object, folder string, logger zLogger.ZLogger) (*InventoryV1_0, error) {
+func newInventoryV1_0(
+	ctx context.Context,
+	object Object,
+	folder string,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*InventoryV1_0, error) {
 	ivUrl, _ := url.Parse(string(InventorySpec1_0))
-	ib, err := newInventoryBase(ctx, object, folder, ivUrl, "", logger)
+	ib, err := newInventoryBase(ctx, object, folder, ivUrl, "", logger, errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}

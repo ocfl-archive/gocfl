@@ -4,6 +4,8 @@ import (
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 )
 
+/* TODO: Unused code can be removed.
+
 type Siegfried struct {
 	Signature string
 	MimeMap   map[string]string
@@ -38,3 +40,4 @@ type Tika struct {
 	Enabled               bool
 	AddressFulltext       string
 }
+*/

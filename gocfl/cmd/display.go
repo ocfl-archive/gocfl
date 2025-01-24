@@ -148,7 +148,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	if !writefs.HasContent(destFS) {
 
 	}
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger), ErrorFactory)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return

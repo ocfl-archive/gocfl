@@ -2,17 +2,26 @@ package ocfl
 
 import (
 	"context"
+	"io/fs"
+
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"io/fs"
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
 
 type ObjectV1_0 struct {
 	*ObjectBase
 }
 
-func newObjectV1_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (*ObjectV1_0, error) {
-	ob, err := newObjectBase(ctx, fsys, Version1_0, storageRoot, extensionManager, logger)
+func newObjectV1_0(
+	ctx context.Context,
+	fsys fs.FS,
+	storageRoot StorageRoot,
+	extensionManager ExtensionManager,
+	logger zLogger.ZLogger,
+	errorFactory *archiveerror.Factory,
+) (*ObjectV1_0, error) {
+	ob, err := newObjectBase(ctx, fsys, Version1_0, storageRoot, extensionManager, logger, errorFactory)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

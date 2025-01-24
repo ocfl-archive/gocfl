@@ -3,15 +3,7 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/nfnt/resize"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	_ "golang.org/x/image/bmp"
-	_ "golang.org/x/image/tiff"
-	_ "golang.org/x/image/vp8"
-	_ "golang.org/x/image/vp8l"
-	_ "golang.org/x/image/webp"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -19,6 +11,15 @@ import (
 	"io/fs"
 	"slices"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/nfnt/resize"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/vp8"
+	_ "golang.org/x/image/vp8l"
+	_ "golang.org/x/image/webp"
 )
 
 func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, stateFiles []string, dest string) error {
@@ -26,7 +27,13 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}
 	if !slices.Contains([]string{"png", "jpeg"}, strings.ToLower(thumb.ThumbnailConfig.Ext)) {
-		thumb.logger.Info().Msgf("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext)
+		thumb.logger.Info().Any(
+			thumb.errorFactory.LogError(
+				ErrorThumbnailExtension,
+				fmt.Sprintf("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
 	inventory := object.GetInventory()
@@ -39,23 +46,46 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 	infoName := fmt.Sprintf("%s/content/%s", head, stateFiles[0])
 	if _, ok := thumb.streamInfo[head][infoName]; ok {
-		thumb.logger.Info().Msgf("thumbnail for '%s' already created", stateFiles[0])
+		thumb.logger.Info().Any(
+			thumb.errorFactory.LogError(
+				ErrorThumbnailExtension,
+				fmt.Sprintf("thumbnail for '%s' already created", stateFiles[0]),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
-	//ext := filepath.Ext(stateFiles[0])
-
 	img, format, err := image.Decode(reader)
 	if err != nil {
-		thumb.logger.Info().Msgf("cannot decode image '%s': %v", stateFiles[0], err)
+		thumb.logger.Info().Any(
+			thumb.errorFactory.LogError(
+				ErrorThumbnailExtension,
+				fmt.Sprintf("cannot decode image '%s'", stateFiles[0]),
+				err,
+			),
+		).Msg("")
 		return nil
 	}
 	rect := img.Bounds()
 	dx := rect.Dx()
 	dy := rect.Dy()
-	thumb.logger.Info().Msgf("image format: %s, size: %d x %d", format, dx, dy)
+
+	thumb.logger.Info().Any(
+		thumb.errorFactory.LogError(
+			ErrorThumbnailExtension,
+			fmt.Sprintf("image format: %s, size: %d x %d", format, dx, dy),
+			nil,
+		),
+	).Msg("")
 
 	if dx == 0 || dy == 0 {
-		thumb.logger.Info().Msgf("image '%s' has no size", stateFiles[0])
+		thumb.logger.Info().Any(
+			thumb.errorFactory.LogError(
+				ErrorThumbnailExtension,
+				fmt.Sprintf("image '%s' has no size", stateFiles[0]),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
 
@@ -161,11 +191,23 @@ func (thumb *Thumbnail) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source 
 		defer func() {
 			if err == nil {
 				if err := pw.Close(); err != nil {
-					thumb.logger.Error().Err(err).Msg("cannot close pipe")
+					thumb.logger.Error().Any(
+						thumb.errorFactory.LogError(
+							ErrorThumbnailExtension,
+							"cannot close pipe",
+							err,
+						),
+					).Msg("")
 				}
 			} else {
 				if err := pw.CloseWithError(errors.Wrap(err, "cannot encode image")); err != nil {
-					thumb.logger.Error().Err(err).Msg("cannot close pipe")
+					thumb.logger.Error().Any(
+						thumb.errorFactory.LogError(
+							ErrorThumbnailExtension,
+							"cannot close pipe",
+							err,
+						),
+					).Msg("")
 				}
 			}
 			done <- true
@@ -185,7 +227,13 @@ func (thumb *Thumbnail) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source 
 	if err != nil {
 		return errors.Wrap(err, "cannot store thumbnail")
 	}
-	thumb.logger.Info().Msgf("thumbnail stored: %s", targetFile)
+	thumb.logger.Info().Any(
+		thumb.errorFactory.LogError(
+			ErrorThumbnailExtension,
+			fmt.Sprintf("thumbnail stored: %s", targetFile),
+			nil,
+		),
+	).Msg("")
 	ml := &ThumbnailResult{
 		//SourceDigest: cs,
 		Filename:    targetFile,

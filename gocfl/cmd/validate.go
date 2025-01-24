@@ -116,7 +116,7 @@ func validate(cmd *cobra.Command, args []string) {
 	}()
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger, ErrorFactory)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storageroot")
 		return
