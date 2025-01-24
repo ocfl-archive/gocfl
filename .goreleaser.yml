@@ -1,0 +1,53 @@
+project_name: gocfl
+version: 2
+builds:
+- main: ./gocfl/
+  binary: gocfl
+  env:
+    - CGO_ENABLED=0
+  goos:
+    - linux
+    - windows
+    - darwin
+  ignore:
+    - goos: free  bsd
+      goarch: 386
+    - goos: freebsd
+      goarch: arm64
+    - goos: windows
+      goarch: arm64
+    - goos: linux
+      goarch: 386
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  ldflags:
+    -s
+    -w
+    -X main.appname={{.ProjectName}}
+    -X main.builtBy=gocfl-goreleaser
+    -X github.com/ocfl-archive/gocfl/v2/version.Version={{.Version}}
+    -X github.com/ocfl-archive/gocfl/v2/version.Commit={{.Commit}}
+    -X github.com/ocfl-archive/gocfl/v2/version.Date={{.CommitDate}}
+    -X github.com/ocfl-archive/gocfl/v2/version.BuiltBy=goreleaser
+archives:
+- name_template: >-
+    {{ .ProjectName }}_
+    {{ .Version }}_
+    {{- title .Os }}_
+    {{- if eq .Arch "amd64" }}x86_64
+    {{- else if eq .Arch "386" }}i386
+    {{- else if eq .Arch "arm64" }}arm64
+    {{- else }}{{ .Arch }}{{ end }}
+  format: tar.gz
+  format_overrides:
+     - goos: windows
+       format: zip
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  version_template: "{{ .Version }}-SNAPSHOT"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
