@@ -152,7 +152,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, (logger))
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, (logger), ErrorFactory)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return

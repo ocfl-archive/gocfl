@@ -4,6 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -17,11 +23,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"io/fs"
-	"log"
-	"os"
-	"strings"
 )
 
 var createCmd = &cobra.Command{
@@ -143,13 +144,15 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	t := startTimer()
-	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
-
-	logger.Info().Msgf("creating '%s'", ocflPath)
-
-	//	extensionFlags := getExtensionFlags(cmd)
-
-	fmt.Printf("creating '%s'\n", ocflPath)
+	defer func() {
+		logger.Info().Any(
+			ErrorFactory.LogError(
+				ErrorGOCFL,
+				fmt.Sprintf("duration: %s", t.String()),
+				err,
+			),
+		).Msg("")
+	}()
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
 	for _, alg := range conf.Add.Fixity {
@@ -158,7 +161,12 @@ func doCreate(cmd *cobra.Command, args []string) {
 			continue
 		}
 		if _, err := checksum.GetHash(checksum.DigestAlgorithm(alg)); err != nil {
-			logger.Error().Msgf("unknown hash function '%s'", alg)
+			logger.Error().Any(
+				ErrorFactory.LogError(
+					ErrorExtensionInitErr,
+					fmt.Sprintf("unknown hash function '%s'", alg),
+					err,
+				)).Msg("")
 			return
 		}
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
@@ -166,23 +174,38 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, conf.Add.NoCompress, false, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Stack().Any(
+			ErrorFactory.LogError(
+				ErrorFS, "cannot create filesystem factory", err,
+			)).Msg("")
 		return
 	}
 
 	if fi, err := os.Stat(ocflPath); err == nil {
 		if fi.IsDir() {
 			if empty, err := isEmpty(ocflPath); err != nil {
-				logger.Error().Err(err).Msgf("cannot check if directory '%s' is empty", ocflPath)
-				return
+				logger.Error().Stack().Any(
+					ErrorFactory.LogError(
+						ErrorOCFLCreation,
+						fmt.Sprintf("cannot check if directory '%s' is empty", ocflPath),
+						err,
+					)).Msg("")
 			} else if !empty {
-				logger.Error().Msgf("directory '%s' is not empty", ocflPath)
+				logger.Error().Any(
+					ErrorFactory.LogError(
+						ErrorOCFLCreation,
+						fmt.Sprintf("directory '%s' is not empty", ocflPath),
+						nil,
+					)).Msg("")
 				return
 			}
 		} else {
-			logger.Error().
-				Any("archive_error", ErrorFactory.NewError(ERRORTest2, "already exists", nil)).
-				Msgf("'%s' already exists and is not an empty directory", ocflPath)
+			logger.Error().Any(
+				ErrorFactory.LogError(
+					ErrorOCFLCreation,
+					fmt.Sprintf("'%s' already exists and is not an empty directory", ocflPath),
+					nil,
+				)).Msg("")
 			return
 		}
 	}
@@ -197,7 +220,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Panic().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
+			logger.Panic().Stack().Any(
+				ErrorFactory.LogError(
+					ErrorFS,
+					fmt.Sprintf("error closing filesystem '%s'", destFS),
+					err,
+				),
+			).Msg("")
 		}
 	}()
 
@@ -209,12 +238,18 @@ func doCreate(cmd *cobra.Command, args []string) {
 	for i := 2; i < len(args); i++ {
 		matches := areaPathRegexp.FindStringSubmatch(args[i])
 		if matches == nil {
-			logger.Error().Msgf("no area given in areapath '%s'", args[i])
+			logger.Error().Any(
+				ErrorFactory.LogError(
+					ErrorFS,
+					fmt.Sprintf("no area given in areapath '%s'", args[i]),
+					nil,
+				),
+			).Msg("")
 			continue
 		}
 		path, err := ocfl.Fullpath(matches[2])
 		if err != nil {
-			logger.Panic().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
+			logger.Panic().Stack().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
 		}
 		areaPaths[matches[1]], err = fsFactory.Get(path, true)
 		if err != nil {
@@ -224,14 +259,22 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot get migrations")
+		logger.Error().Stack().Err(err).Any(
+			ErrorFactory.LogError(
+				ErrorExtensionInit, "cannot get migrations", err,
+			),
+		).Msg("")
 		return
 	}
 	mig.SetSourceFS(sourceFS)
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot get thumbnails")
+		logger.Error().Stack().Any(
+			ErrorFactory.LogError(
+				ErrorExtensionInit, "cannot get thumbnails", err,
+			),
+		).Msg("")
 		return
 	}
 	thumb.SetSourceFS(sourceFS)
@@ -239,21 +282,43 @@ func doCreate(cmd *cobra.Command, args []string) {
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create extension factory")
+		logger.Error().Stack().Any(
+			ErrorFactory.LogError(
+				ErrorExtensionInit, "cannot create extension factory", err,
+			),
+		).Msg("")
 		return
 	}
 
 	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot initialize default extensions")
+		logger.Error().Stack().Any(
+			ErrorFactory.LogError(
+				ErrorExtensionInit,
+				"cannot initialize default extensions",
+				err,
+			),
+		).Msg("")
 		return
 	}
 	defer func() {
 		if err := objectExtensionManager.Terminate(); err != nil {
-			logger.Error().Stack().Err(err).Msg("cannot terminate object extension manager")
+			logger.Error().Stack().Any(
+				ErrorFactory.LogError(
+					ErrorExtensionRunner,
+					"cannot terminate object extension manager",
+					err,
+				),
+			).Msg("")
 		}
 		if err := storageRootExtensionManager.Terminate(); err != nil {
-			logger.Error().Stack().Err(err).Msg("cannot terminate storage root extension manager")
+			logger.Error().Stack().Any(
+				ErrorFactory.LogError(
+					ErrorExtensionRunner,
+					"cannot terminate storage root extension manager",
+					err,
+				),
+			).Msg("")
 		}
 	}()
 
@@ -266,10 +331,17 @@ func doCreate(cmd *cobra.Command, args []string) {
 		storageRootExtensionManager,
 		conf.Init.Digest,
 		logger,
+		ErrorFactory,
 	)
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
+			logger.Error().Stack().Any(
+				ErrorFactory.LogError(
+					ErrorFS,
+					fmt.Sprintf("cannot close filesystem '%s'", destFS),
+					err,
+				),
+			).Msg("")
 		}
 		logger.Panic().Stack().Err(err).Msg("cannot create new storage root")
 	}
