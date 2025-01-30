@@ -5,7 +5,7 @@
 id = "ErrorGOCFL"
 type = "GOCFL"
 weight = 50
-message = ""
+message = "" # e.g. reports duration
 
 # System errors that might be encountered during startup and processing.
 
@@ -13,24 +13,24 @@ message = ""
 id = "ErrorExtensionInit"
 type = "INITIALIZATION"
 weight = 50
-message = "initializing extensions"
+message = "initializing extensions" # e.g. adding creators for extenstions
 
 [[errors]]
 id = "ErrorExtensionInitErr"
 type = "INITIALIZATION"
-weight = 50
+weight = 60
 message = "error initializing extensions"
 
 [[errors]]
 id = "ErrorValidationStatus"
 type = "VALIDATION"
-weight = 50
-message = "ocfl validation status"
+weight = 60
+message = "ocfl validation status" # e.g. reports no errors found
 
 [[errors]]
 id = "ErrorValidationStatusErr"
 type = "VALIDATION"
-weight = 50
+weight = 70
 message = "ocfl validation error"
 
 [[errors]]
@@ -49,12 +49,28 @@ message = "problem with the given ocfl extension"
 id = "ErrorOCFL"
 type = "UPDATE"
 weight = 50
-message = "error in the ocfl library"
+message = "error in the ocfl library" # e.g. this outputs information such as
+                                      # adding file content, hash, duplicate
+                                      # status, upadate status.
+                                      # It also reports >>object .... not
+                                      # writeable<<.
+
+[[errors]]
+id = "ErrorOCFLCreation"
+type = "UPDATE"
+weight = 50
+message = "error with GOCFL write processes, e.g. creation or update"
+
+[[errors]]
+id = "ErrorOCFLEnd"
+type = "UPDATE"
+weight = 50
+message = "error ending GOCFL process, e.g. creation or update"
 
 [[errors]]
 id = "ErrorFS"
 type = "FILESYSTEM"
-weight = 50
+weight = 80
 message = "filesystem abstraction issue"
 
 # Extension errors
@@ -63,48 +79,53 @@ message = "filesystem abstraction issue"
 id = "ErrorThumbnailExtension"
 type = "GENERATE THUMBNAIL"
 weight = 50
-message = "thumbnail extension issue"
+message = "thumbnail extension issue" # e.g. this outputs both when a thumbnail
+                                      # is added and also when the file is not
+                                      # an image and  the format is
+                                      # unrecognised eg. xml, json md etc.
 
 # Indexer errors affecting preservation.
 
 [[errors]]
 id = "ErrorIndexerSiegfried"
 type = "PRESERVATION"
-weight = 50
+weight = 70
 message = "indexer: siegfried returned an error"
 
 [[errors]]
 id = "ErrorIndexerXML"
 type = "PRESERVATION"
-weight = 50
+weight = 70
 message = "indexer: xml returned an error"
 
 [[errors]]
 id = "ErrorIndexerChecksum"
 type = "PRESERVATION"
-weight = 50
+weight = 70
 message = "indexer: checksum returned an error"
 
 [[errors]]
 id = "ErrorIndexerTika"
 type = "PRESERVATION"
-weight = 50
+weight = 70
 message = "indexer: tika returned an error"
 
 [[errors]]
 id = "ErrorIndexerFFProbe"
 type = "PRESERVATION"
-weight = 50
+weight = 70
 message = "indexer: ffprobe returned an error"
 
 [[errors]]
 id = "ErrorIndexerIdentify"
 type = "PRESERVATION"
-weight = 50
-message = "indexer: identify returned an error"
+weight = 70
+message = "indexer: identify returned an error"  # e.g. error executing
+                                                 # (convert [XML:- json:-])
+                                                 # (imagemagick).
 
 [[errors]]
 id = "ErrorIndexerFullText"
 type = "PRESERVATION"
-weight = 50
+weight = 70
 message = "indexer: full-text returned an error"
