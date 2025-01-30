@@ -496,7 +496,7 @@ func addObjectByPath(
 	}
 	if err := o.EndUpdate(); err != nil {
 		_, err = ErrorFactory.LogError(
-			ErrorOCFLCreation,
+			ErrorOCFLEnd,
 			fmt.Sprintf("cannot end update for object '%s'", id),
 			err,
 		)
@@ -504,7 +504,7 @@ func addObjectByPath(
 	}
 	if err := o.Close(); err != nil {
 		_, err = ErrorFactory.LogError(
-			ErrorOCFLCreation,
+			ErrorOCFLEnd,
 			fmt.Sprintf("cannot close object '%s'", id),
 			err,
 		)
