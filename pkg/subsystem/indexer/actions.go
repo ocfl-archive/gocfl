@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+/* TODO: unused code can be removed.
+
 func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegfried, ffmpeg *FFMPEG, magick *ImageMagick, tika *Tika, logger zLogger.ZLogger) (*ironmaiden.ActionDispatcher, error) {
 	ad := ironmaiden.NewActionDispatcher(relevance)
 	if siegfried != nil && siegfried.Signature != "" {
@@ -57,3 +59,4 @@ func InitActions(relevance map[int]ironmaiden.MimeWeightString, siegfried *Siegf
 
 	return ad, nil
 }
+*/
