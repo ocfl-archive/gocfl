@@ -31,14 +31,14 @@ func GetMetaFileParams() []*ocfl.ExtensionExternalParam {
 			Functions:     []string{"add", "update", "create"},
 			Param:         "source",
 			//File:          "Source",
-			Description: "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
+			Description: "url or path with metadata file. $ID will be replaced with object ID i.e. c:/temp/$ID.json",
 		},
 		{
 			ExtensionName: MetaFileName,
 			Functions:     []string{"extract", "objectextension"},
 			Param:         "target",
 			//File:          "Target",
-			Description: "url with metadata target folder",
+			Description: "url or path with metadata target folder",
 		},
 	}
 }
@@ -108,7 +108,7 @@ type MetaFileConfig struct {
 type MetaFile struct {
 	*MetaFileConfig
 	schema         []byte
-	metadataSource *url.URL
+	metadataSource string
 	fsys           fs.FS
 	compiledSchema *jsonschema.Schema
 	stored         bool
@@ -139,25 +139,7 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 			if urlString == "" {
 				return errors.Errorf("no value for parameter '%s'", name)
 			}
-			u, err := url.Parse(urlString)
-			if err != nil || u.Scheme == "" {
-				if urlString[0] == '/' {
-					u, err = url.Parse("file://" + urlString)
-					if err != nil {
-						return errors.Wrapf(err, "cannot parse '%s'", urlString)
-					}
-				} else {
-					d, err := os.Getwd()
-					if err != nil {
-						return errors.Wrap(err, "cannot get working directory")
-					}
-					u, err = url.Parse("file://" + filepath.ToSlash(filepath.Join(d, urlString)))
-					if err != nil {
-						return errors.Wrapf(err, "cannot parse '%s'", urlString)
-					}
-				}
-			}
-			sl.metadataSource = u
+			sl.metadataSource = urlString
 		}
 	}
 	return nil
@@ -221,9 +203,6 @@ func toStringKeys(val interface{}) (interface{}, error) {
 }
 
 func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
-	if sl.metadataSource.Path == "" {
-		return nil
-	}
 	if sl.stored {
 		return nil
 	}
@@ -233,52 +212,30 @@ func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
 	if inventory == nil {
 		return errors.New("no inventory available")
 	}
-	if sl.metadataSource == nil {
+	if sl.fsys == nil {
+		return errors.New("no filesystem set")
+	}
+	if sl.metadataSource == "" {
 		// only a problem, if first version
 		if len(inventory.GetVersionStrings()) < 2 {
 			return errors.New("no metadata source configured")
 		}
 		return nil
 	}
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
 	var rc io.ReadCloser
-	var fname string
-	switch strings.ToLower(sl.metadataSource.Scheme) {
-	case "http":
-		fname = strings.Replace(sl.metadataSource.String(), "$ID", object.GetID(), -1)
+	var fname = strings.Replace(sl.metadataSource, "$ID", object.GetID(), -1)
+	u, err := url.Parse(fname)
+	if err == nil && u.Scheme != "" && u.Host != "" {
 		resp, err := http.Get(fname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get '%s'", fname)
 		}
 		rc = resp.Body
-	case "https":
-		fname = strings.Replace(sl.metadataSource.String(), "$ID", object.GetID(), -1)
-		resp, err := http.Get(fname)
-		if err != nil {
-			return errors.Wrapf(err, "cannot get '%s'", fname)
-		}
-		rc = resp.Body
-	case "file":
-		fname = strings.Replace(sl.metadataSource.Path, "$ID", object.GetID(), -1)
-		fname = "/" + strings.TrimLeft(fname, "/")
-		if windowsPathWithDrive.Match([]byte(fname)) {
-			fname = strings.TrimLeft(fname, "/")
-		}
+	} else {
 		rc, err = os.Open(fname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot open '%s'", fname)
 		}
-	case "":
-		fname = strings.Replace(sl.metadataSource.Path, "$ID", object.GetID(), -1)
-		fname = "/" + strings.TrimLeft(fname, "/")
-		rc, err = os.Open(fname)
-		if err != nil {
-			return errors.Wrapf(err, "cannot open '%s'", fname)
-		}
-	default:
-		return errors.Errorf("url scheme '%s' not supported", sl.metadataSource.Scheme)
 	}
 	defer rc.Close()
 
