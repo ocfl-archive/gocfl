@@ -45,9 +45,10 @@ type Server struct {
 	object         ocfl.Object
 	metadata       *ocfl.ObjectMetadata
 	templateFS     fs.FS
+	obfuscate      bool
 }
 
-func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS, templateFS fs.FS, obfuscate bool, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
@@ -63,6 +64,7 @@ func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.U
 		log:         log,
 		accessLog:   accessLog,
 		storageRoot: storageRoot,
+		obfuscate:   obfuscate,
 	}
 
 	return srv, nil
@@ -183,6 +185,12 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -194,6 +202,12 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
 		}
 	}
 	pathStr := filepath.ToSlash(filepath.Join("extensions", iop.Extension, iop.Path))
@@ -246,6 +260,12 @@ func (s *Server) download(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -257,6 +277,12 @@ func (s *Server) download(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
 		}
 	}
 
@@ -305,6 +331,12 @@ func (s *Server) detail(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -316,6 +348,12 @@ func (s *Server) detail(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
 		}
 	}
 
@@ -498,6 +536,13 @@ func (s *Server) manifest(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
+
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -510,6 +555,13 @@ func (s *Server) manifest(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
 		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
+		}
+
 	}
 
 	type fEntry struct {
@@ -588,6 +640,13 @@ func (s *Server) version(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
+
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -600,6 +659,13 @@ func (s *Server) version(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
 		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
+		}
+
 	}
 
 	type fEntry struct {
@@ -700,6 +766,12 @@ func (s *Server) loadObjectID(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -711,6 +783,12 @@ func (s *Server) loadObjectID(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
 		}
 	}
 	s.displayObject(c)
@@ -736,6 +814,13 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 		return
 	}
+	if s.obfuscate {
+		if err := s.metadata.Obfuscate(); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+			return
+		}
+	}
+
 	c.Redirect(http.StatusPermanentRedirect, s.urlExt.String()+fmt.Sprintf("/object/id/%s", url.PathEscape(s.object.GetID())))
 	//	s.displayObject(c)
 }
@@ -831,6 +916,13 @@ func (s *Server) report(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
 			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
+
 		}
 	} else {
 		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
@@ -843,6 +935,13 @@ func (s *Server) report(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
 		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
+		}
+
 	}
 
 	if s.metadata == nil {

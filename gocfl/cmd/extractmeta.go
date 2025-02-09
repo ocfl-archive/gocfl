@@ -36,6 +36,7 @@ func initExtractMeta() {
 	extractMetaCmd.Flags().String("version", "latest", "version to extract")
 	extractMetaCmd.Flags().String("format", "json", "output format (json)")
 	extractMetaCmd.Flags().String("output", "", "output file (default stdout)")
+	extractMetaCmd.Flags().Bool("obfuscate", false, "obfuscate metadata")
 }
 
 func doExtractMetaConf(cmd *cobra.Command) {
@@ -56,6 +57,9 @@ func doExtractMetaConf(cmd *cobra.Command) {
 	}
 	if str := getFlagString(cmd, "output"); str != "" {
 		conf.ExtractMeta.Output = str
+	}
+	if b := getFlagBool(cmd, "obfuscate"); b {
+		conf.ExtractMeta.Obfuscate = b
 	}
 }
 
@@ -161,6 +165,13 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		fmt.Printf("cannot extract metadata from storage root: %v\n", err)
 		logger.Error().Stack().Err(err).Msg("cannot extract metadata from storage root")
 		return
+	}
+	if conf.ExtractMeta.Obfuscate {
+		if err := metadata.Obfuscate(); err != nil {
+			fmt.Printf("cannot obfuscate metadata: %v\n", err)
+			logger.Error().Stack().Err(err).Msg("cannot obfuscate metadata")
+			return
+		}
 	}
 
 	jsonBytes, err := json.MarshalIndent(metadata, "", "  ")

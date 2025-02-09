@@ -49,6 +49,7 @@ func initDisplay() {
 	displayCmd.Flags().StringP("display-templates", "t", "", "path to templates")
 	displayCmd.Flags().StringP("display-tls-cert", "c", "", "path to tls certificate")
 	displayCmd.Flags().StringP("display-tls-key", "k", "", "path to tls certificate key")
+	displayCmd.Flags().Bool("obfuscate", false, "obfuscate metadata")
 }
 
 func doDisplayConf(cmd *cobra.Command) {
@@ -66,6 +67,9 @@ func doDisplayConf(cmd *cobra.Command) {
 	}
 	if str := getFlagString(cmd, "display-tls-key"); str != "" {
 		conf.Display.KeyFile = str
+	}
+	if b := getFlagBool(cmd, "obfuscate"); b {
+		conf.Display.Obfuscate = b
 	}
 }
 
@@ -165,7 +169,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	} else {
 		templateFS = os.DirFS(conf.Display.Templates)
 	}
-	srv, err := display.NewServer(storageRoot, "gocfl", conf.Display.Addr, urlC, displaydata.WebRoot, templateFS, (logger), io.Discard)
+	srv, err := display.NewServer(storageRoot, "gocfl", conf.Display.Addr, urlC, displaydata.WebRoot, templateFS, conf.Display.Obfuscate, logger, io.Discard)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create server")
 		return
