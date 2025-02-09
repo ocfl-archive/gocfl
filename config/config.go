@@ -48,6 +48,7 @@ type DisplayConfig struct {
 	CertFile  string
 	KeyFile   string
 	Templates string
+	Obfuscate bool
 }
 
 type ExtractConfig struct {
@@ -69,6 +70,7 @@ type ExtractMetaConfig struct {
 	Output     string
 	ObjectPath string
 	ObjectID   string
+	Obfuscate  bool
 }
 
 type StatConfig struct {
