@@ -554,14 +554,14 @@ func (object *ObjectBase) echoDelete() error {
 }
 
 func (object *ObjectBase) Close() error {
-	object.logger.Info().Any(
-		object.errorFactory.LogError(
-			ErrorOCFL,
-			fmt.Sprintf("object '%s' not writeable", object.GetID()),
-			nil,
-		),
-	).Msg("")
 	if !(object.i.IsWriteable()) {
+		object.logger.Info().Any(
+			object.errorFactory.LogError(
+				ErrorOCFL,
+				fmt.Sprintf("object '%s' not writeable", object.GetID()),
+				nil,
+			),
+		).Msg("")
 		return nil
 	}
 
