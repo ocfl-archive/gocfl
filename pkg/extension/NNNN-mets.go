@@ -496,7 +496,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						XMLName:          xml.Name{},
 						CompositionLevel: nil,
 						Fixity: []*premis.FixityComplexType{
-							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+version.VERSION),
+							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+version.Version),
 						},
 						Size:   int64(extIndexer.Size),
 						Format: []*premis.FormatComplexType{},
@@ -563,7 +563,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 					}
 					for digest, checksum := range metaFile.Checksums {
 						objectCharacter.Fixity = append(objectCharacter.Fixity,
-							premis.NewFixityComplexType(string(digest), checksum, "gocfl "+version.VERSION),
+							premis.NewFixityComplexType(string(digest), checksum, "gocfl "+version.Version),
 						)
 					}
 					if extIndexer != nil {
@@ -1053,7 +1053,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						AgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 					}},
 				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", version.VERSION), "", "", ""),
+					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", version.Version), "", "", ""),
 				},
 			},
 		},
@@ -1252,7 +1252,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 						Note: []*mets.Note{
 							&mets.Note{
 								XMLName: xml.Name{},
-								Value:   fmt.Sprintf("Version %s", version.VERSION),
+								Value:   fmt.Sprintf("Version %s", version.Version),
 							},
 						},
 					},
