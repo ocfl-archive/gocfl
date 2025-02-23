@@ -18,6 +18,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"golang.org/x/exp/maps"
 	"html/template"
 	"io"
 	"io/fs"
@@ -25,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -46,6 +48,7 @@ type Server struct {
 	metadata       *ocfl.ObjectMetadata
 	templateFS     fs.FS
 	obfuscate      bool
+	objectFS       http.FileSystem
 }
 
 func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS, templateFS fs.FS, obfuscate bool, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
@@ -116,6 +119,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.HTMLRender = mt
 	route.GET("/", s.storageroot)
 	//	route.GET("/:id", s.dashboard)
+
 	route.GET("/object/id/:id", s.loadObjectID)
 	route.GET("/object/id/:id/manifest", s.manifest)
 	route.GET("/object/id/:id/version/:version", s.version)
@@ -124,6 +128,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id/download/:checksum/:filename", s.download)
 	route.GET("/object/id/:id/extension/:extension/download/*path", s.downloadExtFile)
 	route.GET("/object/folder/*path", s.loadObjectPath)
+	route.GET("/object/id/:id/browse/*path", s.loadObjectBrowser)
 
 	route.StaticFS("/static", http.FS(s.dataFS))
 
@@ -889,6 +894,156 @@ func (s *Server) displayObject(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "object.gohtml", gin.H(params))
+}
+
+func (s *Server) loadObjectBrowser(c *gin.Context) {
+	var err error
+	type idParam struct {
+		ID string `uri:"id" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
+	if s.object != nil && s.object.GetID() == iop.ID {
+		// already loaded
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
+		}
+	}
+	if s.objectFS == nil {
+		objectFS, err := NewObjectFS(s.object)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get filesystem for object %s", s.object.GetID()).Error()})
+			return
+		}
+		s.objectFS = http.FS(objectFS)
+	}
+	s.displayObjectBrowse(c)
+}
+func (s *Server) displayObjectBrowse(c *gin.Context) {
+	path := c.Param("path")
+	c.FileFromFS(path, s.objectFS)
+
+}
+
+func (s *Server) loadObjectContentRoot(c *gin.Context) {
+	var err error
+	type idParam struct {
+		ID string `uri:"id" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
+	if s.object != nil && s.object.GetID() == iop.ID {
+		// already loaded
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
+		}
+	}
+	s.displayObjectContentRoot(c)
+}
+
+func (s *Server) displayObjectContentRoot(c *gin.Context) {
+	if s.metadata == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no metadata loaded"})
+		return
+	}
+	// currURL := strings.TrimSuffix(c.Request.URL.String(), "/") + "/"
+	currURL := c.Request.URL.String()
+	versions := maps.Keys(s.metadata.Versions)
+	sort.Strings(versions)
+	c.Header("Content-Type", "text/html")
+	head := fmt.Sprintf(
+		`<html>
+<head><title>%s</title></head>
+<body>
+   <ul>
+`,
+		s.metadata.ID)
+	io.WriteString(c.Writer, head)
+	latestStr, _ := url.JoinPath(currURL, "latest")
+	for _, version := range versions {
+		var str string
+		versionStr, _ := url.JoinPath(currURL, version)
+		if version == s.metadata.Head {
+			str = fmt.Sprintf(`<li><a href="%s">%s</a> (<a href="%s">latest</a>)</li>`, versionStr, version, latestStr)
+		} else {
+			str = fmt.Sprintf(`<li><a href="%s">%s</a></li>`, versionStr, version)
+		}
+		io.WriteString(c.Writer, str)
+	}
+	footer := `</ul>
+</body>
+</html>`
+	io.WriteString(c.Writer, footer)
 }
 
 func (s *Server) report(c *gin.Context) {

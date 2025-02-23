@@ -358,7 +358,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 		sourceFS,
 		area,
 		areaPaths,
-		false)
+		false,
+		logger,
+	)
 	if err != nil {
 		logger.Panic().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
 	}
