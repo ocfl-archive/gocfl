@@ -273,7 +273,9 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		sourceFS,
 		area,
 		areaPaths,
-		conf.Update.Echo)
+		conf.Update.Echo,
+		logger,
+	)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot content to storageroot filesystem '%s'", destFS)
 		doNotClose = true

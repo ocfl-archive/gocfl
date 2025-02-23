@@ -103,6 +103,7 @@
                     {{ range $ver, $content := .versions }}
                     <li class="nav-item"><a href="../id/{{ $root.id | PathEscape }}/version/{{ $ver }}" class="nav-link rounded">Version {{ $ver }}</a></li>
                     {{ end }}
+                    <li class="nav-item"><a href="../id/{{ .id | PathEscape }}/browse" class="nav-link rounded">Data Browser</a></li>
                     <li class="nav-item"><a target="_blank" href="../id/{{ .id | PathEscape }}/report" class="nav-link rounded">Short Report</a></li>
                     <li class="nav-item"><a target="_blank" href="../id/{{ .id | PathEscape }}/report?full" class="nav-link rounded">Full Report</a></li>
                 </ul>
