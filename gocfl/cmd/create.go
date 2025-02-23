@@ -14,6 +14,7 @@ import (
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
@@ -362,7 +363,11 @@ func doCreate(cmd *cobra.Command, args []string) {
 		logger,
 	)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
+		if aerr := archiveerror.GetError(err); aerr != nil {
+			logger.Panic().Any(ErrorFactory.GetLogName(), aerr).Msg("cannot add content to storage root")
+		} else {
+			logger.Panic().Stack().Err(err).Msg("cannot add content to storage root")
+		}
 	}
 	_ = showStatus(ctx, logger)
 
