@@ -41,7 +41,7 @@ makes sure, that ro-crate-metadata.json is available and can be used for further
     * **Default:**
 
 * **Name:** `metafilename`
-    * **Description:** the name of the metadata file. Extension MUST be `.json`. If empty, no metafile will be created
+    * **Description:** the name of the metadata file. Extension MUST be `.json`. If empty, no metafile will be created. This name MUST be the same as in [NNNN-metafile](NNNN-metafile.md). 
     * **Type:** string
     * **Default:** `info.json`
 
