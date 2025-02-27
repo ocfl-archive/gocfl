@@ -101,6 +101,12 @@ Attributes."xmlns:mets" = "^https?://www.loc.gov/METS/?$"
 Type = "metadata"
 Subtype = "METS"
 Mime = "application/xml"
+[Indexer.XML.Format.mei]
+Regexp = true
+Attributes."xmlns" = "^https?://www.music-encoding.org/ns/mei/?$"
+Type = "audio"
+Subtype = "mei"
+Mime = "application/xml"
 
 [Indexer.Siegfried]
 Enabled=true
@@ -237,6 +243,13 @@ Title = "Spectrogram from Audio"
 Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
 Timeout = "2m"
 Mime = ["audio/.+"]
+
+[Thumbnail.Function.MEI]
+ID = "MEI#01"
+Title = "PNG from MEI"
+Command = "ffmpeg.exe -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Types = ["audio/mei"]
 
 [Thumbnail.Function.PDF]
 ID = "PDF#01"

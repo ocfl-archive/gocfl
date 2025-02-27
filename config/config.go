@@ -91,6 +91,7 @@ type ThumbnailFunction struct {
 	Timeout configutil.Duration
 	Pronoms []string
 	Mime    []string
+	Types   []string
 }
 
 type Thumbnail struct {

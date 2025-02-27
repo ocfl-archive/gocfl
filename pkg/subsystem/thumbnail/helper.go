@@ -44,12 +44,20 @@ func GetThumbnails(conf *config.GOCFLConfig) (*Thumbnail, error) {
 			return nil, errors.Wrapf(err, "cannot parse timeout of Thumbnail.Function.%s", name)
 		}
 		var mimeRes = []*regexp.Regexp{}
+		var typeRes = []*regexp.Regexp{}
 		for _, mime := range fn.Mime {
 			re, err := regexp.Compile(mime)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
 			}
 			mimeRes = append(mimeRes, re)
+		}
+		for _, t := range fn.Types {
+			re, err := regexp.Compile(t)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
+			}
+			typeRes = append(typeRes, re)
 		}
 		var pronoms []string
 		for _, pro := range fn.Pronoms {
@@ -64,6 +72,7 @@ func GetThumbnails(conf *config.GOCFLConfig) (*Thumbnail, error) {
 			timeout: time.Duration(timeout),
 			pronoms: pronoms,
 			mime:    mimeRes,
+			types:   typeRes,
 		}
 	}
 	return m, nil

@@ -29,11 +29,10 @@ type Function struct {
 	id      string
 	pronoms []string
 	mime    []*regexp.Regexp
+	types   []*regexp.Regexp
 }
 
 func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger zLogger.ZLogger) error {
-	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
-	defer cancel()
 	args := []string{}
 	for _, arg := range f.args {
 		arg = strings.ReplaceAll(arg, "{source}", filepath.ToSlash(source))
@@ -44,9 +43,15 @@ func (f *Function) Thumbnail(source string, dest string, width uint64, height ui
 		args = append(args, arg)
 	}
 	logger.Debug().Msgf("%s %v", f.command, args)
+	ctx, cancel := context.WithTimeout(context.Background(), f.timeout*1000)
+	defer cancel()
 	cmd := exec.CommandContext(ctx, f.command, args...)
 	cmd.Dir = filepath.Dir(source)
-	return errors.Wrapf(cmd.Run(), "cannot run command '%s %s'", f.command, strings.Join(args, " "))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "cannot run command '%s %s' - %s", f.command, strings.Join(args, " "), string(output))
+	}
+	return nil
 }
 
 func (f *Function) GetID() string {
@@ -90,4 +95,16 @@ func (m *Thumbnail) GetFunctionByMimetype(mime string) (*Function, error) {
 
 func (m *Thumbnail) SetSourceFS(fs fs.FS) {
 	m.SourceFS = fs
+}
+
+func (m *Thumbnail) GetFunctionByType(t string) (*Function, error) {
+	for _, f := range m.Functions {
+		for _, re := range f.types {
+			if re.MatchString(t) {
+				return f, nil
+			}
+		}
+	}
+	return nil, errors.Errorf("Thumbnail.Source.%s does not exist", t)
+
 }

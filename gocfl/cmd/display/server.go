@@ -1122,6 +1122,13 @@ func (s *Server) report(c *gin.Context) {
 		numFiles += len(v.InternalName)
 		_fs, _ := v.Extension[extension.FilesystemName]
 		_idx, _ := v.Extension[extension.IndexerName]
+		if _thumb, ok := v.Extension[extension.ThumbnailName]; ok {
+			if thumb, ok := _thumb.(extension.ThumbnailResult); ok {
+				if len(thumb.SourceDigest) > 0 {
+					continue
+				}
+			}
+		}
 		var fs map[string]any
 		var idx *indexer.ResultV2
 		var ok bool
@@ -1284,6 +1291,13 @@ func (s *Server) report(c *gin.Context) {
 	}
 
 	for _, file := range s.metadata.Files {
+		if _thumb, ok := file.Extension[extension.ThumbnailName]; ok {
+			if thumb, ok := _thumb.(extension.ThumbnailResult); ok {
+				if len(thumb.SourceDigest) > 0 {
+					continue
+				}
+			}
+		}
 		for _, files := range file.VersionName {
 			for _, filename := range files {
 				filenames = append(filenames, filename)
@@ -1318,13 +1332,20 @@ func (s *Server) report(c *gin.Context) {
 	flattenTree(tree)
 
 	var files = map[string]*ocfl.FileMetadata{}
-	if full {
-		files = s.metadata.Files
-	}
 	var filesNoData int64
-	for _, file := range s.metadata.Files {
+	for key, file := range s.metadata.Files {
+		if _thumb, ok := file.Extension[extension.ThumbnailName]; ok {
+			if thumb, ok := _thumb.(extension.ThumbnailResult); ok {
+				if len(thumb.SourceDigest) > 0 {
+					continue
+				}
+			}
+		}
 		if file.Extension[extension.IndexerName] == nil && file.Extension[extension.FilesystemName] == nil {
 			filesNoData++
+		}
+		if full {
+			files[key] = file
 		}
 	}
 

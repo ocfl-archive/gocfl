@@ -367,7 +367,10 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 			if err != nil {
 				thumbnailFunction, err = thumb.thumbnail.GetFunctionByMimetype(indexerMeta.Mimetype)
 				if err != nil {
-					continue
+					thumbnailFunction, err = thumb.thumbnail.GetFunctionByType(strings.ToLower(fmt.Sprintf("%s/%s", indexerMeta.Type, indexerMeta.Subtype)))
+					if err != nil {
+						continue
+					}
 				}
 			}
 
@@ -378,18 +381,28 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 				file, err = fsys.Open(m.InternalName[0])
 				if err != nil {
 					file = nil
+				} else {
+					thumb.logger.Info().Any(
+						thumb.errorFactory.LogError(
+							ErrorThumbnailExtension,
+							fmt.Sprintf("create thumbnail for %s", m.InternalName[0]),
+							nil,
+						),
+					).Msg("")
 				}
 				ext = filepath.Ext(m.InternalName[0])
 			}
 			if file == nil {
 				if thumb.sourceFS != nil {
-					thumb.logger.Info().Any(
-						thumb.errorFactory.LogError(
-							ErrorThumbnailExtension,
-							fmt.Sprintf("create thumbnail for %s", m.InternalName[0]),
-							err,
-						),
-					).Msg("")
+					/*
+						thumb.logger.Info().Any(
+							thumb.errorFactory.LogError(
+								ErrorThumbnailExtension,
+								fmt.Sprintf("create thumbnail for %s", m.InternalName[0]),
+								err,
+							),
+						).Msg("")
+					*/
 					stateFiles, err := inventory.GetStateFiles("", cs)
 					if err != nil {
 						return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
@@ -403,8 +416,24 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 					}
 					file, err = thumb.sourceFS.Open(external)
 					if err != nil {
+						thumb.logger.Error().Any(
+							thumb.errorFactory.LogError(
+								ErrorThumbnailExtension,
+								fmt.Sprintf("create thumbnail for %s", external),
+								err,
+							),
+						).Msg("")
 						continue
 						// return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", thumb.sourceFS, external)
+					} else {
+						thumb.logger.Info().Any(
+							thumb.errorFactory.LogError(
+								ErrorThumbnailExtension,
+								fmt.Sprintf("create thumbnail for %s", external),
+								nil,
+							),
+						).Msg("")
+
 					}
 					ext = filepath.Ext(external)
 				}

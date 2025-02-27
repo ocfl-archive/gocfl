@@ -145,12 +145,12 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	t := startTimer()
 	defer func() {
-		ErrorFactory.LogSetError(logger.Error().Stack(), ErrorFactory.NewError(
+		ErrorFactory.LogSetError(logger.Info(), ErrorFactory.NewError(
 			ErrorGOCFL,
 			fmt.Sprintf("duration: %s", t.String()),
-			err,
+			nil,
 		),
-		).Msg("")
+		).Msg("finished")
 	}()
 
 	var fixityAlgs = []checksum.DigestAlgorithm{}
