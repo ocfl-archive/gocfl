@@ -179,7 +179,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() {
 		logger.Info().Any(
-			ErrorFactory.LogError(
+			errorTopic,
+			ErrorFactory.NewError(
 				ErrorGOCFL,
 				fmt.Sprintf("duration: %s", t.String()),
 				err,
@@ -204,7 +205,8 @@ func doAdd(cmd *cobra.Command, args []string) {
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, conf.Add.NoCompress, false, logger)
 	if err != nil {
 		logger.Debug().Stack().Any(
-			ErrorFactory.LogError(
+			errorTopic,
+			ErrorFactory.NewError(
 				ErrorFS,
 				"cannot create filesystem factory",
 				err,

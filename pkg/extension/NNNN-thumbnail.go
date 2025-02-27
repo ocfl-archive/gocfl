@@ -277,7 +277,8 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *
 	defer func() {
 		if err := os.Remove(tmpFilename); err != nil {
 			thumb.logger.Warn().Any(
-				thumb.errorFactory.LogError(
+				errorTopic,
+				thumb.errorFactory.NewError(
 					ErrorThumbnailExtension,
 					fmt.Sprintf("cannot remove temp file '%s'", tmpFilename),
 					err,
@@ -286,7 +287,8 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *
 		}
 		if err := os.Remove(targetTempName); err != nil {
 			thumb.logger.Warn().Any(
-				thumb.errorFactory.LogError(
+				errorTopic,
+				thumb.errorFactory.NewError(
 					ErrorThumbnailExtension,
 					fmt.Sprintf("cannot remove temp file '%s'", targetTempName),
 					err,
@@ -305,7 +307,8 @@ func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *
 	defer func() {
 		if err := mFile.Close(); err != nil {
 			thumb.logger.Error().Any(
-				thumb.errorFactory.LogError(
+				errorTopic,
+				thumb.errorFactory.NewError(
 					ErrorThumbnailExtension,
 					fmt.Sprintf("cannot close file '%s'", targetTempName),
 					err,

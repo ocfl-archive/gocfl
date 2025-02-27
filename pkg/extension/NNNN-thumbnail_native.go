@@ -58,7 +58,8 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	img, format, err := image.Decode(reader)
 	if err != nil {
 		thumb.logger.Info().Any(
-			thumb.errorFactory.LogError(
+			errorTopic,
+			thumb.errorFactory.NewError(
 				ErrorThumbnailExtension,
 				fmt.Sprintf("cannot decode image '%s'", stateFiles[0]),
 				err,
@@ -192,7 +193,8 @@ func (thumb *Thumbnail) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source 
 			if err == nil {
 				if err := pw.Close(); err != nil {
 					thumb.logger.Error().Any(
-						thumb.errorFactory.LogError(
+						errorTopic,
+						thumb.errorFactory.NewError(
 							ErrorThumbnailExtension,
 							"cannot close pipe",
 							err,
@@ -202,7 +204,8 @@ func (thumb *Thumbnail) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source 
 			} else {
 				if err := pw.CloseWithError(errors.Wrap(err, "cannot encode image")); err != nil {
 					thumb.logger.Error().Any(
-						thumb.errorFactory.LogError(
+						errorTopic,
+						thumb.errorFactory.NewError(
 							ErrorThumbnailExtension,
 							"cannot close pipe",
 							err,

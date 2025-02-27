@@ -747,7 +747,8 @@ func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *Nam
 		checksums, err = checksum.Copy(digestAlgorithms, r, writer, pw)
 		if err := pw.Close(); err != nil {
 			object.logger.Error().Any(
-				object.errorFactory.LogError(
+				errorTopic,
+				object.errorFactory.NewError(
 					ErrorOCFL,
 					"cannot close pipe writer",
 					err,
@@ -1435,7 +1436,8 @@ func (object *ObjectBase) Check() error {
 						object.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						object.logger.Error().Any(
-							object.errorFactory.LogError(
+							errorTopic,
+							object.errorFactory.NewError(
 								ErrorOCFL,
 								"",
 								err2,

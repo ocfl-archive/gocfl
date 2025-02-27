@@ -97,7 +97,10 @@ var flagObjectID string
 var flagStatInfo = []string{}
 
 var conf *config.GOCFLConfig
-var ErrorFactory = archiveerror.NewFactory("gocfl")
+
+const errorTopic string = "gocfl"
+
+var ErrorFactory = archiveerror.NewFactory(errorTopic)
 
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 

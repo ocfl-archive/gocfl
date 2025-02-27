@@ -49,7 +49,8 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	img, err := vips.NewImageFromReader(reader)
 	if err != nil {
 		thumb.logger.Info().Any(
-			thumb.errorFactory.LogError(
+			errorTopic,
+			thumb.errorFactory.NewError(
 				ErrorThumbnailExtension,
 				fmt.Sprintf("cannot decode image '%s'", stateFiles[0]),
 				err,
@@ -91,7 +92,8 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	scale := float64(newHeight) / float64(height)
 	if err := img.Resize(scale, vips.KernelLanczos3); err != nil {
 		thumb.logger.Info().Any(
-			thumb.errorFactory.LogError(
+			errorTopic,
+			thumb.errorFactory.NewError(
 				ErrorThumbnailExtension,
 				fmt.Sprintf("cannot resize image '%s'", stateFiles[0]),
 				err,

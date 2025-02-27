@@ -199,7 +199,7 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 		if sl.indexerURL != nil && sl.indexerURL.String() != "" {
 			result, code, err := sl.post("{}")
 			if err != nil {
-				_, factoryErr := sl.errorFactory.LogError(
+				factoryErr := sl.errorFactory.NewError(
 					errorExtensionConfig,
 					fmt.Sprintf("cannot post to '%s'", urlString),
 					err,
@@ -207,7 +207,7 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 				return factoryErr
 			}
 			if code != http.StatusBadRequest {
-				_, factoryErr := sl.errorFactory.LogError(
+				factoryErr := sl.errorFactory.NewError(
 					errorExtensionConfig,
 					fmt.Sprintf("cannot post to '%s' - %v:'%s'", urlString, code, result),
 					nil,
@@ -220,7 +220,7 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 		return nil
 	}
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig,
 			fmt.Sprintf("cannot parse '%s' '%s'", name, urlString),
 			err,
@@ -231,7 +231,7 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 
 	result, code, err := sl.post("")
 	if err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig,
 			fmt.Sprintf("cannot post to '%s'", urlString),
 			err,
@@ -239,7 +239,7 @@ func (sl *Indexer) SetParams(params map[string]string) error {
 		return factoryErr
 	}
 	if code != http.StatusBadRequest {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig,
 			fmt.Sprintf("cannot post to '%s' - %v:'%s'", urlString, code, result),
 			nil,
@@ -256,14 +256,14 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 	const statusErr int = 0
 
 	if !(sl.indexerURL != nil && sl.indexerURL.String() != "") {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner, "indexer url not set", nil,
 		)
 		return nil, statusErr, factoryErr
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner,
 			fmt.Sprintf("cannot marshal %v", data),
 			err,
@@ -272,7 +272,7 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 	}
 	resp, err := http.Post(sl.indexerURL.String(), "test/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner,
 			fmt.Sprintf("cannot post %v to %s", data, sl.indexerURL),
 			err,
@@ -282,7 +282,7 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 	defer resp.Body.Close()
 	result, err := io.ReadAll(resp.Body)
 	if err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner,
 			fmt.Sprintf("cannot read result of post %v to %s", data, sl.indexerURL),
 			err,
@@ -294,14 +294,14 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 
 func (sl *Indexer) WriteConfig() error {
 	if sl.fsys == nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig, "no filesystem set", nil,
 		)
 		return factoryErr
 	}
 	configWriter, err := writefs.Create(sl.fsys, "config.json")
 	if err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig, "cannot open config.json", err,
 		)
 		return factoryErr
@@ -310,7 +310,7 @@ func (sl *Indexer) WriteConfig() error {
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
 	if err := jenc.Encode(sl.IndexerConfig); err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig, "cannot encode config to file", err,
 		)
 		return factoryErr
@@ -324,7 +324,7 @@ func (sl *Indexer) UpdateObjectBefore(object ocfl.Object) error {
 
 func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	if sl.indexerActions == nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig, "please enable indexer in config file", nil,
 		)
 		return factoryErr
@@ -333,20 +333,20 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 		return nil
 	}
 	if err := sl.writer.Flush(); err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner, "cannot flush brotli writer", err,
 		)
 		return factoryErr
 	}
 	if err := sl.writer.Close(); err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner, "cannot close brotli writer", err,
 		)
 		return factoryErr
 	}
 	head := object.GetInventory().GetHead()
 	if head == "" {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner,
 			fmt.Sprintf("no head for object '%s'", object.GetID()),
 			nil,
@@ -366,7 +366,7 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 		sl.StorageName,
 		sl.fsys,
 	); err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner, "cannot write jsonl", err,
 		)
 		return factoryErr
@@ -396,7 +396,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
 			data, err = io.ReadAll(reader)
 			if err != nil {
-				_, factoryErr := sl.errorFactory.LogError(
+				factoryErr := sl.errorFactory.NewError(
 					errorExtensionRunner,
 					fmt.Sprintf("cannot read buffer for '%s' '%s'", object.GetID(), v),
 					err,
@@ -406,7 +406,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 		} else {
 			data, err = ocfl.ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
 			if err != nil {
-				_, factoryErr := sl.errorFactory.LogError(
+				factoryErr := sl.errorFactory.NewError(
 					errorExtensionRunner,
 					fmt.Sprintf("cannot read jsonl for '%s' version '%s'", object.GetID(), v),
 					err,
@@ -423,7 +423,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			line := r.Text()
 			var meta = indexerLine{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				_, factoryErr := sl.errorFactory.LogError(
+				factoryErr := sl.errorFactory.NewError(
 					errorExtensionRunner,
 					fmt.Sprintf("cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line),
 					err,
@@ -433,7 +433,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 			result[path2digest[meta.Path]] = meta.Indexer
 		}
 		if err := r.Err(); err != nil {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner,
 				fmt.Sprintf("cannot scan lines for '%s' %s", object.GetID(), v),
 				err,
@@ -500,7 +500,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 		return nil
 	}
 	if sl.indexerActions == nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionConfig,
 			"please enable indexer in config file",
 			nil,
@@ -522,28 +522,28 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 	var err error
 	if sl.localCache {
 		if len(stateFiles) == 0 {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner, "no statefiles", nil,
 			)
 			return factoryErr
 		}
 		tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+filepath.Ext(stateFiles[0]))
 		if err != nil {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner, "cannot create temp file", err,
 			)
 			return factoryErr
 		}
 		fi, err := tmpFile.Stat()
 		if err != nil {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner, "cannot stat tempfile", err,
 			)
 			return factoryErr
 		}
 		tmpFilename := filepath.ToSlash(filepath.Join(os.TempDir(), fi.Name()))
 		if _, err := io.Copy(tmpFile, reader); err != nil {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner, "cannot write to tempfile", err,
 			)
 			return factoryErr
@@ -555,7 +555,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 		result, err = sl.indexerActions.Stream(reader, stateFiles, sl.Actions)
 	}
 	if err != nil {
-		_, factoryErr := sl.errorFactory.LogError(
+		factoryErr := sl.errorFactory.NewError(
 			errorExtensionRunner,
 			fmt.Sprintf("cannot index '%s'", stateFiles),
 			err,
@@ -573,7 +573,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 		}
 		data, err := json.Marshal(indexerline)
 		if err != nil {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner,
 				fmt.Sprintf("cannot marshal result %v", indexerline),
 				nil,
@@ -581,7 +581,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 			return factoryErr
 		}
 		if _, err := sl.writer.Write(append(data, []byte("\n")...)); err != nil {
-			_, factoryErr := sl.errorFactory.LogError(
+			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner,
 				fmt.Sprintf("cannot brotli %s", string(data)),
 				nil,

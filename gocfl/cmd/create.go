@@ -322,7 +322,8 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {
 			logger.Error().Stack().Any(
-				ErrorFactory.LogError(
+				errorTopic,
+				ErrorFactory.NewError(
 					ErrorFS,
 					fmt.Sprintf("cannot close filesystem '%s'", destFS),
 					err,

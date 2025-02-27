@@ -73,7 +73,7 @@ func InitExtensionFactory(
 
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
-		_, err = ErrorFactory.LogError(ErrorExtensionInitErr, "cannot instantiate extension factory", err)
+		err = ErrorFactory.NewError(ErrorExtensionInitErr, "cannot instantiate extension factory", err)
 		return nil, err
 	}
 
@@ -153,7 +153,7 @@ func InitExtensionFactory(
 			fsys, indexerAddr, indexerActions, indexerLocalCache, logger, ErrorFactory,
 		)
 		if err != nil {
-			_, err = ErrorFactory.LogError(ErrorExtensionInitErr, "cannot create new indexer from filesystem", err)
+			err = ErrorFactory.NewError(ErrorExtensionInitErr, "cannot create new indexer from filesystem", err)
 			return nil, err
 		}
 		return ext, nil
@@ -217,7 +217,7 @@ func initDefaultExtensions(
 	} else {
 		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder, true, logger)
 		if err != nil {
-			_, err = ErrorFactory.LogError(
+			err = ErrorFactory.NewError(
 				ErrorExtensionInitErr,
 				fmt.Sprintf("cannot create filesystem for storage root extensions folder %v", storageRootExtensionsFolder),
 				err,
@@ -230,7 +230,7 @@ func initDefaultExtensions(
 	} else {
 		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder, true, logger)
 		if err != nil {
-			_, err = ErrorFactory.LogError(
+			err = ErrorFactory.NewError(
 				ErrorExtensionInitErr,
 				fmt.Sprintf("cannot create filesystem for object extensions folder %v", objectExtensionsFolder),
 				err,
@@ -240,7 +240,7 @@ func initDefaultExtensions(
 	}
 	storageRootExtensions, err = extensionFactory.LoadExtensions(dStorageRootExtDirFS, nil)
 	if err != nil {
-		_, err = ErrorFactory.LogError(
+		err = ErrorFactory.NewError(
 			ErrorExtensionInitErr,
 			fmt.Sprintf("cannot load extension folder %v", dStorageRootExtDirFS),
 			err,
@@ -249,7 +249,7 @@ func initDefaultExtensions(
 	}
 	objectExtensions, err = extensionFactory.LoadExtensions(dObjectExtDirFS, nil)
 	if err != nil {
-		_, err = ErrorFactory.LogError(
+		err = ErrorFactory.NewError(
 			ErrorExtensionInitErr,
 			fmt.Sprintf("cannot load extension folder %v", dObjectExtDirFS),
 			err,
@@ -273,7 +273,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 
 	fsFactory, err := writefs.NewFactory()
 	if err != nil {
-		_, err = ErrorFactory.LogError(
+		err = ErrorFactory.NewError(
 			ErrorFS, "cannot create filesystem factory", err,
 		)
 		return nil, err
@@ -281,7 +281,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 
 	if readOnly {
 		if err := fsFactory.Register(zipfs.NewCreateFSFunc(logger), "\\.zip$", writefs.HighFS); err != nil {
-			_, err = ErrorFactory.LogError(
+			err = ErrorFactory.NewError(
 				ErrorFS, "cannot register zipfs", err,
 			)
 			return nil, err
@@ -291,7 +291,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 		if aesConfig.Enable {
 			db, err := keepass2kms.LoadKeePassDBFromFile(string(aesConfig.KeepassFile), string(aesConfig.KeepassKey))
 			if err != nil {
-				_, err = ErrorFactory.LogError(
+				err = ErrorFactory.NewError(
 					ErrorFS,
 					fmt.Sprintf("cannot load keepass file '%s'", aesConfig.KeepassFile),
 					err,
@@ -300,7 +300,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 			}
 			client, err := keepass2kms.NewClient(db, filepath.Base(string(aesConfig.KeepassFile)))
 			if err != nil {
-				_, err = ErrorFactory.LogError(
+				err = ErrorFactory.NewError(
 					ErrorFS,
 					"cannot create keepass2kms client",
 					err,
@@ -310,7 +310,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 			registry.RegisterKMSClient(client)
 
 			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(noCompression, zipDigests, string(aesConfig.KeepassEntry), logger), "\\.zip$", writefs.HighFS); err != nil {
-				_, err = ErrorFactory.LogError(
+				err = ErrorFactory.NewError(
 					ErrorFS,
 					"cannot register FSEncryptedChecksum",
 					err,
@@ -319,7 +319,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 			}
 		} else {
 			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(noCompression, zipDigests, logger), "\\.zip$", writefs.HighFS); err != nil {
-				_, err = ErrorFactory.LogError(
+				err = ErrorFactory.NewError(
 					ErrorFS,
 					"cannot register FSChecksum",
 					err,
@@ -329,7 +329,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 		}
 	}
 	if err := fsFactory.Register(osfsrw.NewCreateFSFunc(logger), "", writefs.LowFS); err != nil {
-		_, err = ErrorFactory.LogError(
+		err = ErrorFactory.NewError(
 			ErrorFS, "cannot register osfs", err,
 		)
 		return nil, err
@@ -355,7 +355,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 			s3fsrw.ARNRegexStr,
 			writefs.MediumFS,
 		); err != nil {
-			_, err = ErrorFactory.LogError(
+			err = ErrorFactory.NewError(
 				ErrorFS,
 				"cannot register s3fs",
 				err,
@@ -371,7 +371,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	status, err := ocfl.GetValidationStatus(ctx)
 	if err != nil {
-		_, err = ErrorFactory.LogError(ErrorValidationStatus, "cannot get status of validation", err)
+		err = ErrorFactory.NewError(ErrorValidationStatus, "cannot get status of validation", err)
 		return err
 	}
 	status.Compact()
@@ -434,12 +434,14 @@ func addObjectByPath(
 	var o ocfl.Object
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
-		logger.Error().Any(ErrorFactory.LogError(
-			ErrorOCFLCreation,
-			fmt.Sprintf("cannot check for existence of %s", id),
-			err,
-		)).Msg("")
-		_, err = ErrorFactory.LogError(
+		logger.Error().Any(
+			errorTopic,
+			ErrorFactory.NewError(
+				ErrorOCFLCreation,
+				fmt.Sprintf("cannot check for existence of %s", id),
+				err,
+			)).Msg("")
+		err = ErrorFactory.NewError(
 			ErrorOCFLCreation,
 			fmt.Sprintf("cannot check for existence of %s", id),
 			err,
@@ -449,12 +451,14 @@ func addObjectByPath(
 	if exists {
 		o, err = storageRoot.LoadObjectByID(id)
 		if err != nil {
-			logger.Error().Any(ErrorFactory.LogError(
-				ErrorOCFLCreation,
-				fmt.Sprintf("cannot load object %s", id),
-				err,
-			)).Msg("")
-			_, err = ErrorFactory.LogError(
+			logger.Error().Any(
+				errorTopic,
+				ErrorFactory.NewError(
+					ErrorOCFLCreation,
+					fmt.Sprintf("cannot load object %s", id),
+					err,
+				)).Msg("")
+			err = ErrorFactory.NewError(
 				ErrorOCFLCreation,
 				fmt.Sprintf("cannot load object %s", id),
 				err,
@@ -469,12 +473,14 @@ func addObjectByPath(
 	} else {
 		o, err = storageRoot.CreateObject(id, storageRoot.GetVersion(), storageRoot.GetDigest(), fixity, extensionManager)
 		if err != nil {
-			logger.Error().Any(ErrorFactory.LogError(
-				ErrorOCFLCreation,
-				fmt.Sprintf("cannot create object %s", id),
-				err,
-			)).Msg("")
-			_, err = ErrorFactory.LogError(
+			logger.Error().Any(
+				errorTopic,
+				ErrorFactory.NewError(
+					ErrorOCFLCreation,
+					fmt.Sprintf("cannot create object %s", id),
+					err,
+				)).Msg("")
+			err = ErrorFactory.NewError(
 				ErrorOCFLCreation,
 				fmt.Sprintf("cannot create object %s", id),
 				err,
@@ -484,12 +490,14 @@ func addObjectByPath(
 	}
 	versionFS, err := o.StartUpdate(sourceFS, message, userName, userAddress, echo)
 	if err != nil {
-		logger.Error().Any(ErrorFactory.LogError(
-			ErrorOCFLCreation,
-			fmt.Sprintf("cannot start update for object %s", id),
-			err,
-		)).Msg("")
-		_, err = ErrorFactory.LogError(
+		logger.Error().Any(
+			errorTopic,
+			ErrorFactory.NewError(
+				ErrorOCFLCreation,
+				fmt.Sprintf("cannot start update for object %s", id),
+				err,
+			)).Msg("")
+		err = ErrorFactory.NewError(
 			ErrorOCFLCreation,
 			fmt.Sprintf("cannot start update for object %s", id),
 			err,
@@ -497,12 +505,14 @@ func addObjectByPath(
 		return false, err
 	}
 	if err := o.AddFolder(sourceFS, versionFS, checkDuplicates, area); err != nil {
-		logger.Error().Any(ErrorFactory.LogError(
-			ErrorOCFLCreation,
-			fmt.Sprintf("cannot add folder %s to %s", sourceFS, id),
-			err,
-		)).Msg("")
-		_, err = ErrorFactory.LogError(
+		logger.Error().Any(
+			errorTopic,
+			ErrorFactory.NewError(
+				ErrorOCFLCreation,
+				fmt.Sprintf("cannot add folder %s to %s", sourceFS, id),
+				err,
+			)).Msg("")
+		err = ErrorFactory.NewError(
 			ErrorOCFLCreation,
 			fmt.Sprintf("cannot add folder '%s' to '%s'", sourceFS, id),
 			err,
@@ -512,12 +522,14 @@ func addObjectByPath(
 	if areaPaths != nil {
 		for a, aPath := range areaPaths {
 			if err := o.AddFolder(aPath, versionFS, checkDuplicates, a); err != nil {
-				logger.Error().Any(ErrorFactory.LogError(
-					ErrorOCFLCreation,
-					fmt.Sprintf("cannot add area '%s' folder '%s' to '%s'", a, aPath, id),
-					err,
-				)).Msg("")
-				_, err = ErrorFactory.LogError(
+				logger.Error().Any(
+					errorTopic,
+					ErrorFactory.NewError(
+						ErrorOCFLCreation,
+						fmt.Sprintf("cannot add area '%s' folder '%s' to '%s'", a, aPath, id),
+						err,
+					)).Msg("")
+				err = ErrorFactory.NewError(
 					ErrorOCFLCreation,
 					fmt.Sprintf("cannot add area '%s' folder '%s' to '%s'", a, aPath, id),
 					err,
@@ -527,12 +539,14 @@ func addObjectByPath(
 		}
 	}
 	if err := o.EndUpdate(); err != nil {
-		logger.Error().Any(ErrorFactory.LogError(
-			ErrorOCFLCreation,
-			fmt.Sprintf("cannot end update for object %s", id),
-			err,
-		)).Msg("")
-		_, err = ErrorFactory.LogError(
+		logger.Error().Any(
+			errorTopic,
+			ErrorFactory.NewError(
+				ErrorOCFLCreation,
+				fmt.Sprintf("cannot end update for object %s", id),
+				err,
+			)).Msg("")
+		err = ErrorFactory.NewError(
 			ErrorOCFLEnd,
 			fmt.Sprintf("cannot end update for object '%s'", id),
 			err,
@@ -540,12 +554,14 @@ func addObjectByPath(
 		return false, err
 	}
 	if err := o.Close(); err != nil {
-		logger.Error().Any(ErrorFactory.LogError(
-			ErrorOCFLCreation,
-			fmt.Sprintf("cannot close object %s", id),
-			err,
-		)).Msg("")
-		_, err = ErrorFactory.LogError(
+		logger.Error().Any(
+			errorTopic,
+			ErrorFactory.NewError(
+				ErrorOCFLCreation,
+				fmt.Sprintf("cannot close object %s", id),
+				err,
+			)).Msg("")
+		err = ErrorFactory.NewError(
 			ErrorOCFLEnd,
 			fmt.Sprintf("cannot close object '%s'", id),
 			err,
