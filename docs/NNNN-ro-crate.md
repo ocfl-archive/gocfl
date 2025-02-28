@@ -9,14 +9,17 @@
 
 ## Overview
 
-This object extension enables the use of an existing ro-crate-metadata.json 
-file to create an info.json metafile ([NNNN-metafile](NNNN-metafile.md)) 
-and integrates the ro-crate metadata into metadata-export and -viewer. 
+This object extension enables the use of an existing ro-crate-metadata.json
+file to create an info.json metafile ([NNNN-metafile](NNNN-metafile.md))
+and integrates the ro-crate metadata into metadata-export and -viewer.
 
 ### Usage Scenario
 
 To allow the use of ro-crate for various purposes, the ro-crate metadata extension
 makes sure, that ro-crate-metadata.json is available and can be used for further processing.
+
+The use of the ro-crate extension overrides the use of the metafile extension.
+The metadata file created at the end of the process will be `info.json`.
 
 ## Parameters
 
@@ -41,13 +44,15 @@ makes sure, that ro-crate-metadata.json is available and can be used for further
     * **Default:**
 
 * **Name:** `metafilename`
-    * **Description:** the name of the metadata file. Extension MUST be `.json`. If empty, no metafile will be created. This name MUST be the same as in [NNNN-metafile](NNNN-metafile.md). 
+    * **Description:** the name of the metadata file. Extension MUST be `.json`. If empty, no metafile will be created. This name MUST be the same as in [NNNN-metafile](NNNN-metafile.md).
     * **Type:** string
     * **Default:** `info.json`
 
 
 ## Procedure (tbd.)
 
+A metadata object is created at the configured storage location and is available
+for consumers to make use of during their OCFL archival workflows.
 
 ## Examples
 

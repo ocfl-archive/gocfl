@@ -205,6 +205,8 @@ github.com/go-playground/validator/v10 v10.25.0 h1:5Dh7cjvzR7BRZadnsVOzPhWsrwUr0
 github.com/go-playground/validator/v10 v10.25.0/go.mod h1:GGzBIJMuE98Ic/kJsBXbz1x/7cByt++cQ+YOuDM5wus=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
 github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
+github.com/go-test/deep v1.1.1 h1:0r/53hagsehfO4bzD2Pgr/+RgHqhmf+k1Bpse2cTu1U=
+github.com/go-test/deep v1.1.1/go.mod h1:5C2ZWiW0ErCdrYzpqxLbTX7MG14M9iiw8DgHncVwcsE=
 github.com/gobwas/httphead v0.1.0 h1:exrUm0f4YX0L7EBwZHuCF4GDp8aJfVeBrlLQrs6NqWU=
 github.com/gobwas/httphead v0.1.0/go.mod h1:O/RXo79gxV8G+RqlR/otEwx4Q36zl9rqC5u12GKvMCM=
 github.com/gobwas/pool v0.2.1 h1:xfeeEhW7pwmX8nuLVlqbzVc7udMDrwetjEv+TZIz1og=
@@ -290,8 +292,8 @@ github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d h1:elX95ncLvCbNgkfD03
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d/go.mod h1:AU6NEns8+WYmI/UYzllN8CWM2jsIVO7jDz2FeCf7Ssw=
 github.com/je4/trustutil/v2 v2.0.28 h1:fRtvQzt3dNfin+ZE+n5N+RmeaispNfU2zdiXM/xkW/Y=
 github.com/je4/trustutil/v2 v2.0.28/go.mod h1:BB0sVfAHtXHvzewK6pFfNK5hj58OyIhpiyyg3/wkgfI=
-github.com/je4/utils/v2 v2.0.58 h1:mg32p68BW58dgPNWIHzLLBeyXYXjexWx0pVTywhFQFU=
-github.com/je4/utils/v2 v2.0.58/go.mod h1:ZbbHRxHnmHjoBohYmnMpwLzieADh48jVjELwCGod+TU=
+github.com/je4/utils/v2 v2.0.59 h1:CQPUlKttL+oVZbyxO3jBvsOXO0afb8Rpe0LgJL1/3l4=
+github.com/je4/utils/v2 v2.0.59/go.mod h1:ZbbHRxHnmHjoBohYmnMpwLzieADh48jVjELwCGod+TU=
 github.com/jedib0t/go-pretty/v6 v6.5.9 h1:ACteMBRrrmm1gMsXe9PSTOClQ63IXDUt03H5U+UV8OU=
 github.com/jedib0t/go-pretty/v6 v6.5.9/go.mod h1:zbn98qrYlh95FIhwwsbIip0LYpwSG8SUOScs+v9/t0E=
 github.com/jessevdk/go-flags v1.6.1 h1:Cvu5U8UGrLay1rZfv/zP7iLpSHGUZ/Ou68T0iX1bBK4=

@@ -2,15 +2,8 @@ package extension
 
 import (
 	"bytes"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/santhosh-tekuri/jsonschema/v5"
-	"golang.org/x/exp/slices"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/fs"
 	"net/http"
@@ -19,6 +12,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/BurntSushi/toml"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/santhosh-tekuri/jsonschema/v5"
+	"golang.org/x/exp/slices"
+	"gopkg.in/yaml.v2"
 )
 
 const MetaFileName = "NNNN-metafile"
@@ -30,15 +31,13 @@ func GetMetaFileParams() []*ocfl.ExtensionExternalParam {
 			ExtensionName: MetaFileName,
 			Functions:     []string{"add", "update", "create"},
 			Param:         "source",
-			//File:          "Source",
-			Description: "url or path with metadata file. $ID will be replaced with object ID i.e. c:/temp/$ID.json",
+			Description:   "url with metadata file. $ID will be replaced with object ID i.e. file:///c:/temp/$ID.json",
 		},
 		{
 			ExtensionName: MetaFileName,
 			Functions:     []string{"extract", "objectextension"},
 			Param:         "target",
-			//File:          "Target",
-			Description: "url or path with metadata target folder",
+			Description:   "url with metadata target folder",
 		},
 	}
 }
@@ -113,6 +112,7 @@ type MetaFile struct {
 	compiledSchema *jsonschema.Schema
 	stored         bool
 	info           map[string][]byte
+	override       bool
 }
 
 func (sl *MetaFile) Terminate() error {
@@ -131,13 +131,46 @@ func (sl *MetaFile) IsRegistered() bool {
 	return false
 }
 
+// getPrecedents provides a way to disable the metafile extension when
+// another extension is using the info.json functionality.
+func (sl *MetaFile) getPrecedents(params map[string]string) {
+	if params[ParamROCrateEnabled()] == "true" {
+		sl.override = true
+		return
+	}
+	sl.override = false
+}
+
 func (sl *MetaFile) SetParams(params map[string]string) error {
-	if params != nil {
-		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")
-		if urlString, ok := params[name]; ok {
-			urlString = strings.TrimSpace(urlString)
-			if urlString == "" {
-				return errors.Errorf("no value for parameter '%s'", name)
+	if params == nil {
+		return nil
+	}
+	sl.getPrecedents(params)
+	if sl.override {
+		return nil
+	}
+	name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")
+	if urlString, ok := params[name]; ok {
+		urlString = strings.TrimSpace(urlString)
+		if urlString == "" {
+			return errors.Errorf("no value for parameter '%s'", name)
+		}
+		u, err := url.Parse(urlString)
+		if err != nil || u.Scheme == "" {
+			if urlString[0] == '/' {
+				u, err = url.Parse("file://" + urlString)
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse '%s'", urlString)
+				}
+			} else {
+				d, err := os.Getwd()
+				if err != nil {
+					return errors.Wrap(err, "cannot get working directory")
+				}
+				u, err = url.Parse("file://" + filepath.ToSlash(filepath.Join(d, urlString)))
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse '%s'", urlString)
+				}
 			}
 			sl.metadataSource = urlString
 		}
@@ -168,7 +201,6 @@ func (sl *MetaFile) WriteConfig() error {
 	if err := jenc.Encode(sl.MetaFileConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
-
 	return nil
 }
 
@@ -203,6 +235,9 @@ func toStringKeys(val interface{}) (interface{}, error) {
 }
 
 func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
+	if sl.override {
+		return nil
+	}
 	if sl.stored {
 		return nil
 	}
@@ -334,7 +369,13 @@ func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
+// GetMetadata returns a map object containing information that can be
+// used by the caller, e.g. to populate other metadata records such
+// as mets.xml or premis.xml, if they are expected to be output.
 func (sl *MetaFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	if sl.override {
+		return nil, nil
+	}
 	var err error
 	var result = map[string]any{}
 	inventory := object.GetInventory()
