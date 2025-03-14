@@ -123,6 +123,15 @@
           "title": "expiration date",
           "description": "expiration date"
         },
+        "licenses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true,
+          "title": "licenses",
+          "description": "list of licenses"
+        },
         "deprecates": {
           "type": "string",
           "title": "deprecates",
