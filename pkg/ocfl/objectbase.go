@@ -4,8 +4,13 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -14,12 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"emperror.dev/errors"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"golang.org/x/exp/slices"
 
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
 )
@@ -472,7 +471,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 		return fmt.Errorf("cannot create object '%s'. '%v/%s' already exists", id, object.fsys, objectConformanceDeclarationFile)
 	}
 	cnt, err := fs.ReadDir(object.fsys, ".")
-	if err != nil && err != fs.ErrNotExist {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return errors.Wrapf(err, "cannot read '%v/%s'", object.fsys, ".")
 	}
 	if len(cnt) > 0 {
