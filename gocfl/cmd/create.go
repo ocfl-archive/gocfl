@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
+	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -270,7 +270,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	thumb.SetSourceFS(sourceFS)
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, logger)
+	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, logger, conf.TempDir)
 	if err != nil {
 		ErrorFactory.LogSetError(logger.Error().Stack(), ErrorFactory.NewError(
 			ErrorExtensionInit, "cannot create extension factory", err,
@@ -318,6 +318,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		conf.Init.Digest,
 		logger,
 		ErrorFactory,
+		conf.Init.Documentation,
 	)
 	if err != nil {
 		if err := writefs.Close(destFS); err != nil {

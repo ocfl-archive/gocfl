@@ -18,10 +18,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
+	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
 	_ "golang.org/x/image/bmp"
 	_ "golang.org/x/image/riff"
@@ -44,6 +44,7 @@ func NewThumbnailFS(
 	thumbnail *thumbnail.Thumbnail,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	tempDir string,
 ) (*Thumbnail, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
@@ -58,6 +59,7 @@ func NewThumbnailFS(
 		Height:          256,
 		Compress:        "gzip",
 		SingleDirectory: false,
+		tempDir:         tempDir,
 	}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
@@ -73,7 +75,7 @@ func NewThumbnailFS(
 	if config.Height == 0 {
 		config.Height = 256
 	}
-	ext, err := NewThumbnail(config, thumbnail, logger, errorFactory)
+	ext, err := NewThumbnail(config, thumbnail, logger, errorFactory, tempDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create new thumbnail")
 	}
@@ -90,6 +92,7 @@ type ThumbnailConfig struct {
 	SingleDirectory bool   `json:"singleDirectory"`
 	StorageType     string `json:"storageType"`
 	StorageName     string `json:"storageName"`
+	tempDir         string
 }
 
 type ThumbnailTarget struct {
@@ -121,6 +124,7 @@ func NewThumbnail(
 	mig *thumbnail.Thumbnail,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	tempDir string,
 ) (*Thumbnail, error) {
 	_logger := logger.With().Str("extension", ThumbnailName).Logger()
 	sl := &Thumbnail{
@@ -132,6 +136,7 @@ func NewThumbnail(
 		streamInfo:      map[string]map[string]*ThumbnailResult{},
 		streamImg:       map[string]map[string]image.Image{},
 		errorFactory:    errorFactory,
+		tempDir:         tempDir,
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if config.ExtensionName != sl.GetName() {
@@ -158,6 +163,7 @@ type Thumbnail struct {
 	streamInfo   map[string]map[string]*ThumbnailResult
 	streamImg    map[string]map[string]image.Image
 	errorFactory *archiveerror.Factory
+	tempDir      string
 }
 
 func (thumb *Thumbnail) Terminate() error {
@@ -251,7 +257,7 @@ func (thumb *Thumbnail) storeThumbnail(object ocfl.Object, head string, mFile io
 }
 
 func (thumb *Thumbnail) DoThumbnail(object ocfl.Object, head string, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
+	tmpFile, err := os.CreateTemp(thumb.tempDir, "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")
 	}

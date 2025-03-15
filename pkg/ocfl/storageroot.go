@@ -53,6 +53,7 @@ func newStorageRoot(
 	extensionManager ExtensionManager,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	documentation string,
 ) (StorageRoot, error) {
 	switch version {
 	case Version1_0:
@@ -63,6 +64,7 @@ func newStorageRoot(
 			extensionManager,
 			logger,
 			errorFactory,
+			documentation,
 		)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -76,6 +78,7 @@ func newStorageRoot(
 			extensionManager,
 			logger,
 			errorFactory,
+			documentation,
 		)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -89,6 +92,7 @@ func newStorageRoot(
 			extensionManager,
 			logger,
 			errorFactory,
+			documentation,
 		)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -121,6 +125,7 @@ func CreateStorageRoot(
 	digest checksum.DigestAlgorithm,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	documentation string,
 ) (StorageRoot, error) {
 	storageRoot, err := newStorageRoot(
 		ctx,
@@ -130,6 +135,7 @@ func CreateStorageRoot(
 		extensionManager,
 		logger,
 		errorFactory,
+		documentation,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate storage root")
@@ -148,6 +154,7 @@ func LoadStorageRoot(
 	extensionFactory *ExtensionFactory,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	documentation string,
 ) (StorageRoot, error) {
 	version, err := getVersion(ctx, fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, errVersionNone) {
@@ -181,6 +188,7 @@ func LoadStorageRoot(
 		extensionManager,
 		logger,
 		errorFactory,
+		documentation,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate storage root")

@@ -32,6 +32,7 @@ type StorageRootBase struct {
 	digest           checksum.DigestAlgorithm
 	modified         bool
 	errorFactory     *archiveerror.Factory
+	documtation      string
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
@@ -45,6 +46,7 @@ func NewStorageRootBase(
 	extensionManager ExtensionManager,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	documentation string,
 ) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
@@ -55,6 +57,7 @@ func NewStorageRootBase(
 		extensionManager: extensionManager,
 		logger:           logger,
 		errorFactory:     errorFactory,
+		documtation:      documentation,
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate extension manager")
@@ -128,7 +131,11 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		return errors.Wrapf(err, "cannot write %s", rootConformanceDeclarationFile)
 	}
 
-	extDocs, err := docs.ExtensionDocs.ReadDir(".")
+	docFS, ok := docs.Documentations[osr.documtation]
+	if !ok {
+		docFS = docs.FullDocs
+	}
+	extDocs, err := docFS.ReadDir(".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read extension docs")
 	}
@@ -136,7 +143,7 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		if extDoc.IsDir() {
 			continue
 		}
-		extDocFileContent, err := docs.ExtensionDocs.ReadFile(extDoc.Name())
+		extDocFileContent, err := docs.FullDocs.ReadFile(extDoc.Name())
 		if err != nil {
 			return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
 		}

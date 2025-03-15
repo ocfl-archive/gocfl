@@ -3,8 +3,8 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"github.com/google/uuid"
-	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"strings"
 	"time"

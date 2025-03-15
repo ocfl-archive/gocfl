@@ -13,7 +13,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/filesystem/v3/pkg/zipfs"
 	"github.com/je4/filesystem/v3/pkg/zipfsrw"
-	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -24,6 +23,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
+	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +65,7 @@ func InitExtensionFactory(
 	thumbnail *thumbnail.Thumbnail,
 	sourceFS fs.FS,
 	logger zLogger.ZLogger,
+	tempDir string,
 ) (*ocfl.ExtensionFactory, error) {
 
 	logger.Debug().Any(
@@ -150,7 +151,7 @@ func InitExtensionFactory(
 	logExtInit(logger, extension.IndexerName)
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		ext, err := extension.NewIndexerFS(
-			fsys, indexerAddr, indexerActions, indexerLocalCache, logger, ErrorFactory,
+			fsys, indexerAddr, indexerActions, indexerLocalCache, logger, ErrorFactory, tempDir,
 		)
 		if err != nil {
 			err = ErrorFactory.NewError(ErrorExtensionInitErr, "cannot create new indexer from filesystem", err)
@@ -161,12 +162,12 @@ func InitExtensionFactory(
 
 	logExtInit(logger, extension.MigrationName)
 	extensionFactory.AddCreator(extension.MigrationName, func(fsys fs.FS) (ocfl.Extension, error) {
-		return extension.NewMigrationFS(fsys, migration, logger)
+		return extension.NewMigrationFS(fsys, migration, logger, tempDir)
 	})
 
 	logExtInit(logger, extension.ThumbnailName)
 	extensionFactory.AddCreator(extension.ThumbnailName, func(fsys fs.FS) (ocfl.Extension, error) {
-		return extension.NewThumbnailFS(fsys, thumbnail, logger, ErrorFactory)
+		return extension.NewThumbnailFS(fsys, thumbnail, logger, ErrorFactory, tempDir)
 	})
 
 	logExtInit(logger, extension.FilesystemName)

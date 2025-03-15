@@ -24,8 +24,9 @@ func NewStorageRootV2_0(
 	extensionManager ExtensionManager,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	documentation string,
 ) (*StorageRootV2_0, error) {
-	srb, err := NewStorageRootBase(ctx, fsys, Version2_0, extensionFactory, extensionManager, logger, errorFactory)
+	srb, err := NewStorageRootBase(ctx, fsys, Version2_0, extensionFactory, extensionManager, logger, errorFactory, documentation)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version2_0)
 	}

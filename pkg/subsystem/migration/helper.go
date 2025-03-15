@@ -70,8 +70,8 @@ func GetMigrations(conf *config.GOCFLConfig) (*Migration, error) {
 	return m, nil
 }
 
-func DoMigrate(object ocfl.Object, mig *Function, ext string, targetNames []string, file io.ReadCloser) error {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
+func DoMigrate(object ocfl.Object, mig *Function, ext string, targetNames []string, file io.ReadCloser, tempDir string) error {
+	tmpFile, err := os.CreateTemp(tempDir, "gocfl_*"+ext)
 	if err != nil {
 		return errors.Wrap(err, "cannot create temp file")
 	}

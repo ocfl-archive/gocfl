@@ -3,16 +3,19 @@ package config
 import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
-	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/stashconfig"
+	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
+	"os"
+	"strings"
 )
 
 type InitConfig struct {
 	OCFLVersion                string
 	StorageRootExtensionFolder string `toml:"storagerootextensions"`
 	Digest                     checksum.DigestAlgorithm
+	Documentation              string
 }
 
 type AddConfig struct {
@@ -143,6 +146,7 @@ type GOCFLConfig struct {
 	S3            *S3Config
 	DefaultArea   string
 	Log           stashconfig.Config `toml:"log"`
+	TempDir       string
 }
 
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
@@ -207,13 +211,15 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 		Init: &InitConfig{
 			OCFLVersion:                "1.1",
 			StorageRootExtensionFolder: "",
+			Documentation:              "ocfl",
 		},
-		S3: &S3Config{},
+		S3:      &S3Config{},
+		TempDir: os.TempDir(),
 	}
 
 	if _, err := toml.Decode(data, conf); err != nil {
 		return nil, errors.Wrap(err, "Error on loading config")
 	}
-
+	conf.Init.Documentation = strings.ToLower(conf.Init.Documentation)
 	return conf, nil
 }

@@ -16,10 +16,10 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
 )
 
@@ -67,6 +67,7 @@ func NewIndexerFS(
 	localCache bool,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	tempDir string,
 ) (*Indexer, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
@@ -84,7 +85,7 @@ func NewIndexerFS(
 			err,
 		)
 	}
-	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger, errorFactory)
+	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger, errorFactory, tempDir)
 	if err != nil {
 		return nil, errorFactory.NewError(errorExtensionConfig, "cannot create new indexer", err)
 	}
@@ -98,6 +99,7 @@ func NewIndexer(
 	localCache bool,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
+	tempDir string,
 ) (*Indexer, error) {
 	var err error
 	if config.Actions == nil {
@@ -134,6 +136,7 @@ func NewIndexer(
 		localCache:     localCache,
 		logger:         logger,
 		errorFactory:   errorFactory,
+		tempDir:        tempDir,
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
@@ -171,6 +174,7 @@ type Indexer struct {
 	localCache     bool
 	logger         zLogger.ZLogger
 	errorFactory   *archiveerror.Factory
+	tempDir        string
 }
 
 func (sl *Indexer) Terminate() error {
@@ -527,7 +531,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 			)
 			return factoryErr
 		}
-		tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+filepath.Ext(stateFiles[0]))
+		tmpFile, err := os.CreateTemp(sl.tempDir, "gocfl_*"+filepath.Ext(stateFiles[0]))
 		if err != nil {
 			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner, "cannot create temp file", err,
@@ -541,7 +545,7 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 			)
 			return factoryErr
 		}
-		tmpFilename := filepath.ToSlash(filepath.Join(os.TempDir(), fi.Name()))
+		tmpFilename := filepath.ToSlash(filepath.Join(sl.tempDir, fi.Name()))
 		if _, err := io.Copy(tmpFile, reader); err != nil {
 			factoryErr := sl.errorFactory.NewError(
 				errorExtensionRunner, "cannot write to tempfile", err,

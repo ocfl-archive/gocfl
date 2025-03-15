@@ -142,7 +142,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
+	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, logger, conf.TempDir)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot initialize extension factory")
 		return
@@ -152,7 +152,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	if !writefs.HasContent(destFS) {
 
 	}
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger), ErrorFactory)
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger, ErrorFactory, conf.Init.Documentation)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return

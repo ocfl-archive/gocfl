@@ -130,7 +130,8 @@ func doInit(cmd *cobra.Command, args []string) {
 		nil,
 		nil,
 		nil,
-		(logger),
+		logger,
+		conf.TempDir,
 	)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create extension factory")
@@ -154,8 +155,9 @@ func doInit(cmd *cobra.Command, args []string) {
 		ocfl.OCFLVersion(conf.Init.OCFLVersion),
 		extensionFactory, storageRootExtensions,
 		conf.Init.Digest,
-		(logger),
+		logger,
 		ErrorFactory,
+		conf.Init.Documentation,
 	); err != nil {
 		if err := writefs.Close(destFS); err != nil {
 			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)

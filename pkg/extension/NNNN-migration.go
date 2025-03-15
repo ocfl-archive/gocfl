@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
+	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"io"
@@ -23,7 +23,7 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.ZLogger) (*Migration, error) {
+func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.ZLogger, tempDir string) (*Migration, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -33,19 +33,20 @@ func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger zLogger.Z
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
-	ext, err := NewMigration(config, migration)
+	ext, err := NewMigration(config, migration, tempDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create new indexer")
 	}
 	return ext, nil
 }
-func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
+func NewMigration(config *MigrationConfig, mig *migration.Migration, tempDir string) (*Migration, error) {
 	sl := &Migration{
 		MigrationConfig: config,
 		migration:       mig,
 		buffer:          map[string]*bytes.Buffer{},
 		migrationFiles:  map[string]*migration.Function{},
 		migratedFiles:   map[string]map[string]string{},
+		tempDir:         tempDir,
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if config.ExtensionName != sl.GetName() {
@@ -102,6 +103,7 @@ type Migration struct {
 	sourceFS       fs.FS
 	currentHead    string
 	done           bool
+	tempDir        string
 }
 
 func (mi *Migration) Terminate() error {
@@ -329,7 +331,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
 		}
 		path := inventory.BuildManifestName(manifestName)
-		if err := migration.DoMigrate(object, mig, ext, extractTargetNames, file); err != nil {
+		if err := migration.DoMigrate(object, mig, ext, extractTargetNames, file, mi.tempDir); err != nil {
 			ml = &migrationLine{
 				Path: path,
 				Migration: &MigrationResult{

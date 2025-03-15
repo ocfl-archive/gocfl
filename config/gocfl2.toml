@@ -1,3 +1,5 @@
+tempdir = "C:/temp/tmp"
+
 # global config for all operations on S3 storages
 [S3]
 # --s3-endpoint
@@ -47,6 +49,7 @@ OCFLVersion="1.1"
 StorageRootExtensions="./data/defaultextensions/storageroot"
 # --digest
 Digest="sha512"
+Documentation="ocfl"
 
 [Add]
 # --message

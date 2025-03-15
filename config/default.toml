@@ -32,6 +32,7 @@ OCFLVersion="1.1"
 #StorageRootExtensions="./data/defaultextensions/storageroot"
 # --digest
 Digest="sha512"
+Documentation="ocfl" # "full" or "ocfl"
 
 [Add]
 # --message
