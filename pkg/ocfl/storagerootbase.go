@@ -32,7 +32,7 @@ type StorageRootBase struct {
 	digest           checksum.DigestAlgorithm
 	modified         bool
 	errorFactory     *archiveerror.Factory
-	documtation      string
+	documentation    string
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
@@ -57,7 +57,7 @@ func NewStorageRootBase(
 		extensionManager: extensionManager,
 		logger:           logger,
 		errorFactory:     errorFactory,
-		documtation:      documentation,
+		documentation:    documentation,
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate extension manager")
@@ -131,31 +131,33 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		return errors.Wrapf(err, "cannot write %s", rootConformanceDeclarationFile)
 	}
 
-	docFS, ok := docs.Documentations[osr.documtation]
-	if !ok {
-		docFS = docs.FullDocs
-	}
-	extDocs, err := docFS.ReadDir(".")
-	if err != nil {
-		return errors.Wrap(err, "cannot read extension docs")
-	}
-	for _, extDoc := range extDocs {
-		if extDoc.IsDir() {
-			continue
+	if osr.documentation != "" {
+		docFS, ok := docs.Documentations[osr.documentation]
+		if !ok {
+			docFS = docs.FullDocs
 		}
-		extDocFileContent, err := docs.FullDocs.ReadFile(extDoc.Name())
+		extDocs, err := docFS.ReadDir(".")
 		if err != nil {
-			return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
+			return errors.Wrap(err, "cannot read extension docs")
 		}
-		extDocFile, err := writefs.Create(osr.fsys, extDoc.Name())
-		if err != nil {
-			return errors.Wrapf(err, "cannot create extension doc %s", extDoc.Name())
-		}
-		if _, err := extDocFile.Write(extDocFileContent); err != nil {
-			return errors.Wrapf(err, "cannot write extension doc %s", extDoc.Name())
-		}
-		if err := extDocFile.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close extension doc %s", extDoc.Name())
+		for _, extDoc := range extDocs {
+			if extDoc.IsDir() {
+				continue
+			}
+			extDocFileContent, err := docs.FullDocs.ReadFile(extDoc.Name())
+			if err != nil {
+				return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
+			}
+			extDocFile, err := writefs.Create(osr.fsys, extDoc.Name())
+			if err != nil {
+				return errors.Wrapf(err, "cannot create extension doc %s", extDoc.Name())
+			}
+			if _, err := extDocFile.Write(extDocFileContent); err != nil {
+				return errors.Wrapf(err, "cannot write extension doc %s", extDoc.Name())
+			}
+			if err := extDocFile.Close(); err != nil {
+				return errors.Wrapf(err, "cannot close extension doc %s", extDoc.Name())
+			}
 		}
 	}
 

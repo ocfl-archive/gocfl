@@ -6,7 +6,10 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/stashconfig"
+	"github.com/ocfl-archive/gocfl/v2/docs"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"os"
 	"strings"
 )
@@ -221,5 +224,10 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 		return nil, errors.Wrap(err, "Error on loading config")
 	}
 	conf.Init.Documentation = strings.ToLower(conf.Init.Documentation)
+	if conf.Init.Documentation != "" {
+		if !slices.Contains(maps.Keys(docs.Documentations), conf.Init.Documentation) {
+			return nil, errors.Errorf("unknown documentation '%s' please use %v", conf.Init.Documentation, maps.Keys(docs.Documentations))
+		}
+	}
 	return conf, nil
 }
