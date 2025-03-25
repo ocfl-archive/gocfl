@@ -123,7 +123,7 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 	str, err := cmd.Flags().GetString(flag)
 	if err != nil {
 		_ = cmd.Help()
-		cobra.CheckErr(errors.Errorf("canot get flag %s: %v", flag, err))
+		cobra.CheckErr(errors.Errorf("cannot get flag %s: %v", flag, err))
 	}
 	return str
 }
@@ -136,7 +136,7 @@ func getFlagBool(cmd *cobra.Command, flag string) (value bool, ok bool) {
 	b, err := cmd.Flags().GetBool(flag)
 	if err != nil {
 		_ = cmd.Help()
-		cobra.CheckErr(errors.Errorf("canot get flag %s: %v", flag, err))
+		cobra.CheckErr(errors.Errorf("cannot get flag %s: %v", flag, err))
 	}
 	return b, true
 }
@@ -195,6 +195,7 @@ func initConfig() {
 		}
 	} else {
 		var err error
+		log.Info().Msgf("loading config file %s: %v\n", config.DefaultConfig)
 		conf, err = config.LoadGOCFLConfig(string(config.DefaultConfig))
 		if err != nil {
 			_ = rootCmd.Help()

@@ -25,7 +25,7 @@ var extractMetaCmd = &cobra.Command{
 	Aliases: []string{},
 	Short:   "extract metadata from ocfl structure",
 	//Long:    "an utterly useless command for testing",
-	Example: "gocfl extractmeta ./archive.zip --output-json ./archive_meta.json",
+	Example: "gocfl extractmeta ./archive.zip --output ./archive_meta.json",
 	Args:    cobra.ExactArgs(1),
 	Run:     doExtractMeta,
 }

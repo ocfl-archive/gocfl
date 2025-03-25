@@ -6,7 +6,7 @@ Deduplication is disabled by default.
 
 The [default extension configs](../data/defaultextensions/object) are used for that.
 
-```text
+```powershell
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe create --help
 initializes an empty ocfl structure and adds contents of a directory subtree to it
 This command is a combination of init and add
