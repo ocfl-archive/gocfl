@@ -1,12 +1,12 @@
 # Add
 
-The `add` command add a new object to an  OCFL Storage Root.    
-Deduplication is disabled by default.  
-If the object already exists, an error will occur.  
+The `add` command adds a new object to an OCFL Storage Root.    
+Deduplication is disabled by default.
+If the object already exists, an error will occur.
 
-The [default extension configs](../data/defaultextensions/object) are used for that.
+The [default object extension configs](../data/defaultextensions/object) are used for that.
 
-```text
+```powershell
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe add --help
 opens an existing ocfl structure and adds a new object. if an object with the given id already exists, an error is produced
 
@@ -46,7 +46,7 @@ All Examples refer to the same [config file](../config/gocfl.toml).
 
 # Storage Root on local filesystem
 
-```
+```powershell
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe add C:/temp/ocflroot C:/temp/ocfltest --config ./config/gocfl.toml -i "id:blah-blubb"
 Using config file: ./config/gocfl.toml
 opening 'C:/temp/ocflroot'

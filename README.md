@@ -10,11 +10,11 @@ Go OCFL implementation.
 
 ### Via GitHub repository
 
-* navigate to gocfl directory (you should see `main.go`).
-* run `go tidy` to update local dependencies.
+* navigate to gocfl subdirectory (you should see `main.go`).
+* run `go mod tidy` to update local dependencies.
 * run `go build` to create a locally compiled gocfl binary.
 
-### Configuration
+## Configuration
 
 GOCFL relies on a configuration file to activate, among other things, indexing,
 and migration capabilities of the GOCFL tool.
@@ -23,9 +23,9 @@ A simplified configuration file can be found at: at [gocfl2.toml][config-1].
 
 [config-1]: ./config/gocfl2.toml
 
-#### Pointing to a custom configuration
+### Pointing to a custom configuration
 
-GOCL will be compiled with an embedded configuration file. GOCL expects this
+GOCFL will be compiled with an embedded configuration file. GOCFL expects this
 configuration to be at `./config/default.toml`. The configuration can be
 overwritten and compiled. Optionally, you can supply your own configuration
 file, e.g. for an add command:
@@ -40,10 +40,10 @@ file, e.g. for an add command:
  --config custom-config.toml
 ```
 
-### Additional tools
+## Additional tools
 
 GOCFL is optimised next to the following Windows utilities and you will find
-refeences to them under Indexer and Migration settings in the config toml file:
+references to them under Indexer and Migration settings in the config toml file:
 
 * `convert.exe` via ImageMagick
 * `identify.exe` via ImageMagick
@@ -56,15 +56,15 @@ With the exception of Powershell (discussed below) you should be able to find
 drop-in replacements in 'nix-like systems, e.g. `convert.exe` becomes `convert`
 in Linux `identify.exe` becomes `identify` and `gswin64` becomes `gs`.
 
-#### Use of Powershell
+### Use of Powershell
 
 Powershell scripts are currently used to generate thumbnails for video and pdf.
 They are found in the [./data/scripts][ps-1] folder. You can observe their
-functionality to write equivalents for your own operating systen's shell.
+functionality to write equivalents for your own operating system's shell.
 
 [ps-1]: ./data/scripts/
 
-### Invoking indexing and migration
+## Invoking indexing and migration
 
 Previous GOCFL implementations required a flag to invoke indexing. Now GOCFL
 must be compiled with the ObjectExtensions setting configured in the
@@ -77,7 +77,7 @@ like as follows:
 ObjectExtensions="./data/fullextensions/object"
 ```
 
-Providing the additional tools are configured correctly, and their function
+Provided the additional tools are configured correctly, and their function
 set to `Enabled=true` in the config, they will run during GOCFL activities such
 as `add`.
 
@@ -118,7 +118,7 @@ software is built with the following motivation:
 
 #### I/O Performance
 
-Regarding performance, Storage I/O generates the main performance issues.
+Regarding performance, storage I/O generates the main performance issues.
 Therefore, every file should be read and written only once. Only in case of
 deduplication, the checksum of a file is calculated before ingest and a second
 time while ingesting.
@@ -126,7 +126,7 @@ time while ingesting.
 #### Containers
 
 Serialization of an OCFL Storage Root into a container format like ZIP must not
-generate overhead on disk I/O. Therefor generation of an OCFL Container is
+generate overhead on disk I/O. Therefore generation of an OCFL Container is
 possible without an intermediary OCFL Storage Root on a filesystem.
 
 #### Encryption
