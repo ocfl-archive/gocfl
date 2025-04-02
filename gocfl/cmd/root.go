@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -195,12 +196,20 @@ func initConfig() {
 		}
 	} else {
 		var err error
+		log.Info().Msgf("loading default (built-in) config\n")
 		conf, err = config.LoadGOCFLConfig(string(config.DefaultConfig))
 		if err != nil {
 			_ = rootCmd.Help()
-			log.Error().Msgf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
+			log.Error().Msgf("error loading built-in config: %v\n", err)
 			os.Exit(1)
 		}
+	}
+
+	configJSON, err := json.Marshal(conf)
+	if err != nil {
+		log.Error().Msgf("error serializing config: %v", err)
+	} else {
+		log.Debug().Msgf("config content: %s", configJSON)
 	}
 
 	// overwrite config file with command line data
