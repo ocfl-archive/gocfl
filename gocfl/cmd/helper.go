@@ -13,6 +13,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/filesystem/v3/pkg/zipfs"
 	"github.com/je4/filesystem/v3/pkg/zipfsrw"
+	statickms "github.com/je4/utils/v2/pkg/StaticKMS"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -288,25 +289,39 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 			return nil, err
 		}
 	} else {
-		// todo: allow different KMS clients
 		if aesConfig.Enable {
-			db, err := keepass2kms.LoadKeePassDBFromFile(string(aesConfig.KeepassFile), string(aesConfig.KeepassKey))
-			if err != nil {
-				err = ErrorFactory.NewError(
-					ErrorFS,
-					fmt.Sprintf("cannot load keepass file '%s'", aesConfig.KeepassFile),
-					err,
-				)
-				return nil, err
-			}
-			client, err := keepass2kms.NewClient(db, filepath.Base(string(aesConfig.KeepassFile)))
-			if err != nil {
-				err = ErrorFactory.NewError(
-					ErrorFS,
-					"cannot create keepass2kms client",
-					err,
-				)
-				return nil, err
+			var client registry.KMSClient
+			if aesConfig.Key != "" {
+				logger.Info().Msgf("using static KMS client")
+				client, err = statickms.NewClient(string(aesConfig.Key))
+				if err != nil {
+					err = ErrorFactory.NewError(
+						ErrorFS,
+						"cannot create static kms client",
+						err,
+					)
+					return nil, err
+				}
+			} else {
+				logger.Info().Msgf("using keepass2kms client with file '%s'", aesConfig.KeepassFile)
+				db, err := keepass2kms.LoadKeePassDBFromFile(string(aesConfig.KeepassFile), string(aesConfig.KeepassKey))
+				if err != nil {
+					err = ErrorFactory.NewError(
+						ErrorFS,
+						fmt.Sprintf("cannot load keepass file '%s'", aesConfig.KeepassFile),
+						err,
+					)
+					return nil, err
+				}
+				client, err = keepass2kms.NewClient(db, filepath.Base(string(aesConfig.KeepassFile)))
+				if err != nil {
+					err = ErrorFactory.NewError(
+						ErrorFS,
+						"cannot create keepass2kms client",
+						err,
+					)
+					return nil, err
+				}
 			}
 			registry.RegisterKMSClient(client)
 
