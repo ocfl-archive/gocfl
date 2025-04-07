@@ -46,6 +46,7 @@ type AESConfig struct {
 	KeepassEntry configutil.EnvString
 	KeepassKey   configutil.EnvString
 	IV           configutil.EnvString
+	Key          configutil.EnvString
 }
 
 type DisplayConfig struct {
