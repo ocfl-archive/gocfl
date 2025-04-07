@@ -54,9 +54,9 @@ func initCreate() {
 	createCmd.Flags().Bool("encrypt-aes", false, "create encrypted container (only for container target)")
 	createCmd.Flags().String("aes-key", "", "key to use for encrypted container in hex format (64 chars, empty: generate random key)")
 	createCmd.Flags().String("aes-iv", "", "initialisation vector to use for encrypted container in hex format (32 char, sempty: generate random vector)")
-	createCmd.Flags().String("keypass-file", "", "file with keypass2 database")
-	createCmd.Flags().String("keypass-entry", "", "keypass2 entry to use for key encryption")
-	createCmd.Flags().String("keypass-key", "", "key to use for keypass2 database decryption")
+	createCmd.Flags().String("keepass-file", "", "file with keepass2 database")
+	createCmd.Flags().String("keepass-entry", "", "keepass2 entry to use for key encryption")
+	createCmd.Flags().String("keepass-key", "", "key to use for keepass2 database decryption")
 }
 
 func isEmpty(name string) (bool, error) {
@@ -71,6 +71,28 @@ func isEmpty(name string) (bool, error) {
 		return true, nil
 	}
 	return false, err // Either not empty or error, suits both cases
+}
+
+func doCreateConf(cmd *cobra.Command) {
+	b, ok := getFlagBool(cmd, "encrypt-aes")
+	if ok {
+		conf.AES.Enable = b
+	}
+	if str := getFlagString(cmd, "aes-key"); str != "" {
+		conf.AES.Key.UnmarshalText(([]byte)(str))
+	}
+	if str := getFlagString(cmd, "aes-iv"); str != "" {
+		conf.AES.IV.UnmarshalText(([]byte)(str))
+	}
+	if str := getFlagString(cmd, "keepass-file"); str != "" {
+		conf.AES.KeepassFile.UnmarshalText(([]byte)(str))
+	}
+	if str := getFlagString(cmd, "keepass-entry"); str != "" {
+		conf.AES.KeepassEntry.UnmarshalText(([]byte)(str))
+	}
+	if str := getFlagString(cmd, "keepass-key"); str != "" {
+		conf.AES.KeepassKey.UnmarshalText(([]byte)(str))
+	}
 }
 
 // initCreate executes the gocfl create command
@@ -132,6 +154,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	doInitConf(cmd)
 	doAddConf(cmd)
+	doCreateConf(cmd)
 
 	var addr string
 	var localCache bool
