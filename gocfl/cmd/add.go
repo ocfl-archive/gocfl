@@ -81,10 +81,10 @@ func doAddConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "default-object-extensions"); str != "" {
 		conf.Add.ObjectExtensionFolder = str
 	}
-	if b := getFlagBool(cmd, "deduplicate"); b {
+	if b, ok := getFlagBool(cmd, "deduplicate"); ok {
 		conf.Add.Deduplicate = b
 	}
-	if b := getFlagBool(cmd, "no-compress"); b {
+	if b, ok := getFlagBool(cmd, "no-compress"); ok {
 		conf.Add.NoCompress = b
 	}
 

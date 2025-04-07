@@ -43,7 +43,7 @@ func doExtractConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "object-id"); str != "" {
 		conf.Extract.ObjectID = str
 	}
-	if b := getFlagBool(cmd, "with-manifest"); b {
+	if b, ok := getFlagBool(cmd, "with-manifest"); ok {
 		conf.Extract.Manifest = b
 	}
 	if str := getFlagString(cmd, "version"); str != "" {

@@ -68,7 +68,7 @@ func doDisplayConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "display-tls-key"); str != "" {
 		conf.Display.KeyFile = str
 	}
-	if b := getFlagBool(cmd, "obfuscate"); b {
+	if b, ok := getFlagBool(cmd, "obfuscate"); ok {
 		conf.Display.Obfuscate = b
 	}
 }

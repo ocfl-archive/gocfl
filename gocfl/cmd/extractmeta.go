@@ -58,7 +58,7 @@ func doExtractMetaConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "output"); str != "" {
 		conf.ExtractMeta.Output = str
 	}
-	if b := getFlagBool(cmd, "obfuscate"); b {
+	if b, ok := getFlagBool(cmd, "obfuscate"); ok {
 		conf.ExtractMeta.Obfuscate = b
 	}
 }

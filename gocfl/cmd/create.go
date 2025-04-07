@@ -74,8 +74,7 @@ func isEmpty(name string) (bool, error) {
 }
 
 func doCreateConf(cmd *cobra.Command) {
-	b, ok := getFlagBool(cmd, "encrypt-aes")
-	if ok {
+	if b, ok := getFlagBool(cmd, "encrypt-aes"); ok {
 		conf.AES.Enable = b
 	}
 	if str := getFlagString(cmd, "aes-key"); str != "" {

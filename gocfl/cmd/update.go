@@ -68,13 +68,13 @@ func doUpdateConf(cmd *cobra.Command) {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("invalid digest '%s' for flag 'digest' or 'Init.DigestAlgorithm' config file entry", conf.Add.Digest))
 	}
-	if b := getFlagBool(cmd, "no-deduplicate"); b {
+	if b, ok := getFlagBool(cmd, "no-deduplicate"); ok {
 		conf.Update.Deduplicate = !b
 	}
-	if b := getFlagBool(cmd, "no-compress"); b {
+	if b, ok := getFlagBool(cmd, "no-compress"); ok {
 		conf.Update.NoCompress = b
 	}
-	if b := getFlagBool(cmd, "echo"); b {
+	if b, ok := getFlagBool(cmd, "echo"); ok {
 		conf.Update.Echo = b
 	}
 
