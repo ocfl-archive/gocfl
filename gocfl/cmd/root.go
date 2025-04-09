@@ -88,9 +88,9 @@ var persistentFlagErrorConfig string
 var persistentFlagLogfile string
 var persistentFlagLoglevel string
 
-var persistenFlagS3Endpoint string
-var persistenFlagS3AccessKeyID string
-var persistenFlagS3SecretAccessKey string
+var persistentFlagS3Endpoint string
+var persistentFlagS3AccessKeyID string
+var persistentFlagS3SecretAccessKey string
 var persistentFlagS3Region string
 
 var flagObjectID string
@@ -214,17 +214,17 @@ func initConfig() {
 	if persistentFlagLoglevel != "" {
 		conf.Log.Level = persistentFlagLoglevel
 	}
-	if persistenFlagS3Endpoint != "" {
-		conf.S3.Endpoint = configutil.EnvString(persistenFlagS3Endpoint)
+	if persistentFlagS3Endpoint != "" {
+		conf.S3.Endpoint = configutil.EnvString(persistentFlagS3Endpoint)
 	}
 	if persistentFlagS3Region != "" {
 		conf.S3.Region = configutil.EnvString(persistentFlagS3Region)
 	}
-	if persistenFlagS3AccessKeyID != "" {
-		conf.S3.AccessKeyID = configutil.EnvString(persistenFlagS3AccessKeyID)
+	if persistentFlagS3AccessKeyID != "" {
+		conf.S3.AccessKeyID = configutil.EnvString(persistentFlagS3AccessKeyID)
 	}
-	if persistenFlagS3SecretAccessKey != "" {
-		conf.S3.AccessKey = configutil.EnvString(persistenFlagS3SecretAccessKey)
+	if persistentFlagS3SecretAccessKey != "" {
+		conf.S3.AccessKey = configutil.EnvString(persistentFlagS3SecretAccessKey)
 	}
 
 	configErrorFactory()
@@ -248,9 +248,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&persistentFlagErrorConfig, "error-config", "", "error config file (default is embedded)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLogfile, "log-file", "", "log output file (default is console)")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagLoglevel, "log-level", "", "log level (CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG)")
-	rootCmd.PersistentFlags().StringVar(&persistenFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
-	rootCmd.PersistentFlags().StringVar(&persistenFlagS3AccessKeyID, "s3-access-key-id", "", "Access Key ID for S3 Buckets")
-	rootCmd.PersistentFlags().StringVar(&persistenFlagS3SecretAccessKey, "s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagS3Endpoint, "s3-endpoint", "", "Endpoint for S3 Buckets")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagS3AccessKeyID, "s3-access-key-id", "", "Access Key ID for S3 Buckets")
+	rootCmd.PersistentFlags().StringVar(&persistentFlagS3SecretAccessKey, "s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagS3Region, "s3-region", "", "Region for S3 Access")
 
 	initValidate()

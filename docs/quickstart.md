@@ -1,13 +1,13 @@
 
 # Quickstart
 
-This guide will walk you through the basics of
-using the `gocfl` applications.
+This guide will walk you through the basics of using the `gocfl` application and 
+commands.
 
 ## Installation
 
-The `gocfl` applications are available as a single
-binary.  You can download the latest release from
+The `gocfl` application is available as a single
+binary. You can download the latest release from
 the [releases page](https://github.com/ocfl-archive/gocfl/releases/latest).
 
 Alternatively, you can install the latest version with `go install`:
@@ -56,7 +56,7 @@ This command adds a new version to the object `id:abc123` located in the storage
 The object contains the new or changed files from the directory `/temp/ocfltest1`.
 The digest is derived from the existing manifest.
 
-By default, deduplication is performed. If you want to disable deduplication, use
+By default, de-duplication is performed. If you want to disable de-duplication, use
 the `--no-deduplicate` flag (less I/O, faster).
 
 
@@ -128,7 +128,7 @@ gocfl extract ./storage_root ./extract --object-id 'id:abc123' --with-manifest
 
 This command extracts the object `id:abc123` from the storage root `archive.zip` to the directory `/temp/abc123`.
 The `--with-manifest` flag adds the manifest file `manifest.XXX` to the extracted object 
-where `XXX`is the digest algorithm used for the manifest. The target directory must be empty.
+where `XXX` is the digest algorithm used for the manifest. The target directory must be empty.
 
 With sha512sum, you can check the integrity of the extracted object
 ```bash

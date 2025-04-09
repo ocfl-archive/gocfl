@@ -30,9 +30,9 @@ Flags:
       --ext-NNNN-mets-descriptive-metadata string   reference to archived descriptive metadata (i.e. ead:metadata:ead.xml)
   -f, --fixity string                               comma separated list of digest algorithms for fixity [blake2b-512 md5 sha1 sha256 sha512 blake2b-160 blake2b-256 blake2b-384]
   -h, --help                                        help for create
-      --keypass-entry string                        keypass2 entry to use for key encryption
-      --keypass-file string                         file with keypass2 database
-      --keypass-key string                          key to use for keypass2 database decryption
+      --keepass-entry string                        keepass2 entry to use for key encryption
+      --keepass-file string                         file with keepass2 database
+      --keepass-key string                          key to use for keepass2 database decryption
   -m, --message string                              message for new object version (required)
       --no-compress                                 do not compress data in zip file
   -i, --object-id string                            object id to update (required)
