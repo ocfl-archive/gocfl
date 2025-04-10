@@ -15,142 +15,142 @@ import (
 )
 
 type InitConfig struct {
-	OCFLVersion                string
-	StorageRootExtensionFolder string `toml:"storagerootextensions"`
-	Digest                     checksum.DigestAlgorithm
-	Documentation              string
+	OCFLVersion                string                   `toml:"ocflversion"`
+	StorageRootExtensionFolder string                   `toml:"storagerootextensionfolder"`
+	Digest                     checksum.DigestAlgorithm `toml:"digest"`
+	Documentation              string                   `toml:"documentation"`
 }
 
 type AddConfig struct {
-	Deduplicate           bool
-	NoCompress            bool
-	ObjectExtensionFolder string `toml:"objectextensions"`
-	User                  *UserConfig
-	Digest                checksum.DigestAlgorithm
-	Fixity                []string
-	Message               string
+	Deduplicate           bool                     `toml:"deduplicate"`
+	NoCompress            bool                     `toml:"nocompress"`
+	ObjectExtensionFolder string                   `toml:"objectextensionfolder"`
+	User                  *UserConfig              `toml:"User"`
+	Digest                checksum.DigestAlgorithm `toml:"digest"`
+	Fixity                []string                 `toml:"fixity"`
+	Message               string                   `toml:"message"`
 }
 
 type UpdateConfig struct {
-	Deduplicate bool
-	NoCompress  bool
-	User        *UserConfig
-	Echo        bool
-	Message     string
-	Digest      checksum.DigestAlgorithm
+	Deduplicate bool                     `toml:"deduplicate"`
+	NoCompress  bool                     `toml:"nocompress"`
+	User        *UserConfig              `toml:"User"`
+	Echo        bool                     `toml:"echo"`
+	Message     string                   `toml:"message"`
+	Digest      checksum.DigestAlgorithm `toml:"digest"`
 }
 
 type AESConfig struct {
-	Enable       bool
-	KeepassFile  configutil.EnvString
-	KeepassEntry configutil.EnvString
-	KeepassKey   configutil.EnvString
-	IV           configutil.EnvString
-	Key          configutil.EnvString
+	Enable       bool                 `toml:"enable"`
+	KeepassFile  configutil.EnvString `toml:"keepassfile"`
+	KeepassEntry configutil.EnvString `toml:"keepassentry"`
+	KeepassKey   configutil.EnvString `toml:"keepasskey"`
+	IV           configutil.EnvString `toml:"iv"`
+	Key          configutil.EnvString `toml:"key"`
 }
 
 type DisplayConfig struct {
-	Addr      string
-	AddrExt   string
-	CertFile  string
-	KeyFile   string
-	Templates string
-	Obfuscate bool
+	Addr      string `toml:"addr"`
+	AddrExt   string `toml:"addrext"`
+	CertFile  string `toml:"certfile"`
+	KeyFile   string `toml:"keyfile"`
+	Templates string `toml:"templates"`
+	Obfuscate bool   `toml:"obfuscate"`
 }
 
 type ExtractConfig struct {
 	Manifest   bool
-	Version    string
-	ObjectPath string
-	ObjectID   string
-	Area       string
+	Version    string `toml:"version"`
+	ObjectPath string `toml:"objectpath"`
+	ObjectID   string `toml:"objectid"`
+	Area       string `toml:"area"`
 }
 
 type ValidateConfig struct {
-	ObjectPath string
-	ObjectID   string
+	ObjectPath string `toml:"objectpath"`
+	ObjectID   string `toml:"objectid"`
 }
 
 type ExtractMetaConfig struct {
-	Version    string
-	Format     string
-	Output     string
-	ObjectPath string
-	ObjectID   string
-	Obfuscate  bool
+	Version    string `toml:"version"`
+	Format     string `toml:"format"`
+	Output     string `toml:"output"`
+	ObjectPath string `toml:"objectpath"`
+	ObjectID   string `toml:"objectid"`
+	Obfuscate  bool   `toml:"obfuscate"`
 }
 
 type StatConfig struct {
-	Info       []string
-	ObjectPath string
-	ObjectID   string
+	Info       []string `toml:"info"`
+	ObjectPath string   `toml:"objectpath"`
+	ObjectID   string   `toml:"objectid"`
 }
 
 type UserConfig struct {
-	Name    string
-	Address string
+	Name    string `toml:"name"`
+	Address string `toml:"address"`
 }
 
 type ThumbnailFunction struct {
-	ID      string
-	Title   string
-	Command string
-	Timeout configutil.Duration
-	Pronoms []string
-	Mime    []string
-	Types   []string
+	ID      string              `toml:"id"`
+	Title   string              `toml:"title"`
+	Command string              `toml:"command"`
+	Timeout configutil.Duration `toml:"timeout"`
+	Pronoms []string            `toml:"pronoms"`
+	Mime    []string            `toml:"mime"`
+	Types   []string            `toml:"types"`
 }
 
 type Thumbnail struct {
-	Enabled    bool
-	Background string
-	Function   map[string]*ThumbnailFunction
+	Enabled    bool                          `toml:"enabled"`
+	Background string                        `toml:"background"`
+	Function   map[string]*ThumbnailFunction `toml:"Function"`
 }
 
 type MigrationFunction struct {
-	ID                  string
-	Title               string
-	Command             string
-	Strategy            string
-	FilenameRegexp      string
-	FilenameReplacement string
-	Timeout             configutil.Duration
-	Pronoms             []string
+	ID                  string              `toml:"id"`
+	Title               string              `toml:"title"`
+	Command             string              `toml:"command"`
+	Strategy            string              `toml:"strategy"`
+	FilenameRegexp      string              `toml:"filenameregexp"`
+	FilenameReplacement string              `toml:"filenamereplacement"`
+	Timeout             configutil.Duration `toml:"timeout"`
+	Pronoms             []string            `toml:"pronoms"`
 }
 
 type Migration struct {
-	Enabled  bool
-	Function map[string]*MigrationFunction
+	Enabled  bool                          `toml:"enabled"`
+	Function map[string]*MigrationFunction `toml:"Function"`
 }
 
 type S3Config struct {
-	Endpoint    configutil.EnvString
-	AccessKeyID configutil.EnvString
-	AccessKey   configutil.EnvString
-	Region      configutil.EnvString
+	Endpoint    configutil.EnvString `toml:"endpoint"`
+	AccessKeyID configutil.EnvString `toml:"accesskeyid"`
+	AccessKey   configutil.EnvString `toml:"accesskey"`
+	Region      configutil.EnvString `toml:"region"`
 }
 
 type GOCFLConfig struct {
-	ErrorTemplate string
-	ErrorConfig   string
-	AccessLog     string
-	Extension     map[string]map[string]string
-	Indexer       *indexer.IndexerConfig
-	Thumbnail     *Thumbnail
-	Migration     *Migration
-	AES           *AESConfig
-	Init          *InitConfig
-	Add           *AddConfig
-	Update        *UpdateConfig
-	Display       *DisplayConfig
-	Extract       *ExtractConfig
-	ExtractMeta   *ExtractMetaConfig
-	Stat          *StatConfig
-	Validate      *ValidateConfig
-	S3            *S3Config
-	DefaultArea   string
-	Log           stashconfig.Config `toml:"log"`
-	TempDir       string
+	ErrorTemplate string                       `toml:"errortemplate"`
+	ErrorConfig   string                       `toml:"errorconfig"`
+	AccessLog     string                       `toml:"accesslog"`
+	Extension     map[string]map[string]string `toml:"extension"`
+	Indexer       *indexer.IndexerConfig       `toml:"Indexer"`
+	Thumbnail     *Thumbnail                   `toml:"Thumbnail"`
+	Migration     *Migration                   `toml:"Migration"`
+	AES           *AESConfig                   `toml:"AES"`
+	Init          *InitConfig                  `toml:"Init"`
+	Add           *AddConfig                   `toml:"Add"`
+	Update        *UpdateConfig                `toml:"Update"`
+	Display       *DisplayConfig               `toml:"Display"`
+	Extract       *ExtractConfig               `toml:"Extract"`
+	ExtractMeta   *ExtractMetaConfig           `toml:"Extractmeta"`
+	Stat          *StatConfig                  `toml:"Stat"`
+	Validate      *ValidateConfig              `toml:"Validate"`
+	S3            *S3Config                    `toml:"S3"`
+	DefaultArea   string                       `toml:"defaultarea"`
+	Log           stashconfig.Config           `toml:"Log"`
+	TempDir       string                       `toml:"tempdir"`
 }
 
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
