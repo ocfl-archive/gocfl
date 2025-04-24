@@ -168,7 +168,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() {
 		ErrorFactory.LogSetError(logger.Info(), ErrorFactory.NewError(
-			ErrorGOCFL,
+			LogGOCFL,
 			fmt.Sprintf("duration: %s", t.String()),
 			nil,
 		),

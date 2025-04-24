@@ -78,7 +78,7 @@ func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format s
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("[%s:%v] %s", file, line, valError.Error()),
 			nil,
 		),
@@ -91,7 +91,7 @@ func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("[%s:%v] %s", file, line, valError.Error()),
 			nil,
 		),
@@ -450,7 +450,7 @@ func (object *ObjectBase) StoreExtensions() error {
 func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager ExtensionManager) error {
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("%s", id),
 			nil,
 		),
@@ -583,7 +583,7 @@ func (object *ObjectBase) Close() error {
 func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error) {
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("'%s' / '%s' / '%s'", msg, UserName, UserAddress),
 			nil,
 		),
@@ -609,7 +609,7 @@ func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName strin
 func (object *ObjectBase) EndUpdate() error {
 	object.logger.Info().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("endUpdate of object '%s'", object.GetID()),
 			nil,
 		),
@@ -627,7 +627,7 @@ func (object *ObjectBase) EndUpdate() error {
 	if !(object.i.IsModified()) {
 		object.logger.Info().Any(
 			object.errorFactory.LogError(
-				ErrorOCFL,
+				LogOCFL,
 				fmt.Sprintf("object '%s' not modified", object.GetID()),
 				nil,
 			),
@@ -690,7 +690,7 @@ func (object *ObjectBase) EndArea() error {
 func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error {
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("walking '%v'", fsys),
 			nil,
 		),
@@ -820,7 +820,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 
 	object.logger.Info().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("adding file %s:%v", area, files),
 			nil,
 		),
@@ -868,7 +868,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 
 	object.logger.Info().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("adding file %s:%s", area, path),
 			nil,
 		),
@@ -900,7 +900,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 		if dup {
 			object.logger.Info().Any(
 				object.errorFactory.LogError(
-					ErrorOCFL,
+					LogOCFL,
 					fmt.Sprintf("[%s] '%s' already exists. ignoring", object.GetID(), newPath),
 					nil,
 				),
@@ -911,7 +911,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
 			object.logger.Info().Any(
 				object.errorFactory.LogError(
-					ErrorOCFL,
+					LogOCFL,
 					fmt.Sprintf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath),
 					nil,
 				),
@@ -953,7 +953,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
 	object.logger.Info().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("adding file %s:%s", area, path),
 			nil,
 		),
@@ -1016,7 +1016,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 			if dup {
 				object.logger.Info().Any(
 					object.errorFactory.LogError(
-						ErrorOCFL,
+						LogOCFL,
 						fmt.Sprintf("[%s] '%s' already exists. ignoring", object.GetID(), newPath),
 						nil,
 					),
@@ -1027,7 +1027,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 			if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
 				object.logger.Info().Any(
 					object.errorFactory.LogError(
-						ErrorOCFL,
+						LogOCFL,
 						fmt.Sprintf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath),
 						nil,
 					),
@@ -1071,7 +1071,7 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 	virtualFilename = filepath.ToSlash(virtualFilename)
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("removing '%s' [%s]", virtualFilename, digest),
 			nil,
 		),
@@ -1088,7 +1088,7 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 	if !dup {
 		object.logger.Debug().Any(
 			object.errorFactory.LogError(
-				ErrorOCFL,
+				LogOCFL,
 				fmt.Sprintf("'%s' [%s] not in archive - ignoring", virtualFilename, digest),
 				nil,
 			),
@@ -1106,7 +1106,7 @@ func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest 
 	virtualFilenameSource = filepath.ToSlash(virtualFilenameSource)
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("removing '%s' [%s]", virtualFilenameSource, digest),
 			nil,
 		),
@@ -1124,7 +1124,7 @@ func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest 
 	if !dup {
 		object.logger.Debug().Any(
 			object.errorFactory.LogError(
-				ErrorOCFL,
+				LogOCFL,
 				fmt.Sprintf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest),
 				nil,
 			),
@@ -1410,7 +1410,7 @@ func (object *ObjectBase) Check() error {
 	//object.fs
 	object.logger.Info().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("object '%s' with object version '%s' found", object.GetID(), object.GetVersion()),
 			nil,
 		),
@@ -1606,7 +1606,7 @@ func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool,
 				defer target.Close()
 				object.logger.Debug().Any(
 					object.errorFactory.LogError(
-						ErrorOCFL,
+						LogOCFL,
 						fmt.Sprintf("writing '%v/%s' -> '%v/%s'", object.fsys, internal, fsys, external),
 						nil,
 					),
@@ -1647,7 +1647,7 @@ func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool,
 	}
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("object '%s' extracted", object.GetID()),
 			nil,
 		),

@@ -85,7 +85,7 @@ func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debug().Any(
 		osr.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("[%s:%v] %s", file, line, valError.Error()),
 			nil,
 		),
@@ -98,7 +98,7 @@ func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, form
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debug().Any(
 		osr.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("[%s:%v] %s", file, line, valError.Error()),
 			nil,
 		),
@@ -455,7 +455,7 @@ func (osr *StorageRootBase) Check() error {
 	} else {
 		osr.logger.Info().Any(
 			osr.errorFactory.LogError(
-				ErrorOCFL,
+				LogOCFL,
 				fmt.Sprintf("StorageRoot with version '%s' found", osr.version),
 				nil,
 			),
@@ -510,7 +510,7 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 func (osr *StorageRootBase) CheckObjectByFolder(objectFolder string) error {
 	osr.logger.Info().Any(
 		osr.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("object folder '%s'\n", objectFolder),
 			nil,
 		),
@@ -531,7 +531,7 @@ func (osr *StorageRootBase) CheckObjectByFolder(objectFolder string) error {
 func (osr *StorageRootBase) CheckObjectByID(objectID string) error {
 	osr.logger.Info().Any(
 		osr.errorFactory.LogError(
-			ErrorOCFL,
+			LogOCFL,
 			fmt.Sprintf("object id '%s'\n", objectID),
 			nil,
 		),
@@ -663,7 +663,9 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 	if path == "" && id == "" {
 		osr.logger.Debug().Any(
 			osr.errorFactory.LogError(
-				ErrorOCFL, "Extracting storage root with all objects", nil,
+				LogOCFL,
+				"extracting storage root with all objects",
+				nil,
 			),
 		).Msg("")
 		objectFolders, err := osr.GetObjectFolders()
@@ -683,8 +685,8 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 	} else {
 		osr.logger.Debug().Any(
 			osr.errorFactory.LogError(
-				ErrorOCFL,
-				fmt.Sprintf("Extracting object '%s%s'", path, id),
+				LogOCFL,
+				fmt.Sprintf("extracting object '%s%s'", path, id),
 				nil,
 			),
 		).Msg("")
@@ -705,7 +707,7 @@ func (osr *StorageRootBase) ExtractMeta(path, id string) (*StorageRootMetadata, 
 	}
 	osr.logger.Debug().Any(
 		osr.errorFactory.LogError(
-			ErrorOCFL, "extraction done", nil,
+			LogOCFL, "extraction done", nil,
 		),
 	).Msg("")
 	return result, nil
@@ -718,8 +720,8 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 	if path == "" && id == "" {
 		osr.logger.Debug().Any(
 			osr.errorFactory.LogError(
-				ErrorOCFL,
-				fmt.Sprintf("Extracting storage root with all objects version '%s'", version),
+				LogOCFL,
+				fmt.Sprintf("extracting storage root with all objects version '%s'", version),
 				nil,
 			),
 		).Msg("")
@@ -743,8 +745,8 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 	} else {
 		osr.logger.Debug().Any(
 			osr.errorFactory.LogError(
-				ErrorOCFL,
-				fmt.Sprintf("Extracting object '%s%s' with version '%s'", path, id, version),
+				LogOCFL,
+				fmt.Sprintf("extracting object '%s%s' with version '%s'", path, id, version),
 				nil,
 			),
 		).Msg("")
@@ -764,7 +766,9 @@ func (osr *StorageRootBase) Extract(fsys fs.FS, path, id, version string, withMa
 	}
 	osr.logger.Debug().Any(
 		osr.errorFactory.LogError(
-			ErrorOCFL, "extraction done", nil,
+			LogOCFL,
+			"extraction done",
+			nil,
 		),
 	).Msg("")
 	return nil
