@@ -181,9 +181,9 @@ func doAdd(cmd *cobra.Command, args []string) {
 		logger.Info().Any(
 			errorTopic,
 			ErrorFactory.NewError(
-				ErrorGOCFL,
+				LogGOCFL,
 				fmt.Sprintf("duration: %s", t.String()),
-				err,
+				nil,
 			),
 		).Msg("")
 	}()

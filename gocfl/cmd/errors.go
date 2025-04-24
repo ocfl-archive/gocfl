@@ -17,4 +17,5 @@ const (
 	ErrorOCFLEnd             = "ErrorOCFLEnd"
 	ErrorValidationStatus    = "ErrorValidationStatus"
 	ErrorValidationStatusErr = "ErrorValidationStatus"
+	LogGOCFL                 = "LogGOCFL"
 )

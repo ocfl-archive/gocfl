@@ -10,4 +10,5 @@ type errorID = archiveerror.ID
 
 const (
 	ErrorOCFL = "ErrorOCFL"
+	LogOCFL   = "LogOCFL"
 )

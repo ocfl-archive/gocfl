@@ -20,7 +20,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	if !slices.Contains([]string{"png", "jpeg"}, strings.ToLower(thumb.ThumbnailConfig.Ext)) {
 		thumb.logger.Info().Any(
 			thumb.errorFactory.LogError(
-				ErrorThumbnailExtension,
+				LogThumbnailExtension,
 				fmt.Sprintf("unsupported target image format '%s'", thumb.ThumbnailConfig.Ext),
 				nil,
 			),
@@ -39,7 +39,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	if _, ok := thumb.streamInfo[head][infoName]; ok {
 		thumb.logger.Info().Any(
 			thumb.errorFactory.LogError(
-				ErrorThumbnailExtension,
+				LogThumbnailExtension,
 				fmt.Sprintf("thumbnail for '%s' already created", stateFiles[0]),
 				nil,
 			),
@@ -58,7 +58,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		thumb.logger.Info().Any(
 			errorTopic,
 			thumb.errorFactory.NewError(
-				ErrorThumbnailExtension,
+				LogThumbnailExtension,
 				fmt.Sprintf("cannot decode image '%s'", stateFiles[0]),
 				err,
 			),
@@ -71,7 +71,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 		thumb.logger.Info().Any(
 			errorTopic,
 			thumb.errorFactory.NewError(
-				ErrorThumbnailExtension,
+				LogThumbnailExtension,
 				fmt.Sprintf("cannot get image size of '%s'", stateFiles[0]),
 				err,
 			),
@@ -90,7 +90,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	}
 	thumb.logger.Info().Any(
 		thumb.errorFactory.LogError(
-			ErrorThumbnailExtension,
+			LogThumbnailExtension,
 			fmt.Sprintf("image '%s' format: %s, size: %d x %d", stateFiles[0], mw.GetFormat(), width, height),
 			nil,
 		),
@@ -145,7 +145,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 
 	thumb.logger.Info().Any(
 		thumb.errorFactory.LogError(
-			ErrorThumbnailExtension,
+			LogThumbnailExtension,
 			fmt.Sprintf("thumbnail stored: %s", targetFile),
 			nil,
 		),

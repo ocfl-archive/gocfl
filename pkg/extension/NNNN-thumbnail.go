@@ -37,6 +37,7 @@ const (
 	ThumbnailName           = "NNNN-thumbnail"
 	ThumbnailDescription    = "preservation management - file thumbnail"
 	ErrorThumbnailExtension = "ErrorThumbnailExtension"
+	LogThumbnailExtension   = "LogThumbnailExtension"
 )
 
 func NewThumbnailFS(
@@ -393,7 +394,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 				} else {
 					thumb.logger.Info().Any(
 						thumb.errorFactory.LogError(
-							ErrorThumbnailExtension,
+							LogThumbnailExtension,
 							fmt.Sprintf("create thumbnail for %s", m.InternalName[0]),
 							nil,
 						),
@@ -427,7 +428,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 					if err != nil {
 						thumb.logger.Error().Any(
 							thumb.errorFactory.LogError(
-								ErrorThumbnailExtension,
+								LogThumbnailExtension,
 								fmt.Sprintf("create thumbnail for %s", external),
 								err,
 							),
@@ -437,7 +438,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 					} else {
 						thumb.logger.Info().Any(
 							thumb.errorFactory.LogError(
-								ErrorThumbnailExtension,
+								LogThumbnailExtension,
 								fmt.Sprintf("create thumbnail for %s", external),
 								nil,
 							),

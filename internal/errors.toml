@@ -5,36 +5,42 @@
 id = "ErrorGOCFL"
 type = "GOCFL"
 weight = 50
+message = "" # e.g. errors in GOCFL execution
+
+[[errors]]
+id = "LogGOCFL"
+type = "GOCFL"
+weight = 20
 message = "" # e.g. reports duration
 
 # System errors that might be encountered during startup and processing.
 
 [[errors]]
-id = "ErrorExtensionInit"
+id = "LogExtensionInit"
 type = "INITIALIZATION"
 weight = 50
 message = "initializing extensions" # e.g. adding creators for extenstions
 
 [[errors]]
-id = "ErrorExtensionInitErr"
+id = "ErrorExtensionInit"
 type = "INITIALIZATION"
 weight = 60
 message = "error initializing extensions"
 
 [[errors]]
-id = "ErrorValidationStatus"
+id = "LogValidationStatus"
 type = "VALIDATION"
 weight = 60
 message = "ocfl validation status" # e.g. reports no errors found
 
 [[errors]]
-id = "ErrorValidationStatusErr"
+id = "ErrorValidationStatus"
 type = "VALIDATION"
 weight = 70
 message = "ocfl validation error"
 
 [[errors]]
-id = "ErrorExtensionConfig"
+id = "LogExtensionConfig"
 type = "CONFIGURATION"
 weight = 50
 message = "configuring extensions"
@@ -49,11 +55,13 @@ message = "problem with the given ocfl extension"
 id = "ErrorOCFL"
 type = "UPDATE"
 weight = 50
-message = "error in the ocfl library" # e.g. this outputs information such as
-                                      # adding file content, hash, duplicate
-                                      # status, upadate status.
-                                      # It also reports >>object .... not
-                                      # writeable<<.
+message = "in the ocfl module" # e.g. not object not writeable.
+
+[[errors]]
+id = "LogOCFL"
+type = "UPDATE"
+weight = 20
+message = "in the ocfl module" # e.g. adding content, status, etc.
 
 [[errors]]
 id = "ErrorOCFLCreation"
@@ -79,10 +87,13 @@ message = "filesystem abstraction issue"
 id = "ErrorThumbnailExtension"
 type = "GENERATE THUMBNAIL"
 weight = 50
-message = "thumbnail extension issue" # e.g. this outputs both when a thumbnail
-                                      # is added and also when the file is not
-                                      # an image and  the format is
-                                      # unrecognised eg. xml, json md etc.
+message = "thumbnail extension module" # Potentially substantial: errors around GOCFL thumbnail generation.
+
+[[errors]]
+id = "LogThumbnailExtension"
+type = "GENERATE THUMBNAIL"
+weight = 20
+message = "thumbnail extension module" # Largely informational: GOCFL's attempt to create Thumbnails
 
 # Indexer errors affecting preservation.
 
@@ -120,9 +131,7 @@ message = "indexer: ffprobe returned an error"
 id = "ErrorIndexerIdentify"
 type = "PRESERVATION"
 weight = 70
-message = "indexer: identify returned an error"  # e.g. error executing
-                                                 # (convert [XML:- json:-])
-                                                 # (imagemagick).
+message = "indexer: identify returned an error"  # e.g. error executing (convert [XML:- json:-]) (imagemagick).
 
 [[errors]]
 id = "ErrorIndexerFullText"

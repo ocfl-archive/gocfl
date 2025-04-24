@@ -48,7 +48,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 	if _, ok := thumb.streamInfo[head][infoName]; ok {
 		thumb.logger.Info().Any(
 			thumb.errorFactory.LogError(
-				ErrorThumbnailExtension,
+				LogThumbnailExtension,
 				fmt.Sprintf("thumbnail for '%s' already created", stateFiles[0]),
 				nil,
 			),
@@ -73,7 +73,7 @@ func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, state
 
 	thumb.logger.Info().Any(
 		thumb.errorFactory.LogError(
-			ErrorThumbnailExtension,
+			LogThumbnailExtension,
 			fmt.Sprintf("image format: %s, size: %d x %d", format, dx, dy),
 			nil,
 		),
@@ -232,7 +232,7 @@ func (thumb *Thumbnail) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source 
 	}
 	thumb.logger.Info().Any(
 		thumb.errorFactory.LogError(
-			ErrorThumbnailExtension,
+			LogThumbnailExtension,
 			fmt.Sprintf("thumbnail stored: %s", targetFile),
 			nil,
 		),
