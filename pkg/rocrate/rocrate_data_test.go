@@ -25,7 +25,7 @@ var complexContext []byte = []byte(`
 `)
 
 // Variants of different values that can be single values or slices.
-//
+
 // nameTest provides a way of testing a single value name or a slice
 // of names.
 var nameTest []byte = []byte(`

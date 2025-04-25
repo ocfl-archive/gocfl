@@ -126,6 +126,8 @@ type RocrateSummary struct {
 	About string
 }
 
+// StringerError provides a meaningful way to test for any issues
+// in the stringer function in this module.
 const StringerError = "error in ro-crate stringer"
 
 // String provides stringer functions for the rocrate summary object.
@@ -230,7 +232,7 @@ StringOrSlice:
 // strings or slices of strings.
 type StringOrSlice []string
 
-// Implement Unmarshal for the StringOrSlice type.
+// UnmarshalJSON implements Unmarshal for the StringOrSlice type.
 func (s *StringOrSlice) UnmarshalJSON(d []byte) error {
 	if d[0] == '"' {
 		var v string
@@ -244,7 +246,8 @@ func (s *StringOrSlice) UnmarshalJSON(d []byte) error {
 	return err
 }
 
-// Return the StringOrSlice value as something sensible.
+// Value provides access to the StringOrSlice value as something
+// sensible.
 func (s StringOrSlice) Value() []string {
 	return s
 }
@@ -270,8 +273,12 @@ type nodeIdentifier struct {
 	ID string `json:"@id"`
 }
 
+// NodeIdentifierOrSlice represents a type that can interpret the
+// RO-CRATE map like objects acting as identifiers correctly.
 type NodeIdentifierOrSlice []nodeIdentifier
 
+// UnmarshalJSON implements unmarshal for th e NodeIdentifierOrSlice
+// object.
 func (s *NodeIdentifierOrSlice) UnmarshalJSON(d []byte) error {
 	if d[0] == '{' {
 		var v nodeIdentifier
@@ -295,10 +302,14 @@ func (s *NodeIdentifierOrSlice) UnmarshalJSON(d []byte) error {
 	return err
 }
 
+// Value provides access to the NodeIdentifierOrSlice in a sensible
+// way.
 func (s NodeIdentifierOrSlice) Value() []nodeIdentifier {
 	return s
 }
 
+// StringSlice provides a way of accessing the NodeIdentifierOrSlice
+// contents as a slice of strings.
 func (s NodeIdentifierOrSlice) StringSlice() []string {
 	var res []string
 	for _, v := range s {

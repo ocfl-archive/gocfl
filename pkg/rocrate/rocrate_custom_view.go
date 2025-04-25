@@ -63,7 +63,7 @@ func newGocflSummary() GocflSummary {
 		"",
 		"",
 		"",
-		// provided by caller.
+		// provided by caller (orgID, org, user, address)
 		"",
 		"",
 		"",
@@ -102,6 +102,8 @@ func getTime(utc bool) string {
 	return t.Format("2006-01-02T15:04:05")
 }
 
+// GOCFLSummary maps RO-CRATE mettadata safely into a GOCFL compatible
+// summary object before returning it to the caller.
 func (rcMeta rocrateMeta) GOCFLSummary() (GocflSummary, error) {
 	if len(rcMeta.Graph) == 0 {
 		return GocflSummary{}, fmt.Errorf("ro-crate-metadata.json is empty")
