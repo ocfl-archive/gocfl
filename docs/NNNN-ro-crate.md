@@ -1,7 +1,7 @@
 # OCFL Community Extension NNNN: Metafile
 
 * __Extension Name:__ NNNN-ro-crate
-* **Authors:** Jürgen Enge (Basel)
+* **Authors:** Jürgen Enge (Basel), Ross Spencer (Independent Consultant)
 * **Minimum OCFL Version:** 1.0
 * **OCFL Community Extensions Version:** 1.0
 * **Obsoletes:** n/a
@@ -34,7 +34,7 @@ The metadata file created at the end of the process will be `info.json`.
         * **extension:** within the extension subfolder
     * **Type:** string
     * **Default:**
-*
+
 * **Name:** `storageName`
     * **Description:** Location within the specified Type
         * **area:** area name
