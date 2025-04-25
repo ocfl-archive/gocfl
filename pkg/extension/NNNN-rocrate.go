@@ -38,18 +38,16 @@ const registered = false
 // ROCrateFileConfig ...
 type ROCrateFileConfig struct {
 	*ocfl.ExtensionConfig
-	// StorageType ...
+	// StorageType describes the location type where the technical
+	// metadata is stored.
 	StorageType string `json:"storageType"`
-	// StorageName ...
+	// StorageName describes the storage location within the specified
+	// storage type.
 	StorageName string `json:"storageName"`
-	// ...
+	// MetaName describes the name of the metadata file created by
+	// this extension. This must be the same as NNNN-metafile as it
+	// will override that extension.
 	MetaName string `json:"metaFileName,omitempty"`
-	// MetadataFile ...
-	MetadataFile []string `json:"metadataFile"`
-	// SupportedSchema ...
-	SupportedSchema []string `json:"supportedSchema"`
-	// Documentation ...
-	Documentation []string `json:"documentation"`
 }
 
 // ROCrateFile provides a way to record configuration and other
@@ -73,7 +71,8 @@ type userConfig struct {
 	address        string
 }
 
-// GetROCrateFileParams ...
+// GetROCrateFileParams enables the retrieval of configured values from
+// the GOCFL configuration.
 func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
 		{
@@ -114,7 +113,8 @@ func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
 	}
 }
 
-// NewROCrateFileFS ...
+// NewROCrateFileFS returns a new ROCrateFile objet providing access
+// to configuration and other parameters requirerd by this extension.
 func NewROCrateFileFS(fsys fs.FS) (*ROCrateFile, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
@@ -158,11 +158,14 @@ func (rcFile *ROCrateFile) Terminate() error {
 	return nil
 }
 
-// GetFS ...
+// GetFS provides a helper to retrieve the configurred filesystem
+// object.
 func (rcFile *ROCrateFile) GetFS() fs.FS {
 	return rcFile.fsys
 }
 
+// GetConfig provides a helper to retrieve the RO-CRATE configuration
+// object.
 func (rcFile *ROCrateFile) GetConfig() any {
 	return rcFile.ROCrateFileConfig
 }
@@ -179,22 +182,26 @@ func ParamROCrateEnabled() string {
 	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, ROCrateEnabled)
 }
 
-// paramROCrateOrg ...
+// paramROCrateOrg enables the consistent retrieval of the
+// configured "organisation" parameter.
 func paramROCrateOrg() string {
 	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamOrg)
 }
 
-// paramROCrateOrgID ...
+// paramROCrateOrgID enables the consistent retrieval of the
+// configured "organisation id" parameter.
 func paramROCrateOrgID() string {
 	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamOrgID)
 }
 
-// paramROCrateUser ...
+// paramROCrateUser enables the consistent retrieval of the
+// configured "user" parameter.
 func paramROCrateUser() string {
 	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamUser)
 }
 
-// paramROCrateAddress ...
+// paramROCrateAddress enables the consistent retrieval of the
+// configured "address" parameter.
 func paramROCrateAddress() string {
 	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamAddress)
 }
@@ -221,7 +228,8 @@ func (rcFile *ROCrateFile) SetParams(params map[string]string) error {
 	return nil
 }
 
-// SetFS ...
+// SetFS provides a helper to set the filesystem object to be used
+// by this extension.
 func (rcFile *ROCrateFile) SetFS(fsys fs.FS, create bool) {
 	rcFile.fsys = fsys
 }
@@ -362,6 +370,10 @@ func (rcFile *ROCrateFile) writeConfigValues(rcMeta *rocrate.GocflSummary) {
 	rcMeta.Address = rcFile.userConfig.address
 }
 
+// StreamObject implements an interface object enabling the access of
+// RO-CRATE content as a a stream so it can be utilised by this
+// extension as required, i.e. in the case of RO-CRATE its metadata
+// is accessed and mapped into a GOCFL compatible metadadata object.
 func (rcFile *ROCrateFile) StreamObject(
 	object ocfl.Object,
 	reader io.Reader,
