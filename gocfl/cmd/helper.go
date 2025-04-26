@@ -180,6 +180,10 @@ func InitExtensionFactory(
 	extensionFactory.AddCreator(extension.METSName, func(fsys fs.FS) (ocfl.Extension, error) {
 		return extension.NewMetsFS(fsys, logger)
 	})
+	logExtInit(logger, extension.SignatureName)
+	extensionFactory.AddCreator(extension.SignatureName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewSignatureFS(fsys, logger)
+	})
 
 	return extensionFactory, nil
 }
