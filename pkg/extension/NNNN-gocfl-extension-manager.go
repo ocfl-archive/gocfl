@@ -72,6 +72,7 @@ type GOCFLExtensionManager struct {
 	area               []ocfl.ExtensionArea
 	stream             []ocfl.ExtensionStream
 	newVersion         []ocfl.ExtensionNewVersion
+	versionDone        []ocfl.ExtensionVersionDone
 	fsys               fs.FS
 	initial            ocfl.ExtensionInitial
 }
@@ -150,6 +151,9 @@ func (manager *GOCFLExtensionManager) Add(ext ocfl.Extension) error {
 	}
 	if newversion, ok := ext.(ocfl.ExtensionNewVersion); ok {
 		manager.newVersion = append(manager.newVersion, newversion)
+	}
+	if versiondone, ok := ext.(ocfl.ExtensionVersionDone); ok {
+		manager.versionDone = append(manager.versionDone, versiondone)
 	}
 	return nil
 }
@@ -278,6 +282,7 @@ func (manager *GOCFLExtensionManager) Finalize() {
 	manager.area = organize(manager, manager.area, ocfl.ExtensionAreaName)
 	manager.stream = organize(manager, manager.stream, ocfl.ExtensionStreamName)
 	manager.newVersion = organize(manager, manager.newVersion, ocfl.ExtensionNewVersionName)
+	manager.versionDone = organize(manager, manager.versionDone, ocfl.ExtensionVersionDoneName)
 }
 
 // Extension
@@ -615,6 +620,16 @@ func (manager *GOCFLExtensionManager) StreamObject(object ocfl.Object, reader io
 		errs = append(errs, err)
 	}
 	return errors.Combine(errs...)
+}
+
+// VersionDone
+func (manager *GOCFLExtensionManager) VersionDone(object ocfl.Object) error {
+	for _, ext := range manager.versionDone {
+		if err := ext.VersionDone(object); err != nil {
+			return errors.Wrapf(err, "cannot call VersionDone() from extension '%s'", ext.GetName())
+		}
+	}
+	return nil
 }
 
 // check interface satisfaction

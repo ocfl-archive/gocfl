@@ -36,6 +36,7 @@ const (
 	ExtensionAreaName               = "Area"
 	ExtensionStreamName             = "Stream"
 	ExtensionNewVersionName         = "NewVersion"
+	ExtensionVersionDoneName        = "VersionDone"
 	ExtensionInitialName            = "Initial"
 )
 
@@ -102,6 +103,11 @@ type ExtensionFixityDigest interface {
 type ExtensionMetadata interface {
 	Extension
 	GetMetadata(object Object) (map[string]any, error)
+}
+
+type ExtensionVersionDone interface {
+	Extension
+	VersionDone(object Object) error
 }
 
 type ExtensionNewVersion interface {

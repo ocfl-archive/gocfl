@@ -18,6 +18,7 @@ type ExtensionManager interface {
 	ExtensionArea
 	ExtensionStream
 	ExtensionNewVersion
+	ExtensionVersionDone
 	GetConfig() any
 	GetExtensions() []Extension
 	Add(ext Extension) error

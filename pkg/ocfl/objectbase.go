@@ -361,6 +361,23 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	return inventory, inventory.Finalize(false)
 }
 
+func (object *ObjectBase) GetInventoryContent() (inventory []byte, checksumString string, err error) {
+	inventory, err = json.MarshalIndent(object.i, "", "   ")
+	if err != nil {
+		return nil, "", errors.Wrap(err, "cannot marshal inventory")
+	}
+	h, err := checksum.GetHash(object.i.GetDigestAlgorithm())
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "invalid digest algorithm '%s'", string(object.i.GetDigestAlgorithm()))
+	}
+	if _, err := h.Write(inventory); err != nil {
+		return nil, "", errors.Wrapf(err, "cannot create checksum of manifest")
+	}
+	checksumBytes := h.Sum(nil)
+	checksumString = fmt.Sprintf("%x", checksumBytes)
+	return inventory, checksumString, nil
+}
+
 func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 	if object.fsys == nil {
 		return errors.Errorf("read only filesystem '%v'", object.fsys)
@@ -372,19 +389,10 @@ func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 
 	// create inventory.json from inventory
 	iFileName := "inventory.json"
-	jsonBytes, err := json.MarshalIndent(object.i, "", "   ")
+	jsonBytes, checksumString, err := object.GetInventoryContent()
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
 	}
-	h, err := checksum.GetHash(object.i.GetDigestAlgorithm())
-	if err != nil {
-		return errors.Wrapf(err, "invalid digest algorithm '%s'", string(object.i.GetDigestAlgorithm()))
-	}
-	if _, err := h.Write(jsonBytes); err != nil {
-		return errors.Wrapf(err, "cannot create checksum of manifest")
-	}
-	checksumBytes := h.Sum(nil)
-	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 
 	if objectRoot {
 		iWriter, err := writefs.Create(object.fsys, iFileName)
@@ -648,6 +656,9 @@ func (object *ObjectBase) EndUpdate() error {
 	}
 	if err := object.StoreInventory(true, false); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
+	}
+	if err := object.extensionManager.VersionDone(object); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.VersionDone()")
 	}
 	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")

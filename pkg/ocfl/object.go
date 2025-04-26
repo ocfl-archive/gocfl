@@ -21,6 +21,7 @@ type NamesStruct struct {
 type Object interface {
 	LoadInventory(folder string) (Inventory, error)
 	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
+	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() Inventory
 	StoreExtensions() error
