@@ -14,6 +14,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-contrib/multitemplate v1.1.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-test/deep v1.1.1
 	github.com/gomiran/volmgmt v0.0.0-20221201020756-5e535b6f4941
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0

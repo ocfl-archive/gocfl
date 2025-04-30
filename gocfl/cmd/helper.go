@@ -149,6 +149,11 @@ func InitExtensionFactory(
 		return extension.NewMetaFileFS(fsys)
 	})
 
+	logExtInit(logger, extension.ROCrateFileName)
+	extensionFactory.AddCreator(extension.ROCrateFileName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewROCrateFileFS(fsys)
+	})
+
 	logExtInit(logger, extension.IndexerName)
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		ext, err := extension.NewIndexerFS(
@@ -190,12 +195,11 @@ func InitExtensionFactory(
 
 func GetExtensionParams() []*ocfl.ExtensionExternalParam {
 	var result = []*ocfl.ExtensionExternalParam{}
-
 	result = append(result, extension.GetIndexerParams()...)
 	result = append(result, extension.GetMetaFileParams()...)
 	result = append(result, extension.GetMetsParams()...)
+	result = append(result, extension.GetROCrateFileParams()...)
 	result = append(result, extension.GetContentSubPathParams()...)
-
 	return result
 }
 
