@@ -1,0 +1,11 @@
+{
+  "extensionName": "NNNN-timestamp",
+  "Authority": {
+    "freeTSA": "https://freetsa.org/tsr",
+    "BIT": "http://tsa.pki.admin.ch/tsa"
+  },
+  "CertChain": false
+}
+
+
+

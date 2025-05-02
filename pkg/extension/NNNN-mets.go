@@ -214,7 +214,7 @@ type metaFileBase struct {
 	OrganisationId      string   `json:"organisation_id,omitempty"`
 	References          []string `json:"references,omitempty"`
 	Sets                []string `json:"sets,omitempty"`
-	Signature           string   `json:"signature,omitempty"`
+	Timestamp           string   `json:"signature,omitempty"`
 	Title               string   `json:"title,omitempty"`
 	User                string   `json:"user,omitempty"`
 }

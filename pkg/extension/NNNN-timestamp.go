@@ -17,14 +17,14 @@ import (
 	"strings"
 )
 
-const SignatureName = "NNNN-signature"
-const SignatureDescription = "signs ocfl versions"
+const TimestampName = "NNNN-timestamp"
+const TimestampDescription = "signs ocfl versions"
 
-func GetSignatureParams() []*ocfl.ExtensionExternalParam {
+func GetTimestampParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{}
 }
 
-func NewSignatureFS(fsys fs.FS, logger zLogger.ZLogger) (*Signature, error) {
+func NewTimestampFS(fsys fs.FS, logger zLogger.ZLogger) (*Timestamp, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -35,20 +35,15 @@ func NewSignatureFS(fsys fs.FS, logger zLogger.ZLogger) (*Signature, error) {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
 
-	var config = &SignatureConfig{}
+	var config = &TimestampConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal SignatureConfig '%s'", string(data))
+		return nil, errors.Wrapf(err, "cannot unmarshal TimestampConfig '%s'", string(data))
 	}
-	return NewSignature(config, logger)
+	return NewTimestamp(config, logger)
 }
-func NewSignature(config *SignatureConfig, logger zLogger.ZLogger) (*Signature, error) {
-	switch strings.ToLower(config.Type) {
-	case "trustedtimestamp":
-	default:
-		return nil, errors.Errorf("unsupported signature type '%s'", config.Type)
-	}
-	sl := &Signature{
-		SignatureConfig: config,
+func NewTimestamp(config *TimestampConfig, logger zLogger.ZLogger) (*Timestamp, error) {
+	sl := &Timestamp{
+		TimestampConfig: config,
 		logger:          logger,
 	}
 	if config.ExtensionName != sl.GetName() {
@@ -57,19 +52,18 @@ func NewSignature(config *SignatureConfig, logger zLogger.ZLogger) (*Signature, 
 	return sl, nil
 }
 
-type SignatureConfig struct {
+type TimestampConfig struct {
 	*ocfl.ExtensionConfig
-	Type               string            `json:"type"`               // "TrustedTimestamp"
-	TimestampAuthority map[string]string `json:"timestampAuthority"` // https://freetsa.org/tsr
-	TimestampCertChain bool              `json:"timestampCertChain"`
+	Authority map[string]string `json:"Authority"` // https://freetsa.org/tsr
+	CertChain bool              `json:"CertChain"`
 }
-type Signature struct {
-	*SignatureConfig
+type Timestamp struct {
+	*TimestampConfig
 	fsys   fs.FS
 	logger zLogger.ZLogger
 }
 
-func (sl *Signature) trustedTimestamp(object ocfl.Object) error {
+func (sl *Timestamp) trustedTimestamp(object ocfl.Object) error {
 	_, checksumString, err := object.GetInventoryContent()
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
@@ -103,14 +97,14 @@ func (sl *Signature) trustedTimestamp(object ocfl.Object) error {
 	req := &timestamp.Request{
 		HashAlgorithm: ha,
 		HashedMessage: checksumBytes,
-		Certificates:  sl.TimestampCertChain,
+		Certificates:  sl.CertChain,
 	}
 	rqst, err := req.Marshal()
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal request")
 	}
 
-	sl.logger.Debug().Msgf("Signature request: %s", string(rqst))
+	sl.logger.Debug().Msgf("Timestamp request: %s", string(rqst))
 	/*
 		tsr, err := timestamp.ParseRequest(rqst)
 		if err != nil {
@@ -122,7 +116,7 @@ func (sl *Signature) trustedTimestamp(object ocfl.Object) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	for name, url := range sl.TimestampAuthority {
+	for name, url := range sl.Authority {
 		tsaReq, err := http.NewRequest("POST", url, bytes.NewReader(rqst))
 		if err != nil {
 			return errors.Wrap(err, "cannot create request")
@@ -148,11 +142,11 @@ func (sl *Signature) trustedTimestamp(object ocfl.Object) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot parse response '%s'", string(body))
 		}
-		sl.logger.Debug().Msgf("Signature response: %+v", ts)
+		sl.logger.Debug().Msgf("Timestamp response: %+v", ts)
 		//	_ = ts
 		sigfile := fmt.Sprintf("data/%s.%s.tsr", name, object.GetInventory().GetHead())
 		if _, err := writefs.WriteFile(sl.fsys, sigfile, body); err != nil {
-			return errors.Wrapf(err, "cannot write signature file '%s'", sigfile)
+			return errors.Wrapf(err, "cannot write Timestamp file '%s'", sigfile)
 		}
 		queryfile := fmt.Sprintf("data/%s.%s.tsq", name, object.GetInventory().GetHead())
 		if _, err := writefs.WriteFile(sl.fsys, queryfile, rqst); err != nil {
@@ -162,52 +156,44 @@ func (sl *Signature) trustedTimestamp(object ocfl.Object) error {
 	return nil
 }
 
-func (sl *Signature) VersionDone(object ocfl.Object) error {
+func (sl *Timestamp) VersionDone(object ocfl.Object) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
-	switch strings.ToLower(sl.Type) {
-	case "trustedtimestamp":
-		if err := sl.trustedTimestamp(object); err != nil {
-			return errors.Wrap(err, "cannot create trusted timestamp")
-		}
-	default:
-		return errors.Errorf("unsupported signature type '%s'", sl.Type)
-	}
+	return errors.WithStack(sl.trustedTimestamp(object))
+}
+
+func (sl *Timestamp) Terminate() error {
 	return nil
 }
 
-func (sl *Signature) Terminate() error {
-	return nil
+func (sl *Timestamp) GetMetadata(object ocfl.Object) (map[string]any, error) {
+	return map[string]any{"TimestampAuthority": sl.Authority}, nil
 }
 
-func (sl *Signature) GetMetadata(object ocfl.Object) (map[string]any, error) {
-	return map[string]any{"TimestampAuthority": sl.TimestampAuthority}, nil
-}
-
-func (sl *Signature) GetFS() fs.FS {
+func (sl *Timestamp) GetFS() fs.FS {
 	return sl.fsys
 }
 
-func (sl *Signature) GetConfig() any {
-	return sl.SignatureConfig
+func (sl *Timestamp) GetConfig() any {
+	return sl.TimestampConfig
 }
 
-func (sl *Signature) IsRegistered() bool {
+func (sl *Timestamp) IsRegistered() bool {
 	return false
 }
 
-func (sl *Signature) SetFS(fsys fs.FS, create bool) {
+func (sl *Timestamp) SetFS(fsys fs.FS, create bool) {
 	sl.fsys = fsys
 }
 
-func (sl *Signature) SetParams(params map[string]string) error {
+func (sl *Timestamp) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *Signature) GetName() string { return SignatureName }
+func (sl *Timestamp) GetName() string { return TimestampName }
 
-func (sl *Signature) WriteConfig() error {
+func (sl *Timestamp) WriteConfig() error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
@@ -218,7 +204,7 @@ func (sl *Signature) WriteConfig() error {
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.SignatureConfig); err != nil {
+	if err := jenc.Encode(sl.TimestampConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 
@@ -227,6 +213,6 @@ func (sl *Signature) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension            = &Signature{}
-	_ ocfl.ExtensionVersionDone = &Signature{}
+	_ ocfl.Extension            = &Timestamp{}
+	_ ocfl.ExtensionVersionDone = &Timestamp{}
 )

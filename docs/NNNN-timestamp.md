@@ -1,6 +1,6 @@
 # OCFL Community Extension NNNN: Signature
 
-* __Extension Name:__ NNNN-signature
+* __Extension Name:__ NNNN-timestamp
 * **Authors:** Jürgen Enge (Basel)
 * **Minimum OCFL Version:** 1.0
 * **OCFL Community Extensions Version:** 1.0
@@ -24,17 +24,12 @@ For every timestamp a request and a response file is stored within the extension
 
 ### Summary
 
-* **Name:** `Type`
-    * **Description:** Signature type. Currently only `TrustedTimestamp` is supported.
-    * **Type:** string
-    * **Default:**
-  
-* **Name:** `timestampAuthority`
+* **Name:** `Authority`
     * **Description:** a map of url's containing a name and the url of the trusted timestamp authority
     * **Type:** string
     * **Default:**
 
-* **Name:** `timestampCertChain`
+* **Name:** `CertChain`
     * **Description:** requests full certificate chain within the result of the trusted timestamp authority
     * **Type:** Boolean
     * **Default:**
@@ -51,13 +46,12 @@ stored together with the request within the extension folder
 
 ```json
 {
-  "extensionName": "NNNN-signature",
-  "type": "TrustedTimestamp",
-  "timestampAuthority": {
+  "extensionName": "NNNN-timestamp",
+  "Authority": {
     "freeTSA": "https://freetsa.org/tsr",
     "BIT": "http://tsa.pki.admin.ch/tsa"
   },
-  "timestampCertChain": false
+  "CertChain": false
 }
 ```
 

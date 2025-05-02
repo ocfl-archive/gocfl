@@ -19,7 +19,7 @@ tempdir = "C:/temp/tmp"
 # "error"
 # "fatal"
 # "panic"
-level = "info"
+level = "debug"
 
 [log.stash]
 #logstash_host="sb-uwf4.swissbib.unibas.ch"

@@ -29,6 +29,7 @@ func NewExtensionFactory(params map[string]string, logger zLogger.ZLogger) (*Ext
 }
 
 func (f *ExtensionFactory) AddCreator(name string, creator creatorFunc) {
+	f.logger.Debug().Msgf("add extension creator %s", name)
 	f.creators[name] = creator
 }
 
@@ -78,8 +79,9 @@ func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (Extension, error) {
 func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (ExtensionManager, error) {
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
+	f.logger.Debug().Msgf("read extensions from %s", fsys)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read folder storageroot")
+		return nil, errors.Wrapf(err, "cannot read extensions from %s", fsys)
 	}
 	var result = []Extension{}
 	for _, file := range files {
@@ -87,6 +89,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 			continue
 		}
 		fName := file.Name()
+		f.logger.Debug().Msgf("found extension %s", fName)
 		sub, err := writefs.Sub(fsys, fName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
