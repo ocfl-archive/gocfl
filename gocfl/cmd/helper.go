@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/tink/go/core/registry"
 	"github.com/je4/filesystem/v3/pkg/osfsrw"
 	"github.com/je4/filesystem/v3/pkg/s3fsrw"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -26,6 +25,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"github.com/spf13/cobra"
+	"github.com/tink-crypto/tink-go/v2/core/registry"
 )
 
 func startTimer() *timer {

@@ -1,8 +1,6 @@
 module github.com/ocfl-archive/gocfl/v2
 
-go 1.24.0
-
-//replace github.com/envoyproxy/go-control-plane v
+go 1.24.2
 
 require (
 	emperror.dev/emperror v0.33.0
@@ -19,17 +17,17 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/gomiran/volmgmt v0.0.0-20221201020756-5e535b6f4941
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/google/tink/go v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
-	github.com/je4/filesystem/v3 v3.0.28
-	github.com/je4/utils/v2 v2.0.59
+	github.com/je4/filesystem/v3 v3.0.29
+	github.com/je4/utils/v2 v2.0.60
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/ocfl-archive/error v1.0.5
 	github.com/ocfl-archive/indexer/v3 v3.0.17
 	github.com/rs/zerolog v1.34.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.9.1
+	github.com/tink-crypto/tink-go/v2 v2.4.0
 	gitlab.switch.ch/ub-unibas/go-ublogger/v2 v2.0.1
 	go.ub.unibas.ch/cloud/certloader/v2 v2.0.18
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
