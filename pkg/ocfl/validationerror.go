@@ -199,13 +199,13 @@ func GetValidationStatus(ctx context.Context) (*ValidationStatus, error) {
 	return status, nil
 }
 
-func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
+func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) {
 	status, err := GetValidationStatus(ctx)
 	if err != nil {
-		return errors.Wrap(err, "cannot add validation error")
+		return
 	}
 	status.Errors = append(status.Errors, vErrs...)
-	return nil
+	return
 }
 
 func addValidationWarnings(ctx context.Context, vWarns ...*ValidationError) error {

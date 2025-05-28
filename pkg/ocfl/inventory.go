@@ -71,6 +71,12 @@ func newInventory(
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
+	case Version2_0:
+		sr, err := newInventoryV2_0(ctx, object, folder, logger, errorFactory)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return sr, nil
 	default:
 		//case Version1_0:
 		sr, err := newInventoryV1_0(ctx, object, folder, logger, errorFactory)

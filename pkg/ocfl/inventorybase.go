@@ -183,7 +183,7 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 
 func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
 	err := GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.GetFS(), i.GetID())
-	_ = addValidationErrors(i.ctx, err)
+	addValidationErrors(i.ctx, err)
 }
 func (i *InventoryBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
 	err := GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.GetFS(), i.GetID())

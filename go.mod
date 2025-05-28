@@ -10,10 +10,10 @@ require (
 	github.com/andybalholm/brotli v1.1.1
 	github.com/atsushinee/go-markdown-generator v0.0.0-20231027094725-92d26ffbe778
 	github.com/davidbyttow/govips/v2 v2.16.0
-	github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7
+	github.com/digitorus/timestamp v0.0.0-20250524132541-c45532741eea
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-contrib/multitemplate v1.1.1
-	github.com/gin-gonic/gin v1.10.0
+	github.com/gin-gonic/gin v1.10.1
 	github.com/go-test/deep v1.1.1
 	github.com/gomiran/volmgmt v0.0.0-20221201020756-5e535b6f4941
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -87,13 +87,14 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/crc64nvme v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.91 // indirect
+	github.com/minio/minio-go/v7 v7.0.92 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/richardlehane/characterize v1.0.0 // indirect
@@ -115,15 +116,16 @@ require (
 	github.com/tamerh/xml-stream-parser v1.5.0 // indirect
 	github.com/tamerh/xpath v1.0.0 // indirect
 	github.com/telkomdev/go-stash v1.0.6 // indirect
+	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/tobischo/argon2 v0.1.0 // indirect
 	github.com/tobischo/gokeepasslib/v3 v3.6.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/ugorji/go/codec v1.2.14 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel v1.35.0 // indirect
-	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	go.opentelemetry.io/otel/trace v1.35.0 // indirect
-	go.step.sm/crypto v0.63.0 // indirect
+	go.opentelemetry.io/otel v1.36.0 // indirect
+	go.opentelemetry.io/otel/metric v1.36.0 // indirect
+	go.opentelemetry.io/otel/trace v1.36.0 // indirect
+	go.step.sm/crypto v0.64.0 // indirect
 	go.ub.unibas.ch/cloud/minivault/v2 v2.0.21 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.17.0 // indirect

@@ -24,15 +24,20 @@ type Object interface {
 	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() Inventory
+
+	LoadVersionPackages(folder string) (VersionPackages, error)
+	GetVersionPackagesContent() (versionPackages []byte, checksumString string, err error)
+	StoreVersionPackages(version bool, objectRoot bool) error
+	GertVersionPackages() VersionPackages
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) error
 	Load() error
-	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
+	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) error
 	EndUpdate() error
 	BeginArea(area string)
 	EndArea() error
-	AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error
-	AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
+	AddFolder(fsys fs.FS, checkDuplicate bool, area string) error
+	AddFile(fsys fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) (string, error)
 	DeleteFile(virtualFilename string, digest string) error
@@ -88,6 +93,7 @@ func newObject(
 	ctx context.Context,
 	fsys fs.FS,
 	version OCFLVersion,
+	versionPackageType VersionPackageType,
 	storageRoot StorageRoot,
 	extensionManager ExtensionManager,
 	logger zLogger.ZLogger,
@@ -108,7 +114,7 @@ func newObject(
 		}
 		return o, nil
 	case Version2_0:
-		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, logger, errorFactory)
+		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, versionPackageType, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

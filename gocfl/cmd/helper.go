@@ -512,7 +512,7 @@ func addObjectByPath(
 			return false, err
 		}
 	}
-	versionFS, err := o.StartUpdate(sourceFS, message, userName, userAddress, echo)
+	err = o.StartUpdate(sourceFS, message, userName, userAddress, echo)
 	if err != nil {
 		logger.Error().Any(
 			errorTopic,
@@ -528,7 +528,7 @@ func addObjectByPath(
 		)
 		return false, err
 	}
-	if err := o.AddFolder(sourceFS, versionFS, checkDuplicates, area); err != nil {
+	if err := o.AddFolder(sourceFS, checkDuplicates, area); err != nil {
 		logger.Error().Any(
 			errorTopic,
 			ErrorFactory.NewError(
@@ -545,7 +545,7 @@ func addObjectByPath(
 	}
 	if areaPaths != nil {
 		for a, aPath := range areaPaths {
-			if err := o.AddFolder(aPath, versionFS, checkDuplicates, a); err != nil {
+			if err := o.AddFolder(aPath, checkDuplicates, a); err != nil {
 				logger.Error().Any(
 					errorTopic,
 					ErrorFactory.NewError(

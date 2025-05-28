@@ -12,6 +12,7 @@ type InventorySpec string
 const (
 	InventorySpec1_0 InventorySpec = "https://ocfl.io/1.0/spec/#inventory"
 	InventorySpec1_1 InventorySpec = "https://ocfl.io/1.1/spec/#inventory"
+	InventorySpec2_0 InventorySpec = "https://ocfl.io/2.0/spec/#inventory"
 )
 
 // return true if Specification s1 < s2
