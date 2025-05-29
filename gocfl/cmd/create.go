@@ -356,6 +356,10 @@ func doCreate(cmd *cobra.Command, args []string) {
 		ErrorFactory.LogSetError(logger.Error(), err).Msg("cannot create new storage root")
 	}
 
+	versionPackagesType, ok := ocfl.VersionPackageStringType[conf.Version.PackagesType]
+	if !ok {
+		logger.Fatal().Msgf("invalid version package type '%s'", conf.Version.PackagesType)
+	}
 	_, err = addObjectByPath(
 		storageRoot,
 		fixityAlgs,
@@ -369,6 +373,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		area,
 		areaPaths,
 		false,
+		versionPackagesType,
 		logger,
 	)
 	if err != nil {

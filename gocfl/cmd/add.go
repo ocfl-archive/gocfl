@@ -173,7 +173,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msg("cannot init indexer")
+		logger.Fatal().Stack().Err(err).Msg("cannot init indexer")
 	}
 
 	t := startTimer()
@@ -199,7 +199,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	if _, err := os.Stat(srcPath); err != nil {
-		logger.Panic().Stack().Err(err).Msgf("cannot stat '%s'", srcPath)
+		logger.Fatal().Stack().Err(err).Msgf("cannot stat '%s'", srcPath)
 	}
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Add.Digest}, nil, nil, conf.Add.NoCompress, false, logger)
@@ -211,24 +211,24 @@ func doAdd(cmd *cobra.Command, args []string) {
 				"cannot create filesystem factory",
 				err,
 			)).Msg("")
-		logger.Panic().Err(err).Msg("cannot create filesystem factory")
+		logger.Fatal().Err(err).Msg("cannot create filesystem factory")
 	}
 
 	sourceFS, err := fsFactory.Get(srcPath, true)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
+		logger.Fatal().Stack().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
 	destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Fatal().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
 	var doNotClose = false
 	defer func() {
 		if doNotClose {
-			logger.Panic().Msgf("filesystem '%s' not closed", destFS)
+			logger.Fatal().Msgf("filesystem '%s' not closed", destFS)
 		} else {
 			if err := writefs.Close(destFS); err != nil {
-				logger.Panic().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
+				logger.Fatal().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
 			}
 		}
 	}()
@@ -252,21 +252,21 @@ func doAdd(cmd *cobra.Command, args []string) {
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2], true)
 		if err != nil {
 			doNotClose = true
-			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
+			logger.Fatal().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
 		}
 	}
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Err(err).Msg("cannot get migrations")
+		logger.Fatal().Err(err).Msg("cannot get migrations")
 	}
 	mig.SetSourceFS(sourceFS)
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Err(err).Msg("cannot get thumbnails")
+		logger.Fatal().Stack().Err(err).Msg("cannot get thumbnails")
 	}
 	thumb.SetSourceFS(sourceFS)
 
@@ -274,33 +274,33 @@ func doAdd(cmd *cobra.Command, args []string) {
 	extensionFactory, err := InitExtensionFactory(extensionParams, addr, localCache, indexerActions, mig, thumb, sourceFS, logger, conf.TempDir)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Err(err).Msg("cannot initialize extension factory")
+		logger.Fatal().Stack().Err(err).Msg("cannot initialize extension factory")
 	}
 	_, objectExtensionManager, err := initDefaultExtensions(extensionFactory, "", conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Err(err).Msg("cannot initialize default extensions")
+		logger.Fatal().Stack().Err(err).Msg("cannot initialize default extensions")
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger, ErrorFactory, conf.Init.Documentation)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Err(err).Msg("cannot open storage root")
+		logger.Fatal().Stack().Err(err).Msg("cannot open storage root")
 	}
 	if storageRoot.GetDigest() == "" {
 		storageRoot.SetDigest(checksum.DigestAlgorithm(conf.Add.Digest))
 	} else {
 		if storageRoot.GetDigest() != conf.Add.Digest {
 			doNotClose = true
-			logger.Panic().Msgf("storageroot already uses digest '%s' not '%s'", storageRoot.GetDigest(), conf.Add.Digest)
+			logger.Fatal().Msgf("storageroot already uses digest '%s' not '%s'", storageRoot.GetDigest(), conf.Add.Digest)
 		}
 	}
 
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Err(err).Msgf("cannot check for object '%s'", flagObjectID)
+		logger.Fatal().Stack().Err(err).Msgf("cannot check for object '%s'", flagObjectID)
 	}
 	if exists {
 		logger.Warn().Any(
@@ -312,6 +312,11 @@ func doAdd(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	versionPackagesType, ok := ocfl.VersionPackageStringType[conf.Version.PackagesType]
+	if !ok {
+		doNotClose = true
+		logger.Fatal().Msgf("invalid version package type '%s'", conf.Version.PackagesType)
+	}
 	_, err = addObjectByPath(
 		storageRoot,
 		fixityAlgs,
@@ -325,11 +330,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 		area,
 		areaPaths,
 		false,
+		versionPackagesType,
 		logger,
 	)
 	if err != nil {
 		doNotClose = true
-		logger.Panic().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
+		logger.Fatal().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
 	}
 	_ = showStatus(ctx, logger)
 

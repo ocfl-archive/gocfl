@@ -15,8 +15,8 @@ type ObjectV2_0 struct {
 	*ObjectBase
 }
 
-func newObjectV2_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, extensionManager ExtensionManager, packageType VersionPackageType, logger zLogger.ZLogger, errorFactory *archiveerror.Factory) (*ObjectV2_0, error) {
-	ob, err := newObjectBase(ctx, fsys, Version2_0, storageRoot, extensionManager, packageType, logger, errorFactory)
+func newObjectV2_0(ctx context.Context, fsys fs.FS, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger, errorFactory *archiveerror.Factory) (*ObjectV2_0, error) {
+	ob, err := newObjectBase(ctx, fsys, Version2_0, storageRoot, extensionManager, logger, errorFactory)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

@@ -380,7 +380,7 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extension manager")
 	}
-	object, err := newObject(osr.ctx, subfs, version, VersionPlain, osr, extensionManager, osr.logger, osr.errorFactory)
+	object, err := newObject(osr.ctx, subfs, version, osr, extensionManager, osr.logger, osr.errorFactory)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot instantiate object")
 	}
@@ -426,7 +426,7 @@ func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest 
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fsys, folder)
 	}
 
-	object, err := newObject(osr.ctx, subfs, version, VersionPlain, osr, manager, osr.logger, osr.errorFactory)
+	object, err := newObject(osr.ctx, subfs, version, osr, manager, osr.logger, osr.errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate object")
 	}

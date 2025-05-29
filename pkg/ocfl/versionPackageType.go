@@ -2,30 +2,33 @@ package ocfl
 
 import "fmt"
 
-type VersionPackageType uint
+type VersionPackagesType uint
 
 const (
-	VersionPlain VersionPackageType = iota
+	VersionPlain VersionPackagesType = iota
 	VersionZIP
+	VersionTAR
 	VersionTGZ
 	VersionTBZ
 )
 
-var VersionPackageTypeString = map[VersionPackageType]string{
+var VersionPackageTypeString = map[VersionPackagesType]string{
 	VersionPlain: "plain",
 	VersionZIP:   "zip",
+	VersionTAR:   "tar",
 	VersionTGZ:   "tar.gz",
 	VersionTBZ:   "tar.bz2",
 }
 
-var VersionPackageStringType = map[string]VersionPackageType{
+var VersionPackageStringType = map[string]VersionPackagesType{
 	VersionPackageTypeString[VersionPlain]: VersionPlain,
 	VersionPackageTypeString[VersionZIP]:   VersionZIP,
+	VersionPackageTypeString[VersionTAR]:   VersionTAR,
 	VersionPackageTypeString[VersionTGZ]:   VersionTGZ,
 	VersionPackageTypeString[VersionTBZ]:   VersionTBZ,
 }
 
-func (v VersionPackageType) String() string {
+func (v VersionPackagesType) String() string {
 	if str, ok := VersionPackageTypeString[v]; ok {
 		return str
 	}

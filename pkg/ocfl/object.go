@@ -22,17 +22,19 @@ type Object interface {
 	LoadInventory(folder string) (Inventory, error)
 	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
 	GetInventoryContent() (inventory []byte, checksumString string, err error)
-	StoreInventory(version bool, objectRoot bool) error
+	StoreInventory(fsys fs.FS, folder string) error
 	GetInventory() Inventory
 
 	LoadVersionPackages(folder string) (VersionPackages, error)
+	CreateVersionPackages(digest checksum.DigestAlgorithm) (VersionPackages, error)
 	GetVersionPackagesContent() (versionPackages []byte, checksumString string, err error)
-	StoreVersionPackages(version bool, objectRoot bool) error
-	GertVersionPackages() VersionPackages
+	StoreVersionPackages() error
+	GetVersionPackages() VersionPackages
+
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) error
 	Load() error
-	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) error
+	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool, versionPackagesType VersionPackagesType) error
 	EndUpdate() error
 	BeginArea(area string)
 	EndArea() error
@@ -93,7 +95,6 @@ func newObject(
 	ctx context.Context,
 	fsys fs.FS,
 	version OCFLVersion,
-	versionPackageType VersionPackageType,
 	storageRoot StorageRoot,
 	extensionManager ExtensionManager,
 	logger zLogger.ZLogger,
@@ -114,7 +115,7 @@ func newObject(
 		}
 		return o, nil
 	case Version2_0:
-		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, versionPackageType, logger, errorFactory)
+		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

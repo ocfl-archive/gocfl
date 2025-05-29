@@ -21,7 +21,7 @@ func newObjectV1_0(
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
 ) (*ObjectV1_0, error) {
-	ob, err := newObjectBase(ctx, fsys, Version1_0, storageRoot, extensionManager, VersionPlain, logger, errorFactory)
+	ob, err := newObjectBase(ctx, fsys, Version1_0, storageRoot, extensionManager, logger, errorFactory)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

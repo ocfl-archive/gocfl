@@ -14,6 +14,15 @@ import (
 	"strings"
 )
 
+type VersionPackagesZIP struct {
+	PartSize int64 `toml:"partsize"`
+	Compress bool  `toml:"compress"`
+}
+type VersionConfig struct {
+	PackagesType string              `toml:"packagestype"`
+	PackagesZIP  *VersionPackagesZIP `toml:"zip"`
+}
+
 type InitConfig struct {
 	OCFLVersion                string                   `toml:"ocflversion"`
 	StorageRootExtensionFolder string                   `toml:"storagerootextensionfolder"`
@@ -24,7 +33,7 @@ type InitConfig struct {
 type AddConfig struct {
 	Deduplicate           bool                     `toml:"deduplicate"`
 	NoCompress            bool                     `toml:"nocompress"`
-	ObjectExtensionFolder string                   `toml:"objectextensionfolder"`
+	ObjectExtensionFolder string                   `toml:"ObjectExtensions"`
 	User                  *UserConfig              `toml:"User"`
 	Digest                checksum.DigestAlgorithm `toml:"digest"`
 	Fixity                []string                 `toml:"fixity"`
@@ -151,6 +160,7 @@ type GOCFLConfig struct {
 	DefaultArea   string                       `toml:"defaultarea"`
 	Log           stashconfig.Config           `toml:"Log"`
 	TempDir       string                       `toml:"tempdir"`
+	Version       VersionConfig                `toml:"version"`
 }
 
 func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {

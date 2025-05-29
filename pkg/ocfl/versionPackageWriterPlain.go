@@ -18,6 +18,24 @@ type VersionPackageWriterPlain struct {
 	version string
 }
 
+func (version *VersionPackageWriterPlain) GetFileDigest() (map[string]string, error) {
+	return map[string]string{}, nil
+}
+
+func (version *VersionPackageWriterPlain) WriteFile(name string, r io.Reader) (int64, error) {
+	object := version.GetObject()
+	writer, err := writefs.Create(object.fsys, name)
+	if err != nil {
+		return 0, errors.Wrapf(err, "cannot create '%s'", name)
+	}
+	defer writer.Close()
+	num, err := io.Copy(writer, r)
+	if err != nil {
+		return 0, errors.Wrapf(err, "cannot write to '%s'", name)
+	}
+	return num, nil
+}
+
 func (version *VersionPackageWriterPlain) Version() string {
 	return version.version
 }
@@ -26,7 +44,7 @@ func (version *VersionPackageWriterPlain) GetObject() *ObjectBase {
 	return version.ObjectBase
 }
 
-func (version *VersionPackageWriterPlain) GetType() VersionPackageType {
+func (version *VersionPackageWriterPlain) Type() VersionPackagesType {
 	return VersionPlain
 }
 

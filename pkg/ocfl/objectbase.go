@@ -41,18 +41,16 @@ type ObjectBase struct {
 	updateFiles        []string
 	area               string
 	versionPackage     VersionPackageWriter
-	packageType        VersionPackageType
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, packageType VersionPackageType, logger zLogger.ZLogger, errorFactory *archiveerror.Factory) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger, errorFactory *archiveerror.Factory) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
 		fsys:             fsys,
 		version:          defaultVersion,
 		storageRoot:      storageRoot,
 		extensionManager: extensionManager,
-		packageType:      packageType,
 		logger:           logger,
 		errorFactory:     errorFactory,
 	}
@@ -404,8 +402,8 @@ func (object *ObjectBase) GetInventoryContent() (inventory []byte, checksumStrin
 	return inventory, checksumString, nil
 }
 
-func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
-	if object.fsys == nil {
+func (object *ObjectBase) StoreInventory(fsys fs.FS, folder string) error {
+	if fsys == nil {
 		return errors.Errorf("read only filesystem '%v'", object.fsys)
 	}
 	// check whether object filesystem is writeable
@@ -420,81 +418,19 @@ func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 		return errors.Wrap(err, "cannot marshal inventory")
 	}
 
-	if objectRoot {
-		iWriter, err := writefs.Create(object.fsys, iFileName)
-		if err != nil {
-			_ = iWriter.Close()
-			return errors.Wrap(err, "cannot create inventory.json")
-		}
-		if _, err := iWriter.Write(jsonBytes); err != nil {
-			return errors.Wrap(err, "cannot write to inventory.json")
-		}
-		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, iFileName)
-		}
-		csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(object.fsys, csFileName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
-		}
-		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-			_ = iCSWriter.Close()
-			return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
-		}
-		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
-		}
+	fullname := filepath.ToSlash(filepath.Join(folder, iFileName))
+	if _, err := writefs.WriteFile(fsys, fullname, jsonBytes); err != nil {
+		return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, fullname)
 	}
-	if version {
-		iFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
-		iWriter, err := writefs.Create(object.fsys, iFileName)
-		if err != nil {
-			return errors.Wrap(err, "cannot create inventory.json")
-		}
-		if _, err := iWriter.Write(jsonBytes); err != nil {
-			_ = iWriter.Close()
-			return errors.Wrap(err, "cannot write to inventory.json")
-		}
-		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, iFileName)
-		}
-		csFileName := fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(object.fsys, csFileName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
-		}
-		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-			_ = iCSWriter.Close()
-			return errors.Wrapf(err, "cannot write to '%s'", csFileName)
-		}
-		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
-		}
+	csFileName := fmt.Sprintf("inventory.json.%s", string(object.i.GetDigestAlgorithm()))
+	if _, err := writefs.WriteFile(fsys, csFileName, []byte(checksumString+" inventory.json")); err != nil {
+		return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
 	}
 	return nil
 }
 
 func (object *ObjectBase) loadVersionPackages(data []byte, folder string) (VersionPackages, error) {
-	anyMap := map[string]any{}
-	if err := json.Unmarshal(data, &anyMap); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
-	}
-	var version OCFLVersion
-	t, ok := anyMap["type"]
-	if !ok {
-		return nil, errors.New("no type in inventory")
-	}
-	sStr, ok := t.(string)
-	if !ok {
-		return nil, errors.Errorf("type not a string in inventory - '%v'", t)
-	}
-	switch VersionPackagesSpec(sStr) {
-	case VersionPackageSpec2_0:
-		version = Version2_0
-	default:
-		return nil, errors.Errorf("unknown version package spec '%s'", sStr)
-	}
-	versionPackages, err := newVersionPackage(object.ctx, object, folder, version, object.logger, object.errorFactory)
+	versionPackages, err := newVersionPackage(object.ctx, object, folder, object.logger, object.errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -506,17 +442,17 @@ func (object *ObjectBase) loadVersionPackages(data []byte, folder string) (Versi
 }
 
 func (object *ObjectBase) LoadVersionPackages(folder string) (VersionPackages, error) {
-	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
+	filename := filepath.ToSlash(filepath.Join(folder, "packages.json"))
 	inventoryBytes, err := fs.ReadFile(object.fsys, filename)
 	if err != nil {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			return nil, err
+			return nil, nil
 		}
-		return newVersionPackage(object.ctx, object, folder, object.version, object.logger, object.errorFactory)
+		return newVersionPackage(object.ctx, object, folder, object.logger, object.errorFactory)
 	}
 	versionPackages, err := object.loadVersionPackages(inventoryBytes, folder)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot initiate inventory object")
+		return nil, errors.Wrap(err, "cannot initiate version packages object")
 	}
 	digest := versionPackages.GetDigestAlgorithm()
 
@@ -556,8 +492,22 @@ func (object *ObjectBase) LoadVersionPackages(folder string) (VersionPackages, e
 
 }
 
-func (object *ObjectBase) GetVersionPackagesContent() (versionPackages []byte, checksumString string, err error) {
-	versionPackages, err = json.MarshalIndent(object.i, "", "   ")
+func (object *ObjectBase) CreateVersionPackages(digest checksum.DigestAlgorithm) (VersionPackages, error) {
+	versionPackages, err := newVersionPackage(
+		object.ctx,
+		object,
+		".",
+		object.logger,
+		object.errorFactory,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot create empty version packages")
+	}
+	return versionPackages, nil
+}
+
+func (object *ObjectBase) GetVersionPackagesContent() (jsonBytes []byte, checksumString string, err error) {
+	jsonBytes, err = json.MarshalIndent(object.p, "", "   ")
 	if err != nil {
 		return nil, "", errors.Wrap(err, "cannot marshal version packages")
 	}
@@ -565,21 +515,25 @@ func (object *ObjectBase) GetVersionPackagesContent() (versionPackages []byte, c
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "invalid digest algorithm '%s'", string(object.i.GetDigestAlgorithm()))
 	}
-	if _, err := h.Write(versionPackages); err != nil {
+	if _, err := h.Write(jsonBytes); err != nil {
 		return nil, "", errors.Wrapf(err, "cannot create checksum of manifest")
 	}
 	checksumBytes := h.Sum(nil)
 	checksumString = fmt.Sprintf("%x", checksumBytes)
-	return versionPackages, checksumString, nil
+	return jsonBytes, checksumString, nil
 }
 
-func (object *ObjectBase) StoreVersionPackages(version bool, objectRoot bool) error {
+func (object *ObjectBase) StoreVersionPackages() error {
 	if object.fsys == nil {
 		return errors.Errorf("read only filesystem '%v'", object.fsys)
 	}
 	// check whether object filesystem is writeable
 	if !object.i.IsWriteable() {
 		return errors.New("version packages not writeable - not updated")
+	}
+
+	if object.p.IsEmpty() {
+		return nil
 	}
 
 	// create inventory.json from inventory
@@ -589,61 +543,17 @@ func (object *ObjectBase) StoreVersionPackages(version bool, objectRoot bool) er
 		return errors.Wrap(err, "cannot marshal version packages")
 	}
 
-	if objectRoot {
-		iWriter, err := writefs.Create(object.fsys, pFileName)
-		if err != nil {
-			_ = iWriter.Close()
-			return errors.Wrap(err, "cannot create packages.json")
-		}
-		if _, err := iWriter.Write(jsonBytes); err != nil {
-			return errors.Wrap(err, "cannot write to packages.json")
-		}
-		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, pFileName)
-		}
-		csFileName := fmt.Sprintf("packages.json.%s", string(object.p.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(object.fsys, csFileName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
-		}
-		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-			_ = iCSWriter.Close()
-			return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
-		}
-		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
-		}
+	if _, err := writefs.WriteFile(object.fsys, pFileName, jsonBytes); err != nil {
+		return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, pFileName)
 	}
-	if version {
-		pFileName = fmt.Sprintf("%s/inventory.json", object.i.GetHead())
-		iWriter, err := writefs.Create(object.fsys, pFileName)
-		if err != nil {
-			return errors.Wrap(err, "cannot create inventory.json")
-		}
-		if _, err := iWriter.Write(jsonBytes); err != nil {
-			_ = iWriter.Close()
-			return errors.Wrap(err, "cannot write to inventory.json")
-		}
-		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, pFileName)
-		}
-		csFileName := fmt.Sprintf("%s/inventory.json.%s", object.i.GetHead(), string(object.i.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(object.fsys, csFileName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
-		}
-		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
-			_ = iCSWriter.Close()
-			return errors.Wrapf(err, "cannot write to '%s'", csFileName)
-		}
-		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", object.fsys, csFileName)
-		}
+	csFileName := fmt.Sprintf("packages.json.%s", string(object.p.GetDigestAlgorithm()))
+	if _, err := writefs.WriteFile(object.fsys, csFileName, []byte(checksumString+" packages.json")); err != nil {
+		return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
 	}
 	return nil
 }
 
-func (object *ObjectBase) GertVersionPackages() VersionPackages {
+func (object *ObjectBase) GetVersionPackages() VersionPackages {
 	return object.p
 }
 
@@ -714,7 +624,12 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 		return errors.Errorf("forbidden digest algorithm for fixity %v. Supported algorithms are %v. (to fix try to use extension 0001-digest-algorithms)", fixity, algs)
 	}
 
-	object.i, err = object.CreateInventory(id, digest, fixity)
+	if object.i, err = object.CreateInventory(id, digest, fixity); err != nil {
+		return errors.Wrapf(err, "cannot create inventory for object '%s'", id)
+	}
+	if object.p, err = object.CreateVersionPackages(digest); err != nil {
+		return errors.Wrapf(err, "cannot create version packages for object '%s'", id)
+	}
 	return nil
 }
 
@@ -735,6 +650,9 @@ func (object *ObjectBase) Load() (err error) {
 	// load the inventory
 	if object.i, err = object.LoadInventory("."); err != nil {
 		return errors.Wrap(err, "cannot load inventory.json of root")
+	}
+	if object.p, err = object.LoadVersionPackages("."); err != nil {
+		return errors.Wrap(err, "cannot load packages.json of root")
 	}
 	return nil
 }
@@ -778,8 +696,11 @@ func (object *ObjectBase) Close() error {
 	if err := object.i.Clean(); err != nil {
 		return errors.Wrap(err, "cannot clean inventory")
 	}
-	if err := object.StoreInventory(false, true); err != nil {
+	if err := object.StoreInventory(object.fsys, "."); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
+	}
+	if err := object.StoreVersionPackages(); err != nil {
+		return errors.Wrap(err, "cannot store version packages")
 	}
 	if err := object.StoreExtensions(); err != nil {
 		return errors.Wrap(err, "cannot store extensions")
@@ -787,7 +708,7 @@ func (object *ObjectBase) Close() error {
 	return nil
 }
 
-func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) error {
+func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool, versionPackagesType VersionPackagesType) error {
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
 			ErrorOCFL,
@@ -806,35 +727,29 @@ func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName strin
 	if err := object.i.NewVersion(msg, UserName, UserAddress); err != nil {
 		return errors.Wrap(err, "cannot create new object version")
 	}
-	if err := object.extensionManager.UpdateObjectBefore(object); err != nil {
-		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
-	}
-	switch object.packageType {
+
+	switch versionPackagesType {
 	case VersionPlain:
 		object.versionPackage = newVersionPackageWriterPlain(object, object.i.GetHead())
-
+	case VersionZIP:
+		object.versionPackage, err = newVersionPackagesWriterZIP(object, object.i.GetHead(), 95*1024*1024, false)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create new zip version package for object '%s'", object.GetID())
+		}
 	default:
-		return errors.Errorf("unsupported package type '%s'", object.packageType)
+		return errors.Errorf("unsupported package type '%s'", versionPackagesType)
+	}
+
+	if err := object.extensionManager.UpdateObjectBefore(object); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
 
 	return nil
 }
 
 func (object *ObjectBase) EndUpdate() error {
-	defer func() {
-		if object.versionPackage != nil {
-			if err := object.versionPackage.Close(); err != nil {
-				object.logger.Error().Any(
-					object.errorFactory.LogError(
-						ErrorOCFL,
-						"cannot close  version package",
-						err,
-					),
-				).Msg("")
-			}
-		}
-	}()
-
+	inventory := object.GetInventory()
+	versionPackagesType := object.versionPackage.Type()
 	object.logger.Info().Any(
 		object.errorFactory.LogError(
 			ErrorOCFL,
@@ -874,12 +789,37 @@ func (object *ObjectBase) EndUpdate() error {
 	if err := object.i.Clean(); err != nil {
 		return errors.Wrap(err, "cannot clean inventory")
 	}
-	if err := object.StoreInventory(true, false); err != nil {
-		return errors.Wrap(err, "cannot store inventory")
+	iFileName := "inventory.json"
+	jsonBytes, checksumString, err := object.GetInventoryContent()
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal inventory")
 	}
+
+	fullname := filepath.ToSlash(filepath.Join(object.i.GetHead(), iFileName))
+	if _, err := object.versionPackage.WriteFile(fullname, bytes.NewBuffer(jsonBytes)); err != nil {
+		return errors.Wrapf(err, "cannot write inventory '%s' to version package", fullname)
+	}
+	csFileName := fmt.Sprintf("%s.%s", fullname, string(object.i.GetDigestAlgorithm()))
+	if _, err := object.versionPackage.WriteFile(csFileName, bytes.NewBuffer([]byte(checksumString+" inventory.json"))); err != nil {
+		return errors.Wrapf(err, "cannot write checksum '%s' to version package", csFileName)
+	}
+
 	if err := object.extensionManager.VersionDone(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.VersionDone()")
 	}
+
+	if err := object.versionPackage.Close(); err != nil {
+		object.logger.Error().Any(
+			object.errorFactory.LogError(
+				ErrorOCFL,
+				"cannot close  version package",
+				err,
+			),
+		).Msg("")
+	}
+	filesDigest, err := object.versionPackage.GetFileDigest()
+	object.p.AddVersion(inventory.GetHead(), object.versionPackage.Type(), object.versionPackage.Version(), filesDigest)
+
 	if needVersion, err := object.extensionManager.NeedNewVersion(object); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
@@ -889,6 +829,7 @@ func (object *ObjectBase) EndUpdate() error {
 			"gocfl",
 			"https://github.com/ocfl-archive/gocfl",
 			false,
+			versionPackagesType,
 		); err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
@@ -899,17 +840,6 @@ func (object *ObjectBase) EndUpdate() error {
 			return errors.Wrap(err, "cannot end update")
 		}
 	}
-	if err := object.versionPackage.Close(); err != nil {
-		object.logger.Error().Any(
-			object.errorFactory.LogError(
-				ErrorOCFL,
-				"cannot close  version package",
-				err,
-			),
-		).Msg("")
-		return errors.Wrap(err, "cannot close version package")
-	}
-
 	return nil
 }
 
@@ -1075,7 +1005,7 @@ func (object *ObjectBase) AddReader(r io.ReadCloser, files []string, area string
 
 	var digest string
 	if !isDir {
-		digest, err = object.addReader(r, nil, names, noExtensionHook)
+		digest, err = object.versionPackage.addReader(r, names, noExtensionHook)
 		if err != nil {
 			return "", errors.Wrapf(err, "cannot add file '%s' to object", path)
 		}

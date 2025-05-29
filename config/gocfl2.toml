@@ -36,6 +36,12 @@ level = "debug"
 #ca=["certs/ca.crt"]
 #interval="1h"
 
+[Version]
+packagestype = "zip" # "plain", "zip", "tar", "tar.gz", "tar.bz2""
+[Version.ZIP]
+partsize = 1073741824 # size of each part in multipart zip
+compress = false # true, if zip should be compressed
+
 [AES]
 Enable=false
 KeepassFile="c:/temp/test.kdbx"

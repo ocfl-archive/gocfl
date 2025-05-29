@@ -262,6 +262,11 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	versionPackagesType, ok := ocfl.VersionPackageStringType[conf.Version.PackagesType]
+	if !ok {
+		doNotClose = true
+		logger.Fatal().Msgf("invalid version package type '%s'", conf.Version.PackagesType)
+	}
 	_, err = addObjectByPath(
 		storageRoot,
 		nil,
@@ -275,6 +280,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		area,
 		areaPaths,
 		conf.Update.Echo,
+		versionPackagesType,
 		logger,
 	)
 	if err != nil {

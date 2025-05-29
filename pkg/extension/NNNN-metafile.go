@@ -172,7 +172,11 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 					return errors.Wrapf(err, "cannot parse '%s'", urlString)
 				}
 			}
-			sl.metadataSource = urlString
+		}
+		if u.Scheme == "file" {
+			sl.metadataSource = urlString[7:] // remove file://
+		} else {
+			sl.metadataSource = u.String()
 		}
 	}
 	return nil

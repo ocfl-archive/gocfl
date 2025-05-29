@@ -10,21 +10,26 @@ import (
 )
 
 type VersionPackages interface {
+	Init(digest checksum.DigestAlgorithm) error
 	GetSpec() VersionPackagesSpec
 	GetDigestAlgorithm() checksum.DigestAlgorithm
+	IsEmpty() bool
+	AddVersion(version string, versionType VersionPackagesType, versionTypeVersion string, files map[string]string) error
 }
 
 type VersionPackageWriter interface {
 	addReader(r io.ReadCloser, names *NamesStruct, noExtensionHook bool) (string, error)
+	WriteFile(name string, r io.Reader) (int64, error)
 	GetObject() *ObjectBase
-	GetType() VersionPackageType
+	Type() VersionPackagesType
 	Close() error
 	Version() string
+	GetFileDigest() (map[string]string, error)
 }
 
 type VersionPackageReader interface {
 	GetObject() *ObjectBase
-	GetType() VersionPackageType
+	GetType() VersionPackagesType
 	Close() error
 }
 
@@ -32,19 +37,17 @@ func newVersionPackage(
 	ctx context.Context,
 	object Object,
 	folder string,
-	version OCFLVersion,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
 ) (VersionPackages, error) {
-	switch version {
+	switch object.GetVersion() {
 	case Version2_0:
-		sr, err := newVersionPackageV2_0(logger)
+		sr, err := newVersionPackageV2_0(object.GetInventory().GetDigestAlgorithm(), logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	default:
-		sr := newVersionPackageBase(logger)
-		return sr, nil
+		return nil, nil
 	}
 }

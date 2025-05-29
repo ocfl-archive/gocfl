@@ -451,6 +451,7 @@ func addObjectByPath(
 	sourceFS fs.FS, area string,
 	areaPaths map[string]fs.FS,
 	echo bool,
+	versionPackagesType ocfl.VersionPackagesType,
 	logger zLogger.ZLogger) (bool, error) {
 	if fixity == nil {
 		fixity = []checksum.DigestAlgorithm{}
@@ -512,7 +513,7 @@ func addObjectByPath(
 			return false, err
 		}
 	}
-	err = o.StartUpdate(sourceFS, message, userName, userAddress, echo)
+	err = o.StartUpdate(sourceFS, message, userName, userAddress, echo, versionPackagesType)
 	if err != nil {
 		logger.Error().Any(
 			errorTopic,
