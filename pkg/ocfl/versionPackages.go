@@ -7,6 +7,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"io"
+	"io/fs"
 )
 
 type VersionPackages interface {
@@ -15,6 +16,8 @@ type VersionPackages interface {
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	IsEmpty() bool
 	AddVersion(version string, versionType VersionPackagesType, versionTypeVersion string, files map[string]string) error
+	GetFS(version string, object Object) (fs.FS, io.Closer, error)
+	GetVersion(version string) (v *PackageVersionBase, ok bool)
 }
 
 type VersionPackageWriter interface {

@@ -6,7 +6,7 @@ import (
 )
 
 func newVersionPackageV2_0(digestAlgorithm checksum.DigestAlgorithm, logger zLogger.ZLogger) (VersionPackages, error) {
-	vpb := newVersionPackageBase(digestAlgorithm, logger)
+	vpb := newVersionPackagesBase(digestAlgorithm, logger)
 	return &VersionPackageV2_0{
 		VersionPackagesBase: vpb,
 	}, nil

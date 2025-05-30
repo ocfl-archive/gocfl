@@ -4,6 +4,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"io"
+	"io/fs"
 )
 
 type VersionPackagesSpec string
@@ -12,7 +14,7 @@ const (
 	VersionPackageSpec2_0 VersionPackagesSpec = "https://ocfl.io/2.0/spec/#version-package"
 )
 
-func newVersionPackageBase(
+func newVersionPackagesBase(
 	digestAlgorithm checksum.DigestAlgorithm,
 	logger zLogger.ZLogger,
 ) *VersionPackagesBase {
@@ -44,6 +46,30 @@ type VersionPackagesBase struct {
 	Manifest        map[string][]string            `json:"manifest"`
 	Versions        map[string]*PackageVersionBase `json:"versions"`
 	logger          zLogger.ZLogger                `json:"-"`
+}
+
+func (v *VersionPackagesBase) GetVersion(version string) (*PackageVersionBase, bool) {
+	if v == nil || v.IsEmpty() {
+		return nil, false // No version packages or nil version packages
+	}
+	pv, ok := v.Versions[version]
+	return pv, ok
+}
+
+func (v *VersionPackagesBase) GetFS(version string, object Object) (fs.FS, io.Closer, error) {
+	if v == nil || v.IsEmpty() {
+		return object.GetFS(), io.NopCloser(nil), nil // No version packages or nil version packages
+	}
+	pv, ok := v.Versions[version]
+	if !ok {
+		return object.GetFS(), io.NopCloser(nil), nil // No version package for this version
+	}
+	switch pv.Metadata.Format {
+	case "zip":
+		return NewMultiZIPFS(object.GetFS(), pv.Packages, v.logger)
+	default:
+		return nil, nil, errors.Errorf("unknown version package format '%s'", pv.Metadata.Format)
+	}
 }
 
 func (v *VersionPackagesBase) AddVersion(version string, versionType VersionPackagesType, versionTypeVersion string, fileDigest map[string]string) error {

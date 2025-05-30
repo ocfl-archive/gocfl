@@ -8,6 +8,8 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"io"
 	"io/fs"
+	"runtime/debug"
+	"strings"
 )
 
 func newSplitWriter(partSize int64, filename string, baseFS fs.FS, digestAlgorithm checksum.DigestAlgorithm) (*splitWriter, error) {
@@ -187,7 +189,19 @@ func (version *VersionPackagesWriterZIP) WriteFile(name string, r io.Reader) (in
 }
 
 func (version *VersionPackagesWriterZIP) Version() string {
-	return "ZIP64"
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "ZIP64"
+	}
+	for _, dep := range bi.Deps {
+		if strings.HasPrefix(dep.Path, "archive/zip") {
+			if dep.Version != "" {
+				return fmt.Sprintf("%s %s", bi.Main.Path, dep.Version)
+			}
+			return fmt.Sprintf("%s %s", bi.Main.Path, bi.Main.Version)
+		}
+	}
+	return fmt.Sprintf("%s %s", bi.Main.Path, bi.Main.Version)
 }
 
 func (version *VersionPackagesWriterZIP) GetObject() *ObjectBase {

@@ -61,6 +61,24 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
+func (object *ObjectBase) getVersionReader(version string) (VersionReader, error) {
+	inventory, ok := object.versionInventories[version]
+	if !ok {
+		return nil, errors.Errorf("no inventory for version '%s' found", version)
+	}
+	_ = inventory // just to make sure we have the inventory loaded
+	packages := object.GetVersionPackages()
+	pVersion, ok := packages.GetVersion(version)
+	if !ok {
+		return NewVersionReaderPlain(version, object.GetFS())
+	}
+	switch strings.ToLower(pVersion.Metadata.Format) {
+	case "zip":
+		//		return NewVersionReaderZIP(
+	}
+	return nil, errors.Errorf("no version reader for version '%s' found", version)
+}
+
 func (object *ObjectBase) GetExtensionManager() ExtensionManager {
 	return object.extensionManager
 }
@@ -332,6 +350,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 }
 
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
+var packagesSideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+packages.json$`)
 
 // loadInventory loads inventory from existing Object
 func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
@@ -468,10 +487,10 @@ func (object *ObjectBase) LoadVersionPackages(folder string) (VersionPackages, e
 		//		object.addValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
-		//if !strings.HasSuffix(digestString, " inventory.json") {
-		matches := inventorySideCarFormat.FindStringSubmatch(digestString)
+		//if !strings.HasSuffix(digestString, " packages.json") {
+		matches := packagesSideCarFormat.FindStringSubmatch(digestString)
 		if /* matches == nil || */ len(matches) == 0 {
-			object.addValidationError(E061, "no suffix \" inventory.json\" in '%v/%s'", object.fsys, sidecarPath)
+			object.addValidationError(E061, "no suffix \" packages.json\" in '%v/%s'", object.fsys, sidecarPath)
 		} else {
 			//digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 			digestString = matches[1]
@@ -732,7 +751,7 @@ func (object *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName strin
 	case VersionPlain:
 		object.versionPackage = newVersionPackageWriterPlain(object, object.i.GetHead())
 	case VersionZIP:
-		object.versionPackage, err = newVersionPackagesWriterZIP(object, object.i.GetHead(), 95*1024*1024, false)
+		object.versionPackage, err = newVersionPackagesWriterZIP(object, object.i.GetHead(), 50*1024*1024, false)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create new zip version package for object '%s'", object.GetID())
 		}
@@ -1106,7 +1125,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 
 	var r = io.NopCloser(dataReader)
 	if !isDir {
-		digest, err = object.addReader(r, nil, names, noExtensionHook)
+		digest, err = object.versionPackage.addReader(r, names, noExtensionHook)
 		if err != nil {
 			return errors.Wrapf(err, "cannot add file '%s' to object", path)
 		}
@@ -1327,7 +1346,10 @@ func (object *ObjectBase) GetVersion() OCFLVersion {
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
 func (object *ObjectBase) checkVersionFolder(version string) error {
-	versionEntries, err := fs.ReadDir(object.fsys, version)
+	packages := object.GetVersionPackages()
+	fsys, closer, err := packages.GetFS(version, object)
+	defer closer.Close()
+	versionEntries, err := fs.ReadDir(fsys, version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
 	}
@@ -1374,8 +1396,14 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		if _, ok := objectContentFiles[ver]; !ok {
 			objectContentFiles[ver] = []string{}
 		}
+		packages := object.GetVersionPackages()
+		fsys, closer, err := packages.GetFS(ver, object)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get filesystem for version '%s'", ver)
+		}
+
 		fs.WalkDir(
-			object.fsys,
+			fsys,
 			ver,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
@@ -1400,9 +1428,10 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			},
 		)
 		if len(objectContentFiles[ver]) == 0 {
-			fi, err := fs.Stat(object.fsys, versionContent)
+			fi, err := fs.Stat(fsys, versionContent)
 			if err != nil {
-				if errors.Cause(err) != fs.ErrNotExist {
+				if !errors.Is(err, fs.ErrNotExist) {
+					closer.Close()
 					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
 				}
 			} else {
@@ -1411,6 +1440,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				}
 			}
 		}
+		closer.Close()
 	}
 	// load all inventories
 	versionInventories, err := object.getVersionInventories()
@@ -1431,6 +1461,11 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		contentDir = versionInventories[versionStrings[0]].GetRealContentDir()
 	}
 	for _, ver := range versionStrings {
+		packages := object.GetVersionPackages()
+		fsys, closer, err := packages.GetFS(ver, object)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get filesystem for version '%s'", ver)
+		}
 		inv := versionInventories[ver]
 		if inv == nil {
 			continue
@@ -1444,9 +1479,10 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		digestAlg := inv.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
 		allowedDirs := []string{inv.GetContentDir()}
-		versionEntries, err := fs.ReadDir(object.fsys, ver)
+		versionEntries, err := fs.ReadDir(fsys, ver)
 		if err != nil {
 			object.addValidationError(E010, "cannot read version folder '%s'", ver)
+			closer.Close()
 			continue
 			//			return errors.Wrapf(err, "cannot read dir '%s'", ver)
 		}
@@ -1461,6 +1497,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				}
 			}
 		}
+		closer.Close()
 	}
 
 	for key := 0; key < len(versionStrings)-1; key++ {
@@ -1721,7 +1758,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) 
 	for _, ver := range versionStrings {
 		vi, err := object.LoadInventory(ver)
 		if err != nil {
-			if errors.Cause(err) == fs.ErrNotExist {
+			if errors.Is(err, fs.ErrNotExist) {
 				object.addValidationWarning(W010, "no inventory for version '%s'", ver)
 				continue
 			}
