@@ -3,6 +3,7 @@ package ocfl
 import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/zipfs"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
@@ -10,138 +11,70 @@ import (
 	"strings"
 )
 
-type readAtSeekCloser interface {
-	io.ReaderAt
-	io.Reader
-	io.Closer
-	io.Seeker
-}
-type readSeekCloser interface {
-	io.Reader
-	io.Closer
-	io.Seeker
-}
-type filePart struct {
-	fp      readSeekCloser
-	size    int64
-	name    string
-	currPos int64 // current position in the part
-}
-
-func NewMultipartFileReaderAt(fsys fs.FS, names []string) (*MultipartFileReaderAt, error) {
-	mpr := &MultipartFileReaderAt{
-		parts: make([]*filePart, 0, len(names)),
+func NewMultipartFileReader(fsys fs.FS, names []string, digestAlgorithm checksum.DigestAlgorithm) (*MultipartFileReader, error) {
+	if len(names) == 0 {
+		return nil, errors.New("no files provided for MultipartFileReader")
+	}
+	mpr := &MultipartFileReader{
+		parts: []string{},
+		fsys:  fsys,
 	}
 	slices.Sort(names)
-	for _, name := range names {
-		fp, err := fsys.Open(name)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot open file %s", name)
-		}
-		fi, err := fp.Stat()
-		if err != nil {
-			fp.Close()
-			mpr.Close()
-			return nil, errors.Wrapf(err, "cannot stat file %s", name)
-		}
-		if fi.IsDir() {
-			fp.Close()
-			mpr.Close()
-			return nil, errors.Errorf("file %s is a directory", name)
-		}
-		rsc, ok := fp.(readSeekCloser)
-		if !ok {
-			fp.Close()
-			mpr.Close()
-			return nil, errors.Errorf("file %s does not implement readSeekCloser interface", name)
-		}
-		mpr.parts = append(mpr.parts, &filePart{
-			fp:   rsc,
-			size: fi.Size(),
-			name: name,
-		})
-		mpr.size += fi.Size()
+	var err error
+	if mpr.fp, err = fsys.Open(names[0]); err != nil {
+		return nil, errors.Wrapf(err, "cannot open first file %s", names[0])
+	}
+	if mpr.checksumWriter, err = checksum.NewChecksumWriter([]checksum.DigestAlgorithm{digestAlgorithm}); err != nil {
+		mpr.fp.Close()
+		return nil, errors.Wrapf(err, "cannot create checksum writer for first file %s", names[0])
 	}
 	return mpr, nil
 }
 
-type MultipartFileReaderAt struct {
-	parts   []*filePart
-	currPos int64 // current position in the multipart file reader
-	size    int64 // total size of all parts
+type MultipartFileReader struct {
+	fp             io.ReadCloser
+	currPart       int // current part index
+	parts          []string
+	fsys           fs.FS
+	checksumWriter *checksum.ChecksumWriter
 }
 
-func (m *MultipartFileReaderAt) GetSize() int64 {
-	return m.size
-}
-
-func (m *MultipartFileReaderAt) Seek(offset int64, whence int) (int64, error) {
-	switch whence {
-	case io.SeekStart:
-		m.currPos = offset
-	case io.SeekCurrent:
-		m.currPos += offset
-	case io.SeekEnd:
-		m.currPos = m.size + offset
-	default:
-		return 0, errors.Errorf("invalid whence value: %d", whence)
+func (m *MultipartFileReader) GetChecksums() (map[checksum.DigestAlgorithm]string, error) {
+	checksums, err := m.checksumWriter.GetChecksums()
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get checksums from checksum writer")
 	}
-	if m.currPos < 0 {
-		return 0, errors.Errorf("negative position: %d", m.currPos)
-	}
-	return m.currPos, nil
+	return checksums, nil
 }
 
-func (m *MultipartFileReaderAt) Close() error {
+func (m *MultipartFileReader) Close() error {
 	var errs = []error{}
-	for _, part := range m.parts {
-		if err := part.fp.Close(); err != nil {
-			errs = append(errs, errors.Wrapf(err, "cannot close part %s", part.name))
-		}
+	if err := m.fp.Close(); err != nil {
+		errs = append(errs, errors.Wrapf(err, "cannot close file %d - %s", m.currPart, m.parts[m.currPart]))
 	}
-	m.parts = nil
+	if err := m.checksumWriter.Close(); err != nil {
+		errs = append(errs, errors.Wrap(err, "cannot close checksum writer"))
+	}
 	return errors.Combine(errs...)
 }
 
-func (m *MultipartFileReaderAt) Read(p []byte) (n int, err error) {
-	if len(m.parts) == 0 {
-		return 0, io.EOF
-	}
-	currPos := m.currPos
-	for _, part := range m.parts {
-		if currPos < part.size {
-			if currPos != part.currPos {
-				if part.currPos, err = part.fp.Seek(currPos, io.SeekStart); err != nil {
-					return 0, errors.Wrapf(err, "cannot seek in part %s", part.name)
+func (m *MultipartFileReader) Read(p []byte) (n int, err error) {
+	n, err = m.fp.Read(p)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			if m.currPart < len(m.parts)-1 {
+				m.currPart++
+				if m.fp, err = m.fsys.Open(m.parts[m.currPart]); err != nil {
+					return 0, errors.Wrapf(err, "cannot open next file %s", m.parts[m.currPart])
 				}
+				return n, nil // continue reading from the next part
+			} else {
+				return n, io.EOF // all parts are read
 			}
-			n, err = part.fp.Read(p)
-			if err != nil && !errors.Is(err, io.EOF) {
-				return n, errors.Wrapf(err, "cannot read from part %s", part.name)
-			}
-			currPos += int64(n)
-			part.currPos += int64(n) // update the current position in the part
-			m.currPos += int64(n)
-			if n > 0 {
-				if m.currPos >= m.size {
-					return n, io.EOF // return the number of bytes read
-				} else {
-					return n, nil // return the number of bytes read
-				}
-			}
-		} else {
-			currPos -= part.size // move to the next part
 		}
+		return n, errors.Wrapf(err, "cannot read from file %d - %s", m.currPart, m.parts[m.currPart])
 	}
-
-	return 0, io.EOF // all parts are read
-}
-
-func (m *MultipartFileReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
-	if _, err := m.Seek(off, io.SeekStart); err != nil {
-		return 0, errors.Wrapf(err, "cannot seek to offset %d", off)
-	}
-	return m.Read(p)
+	return n, nil
 }
 
 func NewMultiZIPFS(fsys fs.FS, names []string, logger zLogger.ZLogger) (fs.FS, io.Closer, error) {

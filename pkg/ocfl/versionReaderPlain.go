@@ -1,11 +1,13 @@
 package ocfl
 
 import (
+	"bytes"
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"io"
 	"io/fs"
 	"path"
+	"slices"
 	"strings"
 )
 
@@ -35,9 +37,10 @@ func (v *VersionReaderPlain) GetFS() (fs.FS, io.Closer, error) {
 	return fs, io.NopCloser(nil), nil
 }
 
-func (v *VersionReaderPlain) GetContentFilenameChecksum(digestAlgs []checksum.DigestAlgorithm) (map[string]map[checksum.DigestAlgorithm]string, error) {
+func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlgorithm, fullContentFiles []string) (map[string]map[checksum.DigestAlgorithm]string, map[string][]byte, error) {
 	var contentChecksums = make(map[string]map[checksum.DigestAlgorithm]string)
-	root := path.Join(v.version, "content")
+	var fullContent = make(map[string][]byte)
+	root := v.version
 	fs.WalkDir(v.fsys, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return errors.Wrapf(err, "error walking directory %s", path)
@@ -53,7 +56,21 @@ func (v *VersionReaderPlain) GetContentFilenameChecksum(digestAlgs []checksum.Di
 			return errors.Wrapf(err, "cannot open file %s", path)
 		}
 		defer fp.Close()
-		checksumsWriter, err := checksum.NewChecksumWriter(digestAlgs)
+		path = strings.TrimPrefix(path, root+"/")
+
+		var contentWriter = []io.Writer{}
+		var contentBuffer *bytes.Buffer
+		if slices.Contains(fullContentFiles, path) {
+			if fi, err := fp.Stat(); err != nil {
+				if fi.Size() > 100*1024*1024 { // 100 MB
+					return errors.Wrapf(err, "file %s is too large for full content checksum (%dbyte)", path, fi.Size())
+				}
+			}
+			contentBuffer = bytes.NewBuffer(nil)
+			contentWriter = append(contentWriter, contentBuffer)
+		}
+
+		checksumsWriter, err := checksum.NewChecksumWriter(digestAlgs, contentWriter...)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create checksum writer for file %s", path)
 		}
@@ -75,10 +92,12 @@ func (v *VersionReaderPlain) GetContentFilenameChecksum(digestAlgs []checksum.Di
 				return errors.Errorf("checksum for algorithm %s not found for file %s", alg, path)
 			}
 		}
-
+		if contentBuffer != nil {
+			fullContent[path] = contentBuffer.Bytes()
+		}
 		return nil
 	})
-	return contentChecksums, nil
+	return contentChecksums, fullContent, nil
 }
 
 func (v *VersionReaderPlain) GetContentFilename() ([]string, error) {

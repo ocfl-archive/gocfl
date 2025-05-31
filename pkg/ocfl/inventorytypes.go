@@ -135,14 +135,14 @@ func (u *OCFLUser) Finalize() {
 	}
 }
 
-type Version struct {
+type VersionData struct {
 	Created *OCFLTime   `json:"created"`
 	Message *OCFLString `json:"message"`
 	State   *OCFLState  `json:"state"`
 	User    *OCFLUser   `json:"user"`
 }
 
-func (v *Version) EqualMeta(v2 *Version) bool {
+func (v *VersionData) EqualMeta(v2 *VersionData) bool {
 	if v2 == nil {
 		return false
 	}
@@ -154,7 +154,7 @@ func (v *Version) EqualMeta(v2 *Version) bool {
 	}
 	return true
 }
-func (v *Version) EqualState(v2 *Version) bool {
+func (v *VersionData) EqualState(v2 *VersionData) bool {
 	if v2 == nil {
 		return false
 	}
@@ -210,11 +210,11 @@ func (m *OCFLManifest) MarshalJSON() ([]byte, error) {
 }
 
 type OCFLVersions struct {
-	Versions map[string]*Version
+	Versions map[string]*VersionData
 	err      error
 }
 
-func (v *OCFLVersions) GetVersion(version string) (*Version, error) {
+func (v *OCFLVersions) GetVersion(version string) (*VersionData, error) {
 	ver, ok := v.Versions[version]
 	if !ok {
 		return nil, errors.Errorf("invalid version '%s'", version)
@@ -223,7 +223,7 @@ func (v *OCFLVersions) GetVersion(version string) (*Version, error) {
 }
 
 func (v *OCFLVersions) UnmarshalJSON(data []byte) error {
-	v.Versions = map[string]*Version{}
+	v.Versions = map[string]*VersionData{}
 	if err := json.Unmarshal(data, &v.Versions); err != nil {
 		v.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
 		return nil

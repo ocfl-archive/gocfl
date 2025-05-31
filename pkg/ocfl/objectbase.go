@@ -86,7 +86,7 @@ func (object *ObjectBase) GetExtensionManager() ExtensionManager {
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
 func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
+	valError := addValidationError(object.ctx, object.logger, object.version, object.GetID(), object.GetFS(), errno, format, a...)
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
@@ -95,12 +95,11 @@ func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format s
 			nil,
 		),
 	).Msg("")
-	addValidationErrors(object.ctx, valError)
 	return
 }
 
 func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
+	valError := addValidationWarning(object.ctx, object.logger, object.version, object.GetID(), object.GetFS(), errno, format, a...)
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debug().Any(
 		object.errorFactory.LogError(
@@ -218,7 +217,7 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 	}
 	if slices.Contains(statInfo, StatObjectVersions) || len(statInfo) == 0 {
 		for vString, version := range i.GetVersions() {
-			if _, err := fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString); err != nil {
+			if _, err := fmt.Fprintf(w, "[%s]     Version %s\n", object.GetID(), vString); err != nil {
 				return errors.Wrap(err, "cannot write version")
 			}
 			if _, err := fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), version.User.User.Name.string, version.User.User.Address.string); err != nil {

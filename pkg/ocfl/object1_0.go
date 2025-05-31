@@ -2,11 +2,10 @@ package ocfl
 
 import (
 	"context"
-	"io/fs"
-
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
+	"io/fs"
 )
 
 type ObjectV1_0 struct {

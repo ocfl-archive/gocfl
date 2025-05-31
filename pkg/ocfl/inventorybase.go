@@ -60,7 +60,7 @@ func newInventoryBase(
 		Head:                   NewOCFLString(""),
 		ContentDirectory:       contentDir,
 		Manifest:               nil,
-		Versions:               &OCFLVersions{Versions: map[string]*Version{}},
+		Versions:               &OCFLVersions{Versions: map[string]*VersionData{}},
 		Fixity:                 nil,
 		logger:                 logger,
 		errorFactory:           errorFactory,
@@ -140,7 +140,7 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 		if !inCreation {
 			i.addValidationError(E041, "no versions in inventory")
 		}
-		i.Versions = &OCFLVersions{Versions: map[string]*Version{}}
+		i.Versions = &OCFLVersions{Versions: map[string]*VersionData{}}
 	}
 
 	i.versionValue = map[string]uint{}
@@ -239,8 +239,8 @@ func (i *InventoryBase) GetVersionStrings() []string {
 	}
 	return versions
 }
-func (i *InventoryBase) GetVersions() map[string]*Version {
-	var versions = map[string]*Version{}
+func (i *InventoryBase) GetVersions() map[string]*VersionData {
+	var versions = map[string]*VersionData{}
 	for versionStr, version := range i.Versions.Versions {
 		versions[versionStr] = version
 	}
@@ -829,7 +829,7 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 			i.Head.string = fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), v+1)
 		}
 	}
-	i.Versions.Versions[i.Head.string] = &Version{
+	i.Versions.Versions[i.Head.string] = &VersionData{
 		Created: &OCFLTime{time.Now(), nil},
 		Message: NewOCFLString(msg),
 		State:   &OCFLState{State: map[string][]string{}},

@@ -490,3 +490,15 @@ func WriteJsonL(object Object, name string, brotliData []byte, compress, storage
 
 	return nil
 }
+
+func addValidationError(ctx context.Context, logger zLogger.ZLogger, ocflVersion OCFLVersion, objectID string, fsys fs.FS, errno ValidationErrorCode, format string, a ...any) error {
+	valError := GetValidationError(ocflVersion, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", fsys, objectID)
+	addValidationErrors(ctx, valError)
+	return valError
+}
+
+func addValidationWarning(ctx context.Context, logger zLogger.ZLogger, ocflVersion OCFLVersion, objectID string, fsys fs.FS, errno ValidationErrorCode, format string, a ...any) error {
+	valError := GetValidationError(ocflVersion, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", fsys, objectID)
+	addValidationWarnings(ctx, valError)
+	return valError
+}
