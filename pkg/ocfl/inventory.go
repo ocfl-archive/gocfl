@@ -16,6 +16,7 @@ type StateFileCallback func(internal []string, external []string, digest string)
 type Inventory interface {
 	Finalize(inCreation bool) error
 	IsEqual(i2 Inventory) bool
+	Contains(i2 Inventory) bool
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	GetID() string
 	GetContentDir() string
@@ -58,7 +59,6 @@ type Inventory interface {
 
 func newInventory(
 	ctx context.Context,
-	object Object,
 	folder string,
 	version OCFLVersion,
 	logger zLogger.ZLogger,
@@ -66,20 +66,20 @@ func newInventory(
 ) (Inventory, error) {
 	switch version {
 	case Version1_1:
-		sr, err := newInventoryV1_1(ctx, object, folder, logger, errorFactory)
+		sr, err := newInventoryV1_1(ctx, folder, version, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	case Version2_0:
-		sr, err := newInventoryV2_0(ctx, object, folder, logger, errorFactory)
+		sr, err := newInventoryV2_0(ctx, folder, version, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	default:
 		//case Version1_0:
-		sr, err := newInventoryV1_0(ctx, object, folder, logger, errorFactory)
+		sr, err := newInventoryV1_0(ctx, folder, version, logger, errorFactory)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

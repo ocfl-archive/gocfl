@@ -92,7 +92,7 @@ func (s *splitWriter) Write(p []byte) (written int, err error) {
 			if size > rest {
 				size = rest
 			}
-			n, err := s.csWriter.Write(p[:size])
+			n, err := s.csWriter.Write(p[written:])
 			if err != nil {
 				return n, errors.Wrapf(err, "cannot write to part %d", s.partNo)
 			}

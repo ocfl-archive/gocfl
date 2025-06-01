@@ -22,7 +22,6 @@ func newVersionV2_0(
 	packages VersionPackages,
 	manager ExtensionManager,
 	digestAlgorithm checksum.DigestAlgorithm,
-	fixityAlgorithms []checksum.DigestAlgorithm,
 	logger zLogger.ZLogger,
 	factory *archiveerror.Factory,
 ) (*VersionV2_0, error) {

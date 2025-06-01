@@ -9,6 +9,6 @@ import (
 type VersionReader interface {
 	GetVersion() string
 	GetFS() (fs.FS, io.Closer, error)
-	GetFilenameChecksum(digestAlgs []checksum.DigestAlgorithm, fullContentFiles []string) (fileChecksums map[string]map[checksum.DigestAlgorithm]string, fullContent map[string][]byte, error error)
+	GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fullContentFiles []string) (fileChecksums map[string]map[checksum.DigestAlgorithm]string, fullContent map[string][]byte, partsChecksum map[string]string, error error)
 	GetContentFilename() ([]string, error)
 }

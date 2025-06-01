@@ -13,7 +13,7 @@ type VersionV1_1 struct {
 	*VersionBase
 }
 
-func newVersionV1_1(objectID, version string, ctx context.Context, fsys fs.FS, inventory Inventory, manager ExtensionManager, digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, logger zLogger.ZLogger, factory *archiveerror.Factory) (*VersionV1_1, error) {
+func newVersionV1_1(objectID, version string, ctx context.Context, fsys fs.FS, inventory Inventory, manager ExtensionManager, digestAlgorithm checksum.DigestAlgorithm, logger zLogger.ZLogger, factory *archiveerror.Factory) (*VersionV1_1, error) {
 	ob, err := newVersionBase(objectID, version, ctx, fsys, Version1_1, inventory, nil, manager, logger, factory)
 	if err != nil {
 		return nil, errors.WithStack(err)

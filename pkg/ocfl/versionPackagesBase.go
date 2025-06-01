@@ -6,6 +6,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
+	"slices"
 )
 
 type VersionPackagesSpec string
@@ -46,6 +47,23 @@ type VersionPackagesBase struct {
 	Manifest        map[string][]string            `json:"manifest"`
 	Versions        map[string]*PackageVersionBase `json:"versions"`
 	logger          zLogger.ZLogger                `json:"-"`
+}
+
+func (v *VersionPackagesBase) GetVersions() []string {
+	result := make([]string, 0, len(v.Versions))
+	for version := range v.Versions {
+		result = append(result, version)
+	}
+	return result
+}
+
+func (v *VersionPackagesBase) HasPart(name string) bool {
+	for _, pv := range v.Versions {
+		if slices.Contains(pv.Packages, name) {
+			return true // Found the part in one of the version packages
+		}
+	}
+	return false // Part not found in any version package
 }
 
 func (v *VersionPackagesBase) GetVersion(version string) (*PackageVersionBase, bool) {

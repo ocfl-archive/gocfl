@@ -19,21 +19,21 @@ func NewVersion(
 	packages VersionPackages,
 	manager ExtensionManager,
 	digestAlgorithm checksum.DigestAlgorithm,
-	fixityAlgorithms []checksum.DigestAlgorithm,
 	logger zLogger.ZLogger,
 	factory *archiveerror.Factory,
 ) (Version, error) {
 	switch ocflVersion {
 	case Version1_0:
-		return newVersionV1_0(objectID, version, ctx, fsys, inventory, manager, digestAlgorithm, fixityAlgorithms, logger, factory)
+		return newVersionV1_0(objectID, version, ctx, fsys, inventory, manager, digestAlgorithm, logger, factory)
 	case Version1_1:
-		return newVersionV1_1(objectID, version, ctx, fsys, inventory, manager, digestAlgorithm, fixityAlgorithms, logger, factory)
+		return newVersionV1_1(objectID, version, ctx, fsys, inventory, manager, digestAlgorithm, logger, factory)
 	case Version2_0:
-		return newVersionV2_0(objectID, version, ctx, fsys, inventory, packages, manager, digestAlgorithm, fixityAlgorithms, logger, factory)
+		return newVersionV2_0(objectID, version, ctx, fsys, inventory, packages, manager, digestAlgorithm, logger, factory)
 	default:
 		return nil, errors.Errorf("Unsupported version: %s", version)
 	}
 }
 
 type Version interface {
+	Check() error
 }

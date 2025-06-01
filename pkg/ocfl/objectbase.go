@@ -70,7 +70,7 @@ func (object *ObjectBase) getVersionReader(version string) (VersionReader, error
 	packages := object.GetVersionPackages()
 	pVersion, ok := packages.GetVersion(version)
 	if !ok {
-		return NewVersionReaderPlain(version, object.GetFS())
+		return NewVersionReaderPlain(version, object.GetFS(), object.logger)
 	}
 	switch strings.ToLower(pVersion.Metadata.Format) {
 	case "zip":
@@ -282,7 +282,6 @@ func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgor
 	const inventoryNew string = "new"
 	inventory, err := newInventory(
 		object.ctx,
-		object,
 		inventoryNew,
 		object.GetVersion(),
 		object.logger,
@@ -326,7 +325,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 		// if we don't know anything use the old stuff
 		version = Version1_0
 	}
-	inventory, err := newInventory(object.ctx, object, folder, version, object.logger, object.errorFactory)
+	inventory, err := newInventory(object.ctx, folder, version, object.logger, object.errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -360,7 +359,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		return newInventory(object.ctx, object, folder, object.version, object.logger, object.errorFactory)
+		return newInventory(object.ctx, folder, object.version, object.logger, object.errorFactory)
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {
@@ -1342,7 +1341,7 @@ func (object *ObjectBase) GetVersion() OCFLVersion {
 	return object.version
 }
 
-var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
+var allowedFilesRegexp = regexp.MustCompile("^(inventory.json|packages.json)(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|(0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
 func (object *ObjectBase) checkVersionFolder(version string) error {
 	packages := object.GetVersionPackages()
@@ -1627,10 +1626,29 @@ func (object *ObjectBase) Check() error {
 		),
 	).Msg("")
 	// check folders
-	versions := object.i.GetVersionStrings()
+	versionStrings := object.i.GetVersionStrings()
+	versions := make(map[string]Version, len(versionStrings))
+	for _, ver := range versionStrings {
+		v, err := NewVersion(object.GetID(),
+			ver,
+			object.GetVersion(),
+			object.ctx,
+			object.GetFS(),
+			object.GetInventory(),
+			object.GetVersionPackages(),
+			object.GetExtensionManager(),
+			object.GetDigestAlgorithm(),
+			object.logger,
+			object.errorFactory,
+		)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create version '%s' for object '%s'", ver, object.GetID())
+		}
+		versions[ver] = v
+	}
 
 	// check for allowed files and directories
-	allowedDirs := append(versions, "logs", "extensions")
+	allowedDirs := append(versionStrings, "logs", "extensions")
 	versionCounter := 0
 	entries, err := fs.ReadDir(object.fsys, ".")
 	if err != nil {
@@ -1640,40 +1658,52 @@ func (object *ObjectBase) Check() error {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
 				object.addValidationError(E001, "invalid directory '%s' found", entry.Name())
-				// could it be a version folder?
-				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
-					if err2 := object.checkVersionFolder(entry.Name()); err2 == nil {
-						object.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
-					} else {
-						object.logger.Error().Any(
-							errorTopic,
-							object.errorFactory.NewError(
-								ErrorOCFL,
-								"",
-								err2,
-							),
-						).Msg("")
+				/*
+					// could it be a version folder?
+					if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
+						if err2 := object.checkVersionFolder(entry.Name()); err2 == nil {
+							object.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
+						} else {
+							object.logger.Error().Any(
+								errorTopic,
+								object.errorFactory.NewError(
+									ErrorOCFL,
+									"",
+									err2,
+								),
+							).Msg("")
+						}
 					}
-				}
+				*/
 			}
-
-			// check version directories
-			if slices.Contains(versions, entry.Name()) {
-				err := object.checkVersionFolder(entry.Name())
-				if err != nil {
-					return errors.WithStack(err)
+			/*
+				// check version directories
+				if slices.Contains(versionStrings, entry.Name()) {
+					err := object.checkVersionFolder(entry.Name())
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					versionCounter++
 				}
-				versionCounter++
-			}
+			*/
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				object.addValidationError(E001, "invalid file '%s' found", entry.Name())
+				if object.p != nil && !object.p.HasPart(entry.Name()) {
+					object.addValidationError(E001, "invalid file '%s' found", entry.Name())
+				}
 			}
 		}
 	}
-
-	if versionCounter != len(versions) {
-		object.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
+	if object.p != nil {
+		versionCounter += len(object.p.GetVersions())
+	}
+	if versionCounter != len(versionStrings) {
+		object.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versionStrings))
+	}
+	for versionString, version := range versions {
+		if err := version.Check(); err != nil {
+			return errors.Wrapf(err, "error checking version '%s' of object '%s'", versionString, object.GetID())
+		}
 	}
 
 	if err := object.checkFilesAndVersions(); err != nil {

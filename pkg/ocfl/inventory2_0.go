@@ -19,13 +19,13 @@ type InventoryV2_0 struct {
 
 func newInventoryV2_0(
 	ctx context.Context,
-	object Object,
 	folder string,
+	ocflVersion OCFLVersion,
 	logger zLogger.ZLogger,
 	errorFactory *archiveerror.Factory,
 ) (*InventoryV2_0, error) {
 	ivUrl, _ := url.Parse(string(InventorySpec2_0))
-	ib, err := newInventoryBase(ctx, object, folder, ivUrl, "", logger, errorFactory)
+	ib, err := newInventoryBase(ctx, folder, ocflVersion, ivUrl, "", logger, errorFactory)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}
@@ -40,6 +40,14 @@ func (i *InventoryV2_0) IsEqual(i2 Inventory) bool {
 		return false
 	}
 	return i.InventoryBase.isEqual(i11_2.InventoryBase)
+}
+
+func (i *InventoryV2_0) Contains(i2 Inventory) bool {
+	i20_2, ok := i2.(*InventoryV2_0)
+	if !ok {
+		return false
+	}
+	return i.InventoryBase.contains(i20_2.InventoryBase)
 }
 
 var (

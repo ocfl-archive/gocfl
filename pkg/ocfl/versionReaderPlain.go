@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
 	"path"
@@ -11,7 +12,7 @@ import (
 	"strings"
 )
 
-func NewVersionReaderPlain(version string, fsys fs.FS) (*VersionReaderPlain, error) {
+func NewVersionReaderPlain(version string, fsys fs.FS, logger zLogger.ZLogger) (*VersionReaderPlain, error) {
 	if version == "" {
 		return nil, errors.New("version cannot be empty")
 	}
@@ -21,12 +22,14 @@ func NewVersionReaderPlain(version string, fsys fs.FS) (*VersionReaderPlain, err
 	return &VersionReaderPlain{
 		version: version,
 		fsys:    fsys,
+		logger:  logger,
 	}, nil
 }
 
 type VersionReaderPlain struct {
 	version string
 	fsys    fs.FS
+	logger  zLogger.ZLogger
 }
 
 func (v *VersionReaderPlain) GetFS() (fs.FS, io.Closer, error) {
@@ -37,7 +40,7 @@ func (v *VersionReaderPlain) GetFS() (fs.FS, io.Closer, error) {
 	return fs, io.NopCloser(nil), nil
 }
 
-func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlgorithm, fullContentFiles []string) (map[string]map[checksum.DigestAlgorithm]string, map[string][]byte, error) {
+func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fullContentFiles []string) (map[string]map[checksum.DigestAlgorithm]string, map[string][]byte, map[string]string, error) {
 	var contentChecksums = make(map[string]map[checksum.DigestAlgorithm]string)
 	var fullContent = make(map[string][]byte)
 	root := v.version
@@ -49,8 +52,10 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlg
 			return nil
 		}
 		if !d.Type().IsRegular() {
+			v.logger.Debug().Msgf("skipping non-regular file %s", path)
 			return nil // skip non-regular files
 		}
+		v.logger.Debug().Msgf("processing file %s in version %s", path, v.version)
 		fp, err := v.fsys.Open(path)
 		if err != nil {
 			return errors.Wrapf(err, "cannot open file %s", path)
@@ -61,6 +66,7 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlg
 		var contentWriter = []io.Writer{}
 		var contentBuffer *bytes.Buffer
 		if slices.Contains(fullContentFiles, path) {
+			v.logger.Debug().Msgf("reading full content for file %s in version %s", path, v.version)
 			if fi, err := fp.Stat(); err != nil {
 				if fi.Size() > 100*1024*1024 { // 100 MB
 					return errors.Wrapf(err, "file %s is too large for full content checksum (%dbyte)", path, fi.Size())
@@ -70,7 +76,7 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlg
 			contentWriter = append(contentWriter, contentBuffer)
 		}
 
-		checksumsWriter, err := checksum.NewChecksumWriter(digestAlgs, contentWriter...)
+		checksumsWriter, err := checksum.NewChecksumWriter(fixityAlgorithms, contentWriter...)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create checksum writer for file %s", path)
 		}
@@ -85,7 +91,7 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlg
 			return errors.Wrapf(err, "cannot get checksums for file %s", path)
 		}
 		contentChecksums[path] = make(map[checksum.DigestAlgorithm]string)
-		for _, alg := range digestAlgs {
+		for _, alg := range fixityAlgorithms {
 			if cs, ok := checksums[alg]; ok {
 				contentChecksums[path][alg] = cs
 			} else {
@@ -97,7 +103,7 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgs []checksum.DigestAlg
 		}
 		return nil
 	})
-	return contentChecksums, fullContent, nil
+	return contentChecksums, fullContent, nil, nil
 }
 
 func (v *VersionReaderPlain) GetContentFilename() ([]string, error) {

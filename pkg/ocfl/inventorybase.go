@@ -22,8 +22,8 @@ import (
 
 type InventoryBase struct {
 	ctx                    context.Context
+	ocflVersion            OCFLVersion
 	folder                 string
-	object                 Object
 	modified               bool
 	writeable              bool
 	paddingLength          int
@@ -43,8 +43,8 @@ type InventoryBase struct {
 
 func newInventoryBase(
 	ctx context.Context,
-	object Object,
 	folder string,
+	ocflVersion OCFLVersion,
 	objectType *url.URL,
 	contentDir string,
 	logger zLogger.ZLogger,
@@ -52,8 +52,8 @@ func newInventoryBase(
 ) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:                    ctx,
-		object:                 object,
 		folder:                 folder,
+		ocflVersion:            ocflVersion,
 		paddingLength:          0,
 		fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
 		Type:                   InventorySpec(objectType.String()),
@@ -66,6 +66,57 @@ func newInventoryBase(
 		errorFactory:           errorFactory,
 	}
 	return i, nil
+}
+
+func (i *InventoryBase) contains(i2 *InventoryBase) bool {
+	if !sliceContains(i.fixityDigestAlgorithms, i2.fixityDigestAlgorithms) || len(i.fixityDigestAlgorithms) != len(i2.fixityDigestAlgorithms) {
+		return false
+	}
+	if i.Type != i2.Type {
+		return false
+	}
+	if i.ContentDirectory != i2.ContentDirectory {
+		return false
+	}
+	if i2.Manifest != nil && i.Manifest == nil {
+		return false
+	}
+	if i2.Manifest != nil {
+		if len(i2.Manifest.Manifest) > len(i.Manifest.Manifest) {
+			return false
+		}
+		for key, vals2 := range i2.Manifest.Manifest {
+			vals, ok := i.Manifest.Manifest[key]
+			if !ok {
+				return false
+			}
+			if !sliceContains(vals, vals2) {
+				return false
+			}
+		}
+	}
+	if i2.Versions != nil && i.Versions == nil {
+		return false
+	}
+	if i2.Versions != nil {
+		if len(i2.Versions.Versions) > len(i2.Versions.Versions) {
+			return false
+		}
+		for key, version2 := range i2.Versions.Versions {
+			version, ok := i.Versions.Versions[key]
+			if !ok {
+				return false
+			}
+			if !version.EqualMeta(version2) {
+				return false
+			}
+			if !version.EqualState(version2) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (i *InventoryBase) isEqual(i2 *InventoryBase) bool {
@@ -182,11 +233,11 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 }
 
 func (i *InventoryBase) addValidationError(errno ValidationErrorCode, format string, a ...any) {
-	err := GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.GetFS(), i.GetID())
+	err := GetValidationError(i.ocflVersion, errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s'", i.GetID())
 	addValidationErrors(i.ctx, err)
 }
 func (i *InventoryBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) {
-	err := GetValidationError(i.object.GetVersion(), errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s' - '%s'", i.object.GetFS(), i.GetID())
+	err := GetValidationError(i.ocflVersion, errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s'", i.GetID())
 	_ = addValidationWarnings(i.ctx, err)
 }
 func (i *InventoryBase) GetID() string          { return i.Id }

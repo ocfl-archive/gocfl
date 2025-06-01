@@ -1,4 +1,4 @@
-package ocfl
+package helper
 
 import (
 	"emperror.dev/errors"
@@ -140,3 +140,5 @@ func (m *MultipartFileReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 	}
 	return m.Read(p)
 }
+
+var _ readAtSeekCloser = (*MultipartFileReaderAt)(nil)

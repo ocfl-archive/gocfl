@@ -18,6 +18,8 @@ type VersionPackages interface {
 	AddVersion(version string, versionType VersionPackagesType, versionTypeVersion string, files map[string]string) error
 	GetFS(version string, object Object) (fs.FS, io.Closer, error)
 	GetVersion(version string) (v *PackageVersionBase, ok bool)
+	HasPart(name string) bool
+	GetVersions() []string
 }
 
 type VersionPackageWriter interface {
