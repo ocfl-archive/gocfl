@@ -54,6 +54,9 @@ func (m *MultipartFileReader) GetChecksums() (map[checksum.DigestAlgorithm]strin
 
 func (m *MultipartFileReader) Close() error {
 	var errs = []error{}
+	if m.fp == nil {
+		return nil // nothing to close
+	}
 	if err := m.fp.Close(); err != nil {
 		errs = append(errs, errors.Wrapf(err, "cannot close file %d - %s", m.currPart, m.parts[m.currPart]))
 	}

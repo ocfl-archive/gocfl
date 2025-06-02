@@ -23,7 +23,7 @@ type Inventory interface {
 	GetRealContentDir() string
 	GetHead() string
 	GetSpec() InventorySpec
-	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
+	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string, filenamePrefix string) error
 
 	DeleteFile(stateFilename string) error
 	RenameFile(stateSource, stateDest string) error
@@ -40,7 +40,7 @@ type Inventory interface {
 	GetFiles() map[string][]string
 	GetManifest() map[string][]string
 	GetFixity() Fixity
-	GetFilesFlat() []string
+	GetFilesFlat(filenamePrefix string) []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	GetFixityDigestAlgorithm() []checksum.DigestAlgorithm
 	IsWriteable() bool

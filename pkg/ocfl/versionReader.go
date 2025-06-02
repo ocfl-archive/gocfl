@@ -6,9 +6,11 @@ import (
 	"io/fs"
 )
 
+type gfcCallback func(name string, reader io.Reader) error
+
 type VersionReader interface {
 	GetVersion() string
 	GetFS() (fs.FS, io.Closer, error)
-	GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fullContentFiles []string) (fileChecksums map[string]map[checksum.DigestAlgorithm]string, fullContent map[string][]byte, partsChecksum map[string]string, error error)
+	GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fn gfcCallback) (fileChecksums map[string]map[checksum.DigestAlgorithm]string, partsChecksum map[string]string, error error)
 	GetContentFilename() ([]string, error)
 }

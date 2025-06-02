@@ -61,24 +61,6 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
-func (object *ObjectBase) getVersionReader(version string) (VersionReader, error) {
-	inventory, ok := object.versionInventories[version]
-	if !ok {
-		return nil, errors.Errorf("no inventory for version '%s' found", version)
-	}
-	_ = inventory // just to make sure we have the inventory loaded
-	packages := object.GetVersionPackages()
-	pVersion, ok := packages.GetVersion(version)
-	if !ok {
-		return NewVersionReaderPlain(version, object.GetFS(), object.logger)
-	}
-	switch strings.ToLower(pVersion.Metadata.Format) {
-	case "zip":
-		//		return NewVersionReaderZIP(
-	}
-	return nil, errors.Errorf("no version reader for version '%s' found", version)
-}
-
 func (object *ObjectBase) GetExtensionManager() ExtensionManager {
 	return object.extensionManager
 }
@@ -1342,278 +1324,7 @@ func (object *ObjectBase) GetVersion() OCFLVersion {
 }
 
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json|packages.json)(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|(0=ocfl_object_[0-9]+\\.[0-9]+)$")
-
-func (object *ObjectBase) checkVersionFolder(version string) error {
-	packages := object.GetVersionPackages()
-	fsys, closer, err := packages.GetFS(version, object)
-	defer closer.Close()
-	versionEntries, err := fs.ReadDir(fsys, version)
-	if err != nil {
-		return errors.Wrapf(err, "cannot read version folder '%s'", version)
-	}
-	for _, ve := range versionEntries {
-		if !ve.IsDir() {
-			if !allowedFilesRegexp.MatchString(ve.Name()) {
-				object.addValidationError(E015, "extra file '%s' in version directory '%s'", ve.Name(), version)
-			}
-		}
-	}
-	return nil
-}
-
-func (object *ObjectBase) checkFilesAndVersions() error {
-	// create list of version content directories
-	versionContents := map[string]string{}
-	versionStrings := object.i.GetVersionStrings()
-
-	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b string) int {
-		if object.i.VersionLessOrEqual(a, b) && a != b {
-			return -1
-		} else {
-			if a == b {
-				return 0
-			} else {
-				return 1
-			}
-		}
-	})
-
-	for _, ver := range versionStrings {
-		versionContents[ver] = object.i.GetContentDir()
-	}
-
-	// load object content files
-	objectContentFiles := map[string][]string{}
-	objectContentFilesFlat := []string{}
-	objectFilesFlat := []string{}
-	for ver, cont := range versionContents {
-		// load all object version content files
-		versionContent := ver + "/" + cont
-		//inventoryFile := ver + "/inventory.json"
-		if _, ok := objectContentFiles[ver]; !ok {
-			objectContentFiles[ver] = []string{}
-		}
-		packages := object.GetVersionPackages()
-		fsys, closer, err := packages.GetFS(ver, object)
-		if err != nil {
-			return errors.Wrapf(err, "cannot get filesystem for version '%s'", ver)
-		}
-
-		fs.WalkDir(
-			fsys,
-			ver,
-			func(path string, d fs.DirEntry, err error) error {
-				path = filepath.ToSlash(path)
-				if d.IsDir() {
-					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+object.i.GetContentDir(), path) {
-						object.addValidationWarning(W002, "extra dir '%s' in version '%s'", path, ver)
-					}
-				} else {
-					objectFilesFlat = append(objectFilesFlat, path)
-					if strings.HasPrefix(path, versionContent) {
-						objectContentFiles[ver] = append(objectContentFiles[ver], path)
-						objectContentFilesFlat = append(objectContentFilesFlat, path)
-					} else {
-						/*
-							if !strings.HasPrefix(path, inventoryFile) {
-								object.addValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
-							}
-						*/
-					}
-				}
-				return nil
-			},
-		)
-		if len(objectContentFiles[ver]) == 0 {
-			fi, err := fs.Stat(fsys, versionContent)
-			if err != nil {
-				if !errors.Is(err, fs.ErrNotExist) {
-					closer.Close()
-					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
-				}
-			} else {
-				if fi.IsDir() {
-					object.addValidationWarning(W003, "empty content folder '%s'", versionContent)
-				}
-			}
-		}
-		closer.Close()
-	}
-	// load all inventories
-	versionInventories, err := object.getVersionInventories()
-	if err != nil {
-		return errors.Wrap(err, "cannot get version inventories")
-	}
-
-	csDigestFiles, err := object.createContentManifest()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := object.i.CheckFiles(csDigestFiles); err != nil {
-		return errors.Wrap(err, "cannot check file digests for object root")
-	}
-
-	contentDir := ""
-	if len(versionStrings) > 0 {
-		contentDir = versionInventories[versionStrings[0]].GetRealContentDir()
-	}
-	for _, ver := range versionStrings {
-		packages := object.GetVersionPackages()
-		fsys, closer, err := packages.GetFS(ver, object)
-		if err != nil {
-			return errors.Wrapf(err, "cannot get filesystem for version '%s'", ver)
-		}
-		inv := versionInventories[ver]
-		if inv == nil {
-			continue
-		}
-		if contentDir != inv.GetRealContentDir() {
-			object.addValidationError(E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
-		}
-		if err := inv.CheckFiles(csDigestFiles); err != nil {
-			return errors.Wrapf(err, "cannot check file digests for version '%s'", ver)
-		}
-		digestAlg := inv.GetDigestAlgorithm()
-		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
-		allowedDirs := []string{inv.GetContentDir()}
-		versionEntries, err := fs.ReadDir(fsys, ver)
-		if err != nil {
-			object.addValidationError(E010, "cannot read version folder '%s'", ver)
-			closer.Close()
-			continue
-			//			return errors.Wrapf(err, "cannot read dir '%s'", ver)
-		}
-		for _, entry := range versionEntries {
-			if entry.IsDir() {
-				if !slices.Contains(allowedDirs, entry.Name()) {
-					object.addValidationWarning(W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
-				}
-			} else {
-				if !slices.Contains(allowedFiles, entry.Name()) {
-					object.addValidationError(E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
-				}
-			}
-		}
-		closer.Close()
-	}
-
-	for key := 0; key < len(versionStrings)-1; key++ {
-		v1 := versionStrings[key]
-		vi1, ok := versionInventories[v1]
-		if !ok {
-			object.addValidationWarning(W010, "no inventory for version '%s'", versionStrings[key])
-			continue
-			// return errors.Errorf("no inventory for version '%s'", versionStrings[key])
-		}
-		v2 := versionStrings[key+1]
-		vi2, ok := versionInventories[v2]
-		if !ok {
-			object.addValidationWarning(W000, "no inventory for version '%s'", versionStrings[key+1])
-			continue
-		}
-		if !SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
-			object.addValidationError(E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
-		}
-	}
-
-	if len(versionStrings) > 0 {
-		lastVersion := versionStrings[len(versionStrings)-1]
-		if lastInv, ok := versionInventories[lastVersion]; ok {
-			if !lastInv.IsEqual(object.i) {
-				object.addValidationError(E064, "root inventory not equal to inventory version '%s'", lastVersion)
-			}
-		}
-	}
-
-	id := object.i.GetID()
-	digestAlg := object.i.GetDigestAlgorithm()
-	versions := object.i.GetVersions()
-	for ver, verInventory := range versionInventories {
-		// check for id consistency
-		if id != verInventory.GetID() {
-			object.addValidationError(E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
-		}
-		if verInventory.GetHead() != "" && verInventory.GetHead() != ver {
-			object.addValidationError(E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
-		}
-
-		if verInventory.GetDigestAlgorithm() != digestAlg {
-			object.addValidationError(W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
-		}
-
-		for verVer, verVersion := range verInventory.GetVersions() {
-			testV, ok := versions[verVer]
-			if !ok {
-				object.addValidationError(E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
-			}
-			if !testV.EqualState(verVersion) {
-				object.addValidationError(E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
-			}
-			if !testV.EqualMeta(verVersion) {
-				object.addValidationError(W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
-			}
-		}
-	}
-
-	//
-	// all files in any manifest must belong to a physical file #E092
-	//
-	for inventoryVersion, inventory := range versionInventories {
-		manifestFiles := inventory.GetFilesFlat()
-		for _, manifestFile := range manifestFiles {
-			if !slices.Contains(objectFilesFlat, manifestFile) {
-				object.addValidationError(E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
-			}
-		}
-	}
-
-	rootManifestFiles := object.i.GetFilesFlat()
-	for _, manifestFile := range rootManifestFiles {
-		if !slices.Contains(objectFilesFlat, manifestFile) {
-			object.addValidationError(E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
-		}
-	}
-
-	//
-	// all object content files must belong to manifest
-	//
-
-	latestVersion := ""
-
-	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
-		if latestVersion == "" {
-			latestVersion = objectContentVersion
-		}
-		if object.i.VersionLessOrEqual(latestVersion, objectContentVersion) {
-			latestVersion = objectContentVersion
-		}
-		// check version inventories
-		for inventoryVersion, versionInventory := range versionInventories {
-			if versionInventory.VersionLessOrEqual(objectContentVersion, inventoryVersion) {
-				versionManifestFiles := versionInventory.GetFilesFlat()
-				for _, objectContentVersionFile := range objectContentVersionFiles {
-					// check all inventories which are less in version
-					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
-						object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, inventoryVersion)
-					}
-				}
-			}
-		}
-		rootVersion := object.i.GetHead()
-		if object.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
-			rootManifestFiles := object.i.GetFilesFlat()
-			for _, objectContentVersionFile := range objectContentVersionFiles {
-				// check all inventories which are less in version
-				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
-					object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, rootVersion)
-				}
-			}
-		}
-	}
-
-	return nil
-}
+var versionFolderRegexp = regexp.MustCompile("^v([0-9]+)$")
 
 func (object *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
@@ -1676,16 +1387,6 @@ func (object *ObjectBase) Check() error {
 					}
 				*/
 			}
-			/*
-				// check version directories
-				if slices.Contains(versionStrings, entry.Name()) {
-					err := object.checkVersionFolder(entry.Name())
-					if err != nil {
-						return errors.WithStack(err)
-					}
-					versionCounter++
-				}
-			*/
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
 				if object.p != nil && !object.p.HasPart(entry.Name()) {
@@ -1705,18 +1406,11 @@ func (object *ObjectBase) Check() error {
 			return errors.Wrapf(err, "error checking version '%s' of object '%s'", versionString, object.GetID())
 		}
 	}
-
-	if err := object.checkFilesAndVersions(); err != nil {
-		return errors.WithStack(err)
-	}
-
-	dAlgs := []checksum.DigestAlgorithm{object.i.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, object.i.GetFixityDigestAlgorithm()...)
 	return nil
 }
 
 // create checksums of all content files
-func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (object *ObjectBase) _createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	// get all possible digest algs
 	digestAlgorithms, err := object.getAllDigests()
 	if err != nil {
@@ -1899,4 +1593,294 @@ func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool,
 func (object *ObjectBase) GetAreaPath(area string) (string, error) {
 	path, err := object.extensionManager.GetAreaPath(object, area)
 	return path, errors.WithStack(err)
+}
+
+func (object *ObjectBase) _checkVersionFolder(version string) error {
+	packages := object.GetVersionPackages()
+	fsys, closer, err := packages.GetFS(version, object)
+	defer closer.Close()
+	versionEntries, err := fs.ReadDir(fsys, version)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read version folder '%s'", version)
+	}
+	for _, ve := range versionEntries {
+		if !ve.IsDir() {
+			if !allowedFilesRegexp.MatchString(ve.Name()) {
+				object.addValidationError(E015, "extra file '%s' in version directory '%s'", ve.Name(), version)
+			}
+		}
+	}
+	return nil
+}
+
+func (object *ObjectBase) _checkFilesAndVersions() error {
+	// create list of version content directories
+	versionContents := map[string]string{}
+	versionStrings := object.i.GetVersionStrings()
+
+	// sort in ascending order
+	slices.SortFunc(versionStrings, func(a, b string) int {
+		if object.i.VersionLessOrEqual(a, b) && a != b {
+			return -1
+		} else {
+			if a == b {
+				return 0
+			} else {
+				return 1
+			}
+		}
+	})
+
+	for _, ver := range versionStrings {
+		versionContents[ver] = object.i.GetContentDir()
+	}
+
+	// load object content files
+	objectContentFiles := map[string][]string{}
+	objectContentFilesFlat := []string{}
+	objectFilesFlat := []string{}
+	for ver, cont := range versionContents {
+		// load all object version content files
+		versionContent := ver + "/" + cont
+		//inventoryFile := ver + "/inventory.json"
+		if _, ok := objectContentFiles[ver]; !ok {
+			objectContentFiles[ver] = []string{}
+		}
+		packages := object.GetVersionPackages()
+		fsys, closer, err := packages.GetFS(ver, object)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get filesystem for version '%s'", ver)
+		}
+
+		fs.WalkDir(
+			fsys,
+			ver,
+			func(path string, d fs.DirEntry, err error) error {
+				path = filepath.ToSlash(path)
+				if d.IsDir() {
+					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+object.i.GetContentDir(), path) {
+						object.addValidationWarning(W002, "extra dir '%s' in version '%s'", path, ver)
+					}
+				} else {
+					objectFilesFlat = append(objectFilesFlat, path)
+					if strings.HasPrefix(path, versionContent) {
+						objectContentFiles[ver] = append(objectContentFiles[ver], path)
+						objectContentFilesFlat = append(objectContentFilesFlat, path)
+					} else {
+						/*
+							if !strings.HasPrefix(path, inventoryFile) {
+								object.addValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
+							}
+						*/
+					}
+				}
+				return nil
+			},
+		)
+		if len(objectContentFiles[ver]) == 0 {
+			fi, err := fs.Stat(fsys, versionContent)
+			if err != nil {
+				if !errors.Is(err, fs.ErrNotExist) {
+					closer.Close()
+					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
+				}
+			} else {
+				if fi.IsDir() {
+					object.addValidationWarning(W003, "empty content folder '%s'", versionContent)
+				}
+			}
+		}
+		closer.Close()
+	}
+	// load all inventories
+	versionInventories, err := object.getVersionInventories()
+	if err != nil {
+		return errors.Wrap(err, "cannot get version inventories")
+	}
+
+	csDigestFiles, err := object._createContentManifest()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := object.i.CheckFiles(csDigestFiles, ""); err != nil {
+		return errors.Wrap(err, "cannot check file digests for object root")
+	}
+
+	contentDir := ""
+	if len(versionStrings) > 0 {
+		contentDir = versionInventories[versionStrings[0]].GetRealContentDir()
+	}
+	for _, ver := range versionStrings {
+		packages := object.GetVersionPackages()
+		fsys, closer, err := packages.GetFS(ver, object)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get filesystem for version '%s'", ver)
+		}
+		inv := versionInventories[ver]
+		if inv == nil {
+			continue
+		}
+		if contentDir != inv.GetRealContentDir() {
+			object.addValidationError(E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
+		}
+		if err := inv.CheckFiles(csDigestFiles, ""); err != nil {
+			return errors.Wrapf(err, "cannot check file digests for version '%s'", ver)
+		}
+		digestAlg := inv.GetDigestAlgorithm()
+		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
+		allowedDirs := []string{inv.GetContentDir()}
+		versionEntries, err := fs.ReadDir(fsys, ver)
+		if err != nil {
+			object.addValidationError(E010, "cannot read version folder '%s'", ver)
+			closer.Close()
+			continue
+			//			return errors.Wrapf(err, "cannot read dir '%s'", ver)
+		}
+		for _, entry := range versionEntries {
+			if entry.IsDir() {
+				if !slices.Contains(allowedDirs, entry.Name()) {
+					object.addValidationWarning(W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
+				}
+			} else {
+				if !slices.Contains(allowedFiles, entry.Name()) {
+					object.addValidationError(E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
+				}
+			}
+		}
+		closer.Close()
+	}
+
+	for key := 0; key < len(versionStrings)-1; key++ {
+		v1 := versionStrings[key]
+		vi1, ok := versionInventories[v1]
+		if !ok {
+			object.addValidationWarning(W010, "no inventory for version '%s'", versionStrings[key])
+			continue
+			// return errors.Errorf("no inventory for version '%s'", versionStrings[key])
+		}
+		v2 := versionStrings[key+1]
+		vi2, ok := versionInventories[v2]
+		if !ok {
+			object.addValidationWarning(W000, "no inventory for version '%s'", versionStrings[key+1])
+			continue
+		}
+		if !SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
+			object.addValidationError(E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
+		}
+	}
+
+	if len(versionStrings) > 0 {
+		lastVersion := versionStrings[len(versionStrings)-1]
+		if lastInv, ok := versionInventories[lastVersion]; ok {
+			if !lastInv.IsEqual(object.i) {
+				object.addValidationError(E064, "root inventory not equal to inventory version '%s'", lastVersion)
+			}
+		}
+	}
+
+	id := object.i.GetID()
+	digestAlg := object.i.GetDigestAlgorithm()
+	versions := object.i.GetVersions()
+	for ver, verInventory := range versionInventories {
+		// check for id consistency
+		if id != verInventory.GetID() {
+			object.addValidationError(E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
+		}
+		if verInventory.GetHead() != "" && verInventory.GetHead() != ver {
+			object.addValidationError(E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
+		}
+
+		if verInventory.GetDigestAlgorithm() != digestAlg {
+			object.addValidationError(W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
+		}
+
+		for verVer, verVersion := range verInventory.GetVersions() {
+			testV, ok := versions[verVer]
+			if !ok {
+				object.addValidationError(E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
+			}
+			if !testV.EqualState(verVersion) {
+				object.addValidationError(E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
+			}
+			if !testV.EqualMeta(verVersion) {
+				object.addValidationError(W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
+			}
+		}
+	}
+
+	//
+	// all files in any manifest must belong to a physical file #E092
+	//
+	for inventoryVersion, inventory := range versionInventories {
+		manifestFiles := inventory.GetFilesFlat("")
+		for _, manifestFile := range manifestFiles {
+			if !slices.Contains(objectFilesFlat, manifestFile) {
+				object.addValidationError(E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
+			}
+		}
+	}
+
+	rootManifestFiles := object.i.GetFilesFlat("")
+	for _, manifestFile := range rootManifestFiles {
+		if !slices.Contains(objectFilesFlat, manifestFile) {
+			object.addValidationError(E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
+		}
+	}
+
+	//
+	// all object content files must belong to manifest
+	//
+
+	latestVersion := ""
+
+	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
+		if latestVersion == "" {
+			latestVersion = objectContentVersion
+		}
+		if object.i.VersionLessOrEqual(latestVersion, objectContentVersion) {
+			latestVersion = objectContentVersion
+		}
+		// check version inventories
+		for inventoryVersion, versionInventory := range versionInventories {
+			if versionInventory.VersionLessOrEqual(objectContentVersion, inventoryVersion) {
+				versionManifestFiles := versionInventory.GetFilesFlat("")
+				for _, objectContentVersionFile := range objectContentVersionFiles {
+					// check all inventories which are less in version
+					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
+						object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, inventoryVersion)
+					}
+				}
+			}
+		}
+		rootVersion := object.i.GetHead()
+		if object.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
+			rootManifestFiles := object.i.GetFilesFlat("")
+			for _, objectContentVersionFile := range objectContentVersionFiles {
+				// check all inventories which are less in version
+				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
+					object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, rootVersion)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (object *ObjectBase) _getVersionReader(version string) (VersionReader, error) {
+	inventory, ok := object.versionInventories[version]
+	if !ok {
+		return nil, errors.Errorf("no inventory for version '%s' found", version)
+	}
+	_ = inventory // just to make sure we have the inventory loaded
+	packages := object.GetVersionPackages()
+	pVersion, ok := packages.GetVersion(version)
+	if !ok {
+		return NewVersionReaderPlain(version, object.GetFS(), object.logger)
+	}
+	switch strings.ToLower(pVersion.Metadata.Format) {
+	case "zip":
+		//		return NewVersionReaderZIP(
+	}
+	return nil, errors.Errorf("no version reader for version '%s' found", version)
 }

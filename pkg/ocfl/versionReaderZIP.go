@@ -1,7 +1,6 @@
 package ocfl
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -9,8 +8,8 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/helper"
 	"io"
 	"io/fs"
-	"slices"
 	"strings"
+	"sync"
 )
 
 func NewVersionReaderZIP(version string, fsys fs.FS, names []string, logger zLogger.ZLogger) (VersionReader, error) {
@@ -109,16 +108,15 @@ func (v *VersionReaderZIP) _GetFilenameChecksum(digestAlgs []checksum.DigestAlgo
 	}
 	return contentChecksums, fullContent, nil
 }
-func (v *VersionReaderZIP) GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fullContentFiles []string) (map[string]map[checksum.DigestAlgorithm]string, map[string][]byte, map[string]string, error) {
+func (v *VersionReaderZIP) GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fn gfcCallback) (map[string]map[checksum.DigestAlgorithm]string, map[string]string, error) {
 	var contentChecksums = make(map[string]map[checksum.DigestAlgorithm]string)
-	var fullContent = make(map[string][]byte)
 	var partsChecksum = make(map[string]string)
 
 	var digestAlgs = append(fixityAlgorithms, digestAlgorithm)
 
 	mpr, err := helper.NewMultipartFileReader(v.fsys, v.names, digestAlgorithm)
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "cannot create multipart file reader for version %s", v.version)
+		return nil, nil, errors.Wrapf(err, "cannot create multipart file reader for version %s", v.version)
 	}
 
 	zipStream := zipstream.NewReader(mpr)
@@ -128,44 +126,59 @@ func (v *VersionReaderZIP) GetFilenameChecksum(digestAlgorithm checksum.DigestAl
 			if errors.Is(err, io.EOF) {
 				break // end of zip stream
 			}
-			return nil, nil, nil, errors.Wrapf(err, "error reading next file in zip stream for version %s", v.version)
+			return nil, nil, errors.Wrapf(err, "error reading next file in zip stream for version %s", v.version)
 		}
 		v.logger.Debug().Msgf("processing file %s in version %s", meta.Name, v.version)
 		name := strings.TrimPrefix(meta.Name, v.version+"/")
 		var writers []io.Writer
-		var contentBuffer *bytes.Buffer
-		if slices.Contains(fullContentFiles, name) {
-			v.logger.Debug().Msgf("reading full content for file %s in version %s", name, v.version)
-			if meta.UncompressedSize64 > 100*1024*1024 { // 100 MB
-				return nil, nil, nil, errors.Errorf("file %s is too large for full content (%d bytes)", name, meta.UncompressedSize64)
-			}
-			contentBuffer = bytes.NewBuffer(nil)
-			writers = append(writers, contentBuffer)
-		}
+		pr, pw := io.Pipe()
+		writers = append(writers, pw)
 		checksumWriter, err := checksum.NewChecksumWriter(digestAlgs, writers...)
 		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "cannot create checksum writer for file %s in version %s", meta.Name, v.version)
+			return nil, nil, errors.Wrapf(err, "cannot create checksum writer for file %s in version %s", meta.Name, v.version)
 		}
-		if _, err := io.Copy(checksumWriter, zipStream); err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "cannot copy file %s in version %s", meta.Name, v.version)
-		}
-		if err := checksumWriter.Close(); err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "cannot close checksum writer for file %s in version %s", meta.Name, v.version)
-		}
-		if contentBuffer != nil {
-			fullContent[name] = contentBuffer.Bytes()
+		wg := sync.WaitGroup{}
+		var errs = []error{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := fn(name, pr); err != nil {
+				errs = append(errs, errors.Wrapf(err, "error processing file %s in version %s", meta.Name, v.version))
+			}
+			io.Copy(io.Discard, pr) // drain the pipe to avoid deadlock
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := io.Copy(checksumWriter, zipStream); err != nil {
+				errs = append(errs, errors.Wrapf(err, "error copying file %s in version %s", meta.Name, v.version))
+			}
+			if err := checksumWriter.Close(); err != nil {
+				errs = append(errs, errors.Wrapf(err, "error closing checksum writer for file %s in version %s", meta.Name, v.version))
+			}
+			if err := pw.Close(); err != nil {
+				errs = append(errs, errors.Wrapf(err, "cannot close pipe writer for file %s in version %s", meta.Name, v.version))
+			}
+		}()
+		wg.Wait()
+		if len(errs) > 0 {
+			return nil, nil, errors.Wrapf(errors.Combine(errs...), "error processing file %s in version %s", meta.Name, v.version)
 		}
 		checksums, err := checksumWriter.GetChecksums()
 		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "cannot get checksums for file %s in version %s", meta.Name, v.version)
+			return nil, nil, errors.Wrapf(err, "cannot get checksums for file %s in version %s", meta.Name, v.version)
 		}
 		contentChecksums[name] = make(map[checksum.DigestAlgorithm]string)
 		for alg, cs := range checksums {
 			contentChecksums[name][alg] = cs
 		}
 	}
+	io.Copy(io.Discard, mpr)
+	if err := mpr.Close(); err != nil {
+		return nil, nil, errors.Wrapf(err, "cannot close multipart file reader for version %s", v.version)
+	}
 	partsChecksum = mpr.GetPartsChecksum()
-	return contentChecksums, fullContent, partsChecksum, nil
+	return contentChecksums, partsChecksum, nil
 }
 
 func (v *VersionReaderZIP) GetContentFilename() ([]string, error) {

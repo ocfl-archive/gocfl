@@ -1,15 +1,14 @@
 package ocfl
 
 import (
-	"bytes"
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
 	"path"
-	"slices"
 	"strings"
+	"sync"
 )
 
 func NewVersionReaderPlain(version string, fsys fs.FS, logger zLogger.ZLogger) (*VersionReaderPlain, error) {
@@ -40,9 +39,11 @@ func (v *VersionReaderPlain) GetFS() (fs.FS, io.Closer, error) {
 	return fs, io.NopCloser(nil), nil
 }
 
-func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fullContentFiles []string) (map[string]map[checksum.DigestAlgorithm]string, map[string][]byte, map[string]string, error) {
+func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fn gfcCallback) (map[string]map[checksum.DigestAlgorithm]string, map[string]string, error) {
 	var contentChecksums = make(map[string]map[checksum.DigestAlgorithm]string)
-	var fullContent = make(map[string][]byte)
+
+	var digestAlgs = append(fixityAlgorithms, digestAlgorithm)
+
 	root := v.version
 	fs.WalkDir(v.fsys, root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -64,29 +65,40 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgorithm checksum.Digest
 		path = strings.TrimPrefix(path, root+"/")
 
 		var contentWriter = []io.Writer{}
-		var contentBuffer *bytes.Buffer
-		if slices.Contains(fullContentFiles, path) {
-			v.logger.Debug().Msgf("reading full content for file %s in version %s", path, v.version)
-			if fi, err := fp.Stat(); err != nil {
-				if fi.Size() > 100*1024*1024 { // 100 MB
-					return errors.Wrapf(err, "file %s is too large for full content checksum (%dbyte)", path, fi.Size())
-				}
-			}
-			contentBuffer = bytes.NewBuffer(nil)
-			contentWriter = append(contentWriter, contentBuffer)
-		}
-
-		checksumsWriter, err := checksum.NewChecksumWriter(fixityAlgorithms, contentWriter...)
+		pr, pw := io.Pipe()
+		contentWriter = append(contentWriter, pw)
+		checksumWriter, err := checksum.NewChecksumWriter(digestAlgs, contentWriter...)
 		if err != nil {
 			return errors.Wrapf(err, "cannot create checksum writer for file %s", path)
 		}
-		if _, err := io.Copy(checksumsWriter, fp); err != nil {
-			return errors.Wrapf(err, "cannot copy file %s", path)
+		wg := sync.WaitGroup{}
+		var errs = []error{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := fn(path, pr); err != nil {
+				errs = append(errs, errors.Wrapf(err, "error processing file %s in version %s", path, v.version))
+			}
+			io.Copy(io.Discard, pr) // drain the pipe to avoid deadlock
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := io.Copy(checksumWriter, fp); err != nil {
+				errs = append(errs, errors.Wrapf(err, "error copying file %s in version %s", path, v.version))
+			}
+			if err := checksumWriter.Close(); err != nil {
+				errs = append(errs, errors.Wrapf(err, "error closing checksum writer for file %s in version %s", path, v.version))
+			}
+		}()
+		wg.Wait()
+		if err := pw.Close(); err != nil {
+			errs = append(errs, errors.Wrapf(err, "cannot close pipe writer for file %s in version %s", path, v.version))
 		}
-		if err := checksumsWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close checksum writer for file %s", path)
+		if len(errs) > 0 {
+			return errors.Wrapf(errors.Combine(errs...), "error processing file %s in version %s", path, v.version)
 		}
-		checksums, err := checksumsWriter.GetChecksums()
+		checksums, err := checksumWriter.GetChecksums()
 		if err != nil {
 			return errors.Wrapf(err, "cannot get checksums for file %s", path)
 		}
@@ -98,12 +110,9 @@ func (v *VersionReaderPlain) GetFilenameChecksum(digestAlgorithm checksum.Digest
 				return errors.Errorf("checksum for algorithm %s not found for file %s", alg, path)
 			}
 		}
-		if contentBuffer != nil {
-			fullContent[path] = contentBuffer.Bytes()
-		}
 		return nil
 	})
-	return contentChecksums, fullContent, nil, nil
+	return contentChecksums, nil, nil
 }
 
 func (v *VersionReaderPlain) GetContentFilename() ([]string, error) {

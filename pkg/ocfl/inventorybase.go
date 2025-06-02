@@ -734,7 +734,7 @@ func (i *InventoryBase) checkVersions() error {
 	return nil
 }
 
-func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
+func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string, filenamePrefix string) error {
 	i.logger.Debug().Any(
 		i.errorFactory.LogError(
 			ErrorOCFL,
@@ -757,6 +757,19 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 		return errors.Errorf("checksum for '%s' not created", i.GetDigestAlgorithm())
 	}
 	for digest, files := range i.GetManifest() {
+		if filenamePrefix != "" {
+			var prefixOK bool
+			for _, file := range files {
+				if strings.HasPrefix(file, filenamePrefix) {
+					prefixOK = true
+					break
+				}
+			}
+			if !prefixOK {
+				continue
+			}
+		}
+
 		csFilenames, ok := csFiles[strings.ToLower(digest)]
 		if !ok {
 			i.addValidationError(E092, "digest '%s' for file(s) %v not found in content", digest, files)
@@ -775,6 +788,19 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 			return errors.Errorf("checksum for '%s' not created", digestAlg)
 		}
 		for digest, files := range fixity {
+			if filenamePrefix != "" {
+				var prefixOK bool
+				for _, file := range files {
+					if strings.HasPrefix(file, filenamePrefix) {
+						prefixOK = true
+						break
+					}
+				}
+				if !prefixOK {
+					continue
+				}
+			}
+
 			csFilenames, ok := csFiles[digest]
 			if !ok {
 				csFilenames, ok = csFiles[strings.ToLower(digest)]
@@ -834,12 +860,14 @@ func (i *InventoryBase) GetFixity() Fixity {
 	}
 	return i.Fixity
 }
-func (i *InventoryBase) GetFilesFlat() []string {
+func (i *InventoryBase) GetFilesFlat(filenamePrefix string) []string {
 	filesV := i.GetFiles()
 	result := []string{}
 	for _, files := range filesV {
 		for _, file := range files {
-			result = append(result, file)
+			if strings.HasPrefix(file, filenamePrefix) {
+				result = append(result, file)
+			}
 		}
 	}
 	return result

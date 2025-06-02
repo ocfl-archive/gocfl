@@ -1,6 +1,7 @@
 package ocfl
 
 import (
+	"bytes"
 	"context"
 	"emperror.dev/errors"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
+	"io"
 	"io/fs"
 	"path"
 	"slices"
@@ -72,6 +74,9 @@ type VersionBase struct {
 }
 
 func (v *VersionBase) Check() error {
+	versionPrefix := v.version + "/"
+	contentPrefix := v.inventory.GetContentDir() + "/"
+
 	if err := v.prepareContentFiles(); err != nil {
 		return errors.Wrapf(err, "cannot prepare content files for version %s", v.version)
 	}
@@ -94,7 +99,7 @@ func (v *VersionBase) Check() error {
 		addValidationWarning(v.ctx, v.logger, v.ocflVersion, v.objectID, v.fsys, W003, "empty content in version '%s'", v.version)
 		return nil
 	}
-
+	inventoryVersions := v.inventory.GetVersions()
 	if versionInventory, err := v.getInventory(); err != nil {
 		addValidationWarning(v.ctx, v.logger, v.ocflVersion, v.objectID, v.fsys, W010, "error getting inventory for version '%s': %v", v.version, err)
 		v.logger.Error().Err(err).Str("objectID", v.objectID).Str("version", v.version).Msg("Error getting inventory for version")
@@ -114,9 +119,8 @@ func (v *VersionBase) Check() error {
 		if versionInventory.GetDigestAlgorithm() != v.inventory.GetDigestAlgorithm() {
 			addValidationWarning(v.ctx, v.logger, v.ocflVersion, v.objectID, v.fsys, W000, "digest algorithm in version '%s' (%s) does not match the expected digest algorithm (%s)", v.version, versionInventory.GetDigestAlgorithm(), v.inventory.GetDigestAlgorithm())
 		}
-		versions := v.inventory.GetVersions()
 		for verVer, verVersion := range versionInventory.GetVersions() {
-			testV, ok := versions[verVer]
+			testV, ok := inventoryVersions[verVer]
 			if !ok {
 				addValidationError(v.ctx, v.logger, v.ocflVersion, v.objectID, v.fsys, E066, "version '%s' in version folder '%s' not found in object root manifest", v.version, verVer)
 			}
@@ -140,8 +144,27 @@ func (v *VersionBase) Check() error {
 			csDigestFiles[digestAlgorithm][checksumValue] = append(csDigestFiles[digestAlgorithm][checksumValue], v.version+"/"+name)
 		}
 	}
-	if err := v.inventory.CheckFiles(csDigestFiles); err != nil {
+	if err := v.inventory.CheckFiles(csDigestFiles, versionPrefix); err != nil {
 		return errors.Wrapf(err, "cannot check files for version %s", v.version)
+	}
+	rootManifestFiles := v.inventory.GetFilesFlat(versionPrefix)
+	for _, file := range rootManifestFiles {
+		if !strings.HasPrefix(file, versionPrefix) {
+			continue // Only check files in the current content directory
+		}
+		file = file[len(versionPrefix):] // Remove version prefix
+		if !slices.Contains(v.contentFilenames, file) {
+			addValidationError(v.ctx, v.logger, v.ocflVersion, v.objectID, v.fsys, E092, "file '%s' in root manifest not found in version content '%s'", file, v.version)
+		}
+	}
+	for _, file := range v.contentFilenames {
+		if !strings.HasPrefix(file, contentPrefix) {
+			continue // Only check files in the current content directory
+		}
+		file = versionPrefix + file
+		if !slices.Contains(rootManifestFiles, file) {
+			addValidationError(v.ctx, v.logger, v.ocflVersion, v.objectID, v.fsys, E023, "file '%s' in version content '%s' not found in root manifest", file, v.version)
+		}
 	}
 	//realContentDir := v.inventory.GetRealContentDir()
 
@@ -183,7 +206,18 @@ func (v *VersionBase) prepareContentFiles() error {
 		return errors.Wrapf(err, "cannot get version reader for version %s", v.version)
 	}
 	sidecarFilename := fmt.Sprintf("inventory.json.%s", digestAlgorithm)
-	fileChecksums, fullContent, partsChecksum, err := vr.GetFilenameChecksum(digestAlgorithm, fixityAlgorithms, []string{"inventory.json", sidecarFilename})
+	fullContent := make(map[string][]byte) // Store full content of files
+	fileChecksums, partsChecksum, err := vr.GetFilenameChecksum(digestAlgorithm, fixityAlgorithms, func(path string, r io.Reader) error {
+		if !slices.Contains([]string{"inventory.json", sidecarFilename}, path) {
+			return nil // Skip inventory files
+		}
+		buf := bytes.NewBuffer(nil)
+		if _, err := io.Copy(buf, r); err != nil {
+			return errors.Wrapf(err, "cannot read file %s in version %s", path, v.version)
+		}
+		fullContent[path] = buf.Bytes() // Store full content for later use
+		return nil
+	})
 	if err != nil {
 		return errors.Wrapf(err, "cannot get filename checksums for version %s", v.version)
 	}
