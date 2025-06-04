@@ -411,7 +411,7 @@ func (object *ObjectBase) StoreInventory(version bool, objectRoot bool) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot create '%v/%s'", object.fsys, csFileName)
 		}
-		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
+		if _, err := iCSWriter.Write([]byte(checksumString + " inventory.json")); err != nil {
 			iCSWriter.Close()
 			return errors.Wrapf(err, "cannot write to '%v/%s'", object.fsys, csFileName)
 		}
