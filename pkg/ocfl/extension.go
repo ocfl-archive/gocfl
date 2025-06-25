@@ -46,6 +46,18 @@ type ExtensionInitial interface {
 	SetExtension(ext string)
 }
 
+type PackageReader interface {
+	GetPackageFS() (fs.FS, io.Closer, error)
+	GetFilenameChecksum(digestAlgorithm checksum.DigestAlgorithm, fixityAlgorithms []checksum.DigestAlgorithm, fn gfcCallback) (fileChecksums map[string]map[checksum.DigestAlgorithm]string, partsChecksum map[string]string, error error)
+	GetContentFilename() ([]string, error)
+	Close() error
+}
+
+type ExtensionPackageReader interface {
+	Extension
+	GetPackageReader(version string, objectFS fs.FS, packages VersionPackages) (PackageReader, error)
+}
+
 type ExtensionStorageRootPath interface {
 	Extension
 	WriteLayout(fsys fs.FS) error
