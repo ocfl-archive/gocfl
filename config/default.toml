@@ -6,7 +6,7 @@
 # "error"
 # "fatal"
 # "panic"
-level = "info"
+level = "warn"
 
 # global config for all operations on S3 storages
 [S3]
@@ -79,7 +79,7 @@ descriptive-metadata="other:metadata:info.json"
 #
 [Indexer]
 Enabled=true
-# Enable this, if there are problem detecting length of audio files with ffmpeg
+# Enable this if there are problem detecting length of audio files with ffmpeg
 LocalCache=false
 
 [Indexer.Checksum]
@@ -98,6 +98,12 @@ Regexp = true
 Attributes."xmlns:mets" = "^https?://www.loc.gov/METS/?$"
 Type = "metadata"
 Subtype = "METS"
+Mime = "application/xml"
+[Indexer.XML.Format.mei]
+Regexp = true
+Attributes."xmlns" = "^https?://www.music-encoding.org/ns/mei/?$"
+Type = "audio"
+Subtype = "mei"
 Mime = "application/xml"
 
 [Indexer.Siegfried]
