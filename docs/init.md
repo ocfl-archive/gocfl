@@ -1,7 +1,7 @@
 # Init
 
 The `init` command initializes an OCFL Storage Root.   
-[Default extension configs](../data/defaultextensions/storageroot) are used. 
+[Default storage root extension configs](../data/defaultextensions/storageroot) are used. 
 
 ```text
 PS C:\daten\go\dev\gocfl> ../bin/gocfl.exe init --help

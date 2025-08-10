@@ -4,31 +4,41 @@ Go OCFL implementation.
 
 ## Installation
 
-### Via go ecosystem
+### Using a pre-compiled binary
 
-`go install github.com/ocfl-archive/gocfl/v2/gocfl@latest`
+* Download the latest binary for your platform from https://github.com/ocfl-archive/gocfl/releases/latest
 
-### Via GitHub repository
+### Using the go ecosystem
 
-* navigate to gocfl directory (you should see `main.go`).
-* run `go tidy` to update local dependencies.
+* install the Go language, see https://go.dev/doc/install
+* run `go install github.com/ocfl-archive/gocfl/v2/gocfl@latest`
+
+### From source
+
+* install the Go language, see https://go.dev/doc/install
+* clone this git repository
+* navigate to gocfl subdirectory (you should see `main.go`).
+* run `go mod tidy` to update local dependencies.
 * run `go build` to create a locally compiled gocfl binary.
 
-### Configuration
+## Configuration
 
-GOCFL relies on a configuration file to activate, among other things, indexing,
+GOCFL relies on a configuration file to activate, among other things, indexing
 and migration capabilities of the GOCFL tool.
 
-A simplified configuration file can be found at: at [gocfl2.toml][config-1].
+GOCFL will be compiled with an embedded configuration file. GOCFL expects this
+configuration to be at `./config/default.toml`. The configuration can be
+overwritten and compiled.
+
+### Pointing to a custom configuration
+
+Optionally, you can supply your own configuration file at runtime. A simplified 
+configuration file can be found at [gocfl2.toml][config-1] and used as a 
+starting point for your individual config.
+
+You can then specify this config file to be used, e.g. for an `add` command:
 
 [config-1]: ./config/gocfl2.toml
-
-#### Pointing to a custom configuration
-
-GOCL will be compiled with an embedded configuration file. GOCL expects this
-configuration to be at `./config/default.toml`. The configuration can be
-overwritten and compiled. Optionally, you can supply your own configuration
-file, e.g. for an add command:
 
 ```sh
 ./gocfl add \
@@ -40,10 +50,10 @@ file, e.g. for an add command:
  --config custom-config.toml
 ```
 
-### Additional tools
+## Additional tools
 
 GOCFL is optimised next to the following Windows utilities and you will find
-refeences to them under Indexer and Migration settings in the config toml file:
+references to them under Indexer and Migration settings in the config toml file:
 
 * `convert.exe` via ImageMagick
 * `identify.exe` via ImageMagick
@@ -53,23 +63,23 @@ refeences to them under Indexer and Migration settings in the config toml file:
 * `powershell.exe` via Windows Powershell
 
 With the exception of Powershell (discussed below) you should be able to find
-drop-in replacements in 'nix-like systems, e.g. `convert.exe` becomes `convert`
-in Linux `identify.exe` becomes `identify` and `gswin64` becomes `gs`.
+drop-in replacements on 'nix-like systems, e.g. `convert.exe` becomes `convert`
+in Linux, `identify.exe` becomes `identify` and `gswin64` becomes `gs`.
 
-#### Use of Powershell
+### Use of Powershell
 
 Powershell scripts are currently used to generate thumbnails for video and pdf.
 They are found in the [./data/scripts][ps-1] folder. You can observe their
-functionality to write equivalents for your own operating systen's shell.
+functionality to write equivalents for your own operating system's shell.
 
 [ps-1]: ./data/scripts/
 
-### Invoking indexing and migration
+## Invoking indexing and migration
 
 Previous GOCFL implementations required a flag to invoke indexing. Now GOCFL
-must be compiled with the ObjectExtensions setting configured in the
+must be compiled with the `ObjectExtensions` setting configured in the
 configuration toml. This line can be optionally commented out. It will look
-like as follows:
+as follows:
 
 ```toml
 [Add]
@@ -77,7 +87,7 @@ like as follows:
 ObjectExtensions="./data/fullextensions/object"
 ```
 
-Providing the additional tools are configured correctly, and their function
+Provided the additional tools are configured correctly, and their function
 set to `Enabled=true` in the config, they will run during GOCFL activities such
 as `add`.
 
@@ -96,7 +106,8 @@ GOCFL command line tool supports the following subcommands
 * [create](docs/create.md)
 * [update](docs/update.md)
 * [validate](docs/validate.md)
-* [info](docs/stat.md)
+* [stat](docs/stat.md) or [info](docs/stat.md)
+* [decrypt](docs/decrypt.md)
 * [extract](docs/extract.md)
 * [extractmeta](docs/extractmeta.md)
 * [display](docs/display.md)
@@ -105,38 +116,38 @@ There's a [quickstart guide](docs/quickstart.md) available.
 
 ### Why GOCFL
 
-There are several [OCFL tools & libraries][ocfl-2] that already exist. This
+There are several [OCFL tools & libraries][ocfl-2] existing. This
 software is built with the following motivation:
 
-* I/O performance.
-* Containers.
-* Encryption.
-* Extensions.
-* Indexing.
+* I/O performance
+* Containers
+* Encryption
+* Extensions
+* Indexing
 
 [ocfl-2]: https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools
 
 #### I/O Performance
 
-Regarding performance, Storage I/O generates the main performance issues.
+Regarding performance, storage I/O generates the main performance issues.
 Therefore, every file should be read and written only once. Only in case of
-deduplication, the checksum of a file is calculated before ingest and a second
+de-duplication, the checksum of a file is calculated before ingest and a second
 time while ingesting.
 
 #### Containers
 
 Serialization of an OCFL Storage Root into a container format like ZIP must not
-generate overhead on disk I/O. Therefor generation of an OCFL Container is
+generate overhead on disk I/O. Therefore generation of an OCFL container is
 possible without an intermediary OCFL Storage Root on a filesystem.
 
 #### Encryption
 
 For storing OCFL containers in low-security locations (cloud storage, etc.),
-it's possible to create an AES-256 encrypted container on ingest.
+it's possible to create AES-256 encrypted container objects.
 
 #### Extensions
 
-The extensions described in the OCFL standard are quite open in their
+The extensions as specified in the OCFL standard are quite open in their
 functionality and may belong to the [Storage Root][ext-1] or [Object][ext-2].
 Since there's no specification of a generic extension api, it's difficult to
 integrate specific extension hooks into other libraries. This library identifies
@@ -152,7 +163,7 @@ extracted and stored alongside the manifest data. This allows technical metadata
 to be extracted alongside the content. Since the OCFL structure is quite rigid,
 there's a need for a special extension to support this.
 
-### GOCFL Functionality
+### GOCFL Roadmap and Implemented Functionality
 
 <!--markdownlint-disable-->
 
@@ -251,8 +262,10 @@ Install rust following the commands [here][rust-1] and then run
 
 ### Goreleaser
 
-Builds are done using goreleaser. A GitHub workflow will take care of this,
-that being said, you can run goreleaser as follows:
+Builds are done using goreleaser. A GitHub workflow will take care of this for 
+any git tags.
+
+That being said, you can run goreleaser as follows:
 
 > NB. Builds will land in the `dist/` directory.
 

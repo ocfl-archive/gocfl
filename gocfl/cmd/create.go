@@ -94,7 +94,7 @@ func doCreateConf(cmd *cobra.Command) {
 	}
 }
 
-// initCreate executes the gocfl create command
+// doCreate executes the gocfl create command
 func doCreate(cmd *cobra.Command, args []string) {
 	var err error
 
