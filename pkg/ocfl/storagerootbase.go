@@ -2,21 +2,22 @@ package ocfl
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/errorDetails"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/docs"
-	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/errorDetails"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/docs"
+	"golang.org/x/exp/slices"
 )
 
 type StorageRootBase struct {
@@ -269,9 +270,9 @@ func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot create subfs %s of %v", folder, osr.fsys)
 	}
-	dirs, err := fs.ReadDir(subFS, "")
+	dirs, err := fs.ReadDir(subFS, "/")
 	if err != nil {
-		if err == fs.ErrNotExist {
+		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
 		}
 		return false, errors.Wrapf(err, "cannot read content of %s", folder)
