@@ -2,14 +2,16 @@ package main
 
 import (
 	"bytes"
-	"emperror.dev/emperror"
-	"emperror.dev/errors"
 	"encoding/json"
 	"flag"
-	"github.com/google/tink/go/keyset"
-	"github.com/google/tink/go/streamingaead"
+
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/encrypt"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
+	"github.com/tink-crypto/tink-go/v2/keyset"
+	"github.com/tink-crypto/tink-go/v2/streamingaead"
+
 	"io"
 	"os"
 	"path/filepath"
