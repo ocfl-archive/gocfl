@@ -6,7 +6,7 @@
 # "error"
 # "fatal"
 # "panic"
-level = "info"
+level = "INFO"
 
 # global config for all operations on S3 storages
 [S3]
