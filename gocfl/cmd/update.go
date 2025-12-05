@@ -3,8 +3,13 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"emperror.dev/errors"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"os"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -18,10 +23,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"io/fs"
-	"log"
-	"os"
 )
 
 var updateCmd = &cobra.Command{
@@ -275,7 +276,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		areaPaths,
 		conf.Update.Echo)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot content to storageroot filesystem '%s'", destFS)
+		logger.Error().Stack().Err(err).Msgf("cannot write content to storageroot filesystem '%s'", destFS)
 		doNotClose = true
 	}
 	_ = showStatus(ctx, logger)
