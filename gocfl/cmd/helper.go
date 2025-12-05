@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/google/tink/go/core/registry"
+	"io/fs"
+	"path/filepath"
+	"time"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/osfsrw"
 	"github.com/je4/filesystem/v3/pkg/s3fsrw"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -22,9 +25,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/spf13/cobra"
-	"io/fs"
-	"path/filepath"
-	"time"
+	"github.com/tink-crypto/tink-go/v2/core/registry"
 )
 
 func startTimer() *timer {
