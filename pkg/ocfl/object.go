@@ -21,6 +21,7 @@ type Object interface {
 	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() Inventory
+	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) error
 	Load() error

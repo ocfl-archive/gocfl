@@ -2,9 +2,10 @@ package ocfl
 
 import (
 	"fmt"
-	"github.com/je4/utils/v2/pkg/checksum"
 	"io"
 	"io/fs"
+
+	"github.com/je4/utils/v2/pkg/checksum"
 )
 
 type ExtensionConfig struct {
@@ -36,6 +37,7 @@ const (
 	ExtensionAreaName               = "Area"
 	ExtensionStreamName             = "Stream"
 	ExtensionNewVersionName         = "NewVersion"
+	ExtensionVersionDoneName        = "VersionDone"
 	ExtensionInitialName            = "Initial"
 )
 
@@ -102,6 +104,11 @@ type ExtensionFixityDigest interface {
 type ExtensionMetadata interface {
 	Extension
 	GetMetadata(object Object) (map[string]any, error)
+}
+
+type ExtensionVersionDone interface {
+	Extension
+	VersionDone(object Object) error
 }
 
 type ExtensionNewVersion interface {

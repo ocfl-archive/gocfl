@@ -125,6 +125,11 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 		return extension.NewMetaFileFS(fsys)
 	})
 
+	logger.Debug().Msgf("adding creator for extension %s", extension.TimestampName)
+	extensionFactory.AddCreator(extension.TimestampName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewTimestampFS(fsys, logger)
+	})
+
 	logger.Debug().Msgf("adding creator for extension %s", extension.IndexerName)
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions, indexerLocalCache, logger)
@@ -164,6 +169,7 @@ func GetExtensionParams() []*ocfl.ExtensionExternalParam {
 	result = append(result, extension.GetMetaFileParams()...)
 	result = append(result, extension.GetMetsParams()...)
 	result = append(result, extension.GetContentSubPathParams()...)
+	result = append(result, extension.GetTimestampParams()...)
 
 	return result
 }

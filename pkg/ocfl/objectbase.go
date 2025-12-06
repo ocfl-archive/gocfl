@@ -4,13 +4,8 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -19,6 +14,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"golang.org/x/exp/slices"
 )
 
 //const VERSION = "1.0"
@@ -277,6 +278,23 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 	}
 
 	return inventory, inventory.Finalize(false)
+}
+
+func (object *ObjectBase) GetInventoryContent() (inventory []byte, checksumString string, err error) {
+	inventory, err = json.MarshalIndent(object.i, "", "   ")
+	if err != nil {
+		return nil, "", errors.Wrap(err, "cannot marshal inventory")
+	}
+	h, err := checksum.GetHash(object.i.GetDigestAlgorithm())
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "invalid digest algorithm '%s'", string(object.i.GetDigestAlgorithm()))
+	}
+	if _, err := h.Write(inventory); err != nil {
+		return nil, "", errors.Wrapf(err, "cannot create checksum of manifest")
+	}
+	checksumBytes := h.Sum(nil)
+	checksumString = fmt.Sprintf("%x", checksumBytes)
+	return inventory, checksumString, nil
 }
 
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
