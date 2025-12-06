@@ -116,6 +116,7 @@ Nonce: unspecified
 TSA: DirName:/O=Free TSA/OU=TSA/description=This certificate digitally signs documents and time stamp requests made using the freetsa.org online services/CN=www.freetsa.org/emailAddress=busilezas@gmail.com/L=Wuerzburg/C=DE/ST=Bayern
 Extensions:
 ```
+
 The `Time` should correspond to the creation timestamp of the OCFL version (not identical).
 ```json
 {
