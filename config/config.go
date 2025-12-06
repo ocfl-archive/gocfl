@@ -3,10 +3,10 @@ package config
 import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
-	"github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/stashconfig"
+	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
 
 type InitConfig struct {
@@ -69,6 +69,7 @@ type ExtractMetaConfig struct {
 	Output     string
 	ObjectPath string
 	ObjectID   string
+	Obfuscate  bool
 }
 
 type StatConfig struct {

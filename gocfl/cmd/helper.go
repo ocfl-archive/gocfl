@@ -13,7 +13,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/filesystem/v3/pkg/zipfs"
 	"github.com/je4/filesystem/v3/pkg/zipfsrw"
-	ironmaiden "github.com/je4/indexer/v3/pkg/indexer"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/keepass2kms"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -24,6 +23,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
+	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"github.com/spf13/cobra"
 	"github.com/tink-crypto/tink-go/v2/core/registry"
 )

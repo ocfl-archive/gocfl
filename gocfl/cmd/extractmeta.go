@@ -3,9 +3,14 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
@@ -14,10 +19,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"log"
-	"os"
-	"strings"
 )
 
 var extractMetaCmd = &cobra.Command{
@@ -36,6 +37,7 @@ func initExtractMeta() {
 	extractMetaCmd.Flags().String("version", "latest", "version to extract")
 	extractMetaCmd.Flags().String("format", "json", "output format (json)")
 	extractMetaCmd.Flags().String("output", "", "output file (default stdout)")
+	extractMetaCmd.Flags().Bool("obfuscate", false, "obfuscate metadata")
 }
 
 func doExtractMetaConf(cmd *cobra.Command) {
@@ -56,6 +58,9 @@ func doExtractMetaConf(cmd *cobra.Command) {
 	}
 	if str := getFlagString(cmd, "output"); str != "" {
 		conf.ExtractMeta.Output = str
+	}
+	if b, ok := getFlagBool(cmd, "obfuscate"); ok {
+		conf.ExtractMeta.Obfuscate = b
 	}
 }
 
@@ -143,14 +148,14 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
+	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot initialize extension factory")
 		return
 	}
 
 	ctx := ocfl.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, (logger))
+	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return
@@ -161,6 +166,13 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		fmt.Printf("cannot extract metadata from storage root: %v\n", err)
 		logger.Error().Stack().Err(err).Msg("cannot extract metadata from storage root")
 		return
+	}
+	if conf.ExtractMeta.Obfuscate {
+		if err := metadata.Obfuscate(); err != nil {
+			fmt.Printf("cannot obfuscate metadata: %v\n", err)
+			logger.Error().Stack().Err(err).Msg("cannot obfuscate metadata")
+			return
+		}
 	}
 
 	jsonBytes, err := json.MarshalIndent(metadata, "", "  ")

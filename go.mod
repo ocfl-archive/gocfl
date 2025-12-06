@@ -19,7 +19,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
 	github.com/je4/filesystem/v3 v3.0.40
-	github.com/je4/indexer/v3 v3.0.11
 	github.com/je4/utils/v2 v2.0.61
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/ocfl-archive/error v1.0.5
@@ -48,7 +47,7 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/dgraph-io/badger/v4 v4.8.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.3.0 // indirect
-	github.com/digitorus/pkcs7 v0.0.0-20230713084857-e76b763bdc49 // indirect
+	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.11 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect

@@ -100,10 +100,10 @@ type ObjectMetadata struct {
 func (om *ObjectMetadata) Obfuscate() error {
 	var metafile any
 	var hasMetafile = false
-	var extension any
+	extension := map[string]any{}
 	if extMap, ok := om.Extension.(map[string]any); ok {
 		if metafile, hasMetafile = extMap["NNNN-metafile"]; hasMetafile {
-			extension = map[string]any{"NNNN-metafile": metafile}
+			extension["NNNN-metafile"] = metafile
 		}
 	}
 	om.Extension = extension
