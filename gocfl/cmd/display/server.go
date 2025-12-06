@@ -3,10 +3,20 @@ package display
 import (
 	"context"
 	"crypto/tls"
-	"emperror.dev/emperror"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"io"
+	"io/fs"
+	"net"
+	"net/http"
+	"net/url"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"emperror.dev/emperror"
+	"emperror.dev/errors"
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-contrib/multitemplate"
@@ -18,15 +28,6 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"html/template"
-	"io"
-	"io/fs"
-	"net"
-	"net/http"
-	"net/url"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type Server struct {
@@ -45,6 +46,8 @@ type Server struct {
 	object         ocfl.Object
 	metadata       *ocfl.ObjectMetadata
 	templateFS     fs.FS
+	obfuscate      bool
+	objectFS       http.FileSystem
 }
 
 func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
@@ -122,6 +125,7 @@ func (s *Server) ListenAndServe(cert, key string) (err error) {
 	route.GET("/object/id/:id/download/:checksum/:filename", s.download)
 	route.GET("/object/id/:id/extension/:extension/download/*path", s.downloadExtFile)
 	route.GET("/object/folder/*path", s.loadObjectPath)
+	route.GET("/object/id/:id/browse/*path", s.loadObjectBrowser)
 
 	route.StaticFS("/static", http.FS(s.dataFS))
 
@@ -716,6 +720,11 @@ func (s *Server) loadObjectID(c *gin.Context) {
 	s.displayObject(c)
 }
 
+func (s *Server) displayObjectBrowse(c *gin.Context) {
+	path := c.Param("path")
+	c.FileFromFS(path, s.objectFS)
+
+}
 func (s *Server) loadObjectPath(c *gin.Context) {
 	var err error
 	type pathParam struct {
@@ -804,6 +813,65 @@ func (s *Server) displayObject(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "object.gohtml", gin.H(params))
+}
+
+func (s *Server) loadObjectBrowser(c *gin.Context) {
+	var err error
+	type idParam struct {
+		ID string `uri:"id" binding:"required"`
+	}
+	var iop idParam
+	if err = c.ShouldBindUri(&iop); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	iop.ID, err = url.PathUnescape(iop.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot unescape '%s'", iop.ID).Error()})
+		return
+	}
+	if s.object != nil && s.object.GetID() == iop.ID {
+		// already loaded
+		if s.metadata == nil {
+			s.metadata, err = s.object.GetMetadata()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+				return
+			}
+			if s.obfuscate {
+				if err := s.metadata.Obfuscate(); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+					return
+				}
+			}
+		}
+	} else {
+		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		s.metadata, err = s.object.GetMetadata()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
+			return
+		}
+		if s.obfuscate {
+			if err := s.metadata.Obfuscate(); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot obfuscate metadata").Error()})
+				return
+			}
+		}
+	}
+	if s.objectFS == nil {
+		objectFS, err := NewObjectFS(s.object)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get filesystem for object %s", s.object.GetID()).Error()})
+			return
+		}
+		s.objectFS = http.FS(objectFS)
+	}
+	s.displayObjectBrowse(c)
 }
 
 func (s *Server) report(c *gin.Context) {

@@ -1,12 +1,13 @@
 package ocfl
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
+	"io/fs"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/version"
-	"io/fs"
 )
 
 type creatorFunc func(fsys fs.FS) (Extension, error)
@@ -95,7 +96,9 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 		ext, err := f.Create(sub)
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
-			validation.addValidationWarning(W000, "extension %s not supported by gocfl %s", file.Name(), version.Version)
+			if validation != nil {
+				validation.addValidationWarning(W000, "extension %s not supported by gocfl %s", file.Name(), version.Version)
+			}
 		} else {
 			if !ext.IsRegistered() {
 				if validation != nil {

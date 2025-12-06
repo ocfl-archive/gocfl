@@ -116,8 +116,8 @@ github.com/huandu/xstrings v1.5.0 h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI
 github.com/huandu/xstrings v1.5.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/je4/filesystem/v3 v3.0.39 h1:f1mOmb6Iemf1lOZ80mxacS21faPrYYHRY1IOeKtNkO4=
-github.com/je4/filesystem/v3 v3.0.39/go.mod h1:BT3B7BDo+8QrYc2LDnOCGXAaNviuoYOE+lsj7ugroiM=
+github.com/je4/filesystem/v3 v3.0.40 h1:ihxGpiQj3KU0FyIMo5LipnIQLYZcHUTYkMZ/Zg2JMo4=
+github.com/je4/filesystem/v3 v3.0.40/go.mod h1:BT3B7BDo+8QrYc2LDnOCGXAaNviuoYOE+lsj7ugroiM=
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d h1:elX95ncLvCbNgkfD03bfTUhm0cdqdVYuuo5ETIOftoA=
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d/go.mod h1:AU6NEns8+WYmI/UYzllN8CWM2jsIVO7jDz2FeCf7Ssw=
 github.com/je4/indexer/v3 v3.0.11 h1:dK6XvM4BeV/k7HrDvwsuPuDM85aVsPmBvGOEQQcZrKs=
@@ -173,6 +173,8 @@ github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/ocfl-archive/error v1.0.5 h1:nPidx9HBSiViSDZHfVY8nIabBeOSO5vLFOcUMgt7yLo=
 github.com/ocfl-archive/error v1.0.5/go.mod h1:vOwIAdG34QlD9ExXUXu8QSywUKIIMN31ykQ2U0LvOMs=
+github.com/ocfl-archive/indexer/v3 v3.0.20 h1:xuW0RpuLuIzf4eyqmUwL++QHNLlsmPA3j4nLZLxOXyo=
+github.com/ocfl-archive/indexer/v3 v3.0.20/go.mod h1:ncfKsYbLKhnGq1RUKuKN0WqOTeWO+EAG3ci62HKFZ2M=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 h1:lDH9UUVJtmYCjyT0CI4q8xvlXPxeZ0gYCVvWbmPlp88=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
 github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=

@@ -3,8 +3,13 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"emperror.dev/errors"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"os"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
@@ -13,10 +18,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"io/fs"
-	"log"
-	"os"
 )
 
 var extractCmd = &cobra.Command{
@@ -43,8 +44,10 @@ func doExtractConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "object-id"); str != "" {
 		conf.Extract.ObjectID = str
 	}
-	if b := getFlagBool(cmd, "with-manifest"); b {
-		conf.Extract.Manifest = b
+	if b, ok := getFlagBool(cmd, "with-manifest"); b {
+		if ok {
+			conf.Extract.Manifest = b
+		}
 	}
 	if str := getFlagString(cmd, "version"); str != "" {
 		conf.Extract.Version = str

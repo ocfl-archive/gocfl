@@ -1,16 +1,17 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"hash"
 	"io"
 	"io/fs"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
@@ -107,7 +108,7 @@ func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.ExtensionConfig); err != nil {
+	if err := jenc.Encode(sl.StorageLayoutHashedNTupleConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil

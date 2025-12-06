@@ -3,6 +3,10 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"io"
+	"log"
+	"os"
+
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -13,9 +17,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"log"
-	"os"
 )
 
 var initCmd = &cobra.Command{
@@ -130,7 +131,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		nil,
 		nil,
 		nil,
-		(logger),
+		logger,
 	)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create extension factory")

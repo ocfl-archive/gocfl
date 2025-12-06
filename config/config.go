@@ -43,13 +43,13 @@ type AESConfig struct {
 }
 
 type DisplayConfig struct {
-	Addr      string
-	AddrExt   string
-	CertFile  string
-	KeyFile   string
-	Templates string
+	Addr      string `toml:"addr"`
+	AddrExt   string `toml:"addrext"`
+	CertFile  string `toml:"certfile"`
+	KeyFile   string `toml:"keyfile"`
+	Templates string `toml:"templates"`
+	Obfuscate bool   `toml:"obfuscate"`
 }
-
 type ExtractConfig struct {
 	Manifest   bool
 	Version    string

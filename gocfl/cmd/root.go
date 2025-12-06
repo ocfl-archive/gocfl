@@ -125,13 +125,17 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 	return str
 }
 
-func getFlagBool(cmd *cobra.Command, flag string) bool {
+func getFlagBool(cmd *cobra.Command, flag string) (value bool, ok bool) {
+	f := cmd.Flags().Lookup(flag)
+	if f == nil || !f.Changed {
+		return false, false
+	}
 	b, err := cmd.Flags().GetBool(flag)
 	if err != nil {
 		_ = cmd.Help()
 		cobra.CheckErr(errors.Errorf("canot get flag %s: %v", flag, err))
 	}
-	return b
+	return b, true
 }
 
 func initConfig() {
