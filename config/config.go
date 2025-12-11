@@ -143,7 +143,7 @@ type GOCFLConfig struct {
 	Log           stashconfig.Config `toml:"log"`
 }
 
-func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
+func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
 		Log: stashconfig.Config{
 			Level: "ERROR",
@@ -208,10 +208,94 @@ func LoadGOCFLConfig(data string) (*GOCFLConfig, error) {
 		},
 		S3: &S3Config{},
 	}
-
-	if _, err := toml.Decode(data, conf); err != nil {
-		return nil, errors.Wrap(err, "Error on loading config")
+	if _, err := toml.Decode(defaultConfig, conf); err != nil {
+		return nil, errors.Wrap(err, "error decoding GOCFL default configuration")
 	}
-
+	if filename == "" {
+		return conf, nil
+	}
+	if _, err := toml.DecodeFile(filename, conf); err != nil {
+		return nil, errors.Wrapf(err, "error decoding configuration file %s", filename)
+	}
 	return conf, nil
+	/*
+			data, err := os.ReadFile(filename)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error reading %s", filename)
+			}
+
+				var conf = &GOCFLConfig{
+					Log: stashconfig.Config{
+						Level: "ERROR",
+					},
+					DefaultArea: "content",
+					Extension:   map[string]map[string]string{},
+					Indexer:     indexer.GetDefaultConfig(),
+					Thumbnail: &Thumbnail{
+						Enabled:    false,
+						Background: "",
+						Function:   map[string]*ThumbnailFunction{},
+					},
+					Migration: &Migration{
+						Enabled:  false,
+						Function: map[string]*MigrationFunction{},
+					},
+					AES: &AESConfig{},
+					Add: &AddConfig{
+						Deduplicate:           false,
+						NoCompress:            true,
+						ObjectExtensionFolder: "",
+						User:                  &UserConfig{},
+						Fixity:                []string{},
+						Message:               "initial add",
+						Digest:                "sha512",
+					},
+					Update: &UpdateConfig{
+						Deduplicate: true,
+						NoCompress:  true,
+						User:        &UserConfig{},
+						Echo:        false,
+					},
+					Display: &DisplayConfig{
+						Addr:    "localhost:80",
+						AddrExt: "http://localhost:80/",
+					},
+					Extract: &ExtractConfig{
+						Manifest: false,
+						Version:  "latest",
+					},
+					ExtractMeta: &ExtractMetaConfig{
+						Version: "latest",
+						Format:  "json",
+					},
+					Stat: &StatConfig{
+						Info: []string{
+							"ExtensionConfigs",
+							"Objects",
+							"ObjectVersionState",
+							"ObjectManifest",
+							"ObjectFolders",
+							"Extension",
+							"ObjectVersions",
+							"ObjectExtension",
+							"ObjectExtensionConfigs",
+						},
+					},
+					Validate: &ValidateConfig{},
+					Init: &InitConfig{
+						OCFLVersion:                "1.1",
+						StorageRootExtensionFolder: "",
+					},
+					S3: &S3Config{},
+				}
+
+
+
+		if _, err := toml.Decode(data, conf); err != nil {
+			return nil, errors.Wrap(err, "Error on loading config")
+		}
+
+		return conf, nil
+
+	*/
 }

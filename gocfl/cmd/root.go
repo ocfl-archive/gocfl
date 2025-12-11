@@ -139,7 +139,6 @@ func getFlagBool(cmd *cobra.Command, flag string) (value bool, ok bool) {
 }
 
 func initConfig() {
-
 	// load config file
 	if persistentFlagConfigFile != "" {
 		var err error
@@ -149,26 +148,14 @@ func initConfig() {
 			return
 		}
 		log.Info().Msgf("loading configuration from %s", persistentFlagLogfile)
-		data, err := os.ReadFile(persistentFlagConfigFile)
-		if err != nil {
-			_ = rootCmd.Help()
-			log.Error().Msgf("error reading config file %s: %v\n", persistentFlagConfigFile, err)
-			os.Exit(1)
-		}
-		conf, err = config.LoadGOCFLConfig(string(data))
-		if err != nil {
-			_ = rootCmd.Help()
-			log.Error().Msgf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
-			os.Exit(1)
-		}
 	} else {
-		var err error
-		conf, err = config.LoadGOCFLConfig(string(config.DefaultConfig))
-		if err != nil {
-			_ = rootCmd.Help()
-			log.Error().Msgf("error loading config file %s: %v\n", persistentFlagConfigFile, err)
-			os.Exit(1)
-		}
+		log.Info().Msg("loading default configuration")
+	}
+	var err error
+	conf, err = config.LoadGOCFLConfig(persistentFlagConfigFile)
+	if err != nil {
+		cobra.CheckErr(errors.Errorf("cannot load configuration from '%s': %v", persistentFlagConfigFile, err))
+		return
 	}
 
 	// overwrite config file with command line data
