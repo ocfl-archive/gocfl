@@ -9,7 +9,8 @@ import (
 
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
@@ -119,7 +120,7 @@ func validate(cmd *cobra.Command, args []string) {
 	}()
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
+	sr, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storageroot")
 		return
@@ -131,22 +132,33 @@ func validate(cmd *cobra.Command, args []string) {
 		return
 	}
 	if objectID == "" && objectPath == "" {
-		if err := storageRoot.Check(); err != nil {
+		if err := sr.Check(); err != nil {
 			logger.Error().Stack().Err(err).Msg("ocfl not valid")
 			return
 		}
 	} else {
 		if objectID != "" {
-			if err := storageRoot.CheckObjectByID(objectID); err != nil {
-				logger.Error().Stack().Err(err).Msgf("ocfl object '%s' not valid", objectID)
-				return
-			}
-		} else {
-			if err := storageRoot.CheckObjectByFolder(objectPath); err != nil {
-				logger.Error().Stack().Err(err).Msgf("ocfl object '%s' not valid", objectPath)
+			objectPath, err = sr.IdToFolder(objectID)
+			if err != nil {
+				logger.Error().Stack().Err(err).Msgf("cannot get object-path for '%s'", objectID)
 				return
 			}
 		}
+		objFsys, err := writefs.Sub(sr.GetFS(), objectPath)
+		if err != nil {
+			logger.Error().Stack().Err(err).Msgf("cannot open filesystem for '%s'", objectPath)
+			return
+		}
+		obj, err := object.LoadObject(ctx, objFsys, extensionFactory, logger)
+		if err != nil {
+			logger.Error().Stack().Err(err).Msgf("cannot open object for '%s'", objectPath)
+			return
+		}
+		if err := obj.Check(); err != nil {
+			logger.Error().Stack().Err(err).Msgf("ocfl object '%s' not valid", objectPath)
+			return
+		}
+
 	}
 	_ = showStatus(ctx, logger)
 }

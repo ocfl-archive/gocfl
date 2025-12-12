@@ -1,12 +1,14 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+
 	"io"
 	"io/fs"
+
+	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 // fallback for object with unregigered naming
@@ -14,7 +16,7 @@ import (
 const LegacyDirectCleanName = "NNNN-direct-clean-path-layout"
 const LegacyDirectCleanDescription = "Maps OCFL object identifiers to storage paths or as an object extension that maps logical paths to content paths. This is done by replacing or removing \"dangerous characters\" from names"
 
-func NewLegacyDirectCleanFS(fsys fs.FS) (ocfl.Extension, error) {
+func NewLegacyDirectCleanFS(fsys fs.FS) (extension.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -42,7 +44,7 @@ func NewLegacyDirectCleanFS(fsys fs.FS) (ocfl.Extension, error) {
 	return NewLegacyDirectClean(config)
 }
 
-func NewLegacyDirectClean(config *LegacyDirectCleanConfig) (ocfl.Extension, error) {
+func NewLegacyDirectClean(config *LegacyDirectCleanConfig) (extension.Extension, error) {
 	if config.MaxPathnameLen == 0 {
 		config.MaxPathnameLen = 32000
 	}

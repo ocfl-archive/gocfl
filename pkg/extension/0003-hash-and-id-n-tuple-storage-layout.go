@@ -1,12 +1,15 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+
 	"hash"
 	"io"
 	"io/fs"
@@ -57,7 +60,7 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 }
 
 type StorageLayoutHashAndIdNTupleConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
@@ -135,7 +138,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
@@ -180,6 +183,6 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                = &StorageLayoutHashAndIdNTuple{}
-	_ ocfl.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
+	_ extension.Extension                  = &StorageLayoutHashAndIdNTuple{}
+	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
 )

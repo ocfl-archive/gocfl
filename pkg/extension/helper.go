@@ -11,10 +11,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
-func ReadFile(object ocfl.Object, name, version, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadFile(object object.Object, name, version, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	var targetname string
 	switch storageType {
 	case "area":
@@ -42,7 +42,7 @@ func ReadFile(object ocfl.Object, name, version, storageType, storageName string
 	return fs.ReadFile(fsys, targetname)
 }
 
-func ReadJsonL(object ocfl.Object, name, version, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadJsonL(object object.Object, name, version, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	if fsys == nil {
 		return nil, errors.Errorf("[%s/%s] %s: fsys is nil", object.GetID(), version, name)
 	}
@@ -113,7 +113,7 @@ func ReadJsonL(object ocfl.Object, name, version, compress, storageType, storage
 	return data, nil
 }
 
-func WriteJsonL(object ocfl.Object, name string, brotliData []byte, compress, storageType, storageName string, fsys fs.FS) error {
+func WriteJsonL(object object.Object, name string, brotliData []byte, compress, storageType, storageName string, fsys fs.FS) error {
 	var bufReader = bytes.NewBuffer(brotliData)
 	var ext string
 	var reader io.Reader

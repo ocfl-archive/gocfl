@@ -1,12 +1,15 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+
 	"io"
 	"io/fs"
 )
@@ -52,7 +55,7 @@ func NewDigestAlgorithms(config *DigestAlgorithmsConfig) (*DigestAlgorithms, err
 }
 
 type DigestAlgorithmsConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 }
 type DigestAlgorithms struct {
 	*DigestAlgorithmsConfig
@@ -107,6 +110,6 @@ func (sl *DigestAlgorithms) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension             = &DigestAlgorithms{}
-	_ ocfl.ExtensionFixityDigest = &DigestAlgorithms{}
+	_ extension.Extension          = &DigestAlgorithms{}
+	_ object.ExtensionFixityDigest = &DigestAlgorithms{}
 )

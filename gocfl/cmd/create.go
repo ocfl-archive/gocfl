@@ -14,7 +14,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -262,7 +262,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}()
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.CreateStorageRoot(
+	storageRoot, err := storageroot.CreateStorageRoot(
 		ctx,
 		destFS,
 		version.OCFLVersion(conf.Init.OCFLVersion),
@@ -281,6 +281,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	_, err = addObjectByPath(
 		storageRoot,
 		fixityAlgs,
+		extensionFactory,
 		objectExtensionManager,
 		conf.Add.Deduplicate,
 		flagObjectID,
@@ -290,7 +291,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 		sourceFS,
 		area,
 		areaPaths,
-		false)
+		false,
+		logger,
+	)
 	if err != nil {
 		logger.Panic().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
 	}

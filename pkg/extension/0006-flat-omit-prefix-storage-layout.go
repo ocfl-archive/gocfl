@@ -1,11 +1,15 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+
 	"io"
 	"io/fs"
 	"strings"
@@ -40,7 +44,7 @@ func NewFlatOmitPrefixStorageLayout(config *FlatOmitPrefixStorageLayoutConfig) (
 }
 
 type FlatOmitPrefixStorageLayoutConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	Delimiter string `json:"delimiter"`
 }
 type FlatOmitPrefixStorageLayout struct {
@@ -64,7 +68,7 @@ func (sl *FlatOmitPrefixStorageLayout) IsRegistered() bool {
 	return true
 }
 
-func (sl *FlatOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []ocfl.StatInfo) error {
+func (sl *FlatOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 	return nil
 }
 
@@ -114,7 +118,7 @@ func (sl *FlatOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	last := strings.LastIndex(id, sl.Delimiter)
 	if last < 0 {
 		return id, nil
@@ -124,6 +128,6 @@ func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot ocfl.Sto
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                = &FlatOmitPrefixStorageLayout{}
-	_ ocfl.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
+	_ extension.Extension                  = &FlatOmitPrefixStorageLayout{}
+	_ storageroot.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
 )

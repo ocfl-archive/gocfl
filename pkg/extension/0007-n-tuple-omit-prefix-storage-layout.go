@@ -1,11 +1,15 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+
 	"io"
 	"io/fs"
 	"strings"
@@ -55,7 +59,7 @@ func NewNTupleOmitPrefixStorageLayout(config *NTupleOmitPrefixStorageLayoutConfi
 }
 
 type NTupleOmitPrefixStorageLayoutConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	Delimiter         string `json:"delimiter"`
 	TupleSize         int    `json:"tupleSize"`
 	NumberOfTuples    int    `json:"numberOfTuples"`
@@ -84,7 +88,7 @@ func (sl *NTupleOmitPrefixStorageLayout) IsRegistered() bool {
 	return true
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []ocfl.StatInfo) error {
+func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 	return nil
 }
 
@@ -134,7 +138,7 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	/*
 	  1) Remove the prefix, which is everything to the left of the right-most instance of the delimiter, as well as the delimiter. If there is no delimiter, the whole id is used; if the delimiter is found at the end, an error is thrown.
 	*/
@@ -191,6 +195,6 @@ func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot ocfl.S
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                = &NTupleOmitPrefixStorageLayout{}
-	_ ocfl.ExtensionStorageRootPath = &NTupleOmitPrefixStorageLayout{}
+	_ extension.Extension                  = &NTupleOmitPrefixStorageLayout{}
+	_ storageroot.ExtensionStorageRootPath = &NTupleOmitPrefixStorageLayout{}
 )

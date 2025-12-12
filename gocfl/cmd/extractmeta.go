@@ -13,7 +13,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
@@ -122,6 +123,11 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(errors.New("do not use object-path AND object-id at the same time"))
 		return
 	}
+	if oPath == "" && oID == "" {
+		cmd.Help()
+		cobra.CheckErr(errors.New("must specify either object-id or object-path"))
+		return
+	}
 	format := strings.ToLower(conf.ExtractMeta.Format)
 	if format != "json" {
 		cmd.Help()
@@ -157,13 +163,20 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
+	sr, err := storageroot.LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return
 	}
+	if oID != "" {
+		oPath, err = sr.IdToFolder(oID)
+		if err != nil {
+			logger.Error().Stack().Err(err).Msgf("cannot get id folder for '%s'", oID)
+			return
+		}
+	}
 
-	metadata, err := storageRoot.ExtractMeta(oPath, oID)
+	metadata, err := object.ExtractMeta(ctx, sr.GetFS(), oPath, extensionFactory, logger)
 	if err != nil {
 		fmt.Printf("cannot extract metadata from storage root: %v\n", err)
 		logger.Error().Stack().Err(err).Msg("cannot extract metadata from storage root")

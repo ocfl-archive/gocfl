@@ -16,7 +16,8 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
 
@@ -69,7 +70,7 @@ type FileSystemLine struct {
 }
 
 type FilesystemConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	Folders     string `json:"folders"`
 	StorageType string `json:"storageType"`
 	StorageName string `json:"storageName"`
@@ -97,19 +98,19 @@ func (extFS *Filesystem) GetConfig() any {
 	return extFS.FilesystemConfig
 }
 
-func (extFS *Filesystem) AddFileBefore(object ocfl.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (extFS *Filesystem) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileBefore(object ocfl.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (extFS *Filesystem) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) DeleteFileBefore(object ocfl.Object, dest string, area string) error {
+func (extFS *Filesystem) DeleteFileBefore(object object.Object, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
 	if isDir && extFS.Folders == "" {
 		return nil
 	}
@@ -198,26 +199,26 @@ func (extFS *Filesystem) AddFileAfter(object ocfl.Object, sourceFS fs.FS, source
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileAfter(object ocfl.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (extFS *Filesystem) UpdateFileAfter(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return errors.WithStack(
 		extFS.AddFileAfter(object, sourceFS, []string{source}, "", "", area, isDir),
 	)
 
 }
 
-func (extFS *Filesystem) DeleteFileAfter(object ocfl.Object, dest string, area string) error {
+func (extFS *Filesystem) DeleteFileAfter(object object.Object, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) NeedNewVersion(object ocfl.Object) (bool, error) {
+func (extFS *Filesystem) NeedNewVersion(object object.Object) (bool, error) {
 	return false, nil
 }
 
-func (extFS *Filesystem) DoNewVersion(object ocfl.Object) error {
+func (extFS *Filesystem) DoNewVersion(object object.Object) error {
 	return nil
 }
 
-func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]map[string][]*FileSystemLine{}
 
@@ -284,11 +285,11 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 	return retResult, nil
 }
 
-func (extFS *Filesystem) UpdateObjectBefore(object ocfl.Object) error {
+func (extFS *Filesystem) UpdateObjectBefore(object object.Object) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateObjectAfter(object ocfl.Object) error {
+func (extFS *Filesystem) UpdateObjectAfter(object object.Object) error {
 	if extFS.writer == nil {
 		return nil
 	}
@@ -355,9 +356,9 @@ func (extFS *Filesystem) GetName() string {
 }
 
 var (
-	_ ocfl.Extension              = &Filesystem{}
-	_ ocfl.ExtensionObjectChange  = &Filesystem{}
-	_ ocfl.ExtensionContentChange = &Filesystem{}
-	_ ocfl.ExtensionMetadata      = &Filesystem{}
-	_ ocfl.ExtensionNewVersion    = &Filesystem{}
+	_ extension.Extension           = &Filesystem{}
+	_ object.ExtensionObjectChange  = &Filesystem{}
+	_ object.ExtensionContentChange = &Filesystem{}
+	_ object.ExtensionMetadata      = &Filesystem{}
+	_ object.ExtensionNewVersion    = &Filesystem{}
 )

@@ -14,7 +14,8 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -59,7 +60,7 @@ func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration
 }
 
 type MigrationConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	StorageType string
 	StorageName string
 	Compress    string
@@ -138,7 +139,7 @@ func (mi *Migration) WriteConfig() error {
 	return nil
 }
 
-func (mi *Migration) UpdateObjectBefore(ocfl.Object) error {
+func (mi *Migration) UpdateObjectBefore(object.Object) error {
 	return nil
 }
 
@@ -151,7 +152,7 @@ func (mi *Migration) alreadyMigrated(cs string) bool {
 	return false
 }
 
-func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
+func (mi *Migration) UpdateObjectAfter(object object.Object) error {
 	inventory := object.GetInventory()
 	if inventory == nil {
 		return errors.Errorf("inventory is nil")
@@ -202,12 +203,12 @@ func (mi *Migration) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (mi *Migration) NeedNewVersion(ocfl.Object) (bool, error) {
+func (mi *Migration) NeedNewVersion(object.Object) (bool, error) {
 	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
 // DoNewVersion todo: check for second migration step and do different naming
-func (mi *Migration) DoNewVersion(object ocfl.Object) error {
+func (mi *Migration) DoNewVersion(object object.Object) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
@@ -405,7 +406,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 	return nil
 }
 
-func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -475,8 +476,8 @@ func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
 }
 
 var (
-	_ ocfl.Extension             = &Migration{}
-	_ ocfl.ExtensionObjectChange = &Migration{}
-	_ ocfl.ExtensionMetadata     = &Migration{}
-	_ ocfl.ExtensionNewVersion   = &Migration{}
+	_ extension.Extension          = &Migration{}
+	_ object.ExtensionObjectChange = &Migration{}
+	_ object.ExtensionMetadata     = &Migration{}
+	_ object.ExtensionNewVersion   = &Migration{}
 )

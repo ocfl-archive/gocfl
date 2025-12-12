@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
 
@@ -26,7 +26,7 @@ const (
 	DataDir     = "data"
 )
 
-func NewObjectFS(obj ocfl.Object) (*ObjectFS, error) {
+func NewObjectFS(obj object.Object) (*ObjectFS, error) {
 	/*
 		metadata, err := obj.GetMetadata()
 		if err != nil {
@@ -42,7 +42,7 @@ func NewObjectFS(obj ocfl.Object) (*ObjectFS, error) {
 }
 
 type ObjectFS struct {
-	object ocfl.Object
+	object object.Object
 	//	metadata  *ocfl.ObjectMetadata
 	inventory inventory.Inventory
 	manifest  map[string][]string

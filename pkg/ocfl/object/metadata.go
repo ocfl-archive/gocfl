@@ -1,4 +1,4 @@
-package ocfl
+package object
 
 import (
 	"strings"

@@ -1,18 +1,22 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+
 	"io"
 	"io/fs"
 )
 
 const PathDirectName = "NNNN-direct-path-layout"
 
-func NewPathDirectFS(fsys fs.FS) (ocfl.Extension, error) {
+func NewPathDirectFS(fsys fs.FS) (extension.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -109,16 +113,16 @@ func (sl *PathDirect) WriteConfig() error {
 	return nil
 }
 
-func (sl *PathDirect) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *PathDirect) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	return id, nil
 }
-func (sl *PathDirect) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
 	return originalPath, nil
 }
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                  = &PathDirect{}
-	_ ocfl.ExtensionStorageRootPath   = &PathDirect{}
-	_ ocfl.ExtensionObjectContentPath = &PathDirect{}
+	_ extension.Extension                  = &PathDirect{}
+	_ storageroot.ExtensionStorageRootPath = &PathDirect{}
+	_ object.ExtensionObjectContentPath    = &PathDirect{}
 )

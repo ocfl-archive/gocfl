@@ -15,7 +15,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
@@ -271,7 +271,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
+	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		doNotClose = true
 		logger.Panic().Stack().Err(err).Msg("cannot open storage root")
@@ -298,6 +298,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	_, err = addObjectByPath(
 		storageRoot,
 		fixityAlgs,
+		extensionFactory,
 		objectExtensionManager,
 		conf.Add.Deduplicate,
 		flagObjectID,
@@ -307,7 +308,9 @@ func doAdd(cmd *cobra.Command, args []string) {
 		sourceFS,
 		area,
 		areaPaths,
-		false)
+		false,
+		logger,
+	)
 	if err != nil {
 		doNotClose = true
 		logger.Panic().Stack().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)

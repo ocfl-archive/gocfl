@@ -2,8 +2,10 @@ package extension
 
 import (
 	"fmt"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+
 	"testing"
+
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 func TestNTupleOmitPrefixStorageLayout(t *testing.T) {
@@ -11,7 +13,7 @@ func TestNTupleOmitPrefixStorageLayout(t *testing.T) {
 	// Example 1
 	l := NTupleOmitPrefixStorageLayout{
 		NTupleOmitPrefixStorageLayoutConfig: &NTupleOmitPrefixStorageLayoutConfig{
-			ExtensionConfig:   &ocfl.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
+			ExtensionConfig:   &extension.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
 			Delimiter:         ":",
 			TupleSize:         4,
 			NumberOfTuples:    2,
@@ -59,7 +61,7 @@ func TestNTupleOmitPrefixStorageLayout(t *testing.T) {
 	// Example 1
 	l = NTupleOmitPrefixStorageLayout{
 		NTupleOmitPrefixStorageLayoutConfig: &NTupleOmitPrefixStorageLayoutConfig{
-			ExtensionConfig:   &ocfl.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
+			ExtensionConfig:   &extension.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
 			Delimiter:         "edu/",
 			TupleSize:         3,
 			NumberOfTuples:    3,

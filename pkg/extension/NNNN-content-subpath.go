@@ -1,12 +1,15 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/atsushinee/go-markdown-generator/doc"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -16,8 +19,8 @@ import (
 const ContentSubPathName = "NNNN-content-subpath"
 const ContentSubPathDescription = "prepend a path inside the version content"
 
-func GetContentSubPathParams() []*ocfl.ExtensionExternalParam {
-	return []*ocfl.ExtensionExternalParam{
+func GetContentSubPathParams() []*extension.ExtensionExternalParam {
+	return []*extension.ExtensionExternalParam{
 		{
 			ExtensionName: ContentSubPathName,
 			Functions:     []string{"extract"},
@@ -61,7 +64,7 @@ type ContentSubPathEntry struct {
 }
 
 type ContentSubPathConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	Paths map[string]ContentSubPathEntry `json:"subPath"`
 }
 type ContentSubPath struct {
@@ -74,7 +77,7 @@ func (sl *ContentSubPath) Terminate() error {
 	return nil
 }
 
-func (sl *ContentSubPath) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (sl *ContentSubPath) GetMetadata(object object.Object) (map[string]any, error) {
 	return map[string]any{"": sl.Paths}, nil
 }
 
@@ -123,7 +126,7 @@ func (sl *ContentSubPath) WriteConfig() error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -138,11 +141,11 @@ func (sl *ContentSubPath) BuildObjectManifestPath(object ocfl.Object, originalPa
 	return path, nil
 }
 
-func (sl *ContentSubPath) UpdateObjectBefore(object ocfl.Object) error {
+func (sl *ContentSubPath) UpdateObjectBefore(object object.Object) error {
 
 	return nil
 }
-func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
+func (sl *ContentSubPath) UpdateObjectAfter(object object.Object) error {
 	readme := doc.NewMarkDown()
 	readme.WriteTitle("Description of folders", doc.LevelTitle).
 		WriteLines(2)
@@ -162,7 +165,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectStatePath(object object.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -177,7 +180,7 @@ func (sl *ContentSubPath) BuildObjectStatePath(object ocfl.Object, originalPath 
 	return path, nil
 }
 
-func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectExtractPath(_ object.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -190,13 +193,13 @@ func (sl *ContentSubPath) BuildObjectExtractPath(object ocfl.Object, originalPat
 	}
 	originalPath = strings.TrimLeft(originalPath, "/")
 	if !strings.HasPrefix(originalPath, subpath.Path) {
-		return "", errors.Wrapf(ocfl.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, area)
+		return "", errors.Wrapf(object.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, area)
 	}
 	originalPath = strings.TrimLeft(strings.TrimPrefix(originalPath, subpath.Path), "/")
 	return originalPath, nil
 }
 
-func (sl *ContentSubPath) GetAreaPath(object ocfl.Object, area string) (string, error) {
+func (sl *ContentSubPath) GetAreaPath(_ object.Object, area string) (string, error) {
 	subpath, ok := sl.Paths[area]
 	if !ok {
 		return "", errors.Errorf("invalid area '%s'", sl.area)
@@ -206,11 +209,11 @@ func (sl *ContentSubPath) GetAreaPath(object ocfl.Object, area string) (string, 
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                  = &ContentSubPath{}
-	_ ocfl.ExtensionObjectContentPath = &ContentSubPath{}
-	_ ocfl.ExtensionObjectChange      = &ContentSubPath{}
-	_ ocfl.ExtensionObjectStatePath   = &ContentSubPath{}
-	_ ocfl.ExtensionObjectExtractPath = &ContentSubPath{}
-	_ ocfl.ExtensionArea              = &ContentSubPath{}
-	_ ocfl.ExtensionMetadata          = &ContentSubPath{}
+	_ extension.Extension               = &ContentSubPath{}
+	_ object.ExtensionObjectContentPath = &ContentSubPath{}
+	_ object.ExtensionObjectChange      = &ContentSubPath{}
+	_ object.ExtensionObjectStatePath   = &ContentSubPath{}
+	_ object.ExtensionObjectExtractPath = &ContentSubPath{}
+	_ object.ExtensionArea              = &ContentSubPath{}
+	_ object.ExtensionMetadata          = &ContentSubPath{}
 )

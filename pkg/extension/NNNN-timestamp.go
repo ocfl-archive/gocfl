@@ -3,14 +3,17 @@ package extension
 import (
 	"bytes"
 	"crypto"
-	"emperror.dev/errors"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/digitorus/timestamp"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+
 	"io"
 	"io/fs"
 	"net/http"
@@ -20,8 +23,8 @@ import (
 const TimestampName = "NNNN-timestamp"
 const TimestampDescription = "signs ocfl versions"
 
-func GetTimestampParams() []*ocfl.ExtensionExternalParam {
-	return []*ocfl.ExtensionExternalParam{}
+func GetTimestampParams() []*extension.ExtensionExternalParam {
+	return []*extension.ExtensionExternalParam{}
 }
 
 func NewTimestampFS(fsys fs.FS, logger zLogger.ZLogger) (*Timestamp, error) {
@@ -53,7 +56,7 @@ func NewTimestamp(config *TimestampConfig, logger zLogger.ZLogger) (*Timestamp, 
 }
 
 type TimestampConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	Authority map[string]string `json:"Authority"` // https://freetsa.org/tsr
 	CertChain bool              `json:"CertChain"`
 }
@@ -63,7 +66,7 @@ type Timestamp struct {
 	logger zLogger.ZLogger
 }
 
-func (sl *Timestamp) trustedTimestamp(object ocfl.Object) error {
+func (sl *Timestamp) trustedTimestamp(object object.Object) error {
 	_, checksumString, err := object.GetInventoryContent()
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
@@ -156,7 +159,7 @@ func (sl *Timestamp) trustedTimestamp(object ocfl.Object) error {
 	return nil
 }
 
-func (sl *Timestamp) VersionDone(object ocfl.Object) error {
+func (sl *Timestamp) VersionDone(object object.Object) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
@@ -167,7 +170,7 @@ func (sl *Timestamp) Terminate() error {
 	return nil
 }
 
-func (sl *Timestamp) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (sl *Timestamp) GetMetadata(object object.Object) (map[string]any, error) {
 	return map[string]any{"TimestampAuthority": sl.Authority}, nil
 }
 
@@ -213,6 +216,6 @@ func (sl *Timestamp) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension            = &Timestamp{}
-	_ ocfl.ExtensionVersionDone = &Timestamp{}
+	_ extension.Extension         = &Timestamp{}
+	_ object.ExtensionVersionDone = &Timestamp{}
 )

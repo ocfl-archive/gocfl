@@ -14,7 +14,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
@@ -251,7 +251,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	if !writefs.HasContent(destFS) {
 
 	}
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		doNotClose = true
@@ -273,6 +273,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	_, err = addObjectByPath(
 		storageRoot,
 		nil,
+		extensionFactory,
 		objectExtensions,
 		conf.Update.Deduplicate,
 		flagObjectID,
@@ -282,7 +283,9 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		sourceFS,
 		area,
 		areaPaths,
-		conf.Update.Echo)
+		conf.Update.Echo,
+		logger,
+	)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msgf("cannot write content to storageroot filesystem '%s'", destFS)
 		doNotClose = true

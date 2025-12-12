@@ -4,7 +4,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
 	"github.com/ocfl-archive/gocfl/v2/config"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+
 	"io"
 	"os"
 	"path/filepath"
@@ -70,7 +71,7 @@ func GetMigrations(conf *config.GOCFLConfig) (*Migration, error) {
 	return m, nil
 }
 
-func DoMigrate(object ocfl.Object, mig *Function, ext string, targetNames []string, file io.ReadCloser) error {
+func DoMigrate(object object.Object, mig *Function, ext string, targetNames []string, file io.ReadCloser) error {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return errors.Wrap(err, "cannot create temp file")

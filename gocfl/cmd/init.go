@@ -11,7 +11,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -152,7 +152,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
-	if _, err := ocfl.CreateStorageRoot(
+	if _, err := storageroot.CreateStorageRoot(
 		ctx,
 		destFS,
 		version.OCFLVersion(conf.Init.OCFLVersion),

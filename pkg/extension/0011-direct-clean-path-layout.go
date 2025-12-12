@@ -1,14 +1,9 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"golang.org/x/exp/constraints"
 	"hash"
 	"io"
 	"io/fs"
@@ -16,6 +11,14 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"golang.org/x/exp/constraints"
 )
 
 const DirectCleanName = "0011-direct-clean-path-layout"
@@ -45,7 +48,7 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectCleanFS(fsys fs.FS) (ocfl.Extension, error) {
+func NewDirectCleanFS(fsys fs.FS) (extension.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -71,7 +74,7 @@ func NewDirectCleanFS(fsys fs.FS) (ocfl.Extension, error) {
 	return NewDirectClean(config)
 }
 
-func NewDirectClean(config *DirectCleanConfig) (ocfl.Extension, error) {
+func NewDirectClean(config *DirectCleanConfig) (extension.Extension, error) {
 	if config.MaxPathnameLen == 0 {
 		config.MaxPathnameLen = 32000
 	}
@@ -103,7 +106,7 @@ func encodeUTFCode(s string) string {
 }
 
 type DirectCleanConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	MaxPathnameLen              int                      `json:"maxPathnameLen"`
 	MaxPathSegmentLen           int                      `json:"maxPathSegmentLen"`
 	ReplacementString           string                   `json:"replacementString"`
@@ -192,11 +195,11 @@ func (sl *DirectClean) WriteLayout(fsys fs.FS) error {
 }
 
 // interface
-func (sl *DirectClean) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *DirectClean) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectManifestPath(object ocfl.Object, originalPath string, area string) (string, error) {
+func (sl *DirectClean) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
 	return sl.build(originalPath)
 }
 
@@ -289,7 +292,7 @@ func (sl *DirectClean) build(fname string) (string, error) {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                  = &DirectClean{}
-	_ ocfl.ExtensionStorageRootPath   = &DirectClean{}
-	_ ocfl.ExtensionObjectContentPath = &DirectClean{}
+	_ extension.Extension                  = &DirectClean{}
+	_ storageroot.ExtensionStorageRootPath = &DirectClean{}
+	_ object.ExtensionObjectContentPath    = &DirectClean{}
 )

@@ -18,7 +18,8 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
 )
@@ -34,8 +35,8 @@ type indexerLine struct {
 var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext", "xml"}
 var compress = []string{"brotli", "gzip", "none"}
 
-func GetIndexerParams() []*ocfl.ExtensionExternalParam {
-	return []*ocfl.ExtensionExternalParam{
+func GetIndexerParams() []*extension.ExtensionExternalParam {
+	return []*extension.ExtensionExternalParam{
 		{
 			ExtensionName: IndexerName,
 			Param:         "addr",
@@ -110,7 +111,7 @@ func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmai
 }
 
 type IndexerConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	StorageType string
 	StorageName string
 	Actions     []string
@@ -220,11 +221,11 @@ func (sl *Indexer) WriteConfig() error {
 	return nil
 }
 
-func (sl *Indexer) UpdateObjectBefore(object ocfl.Object) error {
+func (sl *Indexer) UpdateObjectBefore(object object.Object) error {
 	return nil
 }
 
-func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
+func (sl *Indexer) UpdateObjectAfter(object object.Object) error {
 	if sl.indexerActions == nil {
 		return errors.New("Please enable indexer in config file")
 	}
@@ -262,7 +263,7 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	return nil
 }
 
-func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -310,7 +311,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	return result, nil
 }
 
-func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (sl *Indexer) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if !sl.active {
 		return nil
 	}
@@ -372,9 +373,9 @@ func (sl *Indexer) StreamObject(object ocfl.Object, reader io.Reader, stateFiles
 }
 
 var (
-	_ ocfl.Extension = &Indexer{}
+	_ extension.Extension = &Indexer{}
 	//	_ ocfl.ExtensionContentChange = &Indexer{}
-	_ ocfl.ExtensionObjectChange = &Indexer{}
-	_ ocfl.ExtensionMetadata     = &Indexer{}
-	_ ocfl.ExtensionStream       = &Indexer{}
+	_ object.ExtensionObjectChange = &Indexer{}
+	_ object.ExtensionMetadata     = &Indexer{}
+	_ object.ExtensionStream       = &Indexer{}
 )

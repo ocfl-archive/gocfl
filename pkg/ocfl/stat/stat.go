@@ -1,4 +1,4 @@
-package ocfl
+package stat
 
 type StatInfo int64
 

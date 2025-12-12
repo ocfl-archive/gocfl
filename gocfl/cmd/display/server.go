@@ -21,51 +21,56 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	dcert "github.com/je4/utils/v2/pkg/cert"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
 
 type Server struct {
-	service        string
-	host, port     string
-	name, password string
-	srv            *http.Server
-	linkTokenExp   time.Duration
-	jwtKey         string
-	jwtAlg         []string
-	log            zLogger.ZLogger
-	urlExt         *url.URL
-	accessLog      io.Writer
-	dataFS         fs.FS
-	storageRoot    ocfl.StorageRoot
-	object         ocfl.Object
-	metadata       *ocfl.ObjectMetadata
-	templateFS     fs.FS
-	obfuscate      bool
-	objectFS       http.FileSystem
+	service          string
+	host, port       string
+	name, password   string
+	srv              *http.Server
+	linkTokenExp     time.Duration
+	jwtKey           string
+	jwtAlg           []string
+	log              zLogger.ZLogger
+	urlExt           *url.URL
+	accessLog        io.Writer
+	dataFS           fs.FS
+	storageRoot      storageroot.StorageRoot
+	object           object.Object
+	metadata         *object.ObjectMetadata
+	templateFS       fs.FS
+	obfuscate        bool
+	objectFS         http.FileSystem
+	extensionFactory *extension2.ExtensionFactory
 }
 
-func NewServer(storageRoot ocfl.StorageRoot, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot storageroot.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
 	}
 
 	srv := &Server{
-		service:     service,
-		host:        host,
-		port:        port,
-		urlExt:      urlExt,
-		dataFS:      dataFS,
-		templateFS:  templateFS,
-		log:         log,
-		accessLog:   accessLog,
-		storageRoot: storageRoot,
+		extensionFactory: extensionFactory,
+		service:          service,
+		host:             host,
+		port:             port,
+		urlExt:           urlExt,
+		dataFS:           dataFS,
+		templateFS:       templateFS,
+		log:              log,
+		accessLog:        accessLog,
+		storageRoot:      storageRoot,
 	}
 
 	return srv, nil
@@ -189,7 +194,16 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID)})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -252,7 +266,16 @@ func (s *Server) download(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID).Error()})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -311,7 +334,16 @@ func (s *Server) detail(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID).Error()})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -504,7 +536,16 @@ func (s *Server) manifest(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID).Error()})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -594,7 +635,16 @@ func (s *Server) version(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID).Error()})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -706,7 +756,16 @@ func (s *Server) loadObjectID(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID).Error()})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -735,7 +794,12 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	s.object, err = s.storageRoot.LoadObjectByFolder(strings.Trim(iop.Path, "/"))
+	folder := strings.Trim(iop.Path, "/")
+	fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+	}
+	s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -846,7 +910,16 @@ func (s *Server) loadObjectBrowser(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID)})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -901,7 +974,16 @@ func (s *Server) report(c *gin.Context) {
 			}
 		}
 	} else {
-		s.object, err = s.storageRoot.LoadObjectByID(iop.ID)
+		folder, err := s.storageRoot.IdToFolder(iop.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get folder for object %s", iop.ID)})
+			return
+		}
+		fsys, err := writefs.Sub(s.storageRoot.GetFS(), folder)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
+		}
+		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -998,7 +1080,7 @@ func (s *Server) report(c *gin.Context) {
 	cfg, err := extManager.GetConfigName(extension.MetaFileName)
 	if err != nil {
 		cfg = &extension.MetaFileConfig{
-			ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: extension.MetaFileName},
+			ExtensionConfig: &extension2.ExtensionConfig{ExtensionName: extension.MetaFileName},
 			StorageType:     "area",
 			StorageName:     "metadata",
 			MetaName:        "info.json",
@@ -1131,7 +1213,7 @@ func (s *Server) report(c *gin.Context) {
 	}
 	flattenTree(tree)
 
-	var files = map[string]*ocfl.FileMetadata{}
+	var files = map[string]*object.FileMetadata{}
 	if full {
 		files = s.metadata.Files
 	}

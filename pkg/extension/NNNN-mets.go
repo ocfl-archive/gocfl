@@ -3,10 +3,17 @@ package extension
 import (
 	"bytes"
 	"crypto/sha512"
-	"emperror.dev/errors"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
+	"io/fs"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+
+	"emperror.dev/errors"
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -14,17 +21,12 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/data/specs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
-	"io"
-	"io/fs"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"time"
 )
 
 const METSName = "NNNN-mets"
@@ -61,8 +63,8 @@ var metsMDTypes = []string{
 	"OTHER",
 }
 
-func GetMetsParams() []*ocfl.ExtensionExternalParam {
-	return []*ocfl.ExtensionExternalParam{
+func GetMetsParams() []*extension.ExtensionExternalParam {
+	return []*extension.ExtensionExternalParam{
 		{
 			ExtensionName: METSName,
 			Functions:     []string{"add", "update", "create"},
@@ -79,7 +81,7 @@ func NewMetsFS(fsys fs.FS, logger zLogger.ZLogger) (*Mets, error) {
 	}
 
 	var config = &MetsConfig{
-		ExtensionConfig:            &ocfl.ExtensionConfig{ExtensionName: METSName},
+		ExtensionConfig:            &extension.ExtensionConfig{ExtensionName: METSName},
 		StorageType:                "area",
 		StorageName:                "metadata",
 		PrimaryDescriptiveMetadata: "metadata:info.json",
@@ -104,7 +106,7 @@ func NewMets(config *MetsConfig, logger zLogger.ZLogger) (*Mets, error) {
 }
 
 type MetsConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	StorageType                string `json:"storageType"`
 	StorageName                string `json:"storageName"`
 	PrimaryDescriptiveMetadata string `json:"primaryDescriptiveMetadata,omitempty"`
@@ -169,7 +171,7 @@ func (me *Mets) WriteConfig() error {
 	return nil
 }
 
-func (me *Mets) UpdateObjectBefore(object ocfl.Object) error {
+func (me *Mets) UpdateObjectBefore(object object.Object) error {
 	return nil
 }
 
@@ -221,9 +223,9 @@ type metaFileBase struct {
 
 */
 
-func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
-	inventory := object.GetInventory()
-	metadata, err := object.GetMetadata()
+func (me *Mets) UpdateObjectAfter(obj object.Object) error {
+	inventory := obj.GetInventory()
+	metadata, err := obj.GetMetadata()
 	if err != nil {
 		return errors.Wrap(err, "cannot get metadata from object")
 	}
@@ -261,42 +263,42 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			}
 		}
 	}
-	var metsNames, premisNames *ocfl.NamesStruct
+	var metsNames, premisNames *object.NamesStruct
 	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
 	switch strings.ToLower(me.StorageType) {
 	case "area":
-		metsNames, err = object.BuildNames([]string{me.MetsFile}, me.StorageName)
+		metsNames, err = obj.BuildNames([]string{me.MetsFile}, me.StorageName)
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", me.MetsFile)
 		}
-		premisNames, err = object.BuildNames([]string{me.PremisFile}, me.StorageName)
+		premisNames, err = obj.BuildNames([]string{me.PremisFile}, me.StorageName)
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", me.PremisFile)
 		}
 	case "path":
-		path, err := object.GetAreaPath("content")
+		path, err := obj.GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
 		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.MetsFile)), "/")
-		metsNames, err = object.BuildNames([]string{metsName}, "")
+		metsNames, err = obj.BuildNames([]string{metsName}, "")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", metsName)
 		}
 		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.PremisFile)), "/")
-		premisNames, err = object.BuildNames([]string{premisName}, "")
+		premisNames, err = obj.BuildNames([]string{premisName}, "")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build names for %s", premisName)
 		}
 	case "extension":
-		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
-		metsNames = &ocfl.NamesStruct{
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetVersion()))), "/")
+		metsNames = &object.NamesStruct{
 			ExternalPaths: []string{me.MetsFile},
 			InternalPath:  metsName,
 			ManifestPath:  "",
 		}
-		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
-		premisNames = &ocfl.NamesStruct{
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetVersion()))), "/")
+		premisNames = &object.NamesStruct{
 			ExternalPaths: []string{me.PremisFile},
 			InternalPath:  premisName,
 			ManifestPath:  "",
@@ -881,7 +883,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		default:
 			return errors.Errorf("invalid descriptive metadata '%s'", me.PrimaryDescriptiveMetadata)
 		}
-		var found *ocfl.FileMetadata
+		var found *object.FileMetadata
 		var foundChecksum string
 		for checksum, metaFile := range metadata.Files {
 			if ver, ok := metaFile.VersionName[head]; ok {
@@ -959,7 +961,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		}
 
 		if len(found.InternalName) > 0 {
-			id := fmt.Sprintf("dmdSec-int-%s-%s", slug.Make(object.GetID()), head)
+			id := fmt.Sprintf("dmdSec-int-%s-%s", slug.Make(obj.GetID()), head)
 			dmdSecs = append(dmdSecs, newMDSec(
 				id,
 				"primary-metadata",
@@ -976,7 +978,7 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 			structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		}
 		if len(found.VersionName[head]) > 0 {
-			id := fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(object.GetID()), head)
+			id := fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(obj.GetID()), head)
 			dmdSecs = append(dmdSecs, newMDSec(
 				id,
 				"primary-metadata",
@@ -1295,26 +1297,26 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		premisName := me.PremisFile
 
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
-		if err := object.AddData(metsBytes, metsName, false, me.StorageName, true, false); err != nil {
+		if err := obj.AddData(metsBytes, metsName, false, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
-		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, me.StorageName, true, false); err != nil {
+		if _, err := obj.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.METSXSD, "schemas/mets.xsd", true, me.StorageName, true, false); err != nil {
+		if err := obj.AddData(specs.METSXSD, "schemas/mets.xsd", true, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/mets.xsd")
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.PremisXSD, "schemas/premis.xsd", true, me.StorageName, true, false); err != nil {
+		if err := obj.AddData(specs.PremisXSD, "schemas/premis.xsd", true, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/premis.xsd")
 		}
 		//if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, me.StorageName, true, false); err != nil {
+		if err := obj.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, me.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
 		}
 	case "path":
-		path, err := object.GetAreaPath("content")
+		path, err := obj.GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
@@ -1322,27 +1324,27 @@ func (me *Mets) UpdateObjectAfter(object ocfl.Object) error {
 		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, me.StorageName, me.PremisFile)), "/")
 
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(metsBytes)), []string{metsName}, area, true, false); err != nil {
-		if err := object.AddData(metsBytes, metsName, false, "", true, false); err != nil {
+		if err := obj.AddData(metsBytes, metsName, false, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", metsName)
 		}
-		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, "", true, false); err != nil {
+		if _, err := obj.AddReader(io.NopCloser(bytes.NewBuffer(premisBytes)), []string{premisName}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", premisName)
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.METSXSD)), []string{"schemas/mets.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.METSXSD, "schemas/mets.xsd", true, "", true, false); err != nil {
+		if err := obj.AddData(specs.METSXSD, "schemas/mets.xsd", true, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/mets.xsd")
 		}
 		//		if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.PremisXSD)), []string{"schemas/premis.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.PremisXSD, "schemas/premis.xsd", true, "", true, false); err != nil {
+		if err := obj.AddData(specs.PremisXSD, "schemas/premis.xsd", true, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/premis.xsd")
 		}
 		//if err := object.AddReader(io.NopCloser(bytes.NewBuffer(specs.XLinkXSD)), []string{"schemas/xlink.xsd"}, area, true, false); err != nil {
-		if err := object.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, "", true, false); err != nil {
+		if err := obj.AddData(specs.XLinkXSD, "schemas/xlink.xsd", true, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
 		}
 	case "extension":
-		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, object.GetVersion()))), "/")
-		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, object.GetVersion()))), "/")
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetVersion()))), "/")
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetVersion()))), "/")
 		if _, err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, metsName)
 		}
@@ -1396,5 +1398,5 @@ func newMDSec(id, groupid, href, loctype, otherloctype, mimetype, created string
 
 // check interface satisfaction
 var (
-	_ ocfl.ExtensionObjectChange = &Mets{}
+	_ object.ExtensionObjectChange = &Mets{}
 )

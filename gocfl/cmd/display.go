@@ -16,7 +16,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/data/displaydata"
 	"github.com/ocfl-archive/gocfl/v2/gocfl/cmd/display"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
@@ -151,7 +151,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	if !writefs.HasContent(destFS) {
 
 	}
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return
@@ -168,7 +168,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	} else {
 		templateFS = os.DirFS(conf.Display.Templates)
 	}
-	srv, err := display.NewServer(storageRoot, "gocfl", conf.Display.Addr, urlC, displaydata.WebRoot, templateFS, (logger), io.Discard)
+	srv, err := display.NewServer(storageRoot, extensionFactory, "gocfl", conf.Display.Addr, urlC, displaydata.WebRoot, templateFS, logger, io.Discard)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create server")
 		return

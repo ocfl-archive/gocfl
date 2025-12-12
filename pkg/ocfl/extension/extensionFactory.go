@@ -1,4 +1,4 @@
-package ocfl
+package extension
 
 import (
 	"encoding/json"

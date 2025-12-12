@@ -1,12 +1,15 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+
 	"hash"
 	"io"
 	"io/fs"
@@ -75,7 +78,7 @@ func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS, create bool) {
 }
 
 type StorageLayoutPairTreeConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	UriBase         string `json:"uriBase"`
 	StoreDir        string `json:"storeDir"`
 	ShortyLength    int    `json:"shortyLength"`
@@ -137,7 +140,7 @@ func (sl *StorageLayoutPairTree) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot ocfl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))
@@ -191,6 +194,6 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension                = &StorageLayoutPairTree{}
-	_ ocfl.ExtensionStorageRootPath = &StorageLayoutPairTree{}
+	_ extension.Extension                  = &StorageLayoutPairTree{}
+	_ storageroot.ExtensionStorageRootPath = &StorageLayoutPairTree{}
 )

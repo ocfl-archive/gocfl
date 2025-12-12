@@ -1,4 +1,4 @@
-package ocfl
+package object
 
 import (
 	"bytes"
@@ -19,7 +19,9 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -31,7 +33,8 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 type ObjectBase struct {
-	storageRoot        StorageRoot
+	//	storageRoot        storageroot.StorageRoot
+	extensionFactory   *extension.ExtensionFactory
 	extensionManager   ExtensionManager
 	ctx                context.Context
 	fsys               fs.FS
@@ -48,13 +51,13 @@ type ObjectBase struct {
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
 		fsys:             fsys,
 		version:          defaultVersion,
-		storageRoot:      storageRoot,
-		extensionManager: extensionManager,
+		extensionFactory: extensionFactory,
+		extensionManager: extensionManager.(ExtensionManager),
 		logger:           logger,
 	}
 	return ocfl, nil
@@ -163,7 +166,7 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 	return result, nil
 }
 
-func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
+func (object *ObjectBase) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 	fmt.Fprintf(w, "[%s] Path: %s\n", object.GetID(), object.GetDigestAlgorithm())
 	i := object.GetInventory()
 	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
@@ -179,18 +182,18 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 		cnt += len(fs)
 	}
 	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", object.GetID(), cnt, len(m))
-	if slices.Contains(statInfo, StatObjectVersions) || len(statInfo) == 0 {
+	if slices.Contains(statInfo, stat.StatObjectVersions) || len(statInfo) == 0 {
 		for vString, ver := range i.GetVersions() {
 			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)
 			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), ver.User.User.Name.String(), ver.User.User.Address.String())
 			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), ver.Created.String())
 			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), ver.Message.String())
-			if slices.Contains(statInfo, StatObjectVersionState) || len(statInfo) == 0 {
+			if slices.Contains(statInfo, stat.StatObjectVersionState) || len(statInfo) == 0 {
 				state := ver.State.State
 				for cs, sList := range state {
 					for _, s := range sList {
 						fmt.Fprintf(w, "[%s]        %s\n", object.GetID(), s)
-						if slices.Contains(statInfo, StatObjectManifest) || len(statInfo) == 0 {
+						if slices.Contains(statInfo, stat.StatObjectManifest) || len(statInfo) == 0 {
 							ms, ok := m[cs]
 							if ok {
 								for _, m := range ms {
@@ -203,7 +206,7 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 			}
 		}
 	}
-	if slices.Contains(statInfo, StatObjectExtensionConfigs) || len(statInfo) == 0 {
+	if slices.Contains(statInfo, stat.StatObjectExtensionConfigs) || len(statInfo) == 0 {
 		data, err := json.MarshalIndent(object.extensionManager.GetConfig(), "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
@@ -447,13 +450,13 @@ func (object *ObjectBase) StoreExtensions() error {
 	return nil
 }
 
-func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager ExtensionManager) error {
+func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager extension.ExtensionManager) error {
 	object.logger.Debug().Msgf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
-	object.extensionManager = extensionManager
+	object.extensionManager = extensionManager.(ExtensionManager)
 
 	// first check whether object is not empty
 	fp, err := object.fsys.Open(objectConformanceDeclarationFile)
@@ -510,14 +513,14 @@ func (object *ObjectBase) Load() (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", object.fsys, "extensions")
 	}
-	manager, err := object.storageRoot.CreateExtensions(extFolder, object)
+	manager, err := object.extensionFactory.CreateExtensions(extFolder, object)
 	if err != nil {
 		object.AddValidationWarning(validation.W000, "cannot initialize all extensions in folder '%s': %v", extFolder, err)
 		if manager == nil {
 			return errors.Wrap(err, "cannot create extension manager")
 		}
 	}
-	object.extensionManager = manager
+	object.extensionManager = manager.(ExtensionManager)
 
 	// load the inventory
 	if object.i, err = object.LoadInventory("."); err != nil {
@@ -555,7 +558,7 @@ func (object *ObjectBase) Close() error {
 	if !object.i.IsModified() {
 		return nil
 	}
-	object.storageRoot.setModified()
+	//object.storageRoot.setModified()
 	if err := object.i.Clean(); err != nil {
 		return errors.Wrap(err, "cannot clean inventory")
 	}

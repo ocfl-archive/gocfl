@@ -2,16 +2,18 @@ package extension
 
 import (
 	"fmt"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+
 	"testing"
+
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 func TestPairtreeIDEncode(t *testing.T) {
 	fmt.Printf("(NewPairTreeStorageLayout(%s, %s, %v, %s)\n", "", "", 2, checksum.DigestSHA256)
 
 	ptsl, err := NewStorageLayoutPairTree(&StorageLayoutPairTreeConfig{
-		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: "gocfl-pairtree"},
+		ExtensionConfig: &extension.ExtensionConfig{ExtensionName: "gocfl-pairtree"},
 		UriBase:         "",
 		StoreDir:        "",
 		ShortyLength:    2,

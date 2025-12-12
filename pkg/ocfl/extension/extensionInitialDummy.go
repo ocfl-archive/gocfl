@@ -1,11 +1,12 @@
-package ocfl
+package extension
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
+
+	"emperror.dev/errors"
 )
 
 func NewInitialDummyFS(fsys fs.FS) (Extension, error) {

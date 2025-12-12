@@ -3,16 +3,17 @@
 package extension
 
 import (
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"gopkg.in/gographics/imagick.v3/imagick"
 	"io"
 	"slices"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
-func (thumb *Thumbnail) StreamObject(object ocfl.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(stateFiles) == 0 {
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}

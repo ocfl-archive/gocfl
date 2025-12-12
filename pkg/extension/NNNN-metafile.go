@@ -16,7 +16,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
@@ -25,8 +26,8 @@ import (
 const MetaFileName = "NNNN-metafile"
 const MetaFileDescription = "adds a file in extension folder"
 
-func GetMetaFileParams() []*ocfl.ExtensionExternalParam {
-	return []*ocfl.ExtensionExternalParam{
+func GetMetaFileParams() []*extension.ExtensionExternalParam {
+	return []*extension.ExtensionExternalParam{
 		{
 			ExtensionName: MetaFileName,
 			Functions:     []string{"add", "update", "create"},
@@ -99,7 +100,7 @@ func NewMetaFile(config *MetaFileConfig, schema []byte) (*MetaFile, error) {
 }
 
 type MetaFileConfig struct {
-	*ocfl.ExtensionConfig
+	*extension.ExtensionConfig
 	StorageType   string `json:"storageType"`
 	StorageName   string `json:"storageName"`
 	MetaName      string `json:"name,omitempty"`
@@ -221,7 +222,7 @@ func toStringKeys(val interface{}) (interface{}, error) {
 	}
 }
 
-func (sl *MetaFile) UpdateObjectBefore(object ocfl.Object) error {
+func (sl *MetaFile) UpdateObjectBefore(object object.Object) error {
 	if sl.metadataSource.Path == "" {
 		return nil
 	}
@@ -374,11 +375,11 @@ func downloadFile(u string) ([]byte, error) {
 
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
-func (sl *MetaFile) UpdateObjectAfter(object ocfl.Object) error {
+func (sl *MetaFile) UpdateObjectAfter(object object.Object) error {
 	return nil
 }
 
-func (sl *MetaFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 	inventory := object.GetInventory()
@@ -407,7 +408,7 @@ func (sl *MetaFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
 
 // check interface satisfaction
 var (
-	_ ocfl.Extension             = &MetaFile{}
-	_ ocfl.ExtensionObjectChange = &MetaFile{}
-	_ ocfl.ExtensionMetadata     = &MetaFile{}
+	_ extension.Extension          = &MetaFile{}
+	_ object.ExtensionObjectChange = &MetaFile{}
+	_ object.ExtensionMetadata     = &MetaFile{}
 )

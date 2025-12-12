@@ -1,7 +1,8 @@
-package ocfl
+package extension
 
 import (
 	"fmt"
+
 	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"

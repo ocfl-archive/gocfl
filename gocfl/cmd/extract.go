@@ -12,7 +12,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
@@ -157,7 +158,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, (logger))
+	sr, err := storageroot.LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")
 		return
@@ -174,7 +175,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := storageRoot.Extract(destFS, oPath, oID, conf.Extract.Version, conf.Extract.Manifest, conf.Extract.Area); err != nil {
+	if err := object.Extract(context.Background(), destFS, sr.GetFS(), oPath, conf.Extract.Version, conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		logger.Error().Stack().Err(err).Msg("cannot extract storage root")
 		return

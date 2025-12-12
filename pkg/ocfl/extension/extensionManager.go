@@ -1,23 +1,20 @@
-package ocfl
+package extension
 
-import "io/fs"
+import (
+	"io/fs"
+)
 
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
 const DefaultExtensionInitialName = "initial"
 
+type ExtensionInitial interface {
+	Extension
+	GetExtension() string
+	SetExtension(ext string)
+}
+
 type ExtensionManager interface {
 	Extension
-	ExtensionStorageRootPath
-	ExtensionObjectContentPath
-	ExtensionObjectStatePath
-	ExtensionContentChange
-	ExtensionObjectChange
-	ExtensionFixityDigest
-	ExtensionObjectExtractPath
-	ExtensionMetadata
-	ExtensionArea
-	ExtensionStream
-	ExtensionNewVersion
 	GetConfig() any
 	GetExtensions() []Extension
 	Add(ext Extension) error
