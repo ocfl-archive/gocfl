@@ -3,20 +3,21 @@ package extension
 import (
 	"bufio"
 	"bytes"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"time"
+
+	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"golang.org/x/exp/slices"
-	"io"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 const FilesystemName = "NNNN-filesystem"
@@ -239,7 +240,7 @@ func (extFS *Filesystem) GetMetadata(object ocfl.Object) (map[string]any, error)
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ocfl.ReadJsonL(object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
+			data, err = ReadJsonL(object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
@@ -305,7 +306,7 @@ func (extFS *Filesystem) UpdateObjectAfter(object ocfl.Object) error {
 	if !ok {
 		return nil
 	}
-	if err := ocfl.WriteJsonL(
+	if err := WriteJsonL(
 		object,
 		"filesystem",
 		buffer.Bytes(),

@@ -2,10 +2,16 @@ package ocfl
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
+
+	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+
 	"io"
 	"io/fs"
 )
@@ -17,10 +23,10 @@ type NamesStruct struct {
 }
 
 type Object interface {
-	LoadInventory(folder string) (Inventory, error)
-	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
+	LoadInventory(folder string) (inventory.Inventory, error)
+	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (inventory.Inventory, error)
 	StoreInventory(version bool, objectRoot bool) error
-	GetInventory() Inventory
+	GetInventory() inventory.Inventory
 	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) error
@@ -36,7 +42,7 @@ type Object interface {
 	DeleteFile(virtualFilename string, digest string) error
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
 	GetID() string
-	GetVersion() OCFLVersion
+	GetVersion() version.OCFLVersion
 	Check() error
 	Close() error
 	GetFS() fs.FS
@@ -49,7 +55,7 @@ type Object interface {
 	BuildNames(files []string, area string) (*NamesStruct, error)
 }
 
-func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err error) {
+func GetObjectVersion(ctx context.Context, ofs fs.FS) (ver version.OCFLVersion, err error) {
 	files, err := fs.ReadDir(ofs, ".")
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get files")
@@ -60,44 +66,44 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (version OCFLVersion, err 
 		}
 		matches := objectVersionRegexp.FindStringSubmatch(file.Name())
 		if matches != nil {
-			if version != "" {
-				return "", errVersionMultiple
+			if ver != "" {
+				return "", ocflerrors.ErrVersionMultiple
 			}
-			version = OCFLVersion(matches[1])
+			ver = version.OCFLVersion(matches[1])
 			cnt, err := fs.ReadFile(ofs, file.Name())
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot read %s", file.Name())
 			}
-			t := fmt.Sprintf("ocfl_object_%s", version)
+			t := fmt.Sprintf("ocfl_object_%s", ver)
 			if string(cnt) != t+"\n" && string(cnt) != t+"\r\n" {
 				// todo: which error version should be used???
-				addValidationErrors(ctx, GetValidationError(Version1_0, E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n").AppendContext("object folder '%s'", ofs))
+				validation.AddValidationErrors(ctx, validation.GetValidationError(version.Version1_0, validation.E007).AppendDescription("%s: %s != %s", file.Name(), cnt, t+"\\n").AppendContext("object folder '%s'", ofs))
 			}
 		}
 	}
-	if version == "" {
-		addValidationErrors(ctx, GetValidationError(Version1_0, E003).AppendDescription("no version file found in '%v'", ofs).AppendContext("object folder '%s'", ofs))
+	if ver == "" {
+		validation.AddValidationErrors(ctx, validation.GetValidationError(version.Version1_0, validation.E003).AppendDescription("no version file found in '%v'", ofs).AppendContext("object folder '%s'", ofs))
 		return "", nil
 	}
-	return version, nil
+	return ver, nil
 }
 
-func newObject(ctx context.Context, fsys fs.FS, version OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (Object, error) {
+func newObject(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (Object, error) {
 	var err error
-	if version == "" {
-		version, err = GetObjectVersion(ctx, fsys)
+	if ver == "" {
+		ver, err = GetObjectVersion(ctx, fsys)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot get version of object")
 		}
 	}
-	switch version {
-	case Version1_1:
+	switch ver {
+	case version.Version1_1:
 		o, err := newObjectV1_1(ctx, fsys, storageRoot, extensionManager, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return o, nil
-	case Version2_0:
+	case version.Version2_0:
 		o, err := newObjectV2_0(ctx, fsys, storageRoot, extensionManager, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)

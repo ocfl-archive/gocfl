@@ -2,29 +2,32 @@ package ocfl
 
 import (
 	"context"
+
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+
 	"io/fs"
 )
 
-const Version2_0 OCFLVersion = "2.0"
+//const Version2_0util.OCFLVersion = "2.0"
 
 type StorageRootV2_0 struct {
 	*StorageRootBase
 }
 
 func NewStorageRootV2_0(ctx context.Context, fsys fs.FS, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootV2_0, error) {
-	srb, err := NewStorageRootBase(ctx, fsys, Version2_0, extensionFactory, extensionManager, logger)
+	srb, err := NewStorageRootBase(ctx, fsys, version.Version2_0, extensionFactory, extensionManager, logger)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", Version2_0)
+		return nil, errors.Wrapf(err, "cannot create StorageRootBase Version %s", version.Version2_0)
 	}
 
 	sr := &StorageRootV2_0{StorageRootBase: srb}
 	return sr, nil
 }
 
-func (osr *StorageRootV2_0) Init(version OCFLVersion, digest checksum.DigestAlgorithm, manager ExtensionManager) error {
+func (osr *StorageRootV2_0) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager ExtensionManager) error {
 	/*
 		specFile := "ocfl_1.1.md"
 		spec, err := writefs.Create(osr.fsys, specFile)
@@ -40,5 +43,5 @@ func (osr *StorageRootV2_0) Init(version OCFLVersion, digest checksum.DigestAlgo
 		}
 
 	*/
-	return osr.StorageRootBase.Init(version, digest, manager)
+	return osr.StorageRootBase.Init(ver, digest, manager)
 }

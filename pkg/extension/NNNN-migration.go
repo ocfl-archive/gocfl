@@ -3,9 +3,14 @@ package extension
 import (
 	"bufio"
 	"bytes"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
+	"path/filepath"
+	"regexp"
+
+	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -14,10 +19,6 @@ import (
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
-	"io"
-	"io/fs"
-	"path/filepath"
-	"regexp"
 )
 
 const MigrationName = "NNNN-migration"
@@ -390,7 +391,7 @@ func (mi *Migration) DoNewVersion(object ocfl.Object) error {
 	if !ok {
 		return nil
 	}
-	if err := ocfl.WriteJsonL(
+	if err := WriteJsonL(
 		object,
 		"migration",
 		buffer.Bytes(),
@@ -427,7 +428,7 @@ func (mi *Migration) GetMetadata(object ocfl.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ocfl.ReadJsonL(object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName, mi.fsys)
+			data, err = ReadJsonL(object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName, mi.fsys)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

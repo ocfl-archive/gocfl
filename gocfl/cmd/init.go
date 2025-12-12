@@ -12,6 +12,9 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -56,7 +59,7 @@ func doInitConf(cmd *cobra.Command) {
 }
 
 func doInit(cmd *cobra.Command, args []string) {
-	ocflPath, err := ocfl.Fullpath(args[0])
+	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -148,11 +151,11 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := ocfl.NewContextValidation(context.TODO())
+	ctx := validation.NewContextValidation(context.TODO())
 	if _, err := ocfl.CreateStorageRoot(
 		ctx,
 		destFS,
-		ocfl.OCFLVersion(conf.Init.OCFLVersion),
+		version.OCFLVersion(conf.Init.OCFLVersion),
 		extensionFactory, storageRootExtensions,
 		conf.Init.Digest,
 		(logger),

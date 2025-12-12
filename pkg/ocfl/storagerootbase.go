@@ -17,6 +17,10 @@ import (
 	"github.com/je4/utils/v2/pkg/errorDetails"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/docs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"golang.org/x/exp/slices"
 )
 
@@ -27,7 +31,7 @@ type StorageRootBase struct {
 	extensionManager ExtensionManager
 	changed          bool
 	logger           zLogger.ZLogger
-	version          OCFLVersion
+	version          version.OCFLVersion
 	digest           checksum.DigestAlgorithm
 	modified         bool
 }
@@ -35,7 +39,7 @@ type StorageRootBase struct {
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootBase, error) {
+func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:              ctx,
@@ -51,10 +55,6 @@ func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVers
 	return ocfl, nil
 }
 
-var errVersionMultiple = errors.New("multiple version files found")
-var errVersionNone = errors.New("no version file found")
-var errInvalidContent = errors.New("content of version declaration does not equal filename")
-
 func (osr *StorageRootBase) String() string {
 	return fmt.Sprintf("StorageRootBase: %v", osr.fsys)
 }
@@ -66,25 +66,25 @@ func (osr *StorageRootBase) setModified() {
 	osr.modified = true
 }
 
-func (osr *StorageRootBase) addValidationError(errno ValidationErrorCode, format string, a ...any) error {
-	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%v' ", osr.fsys)
+func (osr *StorageRootBase) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
+	valError := validation.GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%v' ", osr.fsys)
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
-	return errors.WithStack(addValidationErrors(osr.ctx, valError))
+	return errors.WithStack(validation.AddValidationErrors(osr.ctx, valError))
 }
 
-func (osr *StorageRootBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) error {
-	valError := GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%v' ", osr.fsys)
+func (osr *StorageRootBase) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
+	valError := validation.GetValidationError(osr.version, errno).AppendDescription(format, a...).AppendContext("storage root '%v' ", osr.fsys)
 	_, file, line, _ := runtime.Caller(1)
 	osr.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
-	return errors.WithStack(addValidationWarnings(osr.ctx, valError))
+	return errors.WithStack(validation.AddValidationWarnings(osr.ctx, valError))
 }
 
-func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgorithm, extensionManager ExtensionManager) error {
+func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, extensionManager ExtensionManager) error {
 	var err error
 	osr.logger.Debug()
 
-	osr.version = version
+	osr.version = ver
 	osr.digest = digest
 
 	entities, err := fs.ReadDir(osr.fsys, ".")
@@ -92,10 +92,10 @@ func (osr *StorageRootBase) Init(version OCFLVersion, digest checksum.DigestAlgo
 		return errors.Wrapf(err, "cannot read storage root directory '%v'", osr.fsys)
 	}
 	if len(entities) > 0 {
-		if err := osr.addValidationError(E069, "storage root not empty"); err != nil {
-			return errors.Wrapf(err, "cannot add validation error %v", E069)
+		if err := osr.AddValidationError(validation.E069, "storage root not empty"); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %v", validation.E069)
 		}
-		err := GetValidationError(version, E069)
+		err := validation.GetValidationError(ver, validation.E069)
 		return errors.Wrapf(errorDetails.WithDetail(err, err.DetailString()), "storage root %v not empty", osr.fsys)
 	}
 
@@ -148,31 +148,31 @@ func (osr *StorageRootBase) Load() error {
 	var err error
 	osr.logger.Debug()
 
-	osr.version, err = getVersion(osr.ctx, osr.fsys, ".", "ocfl_")
+	osr.version, err = util.GetVersion(osr.ctx, osr.fsys, ".", "ocfl_")
 	if err != nil {
 		switch err {
-		case errVersionNone:
-			if err := osr.addValidationError(E003, "no version declaration file"); err != nil {
-				return errors.Wrapf(err, "cannot add validation error %v", E003)
+		case ocflerrors.ErrVersionNone:
+			if err := osr.AddValidationError(validation.E003, "no version declaration file"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", validation.E003)
 			}
-			if err := osr.addValidationError(E004, "no version declaration file"); err != nil {
-				return errors.Wrapf(err, "cannot add validation error %v", E004)
+			if err := osr.AddValidationError(validation.E004, "no version declaration file"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", validation.E004)
 			}
-			if err := osr.addValidationError(E005, "no version declaration file"); err != nil {
-				return errors.Wrapf(err, "cannot add validation error %v", E005)
+			if err := osr.AddValidationError(validation.E005, "no version declaration file"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", validation.E005)
 			}
-		case errVersionMultiple:
-			if err := osr.addValidationError(E003, "multiple version declaration files"); err != nil {
-				return errors.Wrapf(err, "cannot add validation error %v", E003)
+		case ocflerrors.ErrVersionMultiple:
+			if err := osr.AddValidationError(validation.E003, "multiple version declaration files"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", validation.E003)
 			}
-		case errInvalidContent:
-			if err := osr.addValidationError(E006, "invalid content"); err != nil {
-				return errors.Wrapf(err, "cannot add validation error %v", E006)
+		case ocflerrors.ErrInvalidContent:
+			if err := osr.AddValidationError(validation.E006, "invalid content"); err != nil {
+				return errors.Wrapf(err, "cannot add validation error %v", validation.E006)
 			}
 		default:
 			return errors.WithStack(err)
 		}
-		osr.version = Version1_0
+		osr.version = version.Version1_0
 	}
 
 	extFSys, err := writefs.Sub(osr.fsys, "extensions")
@@ -195,7 +195,7 @@ func (osr *StorageRootBase) SetDigest(digest checksum.DigestAlgorithm) {
 	}
 }
 
-func (osr *StorageRootBase) GetVersion() OCFLVersion { return osr.version }
+func (osr *StorageRootBase) GetVersion() version.OCFLVersion { return osr.version }
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
@@ -203,7 +203,7 @@ func (osr *StorageRootBase) CreateExtension(fsys fs.FS) (Extension, error) {
 	return osr.extensionFactory.Create(fsys)
 }
 
-func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation Validation) (ExtensionManager, error) {
+func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation validation.Validation) (ExtensionManager, error) {
 	exts, err := osr.extensionFactory.CreateExtensions(fsys, validation)
 	return exts, errors.WithStack(err)
 }
@@ -328,10 +328,10 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 }
 
 func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
-	version, err := getVersion(osr.ctx, osr.fsys, folder, "ocfl_object_")
-	if err == errVersionNone {
-		if err := osr.addValidationError(E003, "no version in folder '%s'", folder); err != nil {
-			return nil, errors.Wrapf(err, "cannot add validation error %s", E003)
+	version, err := util.GetVersion(osr.ctx, osr.fsys, folder, "ocfl_object_")
+	if errors.Is(err, ocflerrors.ErrVersionNone) {
+		if err := osr.AddValidationError(validation.E003, "no version in folder '%s'", folder); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", validation.E003)
 		}
 	}
 	if err != nil {
@@ -361,20 +361,20 @@ func (osr *StorageRootBase) LoadObjectByFolder(folder string) (Object, error) {
 
 	versionFloat, err := strconv.ParseFloat(string(version), 64)
 	if err != nil {
-		if err := osr.addValidationError(E004, "invalid object version number '%s'", version); err != nil {
-			return nil, errors.Wrapf(err, "cannot add validation error %s", E004)
+		if err := osr.AddValidationError(validation.E004, "invalid object version number '%s'", version); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", validation.E004)
 		}
 	}
 	rootVersionFloat, err := strconv.ParseFloat(string(osr.version), 64)
 	if err != nil {
-		if err := osr.addValidationError(E075, "invalid root version number '%s'", version); err != nil {
-			return nil, errors.Wrapf(err, "cannot add validation error %s", E075)
+		if err := osr.AddValidationError(validation.E075, "invalid root version number '%s'", version); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", validation.E075)
 		}
 	}
 	// TODO: check. could not find this rule in standard
 	if versionFloat > rootVersionFloat {
-		if err := osr.addValidationError(E000, "root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version); err != nil {
-			return nil, errors.Wrapf(err, "cannot add validation error %s", E000)
+		if err := osr.AddValidationError(validation.E000, "root OCFL version declaration (%s) smaller than highest object version declaration (%s)", osr.version, version); err != nil {
+			return nil, errors.Wrapf(err, "cannot add validation error %s", validation.E000)
 		}
 	}
 
@@ -389,14 +389,14 @@ func (osr *StorageRootBase) LoadObjectByID(id string) (object Object, err error)
 	return osr.LoadObjectByFolder(folder)
 }
 
-func (osr *StorageRootBase) CreateObject(id string, version OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) (Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManager) (Object, error) {
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fsys, folder)
 	}
 
-	object, err := newObject(osr.ctx, subfs, version, osr, manager, osr.logger)
+	object, err := newObject(osr.ctx, subfs, ver, osr, manager, osr.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate object")
 	}
@@ -438,7 +438,7 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 	if err != nil {
 		return errors.Wrap(err, "cannot get files")
 	}
-	var version OCFLVersion
+	var ver version.OCFLVersion
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -446,12 +446,12 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 			// check for version file
 			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
 				// more than one version file is confusing...
-				if version != "" {
-					if err := osr.addValidationError(E076, "additional version file '%s' in storage root", file.Name()); err != nil {
-						return errors.Wrapf(err, "cannot add validation error %s", E076)
+				if ver != "" {
+					if err := osr.AddValidationError(validation.E076, "additional version file '%s' in storage root", file.Name()); err != nil {
+						return errors.Wrapf(err, "cannot add validation error %s", validation.E076)
 					}
 				} else {
-					version = OCFLVersion(matches[1])
+					ver = version.OCFLVersion(matches[1])
 				}
 			} else {
 				// any files are ok -- https://ocfl.io/1.0/spec/#root-structure
@@ -459,15 +459,15 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 		}
 	}
 	// no version found
-	if version == "" {
-		if err := osr.addValidationError(E076, "no version file in storage root"); err != nil {
-			return errors.Wrapf(err, "cannot add validation error %s", E076)
+	if ver == "" {
+		if err := osr.AddValidationError(validation.E076, "no version file in storage root"); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", validation.E076)
 		}
-		if err := osr.addValidationError(E077, "no version file in storage root"); err != nil {
-			return errors.Wrapf(err, "cannot add validation error %s", E077)
+		if err := osr.AddValidationError(validation.E077, "no version file in storage root"); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", validation.E077)
 		}
 	} else {
-		osr.version = version
+		osr.version = ver
 	}
 	return nil
 }
@@ -475,8 +475,8 @@ func (osr *StorageRootBase) CheckObjectByFolder(objectFolder string) error {
 	fmt.Printf("object folder '%s'\n", objectFolder)
 	object, err := osr.LoadObjectByFolder(objectFolder)
 	if err != nil {
-		if err := osr.addValidationError(E001, "invalid folder '%s': %v", objectFolder, err); err != nil {
-			return errors.Wrapf(err, "cannot add validation error %s", E001)
+		if err := osr.AddValidationError(validation.E001, "invalid folder '%s': %v", objectFolder, err); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", validation.E001)
 		}
 		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
 	} else {
@@ -491,8 +491,8 @@ func (osr *StorageRootBase) CheckObjectByID(objectID string) error {
 	fmt.Printf("object id '%s'\n", objectID)
 	object, err := osr.LoadObjectByID(objectID)
 	if err != nil {
-		if err := osr.addValidationError(E001, "invalid id '%s': %v", objectID, err); err != nil {
-			return errors.Wrapf(err, "cannot add validation error %s", E001)
+		if err := osr.AddValidationError(validation.E001, "invalid id '%s': %v", objectID, err); err != nil {
+			return errors.Wrapf(err, "cannot add validation error %s", validation.E001)
 		}
 		//			return errors.Wrapf(err, "cannot load object from folder '%s'", objectFolder)
 	} else {

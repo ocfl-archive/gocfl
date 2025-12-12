@@ -13,6 +13,8 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -101,12 +103,12 @@ func doExtract(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	ocflPath, err := ocfl.Fullpath(args[0])
+	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
 	}
-	destPath, err := ocfl.Fullpath(args[1])
+	destPath, err := util.Fullpath(args[1])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -154,7 +156,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := ocfl.NewContextValidation(context.TODO())
+	ctx := validation.NewContextValidation(context.TODO())
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, ocflFS, extensionFactory, (logger))
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot load storage root")

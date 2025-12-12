@@ -21,6 +21,7 @@ import (
 	defaultextensions_storageroot "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -290,7 +291,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 }
 
 func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
-	status, err := ocfl.GetValidationStatus(ctx)
+	status, err := validation.GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot get status of validation")
 	}

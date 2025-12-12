@@ -1,10 +1,12 @@
-package ocfl
+package inventory
 
 import (
-	"emperror.dev/errors"
 	"encoding/json"
-	"golang.org/x/exp/slices"
 	"time"
+
+	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"golang.org/x/exp/slices"
 )
 
 type InventorySpec string
@@ -147,8 +149,8 @@ func (v *Version) EqualMeta(v2 *Version) bool {
 	}
 	if v.Created.Time.String() != v2.Created.Time.String() ||
 		v.Message.string != v2.Message.string ||
-		v.User.Name.string != v2.User.Name.string ||
-		v.User.Address.string != v2.User.Address.string {
+		v.User.Name.String() != v2.User.Name.String() ||
+		v.User.Address.String() != v2.User.Address.String() {
 		return false
 	}
 	return true
@@ -161,7 +163,7 @@ func (v *Version) EqualState(v2 *Version) bool {
 		if v.Created.Time.String() != v2.Created.Time.String() ||
 			v.Message.string != v2.Message.string ||
 			v.User.GetName.string != v2.User.GetName.string ||
-			v.User.Address.string != v2.User.Address.string {
+			v.User.Address.String() != v2.User.Address.String() {
 			return false
 		}
 	*/
@@ -183,7 +185,7 @@ func (v *Version) EqualState(v2 *Version) bool {
 	if len(files) != len(files2) {
 		return false
 	}
-	if !sliceContains(files, files2) {
+	if !util.SliceContains(files, files2) {
 		return false
 	}
 	return true

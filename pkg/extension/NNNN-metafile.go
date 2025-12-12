@@ -2,15 +2,8 @@ package extension
 
 import (
 	"bytes"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/santhosh-tekuri/jsonschema/v5"
-	"golang.org/x/exp/slices"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/fs"
 	"net/http"
@@ -19,6 +12,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/BurntSushi/toml"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/santhosh-tekuri/jsonschema/v5"
+	"golang.org/x/exp/slices"
+	"gopkg.in/yaml.v2"
 )
 
 const MetaFileName = "NNNN-metafile"
@@ -389,7 +390,7 @@ func (sl *MetaFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
 		if metadata, ok = sl.info[ver]; ok {
 			break
 		}
-		if metadata, err = ocfl.ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys); err == nil {
+		if metadata, err = ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys); err == nil {
 			break
 		}
 	}

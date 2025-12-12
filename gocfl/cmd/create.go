@@ -15,6 +15,9 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -82,12 +85,12 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflPath, err := ocfl.Fullpath(args[0])
+	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
 	}
-	srcPath, err := ocfl.Fullpath(args[1])
+	srcPath, err := util.Fullpath(args[1])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -213,7 +216,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 			logger.Error().Msgf("no area given in areapath '%s'", args[i])
 			continue
 		}
-		path, err := ocfl.Fullpath(matches[2])
+		path, err := util.Fullpath(matches[2])
 		if err != nil {
 			logger.Panic().Err(err).Msgf("cannot get fullpath for '%s'", matches[2])
 		}
@@ -258,11 +261,11 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	ctx := ocfl.NewContextValidation(context.TODO())
+	ctx := validation.NewContextValidation(context.TODO())
 	storageRoot, err := ocfl.CreateStorageRoot(
 		ctx,
 		destFS,
-		ocfl.OCFLVersion(conf.Init.OCFLVersion),
+		version.OCFLVersion(conf.Init.OCFLVersion),
 		extensionFactory,
 		storageRootExtensionManager,
 		conf.Init.Digest,

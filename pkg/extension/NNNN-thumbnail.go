@@ -3,9 +3,19 @@ package extension
 import (
 	"bufio"
 	"bytes"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/gif"
+	"io"
+	"io/fs"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -19,15 +29,6 @@ import (
 	_ "golang.org/x/image/vp8"
 	_ "golang.org/x/image/vp8l"
 	_ "golang.org/x/image/webp"
-	"image"
-	_ "image/gif"
-	"io"
-	"io/fs"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 const ThumbnailName = "NNNN-thumbnail"
@@ -404,7 +405,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object ocfl.Object) error {
 		return nil
 	}
 
-	if err := ocfl.WriteJsonL(
+	if err := WriteJsonL(
 		object,
 		"thumbnail",
 		buffer.Bytes(),
@@ -445,7 +446,7 @@ func (thumb *Thumbnail) GetMetadata(object ocfl.Object) (map[string]any, error) 
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ocfl.ReadJsonL(object, "thumbnail", v, thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName, thumb.fsys)
+			data, err = ReadJsonL(object, "thumbnail", v, thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName, thumb.fsys)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

@@ -19,6 +19,10 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"golang.org/x/exp/slices"
 )
 
@@ -31,12 +35,12 @@ type ObjectBase struct {
 	extensionManager   ExtensionManager
 	ctx                context.Context
 	fsys               fs.FS
-	i                  Inventory
+	i                  inventory.Inventory
 	versionFolders     []string
-	versionInventories map[string]Inventory
+	versionInventories map[string]inventory.Inventory
 	changed            bool
 	logger             zLogger.ZLogger
-	version            OCFLVersion
+	version            version.OCFLVersion
 	digest             checksum.DigestAlgorithm
 	echo               bool
 	updateFiles        []string
@@ -44,7 +48,7 @@ type ObjectBase struct {
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, storageRoot StorageRoot, extensionManager ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
 		fsys:             fsys,
@@ -66,18 +70,18 @@ func (object *ObjectBase) GetExtensionManager() ExtensionManager {
 
 func (object *ObjectBase) IsModified() bool { return object.i.IsModified() }
 
-func (object *ObjectBase) addValidationError(errno ValidationErrorCode, format string, a ...any) error {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
+func (object *ObjectBase) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
+	valError := validation.GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
-	return errors.WithStack(addValidationErrors(object.ctx, valError))
+	return errors.WithStack(validation.AddValidationErrors(object.ctx, valError))
 }
 
-func (object *ObjectBase) addValidationWarning(errno ValidationErrorCode, format string, a ...any) error {
-	valError := GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
+func (object *ObjectBase) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
+	valError := validation.GetValidationError(object.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", object.fsys, object.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	object.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
-	return errors.WithStack(addValidationWarnings(object.ctx, valError))
+	return errors.WithStack(validation.AddValidationWarnings(object.ctx, valError))
 }
 
 func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
@@ -100,9 +104,9 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 	for v, version := range versions {
 		result.Versions[v] = &VersionMetadata{
 			Created: version.Created.Time,
-			Message: version.Message.string,
-			Name:    version.User.Name.string,
-			Address: version.User.Address.string,
+			Message: version.Message.String(),
+			Name:    version.User.Name.String(),
+			Address: version.User.Address.String(),
 		}
 		versionStrings = append(versionStrings, v)
 	}
@@ -176,13 +180,13 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []StatInfo) error {
 	}
 	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", object.GetID(), cnt, len(m))
 	if slices.Contains(statInfo, StatObjectVersions) || len(statInfo) == 0 {
-		for vString, version := range i.GetVersions() {
+		for vString, ver := range i.GetVersions() {
 			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)
-			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), version.User.User.Name.string, version.User.User.Address.string)
-			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), version.Created.String())
-			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), version.Message.string)
+			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), ver.User.User.Name.String(), ver.User.User.Address.String())
+			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), ver.Created.String())
+			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), ver.Message.String())
 			if slices.Contains(statInfo, StatObjectVersionState) || len(statInfo) == 0 {
-				state := version.State.State
+				state := ver.State.State
 				for cs, sList := range state {
 					for _, s := range sList {
 						fmt.Fprintf(w, "[%s]        %s\n", object.GetID(), s)
@@ -220,8 +224,8 @@ func (object *ObjectBase) GetFS() fs.FS {
 	return object.fsys
 }
 
-func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error) {
-	inventory, err := newInventory(object.ctx, object, "new", object.GetVersion(), object.logger)
+func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (inventory.Inventory, error) {
+	inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -231,16 +235,16 @@ func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgor
 
 	return inventory, inventory.Finalize(true)
 }
-func (object *ObjectBase) GetInventory() Inventory {
+func (object *ObjectBase) GetInventory() inventory.Inventory {
 	return object.i
 }
 
-func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, error) {
+func (object *ObjectBase) loadInventory(data []byte, folder string) (inventory.Inventory, error) {
 	anyMap := map[string]any{}
 	if err := json.Unmarshal(data, &anyMap); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
 	}
-	var version OCFLVersion
+	var ver version.OCFLVersion
 	t, ok := anyMap["type"]
 	if !ok {
 		return nil, errors.New("no type in inventory")
@@ -251,14 +255,16 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 	}
 	switch sStr {
 	case "https://ocfl.io/1.1/spec/#inventory":
-		version = Version1_1
+		ver = version.Version1_1
 	case "https://ocfl.io/1.0/spec/#inventory":
-		version = Version1_0
+		ver = version.Version1_0
+	case "https://ocfl.io/2.0/spec/#inventory":
+		ver = version.Version2_0
 	default:
 		// if we don't know anything use the old stuff
-		version = Version1_0
+		ver = version.Version1_0
 	}
-	inventory, err := newInventory(object.ctx, object, folder, version, object.logger)
+	inventory, err := inventory.NewInventory(object.ctx, folder, ver, object.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create empty inventory")
 	}
@@ -267,11 +273,11 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (Inventory, 
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			addValidationErrors(object.ctx, GetValidationError(version, E033).AppendDescription("json syntax error: %v", err2).AppendContext("object '%v'", object.fsys))
-			addValidationErrors(object.ctx, GetValidationError(version, E034).AppendDescription("json syntax error: %v", err2).AppendContext("object '%v'", object.fsys))
+			validation.AddValidationErrors(object.ctx, validation.GetValidationError(ver, validation.E033).AppendDescription("json syntax error: %v", err2).AppendContext("object '%v'", object.fsys))
+			validation.AddValidationErrors(object.ctx, validation.GetValidationError(ver, validation.E034).AppendDescription("json syntax error: %v", err2).AppendContext("object '%v'", object.fsys))
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				addValidationErrors(object.ctx, GetValidationError(version, E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object '%v'", object.fsys))
+				validation.AddValidationErrors(object.ctx, validation.GetValidationError(ver, validation.E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object '%v'", object.fsys))
 			}
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
@@ -300,7 +306,7 @@ func (object *ObjectBase) GetInventoryContent() (inventory []byte, checksumStrin
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
 
 // loadInventory loads inventory from existing Object
-func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
+func (object *ObjectBase) LoadInventory(folder string) (inventory.Inventory, error) {
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
 	inventoryBytes, err := fs.ReadFile(object.fsys, filename)
@@ -308,7 +314,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		return newInventory(object.ctx, object, folder, object.version, object.logger)
+		return inventory.NewInventory(object.ctx, folder, object.version, object.logger)
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {
@@ -321,17 +327,17 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 	sidecarBytes, err := fs.ReadFile(object.fsys, sidecarPath)
 	if err != nil {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			object.addValidationError(E058, "sidecar '%v/%s' does not exist", object.fsys, sidecarPath)
+			object.AddValidationError(validation.E058, "sidecar '%v/%s' does not exist", object.fsys, sidecarPath)
 		} else {
-			object.addValidationError(E060, "cannot read sidecar '%v/%s': %v", object.fsys, sidecarPath, err.Error())
+			object.AddValidationError(validation.E060, "cannot read sidecar '%v/%s': %v", object.fsys, sidecarPath, err.Error())
 		}
-		//		object.addValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
+		//		object.AddValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
 	} else {
 		digestString := strings.TrimSpace(string(sidecarBytes))
 		//if !strings.HasSuffix(digestString, " inventory.json") {
 		matches := inventorySideCarFormat.FindStringSubmatch(digestString)
 		if /* matches == nil || */ len(matches) == 0 {
-			object.addValidationError(E061, "no suffix \" inventory.json\" in '%v/%s'", object.fsys, sidecarPath)
+			object.AddValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", object.fsys, sidecarPath)
 		} else {
 			//digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
 			digestString = matches[1]
@@ -344,7 +350,7 @@ func (object *ObjectBase) LoadInventory(folder string) (Inventory, error) {
 			sumBytes := h.Sum(nil)
 			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
 			if digestString != inventoryDigestString {
-				object.addValidationError(E060, "'%s' != '%s'", digestString, inventoryDigestString)
+				object.AddValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
 			}
 		}
 	}
@@ -491,7 +497,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	algs = append(algs, object.extensionManager.GetFixityDigests()...)
 	slices.Sort(algs)
 	algs = slices.Compact(algs)
-	if !sliceContains(algs, fixity) {
+	if !util.SliceContains(algs, fixity) {
 		return errors.Errorf("forbidden digest algorithm for fixity %v. Supported algorithms are %v. (to fix try to use extension 0001-digest-algorithms)", fixity, algs)
 	}
 
@@ -506,7 +512,7 @@ func (object *ObjectBase) Load() (err error) {
 	}
 	manager, err := object.storageRoot.CreateExtensions(extFolder, object)
 	if err != nil {
-		object.addValidationWarning(W000, "cannot initialize all extensions in folder '%s': %v", extFolder, err)
+		object.AddValidationWarning(validation.W000, "cannot initialize all extensions in folder '%s': %v", extFolder, err)
 		if manager == nil {
 			return errors.Wrap(err, "cannot create extension manager")
 		}
@@ -534,7 +540,7 @@ func (object *ObjectBase) echoDelete() error {
 	if basePath == "." {
 		basePath = ""
 	}
-	if err := object.i.echoDelete(object.updateFiles, basePath); err != nil {
+	if err := object.i.EchoDelete(object.updateFiles, basePath); err != nil {
 		return errors.Wrap(err, "cannot remove deleted files from inventory")
 	}
 	return nil
@@ -1024,7 +1030,7 @@ func (object *ObjectBase) GetID() string {
 	return object.i.GetID()
 }
 
-func (object *ObjectBase) GetVersion() OCFLVersion {
+func (object *ObjectBase) GetVersion() version.OCFLVersion {
 	return object.version
 }
 
@@ -1038,7 +1044,7 @@ func (object *ObjectBase) checkVersionFolder(version string) error {
 	for _, ve := range versionEntries {
 		if !ve.IsDir() {
 			if !allowedFilesRegexp.MatchString(ve.Name()) {
-				object.addValidationError(E015, "extra file '%s' in version directory '%s'", ve.Name(), version)
+				object.AddValidationError(validation.E015, "extra file '%s' in version directory '%s'", ve.Name(), version)
 			}
 		}
 	}
@@ -1085,7 +1091,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				path = filepath.ToSlash(path)
 				if d.IsDir() {
 					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+object.i.GetContentDir(), path) {
-						object.addValidationWarning(W002, "extra dir '%s' in version '%s'", path, ver)
+						object.AddValidationWarning(validation.W002, "extra dir '%s' in version '%s'", path, ver)
 					}
 				} else {
 					objectFilesFlat = append(objectFilesFlat, path)
@@ -1095,7 +1101,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 					} else {
 						/*
 							if !strings.HasPrefix(path, inventoryFile) {
-								object.addValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
+								object.AddValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
 							}
 						*/
 					}
@@ -1111,7 +1117,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				}
 			} else {
 				if fi.IsDir() {
-					object.addValidationWarning(W003, "empty content folder '%s'", versionContent)
+					object.AddValidationWarning(validation.W003, "empty content folder '%s'", versionContent)
 				}
 			}
 		}
@@ -1140,7 +1146,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			continue
 		}
 		if contentDir != inv.GetRealContentDir() {
-			object.addValidationError(E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
+			object.AddValidationError(validation.E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
 		}
 		if err := inv.CheckFiles(csDigestFiles); err != nil {
 			return errors.Wrapf(err, "cannot check file digests for version '%s'", ver)
@@ -1150,18 +1156,18 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		allowedDirs := []string{inv.GetContentDir()}
 		versionEntries, err := fs.ReadDir(object.fsys, ver)
 		if err != nil {
-			object.addValidationError(E010, "cannot read version folder '%s'", ver)
+			object.AddValidationError(validation.E010, "cannot read version folder '%s'", ver)
 			continue
 			//			return errors.Wrapf(err, "cannot read dir '%s'", ver)
 		}
 		for _, entry := range versionEntries {
 			if entry.IsDir() {
 				if !slices.Contains(allowedDirs, entry.Name()) {
-					object.addValidationWarning(W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
+					object.AddValidationWarning(validation.W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
 				}
 			} else {
 				if !slices.Contains(allowedFiles, entry.Name()) {
-					object.addValidationError(E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
+					object.AddValidationError(validation.E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
 				}
 			}
 		}
@@ -1171,18 +1177,18 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		v1 := versionStrings[key]
 		vi1, ok := versionInventories[v1]
 		if !ok {
-			object.addValidationWarning(W010, "no inventory for version '%s'", versionStrings[key])
+			object.AddValidationWarning(validation.W010, "no inventory for version '%s'", versionStrings[key])
 			continue
 			// return errors.Errorf("no inventory for version '%s'", versionStrings[key])
 		}
 		v2 := versionStrings[key+1]
 		vi2, ok := versionInventories[v2]
 		if !ok {
-			object.addValidationWarning(W000, "no inventory for version '%s'", versionStrings[key+1])
+			object.AddValidationWarning(validation.W000, "no inventory for version '%s'", versionStrings[key+1])
 			continue
 		}
-		if !SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
-			object.addValidationError(E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
+		if !inventory.SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
+			object.AddValidationError(validation.E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
 		}
 	}
 
@@ -1190,7 +1196,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		lastVersion := versionStrings[len(versionStrings)-1]
 		if lastInv, ok := versionInventories[lastVersion]; ok {
 			if !lastInv.IsEqual(object.i) {
-				object.addValidationError(E064, "root inventory not equal to inventory version '%s'", lastVersion)
+				object.AddValidationError(validation.E064, "root inventory not equal to inventory version '%s'", lastVersion)
 			}
 		}
 	}
@@ -1201,26 +1207,26 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	for ver, verInventory := range versionInventories {
 		// check for id consistency
 		if id != verInventory.GetID() {
-			object.addValidationError(E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
+			object.AddValidationError(validation.E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
 		}
 		if verInventory.GetHead() != "" && verInventory.GetHead() != ver {
-			object.addValidationError(E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
+			object.AddValidationError(validation.E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
 		}
 
 		if verInventory.GetDigestAlgorithm() != digestAlg {
-			object.addValidationError(W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
+			object.AddValidationError(validation.W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
 		}
 
 		for verVer, verVersion := range verInventory.GetVersions() {
 			testV, ok := versions[verVer]
 			if !ok {
-				object.addValidationError(E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
+				object.AddValidationError(validation.E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
 			}
 			if !testV.EqualState(verVersion) {
-				object.addValidationError(E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
+				object.AddValidationError(validation.E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
 			}
 			if !testV.EqualMeta(verVersion) {
-				object.addValidationError(W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
+				object.AddValidationError(validation.W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
 			}
 		}
 	}
@@ -1232,7 +1238,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		manifestFiles := inventory.GetFilesFlat()
 		for _, manifestFile := range manifestFiles {
 			if !slices.Contains(objectFilesFlat, manifestFile) {
-				object.addValidationError(E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
+				object.AddValidationError(validation.E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
 			}
 		}
 	}
@@ -1240,7 +1246,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	rootManifestFiles := object.i.GetFilesFlat()
 	for _, manifestFile := range rootManifestFiles {
 		if !slices.Contains(objectFilesFlat, manifestFile) {
-			object.addValidationError(E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
+			object.AddValidationError(validation.E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
 		}
 	}
 
@@ -1264,7 +1270,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 				for _, objectContentVersionFile := range objectContentVersionFiles {
 					// check all inventories which are less in version
 					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
-						object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, inventoryVersion)
+						object.AddValidationError(validation.E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, inventoryVersion)
 					}
 				}
 			}
@@ -1275,7 +1281,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			for _, objectContentVersionFile := range objectContentVersionFiles {
 				// check all inventories which are less in version
 				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
-					object.addValidationError(E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, rootVersion)
+					object.AddValidationError(validation.E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, rootVersion)
 				}
 			}
 		}
@@ -1301,11 +1307,11 @@ func (object *ObjectBase) Check() error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
-				object.addValidationError(E001, "invalid directory '%s' found", entry.Name())
+				object.AddValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
 				// could it be a version folder?
 				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
 					if err2 := object.checkVersionFolder(entry.Name()); err2 == nil {
-						object.addValidationError(E046, "root manifest not most recent because of '%s'", entry.Name())
+						object.AddValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						fmt.Println(err2)
 					}
@@ -1322,13 +1328,13 @@ func (object *ObjectBase) Check() error {
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				object.addValidationError(E001, "invalid file '%s' found", entry.Name())
+				object.AddValidationError(validation.E001, "invalid file '%s' found", entry.Name())
 			}
 		}
 	}
 
 	if versionCounter != len(versions) {
-		object.addValidationError(E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
+		object.AddValidationError(validation.E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
 	}
 
 	if err := object.checkFilesAndVersions(); err != nil {
@@ -1391,7 +1397,7 @@ var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$"
 
 // helper functions
 
-func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) {
+func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventory, error) {
 	if object.versionInventories != nil {
 		return object.versionInventories, nil
 	}
@@ -1410,12 +1416,12 @@ func (object *ObjectBase) getVersionInventories() (map[string]Inventory, error) 
 			}
 		}
 	})
-	versionInventories := map[string]Inventory{}
+	versionInventories := map[string]inventory.Inventory{}
 	for _, ver := range versionStrings {
 		vi, err := object.LoadInventory(ver)
 		if err != nil {
 			if errors.Cause(err) == fs.ErrNotExist {
-				object.addValidationWarning(W010, "no inventory for version '%s'", ver)
+				object.AddValidationWarning(validation.W010, "no inventory for version '%s'", ver)
 				continue
 			}
 			return nil, errors.Wrapf(err, "cannot load inventory from folder '%s'", ver)

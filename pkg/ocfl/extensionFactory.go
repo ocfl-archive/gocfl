@@ -7,6 +7,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	validation2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/version"
 )
 
@@ -76,7 +77,7 @@ func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (Extension, error) {
 	return ext, nil
 }
 
-func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (ExtensionManager, error) {
+func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.Validation) (ExtensionManager, error) {
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
@@ -97,19 +98,19 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
 			if validation != nil {
-				validation.addValidationWarning(W000, "extension %s not supported by gocfl %s", file.Name(), version.Version)
+				validation.AddValidationWarning(validation2.W000, "extension %s not supported by gocfl %s", file.Name(), version.Version)
 			}
 		} else {
 			if !ext.IsRegistered() {
 				if validation != nil {
-					validation.addValidationWarning(W013, "extension '%s' is not registered", ext.GetName())
+					validation.AddValidationWarning(validation2.W013, "extension '%s' is not registered", ext.GetName())
 				}
 			}
 			// warning if extension name is different from folder name and extension name is not 'initial'
 			// todo: initial should follow the same rule
 			if fName != ext.GetName() && fName != "initial" {
 				if validation != nil {
-					validation.addValidationWarning(W013, "extension '%s' has a different name than the folder", ext.GetName())
+					validation.AddValidationWarning(validation2.W013, "extension '%s' has a different name than the folder", ext.GetName())
 				}
 			}
 			// we have the initial folder, but the extension is not initial. let's create the initial extension
@@ -215,7 +216,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation Validation) (
 	return manager, errors.Combine(errs...)
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, validation Validation) (ExtensionManager, error) {
+func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, validation validation2.Validation) (ExtensionManager, error) {
 	manager, err := f.CreateExtensions(fsys, validation)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")

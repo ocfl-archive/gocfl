@@ -3,21 +3,24 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
-	"fmt"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"log"
-	"os"
-	"strings"
 )
 
 var statCmd = &cobra.Command{
@@ -57,7 +60,7 @@ func doStatConf(cmd *cobra.Command) {
 }
 
 func doStat(cmd *cobra.Command, args []string) {
-	ocflPath, err := ocfl.Fullpath(args[0])
+	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -155,7 +158,7 @@ func doStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := ocfl.NewContextValidation(context.TODO())
+	ctx := validation.NewContextValidation(context.TODO())
 	if !writefs.HasContent(destFS) {
 
 	}

@@ -16,6 +16,8 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -116,12 +118,12 @@ func doAdd(cmd *cobra.Command, args []string) {
 
 	// todo: migration not working
 
-	ocflPath, err := ocfl.Fullpath(args[0])
+	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
 	}
-	srcPath, err := ocfl.Fullpath(args[1])
+	srcPath, err := util.Fullpath(args[1])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -268,7 +270,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		logger.Panic().Stack().Msg("cannot initialize default extensions")
 	}
 
-	ctx := ocfl.NewContextValidation(context.TODO())
+	ctx := validation.NewContextValidation(context.TODO())
 	storageRoot, err := ocfl.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		doNotClose = true

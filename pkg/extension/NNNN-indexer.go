@@ -4,15 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
-	"emperror.dev/errors"
 	"encoding/json"
 	"fmt"
-	"github.com/andybalholm/brotli"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
-	"golang.org/x/exp/slices"
 	"io"
 	"io/fs"
 	"net/http"
@@ -20,6 +13,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/andybalholm/brotli"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
+	"golang.org/x/exp/slices"
 )
 
 const IndexerName = "NNNN-indexer"
@@ -247,7 +248,7 @@ func (sl *Indexer) UpdateObjectAfter(object ocfl.Object) error {
 	if !ok {
 		return nil
 	}
-	if err := ocfl.WriteJsonL(
+	if err := WriteJsonL(
 		object,
 		"indexer",
 		buffer.Bytes(),
@@ -284,7 +285,7 @@ func (sl *Indexer) GetMetadata(object ocfl.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ocfl.ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
+			data, err = ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
 			}

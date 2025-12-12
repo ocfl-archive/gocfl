@@ -1,12 +1,14 @@
-package ocfl
+package validation
 
 import (
 	"cmp"
 	"context"
-	"emperror.dev/errors"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"golang.org/x/exp/slices"
 )
 
 type ValidationErrorCode string
@@ -147,7 +149,7 @@ type ValidationError struct {
 	Ref          string
 	Description2 string
 	Context      string
-	Version      OCFLVersion
+	Version      version.OCFLVersion
 }
 
 type ValidationStatus struct {
@@ -199,7 +201,7 @@ func GetValidationStatus(ctx context.Context) (*ValidationStatus, error) {
 	return status, nil
 }
 
-func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
+func AddValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
 	status, err := GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot add validation error")
@@ -208,7 +210,7 @@ func addValidationErrors(ctx context.Context, vErrs ...*ValidationError) error {
 	return nil
 }
 
-func addValidationWarnings(ctx context.Context, vWarns ...*ValidationError) error {
+func AddValidationWarnings(ctx context.Context, vWarns ...*ValidationError) error {
 	status, err := GetValidationStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cannot add validation error")
@@ -254,7 +256,7 @@ func (ve *ValidationError) DetailString() string {
 	}
 }
 
-func GetValidationError(version OCFLVersion, errno ValidationErrorCode) *ValidationError {
+func GetValidationError(version version.OCFLVersion, errno ValidationErrorCode) *ValidationError {
 	var errlist map[ValidationErrorCode]*ValidationError
 	var mapping map[ValidationErrorCode]ValidationErrorCode
 	switch version {

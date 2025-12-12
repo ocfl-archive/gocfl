@@ -17,6 +17,8 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/data/displaydata"
 	"github.com/ocfl-archive/gocfl/v2/gocfl/cmd/display"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -71,7 +73,7 @@ func doDisplayConf(cmd *cobra.Command) {
 }
 
 func doDisplay(cmd *cobra.Command, args []string) {
-	ocflPath, err := ocfl.Fullpath(args[0])
+	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -145,7 +147,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := ocfl.NewContextValidation(context.TODO())
+	ctx := validation.NewContextValidation(context.TODO())
 	if !writefs.HasContent(destFS) {
 
 	}

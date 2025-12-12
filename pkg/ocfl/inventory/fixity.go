@@ -1,4 +1,4 @@
-package ocfl
+package inventory
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"

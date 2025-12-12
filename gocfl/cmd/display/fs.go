@@ -1,14 +1,16 @@
 package display
 
 import (
-	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"golang.org/x/exp/slices"
 	"io/fs"
 	"math"
 	"path"
 	"strings"
 	"time"
+
+	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"golang.org/x/exp/slices"
 )
 
 type FSType uint8
@@ -42,7 +44,7 @@ func NewObjectFS(obj ocfl.Object) (*ObjectFS, error) {
 type ObjectFS struct {
 	object ocfl.Object
 	//	metadata  *ocfl.ObjectMetadata
-	inventory ocfl.Inventory
+	inventory inventory.Inventory
 	manifest  map[string][]string
 }
 

@@ -1,10 +1,12 @@
-package ocfl
+package inventory
 
 import (
 	"context"
+	"net/url"
+
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"net/url"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
 const (
@@ -15,9 +17,9 @@ type InventoryV1_0 struct {
 	*InventoryBase
 }
 
-func newInventoryV1_0(ctx context.Context, object Object, folder string, logger zLogger.ZLogger) (*InventoryV1_0, error) {
+func newInventoryV1_0(ctx context.Context, ver version.OCFLVersion, folder string, logger zLogger.ZLogger) (*InventoryV1_0, error) {
 	ivUrl, _ := url.Parse(string(InventorySpec1_0))
-	ib, err := newInventoryBase(ctx, object, folder, ivUrl, "", logger)
+	ib, err := newInventoryBase(ctx, ver, folder, ivUrl, "", logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}
@@ -26,13 +28,13 @@ func newInventoryV1_0(ctx context.Context, object Object, folder string, logger 
 	return i, nil
 }
 
-func (i *InventoryV1_0) IsEqual(i2 Inventory) bool {
+func (i *InventoryV1_0) isEqual(i2 Inventory) bool {
 	i10_2, ok := i2.(*InventoryV1_0)
 	if !ok {
 		return false
 	}
 
-	return i.InventoryBase.isEqual(i10_2.InventoryBase)
+	return i.InventoryBase.IsEqual(i10_2.InventoryBase)
 }
 
 var (

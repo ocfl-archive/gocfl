@@ -1,11 +1,13 @@
-package ocfl
+package inventory
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"encoding/json"
+
+	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"golang.org/x/exp/slices"
 )
 
@@ -51,20 +53,20 @@ type Inventory interface {
 	Clean() error
 
 	VersionLessOrEqual(v1, v2 string) bool
-	echoDelete(existing []string, pathprefix string) error
+	EchoDelete(existing []string, pathprefix string) error
 }
 
-func newInventory(ctx context.Context, object Object, folder string, version OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {
-	switch version {
-	case Version1_1:
-		sr, err := newInventoryV1_1(ctx, object, folder, logger)
+func NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {
+	switch ver {
+	case version.Version1_1:
+		sr, err := newInventoryV1_1(ctx, ver, folder, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return sr, nil
 	default:
 		//case Version1_0:
-		sr, err := newInventoryV1_0(ctx, object, folder, logger)
+		sr, err := newInventoryV1_0(ctx, ver, folder, logger)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

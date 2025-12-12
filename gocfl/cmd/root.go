@@ -11,7 +11,8 @@ import (
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
+	version2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -51,9 +52,9 @@ var VersionIds = map[VersionFlag][]string{
 	VERSION1_0: {"1.0", "v1.0"},
 }
 
-var VersionIdsVersion = map[VersionFlag]ocfl.OCFLVersion{
-	VERSION1_1: ocfl.Version1_1,
-	VERSION1_0: ocfl.Version1_0,
+var VersionIdsVersion = map[VersionFlag]version2.OCFLVersion{
+	VERSION1_1: version2.Version1_1,
+	VERSION1_0: version2.Version1_0,
 }
 
 type DigestFlag uint
@@ -142,7 +143,7 @@ func initConfig() {
 	// load config file
 	if persistentFlagConfigFile != "" {
 		var err error
-		persistentFlagConfigFile, err = ocfl.Fullpath(persistentFlagConfigFile)
+		persistentFlagConfigFile, err = util.Fullpath(persistentFlagConfigFile)
 		if err != nil {
 			cobra.CheckErr(errors.Errorf("cannot convert '%s' to absolute path: %v", persistentFlagConfigFile, err))
 			return
