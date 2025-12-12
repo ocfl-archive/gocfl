@@ -1,3 +1,4 @@
+defaultarea = "content"
 [log]
 # "trace"
 # "debug"
@@ -9,7 +10,7 @@
 level = "INFO"
 
 # global config for all operations on S3 storages
-[S3]
+[s3]
 # --s3-endpoint
 #Endpoint="%%GOCFL_S3_ENDPOINT%%"
 # --s3-access-key-id
@@ -19,13 +20,13 @@ level = "INFO"
 # --s3-region
 #Region="%%GOCFL_S3_REGION%%"
 
-[AES]
+[aes]
 Enable=false
 KeepassFile="c:/temp/test.kdbx"
 KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeepassKey="%%GOCFL_KEEPASS_KEY%%"
 
-[Init]
+[init]
 # --ocfl-version
 OCFLVersion="1.1"
 # --default-storageroot-extensions
@@ -33,7 +34,7 @@ OCFLVersion="1.1"
 # --digest
 Digest="sha512"
 
-[Add]
+[add]
 # --message
 Message="initial commit"
 # --digest
@@ -42,15 +43,52 @@ Digest="sha512"
 Fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
 #ObjectExtensions="./data/fullextensions/object"
+deduplicate = false
+nocompress = true
 
-DefaultArea="content"
-
-[Add.User]
+[add.user]
 # --user-name
 Name="unknown user"
 # --user-address
 Address="https://github.com/ocfl-archive/gocfl"
 
+[update]
+# --message
+Message="update"
+# --digest
+Digest="sha512"
+deduplicate = true
+nocompress = true
+echo = true
+
+[update.user]
+# --user-name
+Name="unknown user"
+# --user-address
+Address="https://github.com/ocfl-archive/gocfl"
+
+[display]
+addr = "localhost:80"
+addrext = "https://localhost:80/"
+
+[extract]
+manifest = false
+version = "latest"
+
+[extractmeta]
+version = "latest"
+format = "json"
+
+[stat]
+info = ["ExtensionConfigs",
+    "Objects",
+    "ObjectVersionState",
+    "ObjectManifest",
+    "ObjectFolders",
+    "Extension",
+    "ObjectVersions",
+    "ObjectExtension",
+    "ObjectExtensionConfigs"]
 #
 # Extension parameter
 #

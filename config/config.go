@@ -122,91 +122,30 @@ type S3Config struct {
 }
 
 type GOCFLConfig struct {
-	ErrorTemplate string
-	ErrorConfig   string
-	AccessLog     string
-	Extension     map[string]map[string]string
-	Indexer       *indexer.IndexerConfig
-	Thumbnail     *Thumbnail
-	Migration     *Migration
-	AES           *AESConfig
-	Init          *InitConfig
-	Add           *AddConfig
-	Update        *UpdateConfig
-	Display       *DisplayConfig
-	Extract       *ExtractConfig
-	ExtractMeta   *ExtractMetaConfig
-	Stat          *StatConfig
-	Validate      *ValidateConfig
-	S3            *S3Config
-	DefaultArea   string
-	Log           stashconfig.Config `toml:"log"`
+	ErrorTemplate string                       `toml:"errortemplate"`
+	ErrorConfig   string                       `toml:"errorconfig"`
+	AccessLog     string                       `toml:"accesslog"`
+	Extension     map[string]map[string]string `json:"extension"`
+	Indexer       *indexer.IndexerConfig       `toml:"indexer"`
+	Thumbnail     Thumbnail                    `toml:"thumbnail"`
+	Migration     Migration                    `toml:"migration"`
+	AES           AESConfig                    `toml:"aes"`
+	Init          InitConfig                   `toml:"init"`
+	Add           AddConfig                    `toml:"add"`
+	Update        UpdateConfig                 `toml:"update"`
+	Display       DisplayConfig                `toml:"display"`
+	Extract       ExtractConfig                `toml:"extract"`
+	ExtractMeta   ExtractMetaConfig            `toml:"extractmeta"`
+	Stat          StatConfig                   `toml:"stat"`
+	Validate      ValidateConfig               `toml:"validate"`
+	S3            S3Config                     `toml:"s3"`
+	DefaultArea   string                       `toml:"defaultarea"`
+	Log           stashconfig.Config           `toml:"log"`
 }
 
 func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
-		Log: stashconfig.Config{
-			Level: "ERROR",
-		},
-		DefaultArea: "content",
-		Extension:   map[string]map[string]string{},
-		Indexer:     indexer.GetDefaultConfig(),
-		Thumbnail: &Thumbnail{
-			Enabled:    false,
-			Background: "",
-			Function:   map[string]*ThumbnailFunction{},
-		},
-		Migration: &Migration{
-			Enabled:  false,
-			Function: map[string]*MigrationFunction{},
-		},
-		AES: &AESConfig{},
-		Add: &AddConfig{
-			Deduplicate:           false,
-			NoCompress:            true,
-			ObjectExtensionFolder: "",
-			User:                  &UserConfig{},
-			Fixity:                []string{},
-			Message:               "initial add",
-			Digest:                "sha512",
-		},
-		Update: &UpdateConfig{
-			Deduplicate: true,
-			NoCompress:  true,
-			User:        &UserConfig{},
-			Echo:        false,
-		},
-		Display: &DisplayConfig{
-			Addr:    "localhost:80",
-			AddrExt: "http://localhost:80/",
-		},
-		Extract: &ExtractConfig{
-			Manifest: false,
-			Version:  "latest",
-		},
-		ExtractMeta: &ExtractMetaConfig{
-			Version: "latest",
-			Format:  "json",
-		},
-		Stat: &StatConfig{
-			Info: []string{
-				"ExtensionConfigs",
-				"Objects",
-				"ObjectVersionState",
-				"ObjectManifest",
-				"ObjectFolders",
-				"Extension",
-				"ObjectVersions",
-				"ObjectExtension",
-				"ObjectExtensionConfigs",
-			},
-		},
-		Validate: &ValidateConfig{},
-		Init: &InitConfig{
-			OCFLVersion:                "1.1",
-			StorageRootExtensionFolder: "",
-		},
-		S3: &S3Config{},
+		Indexer: indexer.GetDefaultConfig(),
 	}
 	if _, err := toml.Decode(defaultConfig, conf); err != nil {
 		return nil, errors.Wrap(err, "error decoding GOCFL default configuration")

@@ -4,6 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
+	"io/fs"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
@@ -17,11 +23,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"io/fs"
-	"log"
-	"os"
-	"strings"
 )
 
 var createCmd = &cobra.Command{
@@ -164,7 +165,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, conf.Add.NoCompress, false, logger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, &conf.AES, &conf.S3, conf.Add.NoCompress, false, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return

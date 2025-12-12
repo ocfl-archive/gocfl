@@ -105,7 +105,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, conf.AES, conf.S3, true, false, logger)
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, &conf.AES, &conf.S3, true, false, logger)
 	if err != nil {
 		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
 		return
