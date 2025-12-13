@@ -98,31 +98,31 @@ func validate(cmd *cobra.Command, args []string) {
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot initialize extension factory")
+		logger.Error().Err(err).Msg("cannot initialize extension factory")
 		return
 	}
 
 	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem for '%s'", destFS)
+			logger.Error().Err(err).Msgf("cannot close filesystem for '%s'", destFS)
 		}
 	}()
 
 	ctx := validation.NewContextValidation(context.TODO())
 	sr, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot load storageroot")
+		logger.Error().Err(err).Msg("cannot load storageroot")
 		return
 	}
 	objectID := conf.Validate.ObjectID
@@ -133,29 +133,29 @@ func validate(cmd *cobra.Command, args []string) {
 	}
 	if objectID == "" && objectPath == "" {
 		if err := sr.Check(); err != nil {
-			logger.Error().Stack().Err(err).Msg("ocfl not valid")
+			logger.Error().Err(err).Msg("ocfl not valid")
 			return
 		}
 	} else {
 		if objectID != "" {
 			objectPath, err = sr.IdToFolder(objectID)
 			if err != nil {
-				logger.Error().Stack().Err(err).Msgf("cannot get object-path for '%s'", objectID)
+				logger.Error().Err(err).Msgf("cannot get object-path for '%s'", objectID)
 				return
 			}
 		}
 		objFsys, err := writefs.Sub(sr.GetFS(), objectPath)
 		if err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot open filesystem for '%s'", objectPath)
+			logger.Error().Err(err).Msgf("cannot open filesystem for '%s'", objectPath)
 			return
 		}
 		obj, err := object.LoadObject(ctx, objFsys, extensionFactory, logger)
 		if err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot open object for '%s'", objectPath)
+			logger.Error().Err(err).Msgf("cannot open object for '%s'", objectPath)
 			return
 		}
 		if err := obj.Check(); err != nil {
-			logger.Error().Stack().Err(err).Msgf("ocfl object '%s' not valid", objectPath)
+			logger.Error().Err(err).Msgf("ocfl object '%s' not valid", objectPath)
 			return
 		}
 

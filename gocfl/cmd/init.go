@@ -110,18 +110,18 @@ func doInit(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, &conf.AES, &conf.S3, true, false, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
+			logger.Error().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
 	}()
 
@@ -137,7 +137,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger,
 	)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create extension factory")
+		logger.Error().Err(err).Msg("cannot create extension factory")
 		return
 	}
 	storageRootExtensions, _, err := initDefaultExtensions(
@@ -147,7 +147,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger,
 	)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot initialize default extensions")
+		logger.Error().Err(err).Msg("cannot initialize default extensions")
 		return
 	}
 
@@ -161,9 +161,9 @@ func doInit(cmd *cobra.Command, args []string) {
 		(logger),
 	); err != nil {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
+			logger.Error().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
-		logger.Error().Stack().Err(err).Msgf("cannot create new storageroot")
+		logger.Error().Err(err).Msgf("cannot create new storageroot")
 		return
 	}
 

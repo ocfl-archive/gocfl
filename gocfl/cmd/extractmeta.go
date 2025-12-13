@@ -140,38 +140,38 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	ocflFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(ocflFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem for '%s'", ocflFS)
+			logger.Error().Err(err).Msgf("cannot close filesystem for '%s'", ocflFS)
 		}
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot initialize extension factory")
+		logger.Error().Err(err).Msg("cannot initialize extension factory")
 		return
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
 	sr, err := storageroot.LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot load storage root")
+		logger.Error().Err(err).Msg("cannot load storage root")
 		return
 	}
 	if oID != "" {
 		oPath, err = sr.IdToFolder(oID)
 		if err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot get id folder for '%s'", oID)
+			logger.Error().Err(err).Msgf("cannot get id folder for '%s'", oID)
 			return
 		}
 	}
@@ -179,13 +179,13 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	metadata, err := object.ExtractMeta(ctx, sr.GetFS(), oPath, extensionFactory, logger)
 	if err != nil {
 		fmt.Printf("cannot extract metadata from storage root: %v\n", err)
-		logger.Error().Stack().Err(err).Msg("cannot extract metadata from storage root")
+		logger.Error().Err(err).Msg("cannot extract metadata from storage root")
 		return
 	}
 	if conf.ExtractMeta.Obfuscate {
 		if err := metadata.Obfuscate(); err != nil {
 			fmt.Printf("cannot obfuscate metadata: %v\n", err)
-			logger.Error().Stack().Err(err).Msg("cannot obfuscate metadata")
+			logger.Error().Err(err).Msg("cannot obfuscate metadata")
 			return
 		}
 	}
@@ -193,19 +193,19 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	jsonBytes, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
 		fmt.Printf("cannot marshal metadata")
-		logger.Error().Stack().Err(err).Msg("cannot marshal metadata")
+		logger.Error().Err(err).Msg("cannot marshal metadata")
 		return
 	}
 	if output != "" {
 		if err := os.WriteFile(output, jsonBytes, 0644); err != nil {
 			fmt.Printf("cannot write json to file")
-			logger.Error().Stack().Err(err).Msgf("cannot write json to file '%s'", output)
+			logger.Error().Err(err).Msgf("cannot write json to file '%s'", output)
 			return
 		}
 	} else {
 		if _, err := os.Stdout.Write(jsonBytes); err != nil {
 			fmt.Printf("cannot write json to file")
-			logger.Error().Stack().Err(err).Msg("cannot write json to file standard output")
+			logger.Error().Err(err).Msg("cannot write json to file standard output")
 			return
 		}
 		fmt.Print("\n")

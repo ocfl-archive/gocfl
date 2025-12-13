@@ -129,19 +129,19 @@ func doExtract(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	ocflFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 
 	destFS, err := fsFactory.Get(destPath, false)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", destPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", destPath)
 		return
 	}
 	defer func() {
@@ -153,20 +153,20 @@ func doExtract(cmd *cobra.Command, args []string) {
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot initialize extension factory")
+		logger.Error().Err(err).Msgf("cannot initialize extension factory")
 		return
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
 	sr, err := storageroot.LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot load storage root")
+		logger.Error().Err(err).Msg("cannot load storage root")
 		return
 	}
 
 	dirs, err := fs.ReadDir(destFS, ".")
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot read target folder '%v'", destFS)
+		logger.Error().Err(err).Msgf("cannot read target folder '%v'", destFS)
 		return
 	}
 	if len(dirs) > 0 {
@@ -177,7 +177,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 
 	if err := object.Extract(context.Background(), destFS, sr.GetFS(), oPath, conf.Extract.Version, conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
-		logger.Error().Stack().Err(err).Msg("cannot extract storage root")
+		logger.Error().Err(err).Msg("cannot extract storage root")
 		return
 	}
 	fmt.Printf("extraction done without errors\n")

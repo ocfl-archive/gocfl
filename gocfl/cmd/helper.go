@@ -336,6 +336,7 @@ func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extension.Exte
 }
 
 func addObjectByPath(
+	ctx context.Context,
 	sr storageroot.StorageRoot,
 	fixity []checksum.DigestAlgorithm,
 	extensionFactory *extension.ExtensionFactory,
@@ -366,7 +367,18 @@ func addObjectByPath(
 			fixity = append(fixity, alg)
 		}
 	} else {
-		o, err = object.CreateObject(context.Background(), id, sr.GetVersion(), sr.GetDigest(), fixity, extensionFactory, extensionManager, sr.GetFS(), logger)
+		objPath, err := sr.IdToFolder(id)
+		if err != nil {
+			return false, errors.Wrapf(err, "cannot create folder for id %s", id)
+		}
+		if err := writefs.MkDir(sr.GetFS(), objPath); err != nil {
+			return false, errors.Wrapf(err, "cannot create folder %v %s for id %s", sr.GetFS(), objPath, id)
+		}
+		subFS, err := writefs.Sub(sr.GetFS(), objPath)
+		if err != nil {
+			return false, errors.Wrapf(err, "cannot create subfs %v / %s for id %s", sr.GetFS(), objPath, id)
+		}
+		o, err = object.CreateObject(ctx, id, sr.GetVersion(), sr.GetDigest(), fixity, extensionFactory, extensionManager, subFS, logger)
 		if err != nil {
 			return false, errors.Wrapf(err, "cannot create object %s", id)
 		}

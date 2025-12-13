@@ -125,25 +125,25 @@ func doDisplay(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem for '%s'", destFS)
+			logger.Error().Err(err).Msgf("cannot close filesystem for '%s'", destFS)
 		}
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot initialize extension factory")
+		logger.Error().Err(err).Msgf("cannot initialize extension factory")
 		return
 	}
 
@@ -153,7 +153,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	}
 	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot load storage root")
+		logger.Error().Err(err).Msg("cannot load storage root")
 		return
 	}
 
@@ -162,7 +162,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	if conf.Display.Templates == "" {
 		templateFS, err = writefs.Sub(displaydata.TemplateRoot, "templates")
 		if err != nil {
-			logger.Error().Stack().Err(err).Msg("cannot get templates")
+			logger.Error().Err(err).Msg("cannot get templates")
 			return
 		}
 	} else {
@@ -170,13 +170,13 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	}
 	srv, err := display.NewServer(storageRoot, extensionFactory, "gocfl", conf.Display.Addr, urlC, displaydata.WebRoot, templateFS, logger, io.Discard)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create server")
+		logger.Error().Err(err).Msg("cannot create server")
 		return
 	}
 
 	go func() {
 		if err := srv.ListenAndServe("", ""); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot start server")
+			logger.Error().Err(err).Msgf("cannot start server")
 			return
 		}
 	}()

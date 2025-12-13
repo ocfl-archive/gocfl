@@ -137,25 +137,25 @@ func doStat(cmd *cobra.Command, args []string) {
 
 	fsFactory, err := initializeFSFactory(nil, nil, nil, true, false, logger)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
 		return
 	}
 
 	destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
-			logger.Error().Stack().Err(err).Msgf("cannot close filesystem '%s'", destFS)
+			logger.Error().Err(err).Msgf("cannot close filesystem '%s'", destFS)
 		}
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
 	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, nil, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot initialize extension factory")
+		logger.Error().Err(err).Msgf("cannot initialize extension factory")
 		return
 	}
 
@@ -165,12 +165,12 @@ func doStat(cmd *cobra.Command, args []string) {
 	}
 	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot load storage root")
+		logger.Error().Err(err).Msg("cannot load storage root")
 		return
 	}
 
 	if err := storageRoot.Stat(os.Stdout, oPath, oID, statInfo); err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot get statistics")
+		logger.Error().Err(err).Msg("cannot get statistics")
 		return
 	}
 	_ = showStatus(ctx, logger)

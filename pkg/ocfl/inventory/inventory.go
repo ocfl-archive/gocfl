@@ -35,7 +35,7 @@ type Inventory interface {
 
 	//GetContentDirectory() string
 	GetVersionStrings() []string
-	GetVersions() map[string]*Version
+	GetVersions() map[string]Version
 	GetFiles() map[string][]string
 	GetManifest() map[string][]string
 	GetFixity() Fixity

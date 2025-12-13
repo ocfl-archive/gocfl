@@ -148,7 +148,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 
 	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msg("cannot init indexer")
+		logger.Fatal().Err(err).Msg("cannot init indexer")
 	}
 
 	t := startTimer()
@@ -158,29 +158,29 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("opening '%s'", ocflPath)
 
 	if _, err := os.Stat(srcPath); err != nil {
-		logger.Panic().Stack().Err(err).Msgf("cannot stat '%s'", srcPath)
+		logger.Fatal().Err(err).Msgf("cannot stat '%s'", srcPath)
 	}
 
 	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Update.Digest}, nil, nil, conf.Update.NoCompress, false, logger)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msg("cannot create filesystem factory")
+		logger.Fatal().Err(err).Msg("cannot create filesystem factory")
 	}
 
 	sourceFS, err := fsFactory.Get(srcPath, true)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
+		logger.Fatal().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
 	destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
-		logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Fatal().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
 	var doNotClose = false
 	defer func() {
 		if doNotClose {
-			logger.Panic().Msgf("filesystem '%s' not closed", destFS)
+			logger.Fatal().Msgf("filesystem '%s' not closed", destFS)
 		} else {
 			if err := writefs.Close(destFS); err != nil {
-				logger.Panic().Stack().Err(err).Msgf("error closing filesystem '%s'", destFS)
+				logger.Fatal().Err(err).Msgf("error closing filesystem '%s'", destFS)
 			}
 		}
 	}()
@@ -199,13 +199,13 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		areaPaths[matches[1]], err = fsFactory.Get(matches[2], true)
 		if err != nil {
 			doNotClose = true
-			logger.Panic().Stack().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
+			logger.Fatal().Err(err).Msgf("cannot get filesystem for '%s'", args[i])
 		}
 	}
 
 	mig, err := migration.GetMigrations(conf)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot get migrations")
+		logger.Error().Err(err).Msg("cannot get migrations")
 		doNotClose = true
 		return
 	}
@@ -213,7 +213,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 
 	thumb, err := thumbnail.GetThumbnails(conf)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot get thumbnails")
+		logger.Error().Err(err).Msg("cannot get thumbnails")
 		doNotClose = true
 		return
 	}
@@ -231,7 +231,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		(logger),
 	)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot initialize extension factory")
+		logger.Error().Err(err).Msg("cannot initialize extension factory")
 		doNotClose = true
 		return
 	}
@@ -242,7 +242,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		logger,
 	)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot initialize default extensions")
+		logger.Error().Err(err).Msg("cannot initialize default extensions")
 		doNotClose = true
 		return
 	}
@@ -253,14 +253,14 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cannot load storage root")
+		logger.Error().Err(err).Msg("cannot load storage root")
 		doNotClose = true
 		return
 	}
 
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot check for object '%s'", flagObjectID)
+		logger.Error().Err(err).Msgf("cannot check for object '%s'", flagObjectID)
 		doNotClose = true
 		return
 	}
@@ -271,6 +271,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	_, err = addObjectByPath(
+		ctx,
 		storageRoot,
 		nil,
 		extensionFactory,
@@ -287,7 +288,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		logger,
 	)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msgf("cannot write content to storageroot filesystem '%s'", destFS)
+		logger.Error().Err(err).Msgf("cannot write content to storageroot filesystem '%s'", destFS)
 		doNotClose = true
 	}
 	_ = showStatus(ctx, logger)
