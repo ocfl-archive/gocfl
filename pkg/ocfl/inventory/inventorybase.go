@@ -30,14 +30,14 @@ type InventoryBase struct {
 	modified               bool
 	writeable              bool
 	paddingLength          int
-	versionValue           map[string]uint
+	//versionValue           map[string]uint
 	fixityDigestAlgorithms []checksum.DigestAlgorithm
 	Id                     string                                           `json:"id"`
 	Type                   InventorySpec                                    `json:"type"`
 	DigestAlgorithm        checksum.DigestAlgorithm                         `json:"digestAlgorithm"`
 	Head                   *OCFLString                                      `json:"head"`
 	ContentDirectory       string                                           `json:"contentDirectory,omitempty"`
-	Manifest               *OCFLManifest                                    `json:"manifest,omitempty"`
+	Manifest               Manifest                                         `json:"manifest,omitempty"`
 	Versions               Versions                                         `json:"versions"`
 	Fixity                 map[checksum.DigestAlgorithm]map[string][]string `json:"fixity,omitempty"`
 	logger                 zLogger.ZLogger
@@ -45,7 +45,8 @@ type InventoryBase struct {
 
 func newInventoryBase(ctx context.Context, factory Factory, ver version.OCFLVersion, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
 	i := &InventoryBase{
-		ctx: ctx,
+		ctx:     ctx,
+		factory: factory,
 		//object:                 object,
 		version:                ver,
 		folder:                 folder,
@@ -85,17 +86,8 @@ func (i *InventoryBase) IsEqual(invent Inventory) bool {
 		return false
 	}
 	if i.Manifest != nil {
-		if len(i.Manifest.Manifest) != len(i.Manifest.Manifest) {
+		if !i.Manifest.Equals(invent.GetManifest()) {
 			return false
-		}
-		for key, vals := range i.Manifest.Manifest {
-			vals2, ok := i2.Manifest.Manifest[key]
-			if !ok {
-				return false
-			}
-			if !util.SliceContains(vals, vals2) || len(vals) != len(vals2) {
-				return false
-			}
 		}
 	}
 	if (i.Versions == nil && i2.Versions != nil) || (i.Versions != nil && i2.Versions == nil) {
@@ -120,28 +112,22 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 		if !inCreation {
 			i.AddValidationError(validation.E041, "no manifest in inventory")
 		}
-		i.Manifest = &OCFLManifest{Manifest: map[string][]string{}}
+		i.Manifest = i.factory.NewManifest()
+	}
+	if err := i.Manifest.Finalize(i, i.factory, inCreation); err != nil {
+		return errors.Wrap(err, "error finalizing manifest")
 	}
 
 	if i.Versions == nil {
 		if !inCreation {
 			i.AddValidationError(validation.E041, "no versions in inventory")
 		}
-		i.Versions = &VersionsBase{Versions: map[string]*VersionBase{}}
+		i.Versions = i.factory.NewVersions()
+	}
+	if err := i.Versions.Finalize(i, i.factory, inCreation); err != nil {
+		return errors.Wrap(err, "error finalizing versions")
 	}
 
-	i.versionValue = map[string]uint{}
-	for ver, version := range i.Versions.Iterate() {
-		vInt, err := strconv.Atoi(strings.TrimLeft(ver, "v0"))
-		if err != nil {
-			i.AddValidationError(validation.E104, "invalid version format '%s'", ver)
-			continue
-		}
-		i.versionValue[ver] = uint(vInt)
-		if err := version.Finalize(inCreation, i); err != nil {
-			return errors.Wrapf(err, "failed to finalize inventory version '%s'", ver)
-		}
-	}
 	for alg := range i.Fixity {
 		if !slices.Contains(i.fixityDigestAlgorithms, alg) {
 			i.fixityDigestAlgorithms = append(i.fixityDigestAlgorithms, alg)
@@ -222,13 +208,20 @@ func (i *InventoryBase) GetStateFiles(version string, cs string) ([]string, erro
 	if version == "latest" || version == "" {
 		version = i.GetHead()
 	}
-	ver, ok := i.Versions.Get(version)
-	if !ok {
+	ver := i.Versions.GetVersion(version)
+	if ver == nil {
 		return nil, errors.Errorf("invalid version '%s'", version)
 	}
-	files, ok := ver.State.State[cs]
-	if !ok {
-		return nil, errors.Errorf("no state for in version %s [%s]", version, cs)
+	state := ver.GetState()
+	if state == nil {
+		return nil, errors.Errorf("failed to get state of '%s'", version)
+	}
+	files, err := state.GetFiles(cs)
+	if err != nil {
+		if errors.Is(err, DigestNotFound) {
+			return nil, errors.Wrapf(err, "no state for in version %s [%s]", version, cs)
+		}
+		return nil, errors.Wrapf(err, "failed to get state for in version %s [%s]", version, cs)
 	}
 	return files, nil
 }
@@ -237,11 +230,15 @@ func (i *InventoryBase) IterateStateFiles(version string, fn StateFileCallback) 
 	if version == "latest" || version == "" {
 		version = i.GetHead()
 	}
-	ver, err := i.Versions.GetVersion(version)
-	if err != nil {
+	ver := i.Versions.GetVersion(version)
+	if ver == nil {
 		return errors.Errorf("invalid version '%s'", version)
 	}
-	for digest, externalNames := range ver.State.State {
+	state := ver.GetState()
+	if state == nil {
+		return errors.Errorf("cannot get state for '%s'", version)
+	}
+	for digest, externalNames := range state.IterateFiles() {
 		internalNames, ok := i.Manifest.Manifest[digest]
 		if !ok {
 			return errors.Errorf("no manifest for [%s]%v", digest, externalNames)
@@ -328,8 +325,12 @@ func (i *InventoryBase) checkManifest() error {
 	i.logger.Debug().Msgf("[%s] checkManifest", i.GetID())
 	defer i.logger.Debug().Msgf("[%s] checkManifest done", i.GetID())
 	versionDigests := []string{}
-	for _, version := range i.Versions.Versions {
-		for digest := range version.State.State {
+	for versionString, version := range i.Versions.Iterate() {
+		state := version.GetState()
+		if state == nil {
+			return errors.Errorf("cannot get state for version '%s'", versionString)
+		}
+		for digest, _ := range state.IterateFiles() {
 			versionDigests = append(versionDigests, digest)
 		}
 	}
@@ -424,117 +425,68 @@ func (i *InventoryBase) checkVersions() error {
 	defer i.logger.Debug().Msgf("[%s] checkVersions done", i.GetID())
 	var paddingLength int = -1
 	var versions = []int{}
-	if len(i.Versions.Versions) == 0 {
+	if i.Versions.IsEmpty() {
 		i.AddValidationError(validation.E008, "length of ver is 0")
 	}
 	manifestDigests := []string{}
 	manifestDigestsLower := []string{}
-	for mDigest := range i.Manifest.Manifest {
+	for mDigest, _ := range i.Manifest.IterateFiles() {
 		manifestDigests = append(manifestDigests, mDigest)
 		manifestDigestsLower = append(manifestDigestsLower, strings.ToLower(mDigest))
 	}
 	slices.Sort(manifestDigests)
 	slices.Sort(manifestDigestsLower)
 
-	for ver, version := range i.Versions.Versions {
-		i.logger.Debug().Msgf("[%s] checkVersions '%s'", i.GetID(), ver)
-		vInt, ok := i.versionValue[ver]
+	if err := i.Versions.Check(i, )
+
+	for versionString, version := range i.Versions.Iterate() {
+		i.logger.Debug().Msgf("[%s] checkVersions '%s'", i.GetID(), versionString)
+		vInt, ok := i.versionValue[versionString]
 		if !ok {
 			//			i.AddValidationError(E104, "invalid ver format '%s'", ver)
 			continue
 		}
 		versions = append(versions, int(vInt))
-		if versionZeroRegexp.MatchString(ver) {
+		if versionZeroRegexp.MatchString(versionString) {
 			if paddingLength == -1 {
-				paddingLength = len(ver) - 2
+				paddingLength = len(versionString) - 2
 			} else {
-				if paddingLength != len(ver)-2 {
+				if paddingLength != len(versionString)-2 {
 					//i.AddValidationError(E011, "invalid ver padding '%s'", ver)
-					i.AddValidationError(validation.E012, "invalid ver padding '%s'", ver)
-					i.AddValidationError(validation.E013, "invalid ver padding '%s'", ver)
+					i.AddValidationError(validation.E012, "invalid ver padding '%s'", versionString)
+					i.AddValidationError(validation.E013, "invalid ver padding '%s'", versionString)
 				}
 			}
 		} else {
-			if versionNoZeroRegexp.MatchString(ver) {
+			if versionNoZeroRegexp.MatchString(versionString) {
 				if paddingLength == -1 {
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
-						i.AddValidationError(validation.E011, "invalid ver padding '%s'", ver)
-						i.AddValidationError(validation.E012, "invalid ver padding '%s'", ver)
-						i.AddValidationError(validation.E013, "invalid ver padding '%s'", ver)
+						i.AddValidationError(validation.E011, "invalid ver padding '%s'", versionString)
+						i.AddValidationError(validation.E012, "invalid ver padding '%s'", versionString)
+						i.AddValidationError(validation.E013, "invalid ver padding '%s'", versionString)
 					}
 				}
 			} else {
 				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
-				i.AddValidationError(validation.E104, "invalid version format '%s'", ver)
+				i.AddValidationError(validation.E104, "invalid version format '%s'", versionString)
 			}
 		}
-		if version.Created.err != nil {
-			i.AddValidationError(validation.E049, "invalid created format in version '%s': %v", ver, version.Created.err.Error())
-		}
-		if version.User.err != nil {
-			i.AddValidationError(validation.E054, "invalid user in version '%s': %v", ver, version.User.err.Error())
-		}
-		if version.User.Name.err != nil {
-			i.AddValidationError(validation.E054, "invalid user name in version '%s': %v", ver, version.User.Name.err.Error())
-		}
-		if version.User.Address.err != nil {
-			i.AddValidationError(validation.E054, "invalid user address in version '%s': %v", ver, version.User.Address.err.Error())
-		}
-		if version.User.Address.String() == "" {
-			i.AddValidationWarning(validation.W008, "no user address in version '%s'", ver)
-		} else {
-			mailtoUriRegexp := regexp.MustCompile(`mailto:[^@]+@[^@]+`)
-			if !mailtoUriRegexp.MatchString(version.User.Address.String()) {
-				u, err := url.Parse(version.User.Address.String())
-				if err != nil {
-					i.AddValidationWarning(validation.W009, "cannot parse user address '%s' in version '%s': %v", version.User.Address.String(), ver, err)
-				} else {
-					if u.Scheme == "" {
-						i.AddValidationWarning(validation.W009, "cannot parse user address '%s' in version '%s'", version.User.Address.String(), ver)
-					}
-				}
-			}
-		}
-		if version.Message.err != nil {
-			i.AddValidationError(validation.E094, "invalid format for message in version '%s': %v", ver, version.Message.err)
+		if err := version.Check(i); err != nil {
+			return errors.Wrapf(err, "cannot check version '%s'", versionString)
 		}
 
-		if version.State.err != nil {
-			i.AddValidationError(validation.E050, "invalid state format in version '%s': %v", ver, version.State.err.Error())
+		state := version.GetState()
+		if state == nil {
+			return errors.Errorf("invalid state for version '%s'", versionString)
 		}
-		i.logger.Debug().Msgf("[%s] checkVersions %s state", i.GetID(), ver)
-		for digest, paths := range version.State.State {
-			// massive performance boost by using sorted manifest
-			if _, found := slices.BinarySearch(manifestDigests, digest); !found {
-				if _, found := slices.BinarySearch(manifestDigestsLower, strings.ToLower(digest)); found {
-					i.AddValidationError(validation.E096, "wrong digest case in version '%s' - '%s'", ver, digest)
-				} else {
-					i.AddValidationError(validation.E050, "digest not in manifest of versions '%s' - '%s'", ver, digest)
-				}
-			}
-			for _, path := range paths {
-				if path[0] == '/' || path[len(path)-1] == '/' {
-					i.AddValidationError(validation.E053, "invalid path '%s' in state for version '%s'", path, ver)
-				}
-				if path == "" {
-					i.AddValidationError(validation.E051, "empty path in state for version '%s'", ver)
-				}
-				path2 := path
-				if path[0] == '/' {
-					path2 = path[1:]
-				}
-				elements := strings.Split(path2, "/")
-				for _, element := range elements {
-					if slices.Contains([]string{"", ".", ".."}, element) {
-						i.AddValidationError(validation.E052, "invalid path '%s' in state for version '%s'", path, ver)
-					}
-				}
-			}
+		i.logger.Debug().Msgf("[%s] checkVersions %s state", i.GetID(), versionString)
+		if err := state.Check(val, versionString, manifestDigests, manifestDigestsLower); err != nil {
+			return errors.Wrapf(err, "invalid state check for version '%s'", versionString)
 		}
-		i.logger.Debug().Msgf("[%s] checkVersions '%s' state done", i.GetID(), ver)
-		i.logger.Debug().Msgf("[%s] checkVersions '%s' done", i.GetID(), ver)
+		i.logger.Debug().Msgf("[%s] checkVersions '%s' state done", i.GetID(), versionString)
+		i.logger.Debug().Msgf("[%s] checkVersions '%s' done", i.GetID(), versionString)
 	}
 	slices.Sort(versions)
 	for key, val := range versions {
@@ -569,9 +521,13 @@ func (i *InventoryBase) checkVersions() error {
 	}
 
 	// check logical paths
-	for _, version := range i.Versions.Versions {
+	for _, version := range i.Versions.Iterate() {
 		logPaths := []string{}
-		for _, paths := range version.State.State {
+		state, err := version.GetState()
+		if err != nil {
+			return errors.Wrapf(err, "cannot get state for version '%s'", version.String())
+		}
+		for _, paths := range state.IterateFiles() {
 			logPaths = append(logPaths, paths...)
 		}
 		slices.Sort(logPaths)
@@ -664,11 +620,11 @@ func (i *InventoryBase) GetFiles() map[string][]string {
 	return result
 }
 
-func (i *InventoryBase) GetManifest() map[string][]string {
-	return i.Manifest.Manifest
+func (i *InventoryBase) GetManifest() Manifest {
+	return i.Manifest
 }
 
-func (i *InventoryBase) GetFixity() Fixity {
+func (i *InventoryBase) GetFixity() FixityT {
 	if i.Fixity == nil {
 		return map[checksum.DigestAlgorithm]map[string][]string{}
 	}
@@ -720,16 +676,24 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 			i.Head.string = fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), v+1)
 		}
 	}
-	i.Versions.Versions[i.Head.string] = &VersionBase{
-		Created: &OCFLTime{time.Now(), nil},
-		Message: NewOCFLString(msg),
-		State:   &StateBase{State: map[string][]string{}},
-		User:    NewOCFLUser(UserName, UserAddress),
-	}
-	// copy last state...
+	ver := i.factory.NewVersion()
+	state := i.factory.NewState()
+	user := i.factory.NewUser().SetAddress(UserAddress).SetName(UserName)
+	ver.SetCreated(time.Now()).SetMessage(msg).SetState(state).SetUser(user)
 	if lastHead != "" {
-		util.CopyMapStringSlice(i.Versions.Versions[i.Head.string].State.State, i.Versions.Versions[lastHead].State.State)
+		lastVersion := i.Versions.GetVersion(lastHead)
+		if lastVersion == nil {
+			return errors.Errorf("cannot determine version - '%s'", lastHead)
+		}
+		lastState := lastVersion.GetState()
+		if lastState == nil {
+			return errors.Errorf("cannot determine state - '%s'", lastHead)
+		}
+		newState := i.factory.NewState()
+		newState.CopyFrom(lastState)
+		ver.SetState(newState)
 	}
+	i.Versions.SetVersion(i.Head.string, ver)
 	i.writeable = true
 	return nil
 }
@@ -1054,3 +1018,4 @@ func (i *InventoryBase) Clean() error {
 }
 
 var _ Inventory = (*InventoryBase)(nil)
+var _ validation.Validator = (*InventoryBase)(nil)

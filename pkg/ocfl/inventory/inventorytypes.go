@@ -50,6 +50,20 @@ func (s *OCFLString) String() string {
 	return s.string
 }
 
+func (s *OCFLString) Equals(s2 *OCFLString) bool {
+	return s.string == s2.String() && s.err.Error() == s2.Err().Error()
+}
+
+func (s *OCFLString) Err() error {
+	return s.err
+}
+
+func NewOCFLTime(t time.Time) *OCFLTime {
+	return &OCFLTime{
+		Time: t,
+	}
+}
+
 type OCFLTime struct {
 	time.Time
 	err error
@@ -75,18 +89,22 @@ func (t *OCFLTime) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type User struct {
+func (t *OCFLTime) Err() error {
+	return t.err
+}
+
+type _User struct {
 	Address *OCFLString `json:"address,omitempty"`
 	Name    *OCFLString `json:"name"`
 }
 type OCFLUser struct {
-	User
+	_User
 	err error
 }
 
 func NewOCFLUser(name, address string) *OCFLUser {
 	user := &OCFLUser{
-		User: User{
+		_User: _User{
 			Address: NewOCFLString(address),
 			Name:    NewOCFLString(name),
 		},
@@ -96,13 +114,13 @@ func NewOCFLUser(name, address string) *OCFLUser {
 }
 
 func (u *OCFLUser) UnmarshalJSON(data []byte) error {
-	tu := &User{}
+	tu := &_User{}
 	if err := json.Unmarshal(data, tu); err != nil {
 		u.err = errors.Wrapf(err, "cannot unmarshal user '%s'", string(data))
 		return nil
 	}
-	u.User.Address = tu.Address
-	u.User.Name = tu.Name
+	u._User.Address = tu.Address
+	u._User.Name = tu.Name
 
 	return nil
 }

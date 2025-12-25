@@ -2,20 +2,78 @@ package inventory
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"golang.org/x/exp/slices"
 )
 
-type VersionsBase struct {
-	Versions map[string]*VersionBase
-	err      error
+func NewVersionsBase() *VersionsBase {
+	return &VersionsBase{
+		Versions:     map[string]*VersionBase{},
+		versionValue: map[string]uint{},
+	}
 }
 
-func (v *VersionsBase) Get(versionString string) (Version, bool) {
+type VersionsBase struct {
+	Versions     map[string]*VersionBase
+	versionValue map[string]uint
+	err          error
+}
+
+func (v *VersionsBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
+	for ver, version := range v.Iterate() {
+		vInt, err := strconv.Atoi(strings.TrimLeft(ver, "v0"))
+		if err != nil {
+			val.AddValidationError(validation.E104, "invalid version format '%s'", ver)
+			continue
+		}
+		v.versionValue[ver] = uint(vInt)
+		if err := version.Finalize(val, factory, inCreation); err != nil {
+			return errors.Wrapf(err, "failed to finalize inventory version '%s'", ver)
+		}
+	}
+	return nil
+}
+
+func (v *VersionsBase) Check(val validation.Validation, manifestDigests []string) error {
+	manifestDigestsLower := []string{}
+	for _, manifestDigest := range manifestDigests {
+		manifestDigestsLower = append(manifestDigestsLower, strings.ToLower(manifestDigest))
+	}
+	slices.Sort(manifestDigests)
+	slices.Sort(manifestDigestsLower)
+	for versionString, ver := range v.Iterate() {
+		if err := ver.Check(val, manifestDigests, manifestDigestsLower); err != nil {
+			return errors.Wrapf(err, "version %s validation check failed", versionString)
+		}
+	}
+	return nil
+}
+
+func (v *VersionsBase) SetVersion(versionString string, ver Version) Versions {
+	verB, ok := ver.(*VersionBase)
+	if !ok {
+		panic(fmt.Sprintf("cannot convert to VersionBase '%s'", versionString))
+	}
+	v.Versions[versionString] = verB
+	return v
+}
+
+func (v *VersionsBase) IsEmpty() bool {
+	return len(v.Versions) == 0
+}
+
+func (v *VersionsBase) GetVersion(versionString string) Version {
 	version, ok := v.Versions[versionString]
-	return version, ok
+	if !ok {
+		return nil
+	}
+	return version
 }
 
 func (v *VersionsBase) Equals(other Versions) bool {
@@ -27,12 +85,13 @@ func (v *VersionsBase) Equals(other Versions) bool {
 		return false
 	}
 	for key, version := range v.Iterate() {
-		otherVersion, ok := otherBase.Get(key)
-		if !ok {
+		otherVersion := otherBase.GetVersion(key)
+		if otherVersion.Err() != nil {
 			return false
 		}
-
+		return version.Equals(otherVersion)
 	}
+	return false
 }
 
 func (v *VersionsBase) String() string {
@@ -51,14 +110,6 @@ func (v *VersionsBase) Iterate() func(yield func(versionString string, version V
 			}
 		}
 	}
-}
-
-func (v *VersionsBase) GetVersion(version string) (*VersionBase, error) {
-	ver, ok := v.Versions[version]
-	if !ok {
-		return nil, errors.Errorf("invalid version '%s'", version)
-	}
-	return ver, nil
 }
 
 func (v *VersionsBase) UnmarshalJSON(data []byte) error {

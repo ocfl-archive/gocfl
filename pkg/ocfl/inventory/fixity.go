@@ -2,29 +2,15 @@ package inventory
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-type Fixity map[checksum.DigestAlgorithm]map[string][]string
-
-func (f Fixity) Checksums(filename string) map[checksum.DigestAlgorithm]string {
-	result := map[checksum.DigestAlgorithm]string{}
-	for da, dfs := range f {
-		for d, fs := range dfs {
-			found := false
-			for _, fname := range fs {
-				if fname == filename {
-					result[da] = d
-					found = true
-					break
-				}
-				if found {
-					break
-				}
-			}
-			if found {
-				break
-			}
-		}
-	}
-	return result
+type Fixity interface {
+	String() string
+	IterateFiles() func(yield func(digest string, external []string) bool)
+	GetFiles(alg checksum.DigestAlgorithm, digest string) ([]string, error)
+	Err() error
+	Equals(fixity Fixity) bool
+	CopyFrom(fixity Fixity) State
+	Check(val validation.Validator, version string, manifestDigests []string, manifestDigestsLower []string) error
 }

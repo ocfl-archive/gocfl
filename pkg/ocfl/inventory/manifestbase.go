@@ -10,12 +10,25 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-type StateManifestBase struct {
-	State map[string][]string
-	err   error
+func NewManifestBase() *ManifestBase {
+	return &ManifestBase{
+		manifest: map[string][]string{},
+	}
 }
 
-func (s *StateManifestBase) Check(val validation.Validator, version string, manifestDigests []string, manifestDigestsLower []string) error {
+type ManifestBase struct {
+	manifest map[string][]string
+	err      error
+}
+
+func (s *ManifestBase) Finalize(val validation.Validation, factory Factory, creation bool) error {
+	if s.manifest == nil {
+		s.manifest = map[string][]string{}
+	}
+	return nil
+}
+
+func (s *ManifestBase) Check(val validation.Validation, version string, manifestDigests []string, manifestDigestsLower []string) error {
 	if s.Err() != nil {
 		val.AddValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
 	}
@@ -50,38 +63,38 @@ func (s *StateManifestBase) Check(val validation.Validator, version string, mani
 	return nil
 }
 
-func (s *StateManifestBase) CopyFrom(state State) State {
-	s.err = state.Err()
+func (s *ManifestBase) CopyFrom(manifest Manifest) Manifest {
+	s.err = manifest.Err()
 
-	s.State = make(map[string][]string)
-	for k, vs := range state.IterateFiles() {
+	s.manifest = make(map[string][]string)
+	for k, vs := range manifest.IterateFiles() {
 		newVs := make([]string, len(vs))
 		copy(newVs, vs)
-		s.State[k] = newVs
+		s.manifest[k] = newVs
 	}
 	return s
 }
 
-func (s *StateManifestBase) Err() error {
+func (s *ManifestBase) Err() error {
 	return s.err
 }
 
-func (s *StateManifestBase) Equals(state State) bool {
-	if s == nil || state == nil {
+func (s *ManifestBase) Equals(manifest Manifest) bool {
+	if s == nil || manifest == nil {
 		return false
 	}
-	stateB, ok := state.(*StateManifestBase)
+	manifestB, ok := manifest.(*ManifestBase)
 	if !ok {
 		return false
 	}
-	if s.err.Error() != state.Err().Error() {
+	if s.err.Error() != manifest.Err().Error() {
 		return false
 	}
-	if len(s.State) != len(stateB.State) {
+	if len(s.manifest) != len(manifestB.manifest) {
 		return false
 	}
-	for k, v := range s.State {
-		v2, ok := stateB.State[k]
+	for k, v := range s.manifest {
+		v2, ok := manifestB.manifest[k]
 		if !ok {
 			return false
 		}
@@ -92,19 +105,19 @@ func (s *StateManifestBase) Equals(state State) bool {
 	return true
 }
 
-func (s *StateManifestBase) String() string {
+func (s *ManifestBase) String() string {
 	var num int64
 	var unique int64
-	for _, v := range s.State {
+	for _, v := range s.manifest {
 		unique++
 		num += int64(len(v))
 	}
 	return fmt.Sprintf("%d files (%d unique)", num, unique)
 }
 
-func (s *StateManifestBase) IterateFiles() func(yield func(digest string, external []string) bool) {
+func (s *ManifestBase) IterateFiles() func(yield func(digest string, external []string) bool) {
 	return func(yield func(digest string, external []string) bool) {
-		for digest, files := range s.State {
+		for digest, files := range s.manifest {
 			if !yield(digest, files) {
 				return
 			}
@@ -112,25 +125,25 @@ func (s *StateManifestBase) IterateFiles() func(yield func(digest string, extern
 	}
 }
 
-func (s *StateManifestBase) GetFiles(digest string) ([]string, error) {
-	files, ok := s.State[digest]
+func (s *ManifestBase) GetFiles(digest string) ([]string, error) {
+	files, ok := s.manifest[digest]
 	if !ok {
 		return nil, errors.Wrapf(DigestNotFound, "digest %s", digest)
 	}
 	return files, nil
 }
 
-func (s *StateManifestBase) UnmarshalJSON(data []byte) error {
-	s.State = map[string][]string{}
-	if err := json.Unmarshal(data, &s.State); err != nil {
+func (s *ManifestBase) UnmarshalJSON(data []byte) error {
+	s.manifest = map[string][]string{}
+	if err := json.Unmarshal(data, &s.manifest); err != nil {
 		s.err = errors.Wrapf(err, "cannot unmarshal state %s", string(data))
 		return nil
 	}
 	return nil
 }
 
-func (s *StateManifestBase) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.State)
+func (s *ManifestBase) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.manifest)
 }
 
-var _ State = (*StateManifestBase)(nil)
+var _ Manifest = (*ManifestBase)(nil)

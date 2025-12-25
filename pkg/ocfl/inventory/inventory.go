@@ -37,8 +37,8 @@ type Inventory interface {
 	GetVersionStrings() []string
 	GetVersions() map[string]Version
 	GetFiles() map[string][]string
-	GetManifest() map[string][]string
-	GetFixity() Fixity
+	GetManifest() Manifest
+	GetFixity() FixityT
 	GetFilesFlat() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	GetFixityDigestAlgorithm() []checksum.DigestAlgorithm

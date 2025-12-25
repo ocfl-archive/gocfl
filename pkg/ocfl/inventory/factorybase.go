@@ -2,6 +2,14 @@ package inventory
 
 type FactoryBase struct{}
 
+func (f *FactoryBase) NewUser() User {
+	return NewUserBase("", "")
+}
+
+func (f *FactoryBase) NewManifest() Manifest {
+	return NewManifestBase()
+}
+
 func (f *FactoryBase) NewVersions() Versions {
 	return &VersionsBase{
 		Versions: map[string]*VersionBase{},
@@ -12,7 +20,7 @@ func (f *FactoryBase) NewVersion() Version {
 }
 
 func (f *FactoryBase) NewState() State {
-	return &StateBase{
+	return &StateManifestBase{
 		State: map[string][]string{},
 	}
 }
