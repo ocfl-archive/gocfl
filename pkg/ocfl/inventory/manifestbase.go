@@ -8,6 +8,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
 func NewManifestBase() *ManifestBase {
@@ -21,6 +22,19 @@ type ManifestBase struct {
 	err      error
 }
 
+func (s *ManifestBase) GetDuplicates(digest string) []string {
+	// not necessary but fast...
+	if digest == "" {
+		return nil
+	}
+	for cs, files := range s.IterateFiles() {
+		if cs == digest {
+			return files
+		}
+	}
+	return nil
+}
+
 func (s *ManifestBase) Finalize(val validation.Validation, factory Factory, creation bool) error {
 	if s.manifest == nil {
 		s.manifest = map[string][]string{}
@@ -28,35 +42,19 @@ func (s *ManifestBase) Finalize(val validation.Validation, factory Factory, crea
 	return nil
 }
 
-func (s *ManifestBase) Check(val validation.Validation, version string, manifestDigests []string, manifestDigestsLower []string) error {
+func (s *ManifestBase) Check(val validation.Validation, version version.OCFLVersion, csFiles map[string][]string) error {
 	if s.Err() != nil {
-		val.AddValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
+		return errors.Wrapf(s.Err(), "manifest for version %s has errors", version)
 	}
-	for digest, paths := range s.IterateFiles() {
-		// massive performance boost by using sorted manifest
-		if _, found := slices.BinarySearch(manifestDigests, digest); !found {
-			if _, found := slices.BinarySearch(manifestDigestsLower, strings.ToLower(digest)); found {
-				val.AddValidationError(validation.E096, "wrong digest case in version '%s' - '%s'", version, digest)
-			} else {
-				val.AddValidationError(validation.E050, "digest not in manifest of versions '%s' - '%s'", version, digest)
-			}
+	for digest, files := range s.IterateFiles() {
+		csFilenames, ok := csFiles[strings.ToLower(digest)]
+		if !ok {
+			val.AddValidationError(validation.E092, "digest '%s' for file(s) %v not found in content", digest, files)
+			continue
 		}
-		for _, path := range paths {
-			if path[0] == '/' || path[len(path)-1] == '/' {
-				val.AddValidationError(validation.E053, "invalid path '%s' in state for version '%s'", path, version)
-			}
-			if path == "" {
-				val.AddValidationError(validation.E051, "empty path in state for version '%s'", version)
-			}
-			path2 := path
-			if path[0] == '/' {
-				path2 = path[1:]
-			}
-			elements := strings.Split(path2, "/")
-			for _, element := range elements {
-				if slices.Contains([]string{"", ".", ".."}, element) {
-					val.AddValidationError(validation.E052, "invalid path '%s' in state for version '%s'", path, version)
-				}
+		for _, file := range files {
+			if !slices.Contains(csFilenames, file) {
+				val.AddValidationError(validation.E092, "invalid digest for file '%s'", file)
 			}
 		}
 	}

@@ -1,6 +1,16 @@
 package inventory
 
+import "github.com/je4/utils/v2/pkg/checksum"
+
+func NewFactoryBase() *FactoryBase {
+	return &FactoryBase{}
+}
+
 type FactoryBase struct{}
+
+func (f *FactoryBase) NewFixity(algorithms []checksum.DigestAlgorithm) Fixity {
+	return NewFixityBase(algorithms)
+}
 
 func (f *FactoryBase) NewUser() User {
 	return NewUserBase("", "")
@@ -20,7 +30,7 @@ func (f *FactoryBase) NewVersion() Version {
 }
 
 func (f *FactoryBase) NewState() State {
-	return &StateManifestBase{
+	return &StateBase{
 		State: map[string][]string{},
 	}
 }

@@ -1,28 +1,41 @@
 package inventory
 
 import (
+	"iter"
+	"maps"
+	"slices"
+	"strings"
+
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-var DigestAlgNotFound = errors.New("digest algorithm not found")
-
-func NewFixityBase() *FixityBase {
-	return &FixityBase{
+func NewFixityBase(digestAlgs []checksum.DigestAlgorithm) *FixityBase {
+	f := &FixityBase{
 		fixity: map[checksum.DigestAlgorithm]map[string][]string{},
-		err: nil
+		err:    nil,
 	}
-
+	for _, alg := range digestAlgs {
+		f.fixity[alg] = map[string][]string{}
+	}
+	return f
 }
 
 type FixityBase struct {
-	fixity map[checksum.DigestAlgorithm]map[string][]string
-	err error
+	fixity                 map[checksum.DigestAlgorithm]map[string][]string
+	err                    error
+	fixityDigestAlgorithms []checksum.DigestAlgorithm
 }
 
-func (f *FixityBase) IterateFiles(alg checksum.DigestAlgorithm) func(yield func(digest string, external []string) bool) {
-	return func(yield func(digest string, internal []string) bool {
+func (f *FixityBase) GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm] {
+	return maps.Keys(f.fixity)
+}
+
+func (f *FixityBase) IterateFiles(alg checksum.DigestAlgorithm) func(yield func(digest string, internal []string) bool) {
+	return func(yield func(digest string, internal []string) bool) {
 		dfiles, ok := f.fixity[alg]
 		if !ok {
 			return
@@ -33,7 +46,7 @@ func (f *FixityBase) IterateFiles(alg checksum.DigestAlgorithm) func(yield func(
 			}
 		}
 		return
-	})
+	}
 }
 
 func (f *FixityBase) GetFiles(alg checksum.DigestAlgorithm, digest string) ([]string, error) {
@@ -49,28 +62,129 @@ func (f *FixityBase) GetFiles(alg checksum.DigestAlgorithm, digest string) ([]st
 }
 
 func (f *FixityBase) Err() error {
-	//TODO implement me
-	panic("implement me")
+	return f.err
 }
 
-func (f *FixityBase) Equals(fixity Fixity) bool {
-	//TODO implement me
-	panic("implement me")
+func (f *FixityBase) Equals(val validation.Validation, fixity Fixity) bool {
+	fixity2, ok := fixity.(*FixityBase)
+	if !ok {
+		return false
+	}
+	if len(f.fixity) != len(fixity2.fixity) {
+		return false
+	}
+	for digestAlg, state := range f.fixity {
+		state2, ok := fixity2.fixity[digestAlg]
+		if !ok {
+			return false
+		}
+		if len(state) != len(state2) {
+			return false
+		}
+		for digest, files := range state {
+			files2, ok := state2[digest]
+			if !ok {
+				return false
+			}
+			if len(files) != len(files2) {
+				return false
+			}
+			for i := range files {
+				if files[i] != files2[i] {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
-func (f *FixityBase) CopyFrom(fixity Fixity) State {
-	//TODO implement me
-	panic("implement me")
+func (f *FixityBase) CopyFrom(fixity Fixity) error {
+	f.fixity = map[checksum.DigestAlgorithm]map[string][]string{}
+	for digestAlg := range fixity.GetDigestAlgorithms() {
+		f.fixity[digestAlg] = map[string][]string{}
+		for digest, files := range fixity.IterateFiles(digestAlg) {
+			f.fixity[digestAlg][digest] = make([]string, len(files))
+			copy(f.fixity[digestAlg][digest], files)
+		}
+	}
+	return nil
 }
 
-func (f *FixityBase) Check(val validation.Validator, version string, manifestDigests []string, manifestDigestsLower []string) error {
-	//TODO implement me
-	panic("implement me")
+func (f *FixityBase) Check(val validation.Validation, version version.OCFLVersion, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
+	for digestAlg, fixity := range f.fixity {
+		// check calculated digests
+		if fileManifest != nil {
+			csFiles, ok := fileManifest[digestAlg]
+			if !ok {
+				return errors.Errorf("checksum for '%s' not created", digestAlg)
+			}
+			for digest, files := range fixity {
+				csFilenames, ok := csFiles[digest]
+				if !ok {
+					csFilenames, ok = csFiles[strings.ToLower(digest)]
+					if !ok {
+						val.AddValidationError(validation.E093, "fixity digest '%s' for file(s) %v not found in content", digest, files)
+						continue
+					}
+				}
+				for _, path := range files {
+					if !slices.Contains(csFilenames, path) {
+						val.AddValidationError(validation.E093, "invalid fixity digest for file '%s'", path)
+					}
+				}
+			}
+		}
+		// check consistency and format
+		for digest, files := range fixity {
+			digests := []string{}
+			lowerDigest := strings.ToLower(digest)
+			if _, found := slices.BinarySearch(digests, lowerDigest); found {
+				val.AddValidationError(validation.E097, "fixity '%s' digest '%s' is duplicate", digestAlg, digest)
+			} else {
+				digests = util.SliceInsertSorted(digests, lowerDigest)
+				//digests = append(digests, lowerDigest)
+			}
+
+			for _, path := range files {
+				if path[0] == '/' || path[len(path)-1] == '/' {
+					val.AddValidationError(validation.E100, "invalid path '%s' in fixity", path)
+				}
+				if path == "" {
+					val.AddValidationError(validation.E099, "empty path in fixity")
+				}
+				path2 := path
+				if path[0] == '/' {
+					path2 = path[1:]
+				}
+				elements := strings.Split(path2, "/")
+				for _, element := range elements {
+					if slices.Contains([]string{"", ".", ".."}, element) {
+						val.AddValidationError(validation.E099, "invalid path '%s' in fixity", path)
+					}
+				}
+			}
+		}
+
+	}
+	return nil
 }
 
 func (f *FixityBase) String() string {
-	//TODO implement me
-	panic("implement me")
+	result := "fixity for "
+	for digestAlg := range f.GetDigestAlgorithms() {
+		result += digestAlg.String() + "/"
+	}
+	return strings.TrimSuffix(result, "/")
+}
+
+func (f *FixityBase) Finalize(inCreation bool) error {
+	for alg := range f.GetDigestAlgorithms() {
+		if !slices.Contains(f.fixityDigestAlgorithms, alg) {
+			f.fixityDigestAlgorithms = append(f.fixityDigestAlgorithms, alg)
+		}
+	}
+	return nil
 }
 
 var _ Fixity = (*FixityBase)(nil)

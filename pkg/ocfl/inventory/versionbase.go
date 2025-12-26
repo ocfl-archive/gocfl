@@ -15,6 +15,34 @@ type VersionBase struct {
 	User    User        `json:"user"`
 }
 
+func (v *VersionBase) CopyFile(stateFilename, digest string) (bool, error) {
+	modified, err := v.State.CopyFile(stateFilename, digest)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return modified, nil
+}
+
+func (v *VersionBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
+	modified, err := v.State.RenameFile(oldStateFilename, newStateFilename)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return modified, nil
+}
+
+func (v *VersionBase) DeleteFile(stateFilename string) (bool, error) {
+	modified, err := v.State.DeleteFile(stateFilename)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return modified, nil
+}
+
+func (v *VersionBase) FileChecksum(path string) string {
+	return v.State.FileChecksum(path)
+}
+
 func (v *VersionBase) Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error {
 	if v.Created.Err() != nil {
 		val.AddValidationError(validation.E049, "invalid created format in version '%s': %v", v.version, v.Created.Err())
@@ -24,6 +52,12 @@ func (v *VersionBase) Check(val validation.Validation, manifestDigests, manifest
 	}
 	if v.Message.Err() != nil {
 		val.AddValidationError(validation.E094, "invalid format for message in version '%s': %v", v.version, v.Message.Err().Error())
+	}
+	if v.State == nil {
+		return errors.Errorf("no state set for version '%s'", v.version)
+	}
+	if err := v.State.Check(val, v.version, manifestDigests, manifestDigestsLower); err != nil {
+		return errors.Wrapf(err, "invalid state check for version '%s'", v.version)
 	}
 	return nil
 }

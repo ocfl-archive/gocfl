@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"encoding/json"
+	"iter"
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
@@ -20,7 +21,7 @@ type Inventory interface {
 	GetID() string
 	GetContentDir() string
 	GetRealContentDir() string
-	GetHead() string
+	GetHead() version.OCFLVersion
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
@@ -30,29 +31,28 @@ type Inventory interface {
 	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	CopyFile(dest string, digest string) error
 
-	IterateStateFiles(version string, fn StateFileCallback) error
-	GetStateFiles(version string, cs string) ([]string, error)
+	IterateStateFiles(version version.OCFLVersion, fn StateFileCallback) error
+	GetStateFiles(version version.OCFLVersion, cs string) ([]string, error)
 
 	//GetContentDirectory() string
-	GetVersionStrings() []string
-	GetVersions() map[string]Version
-	GetFiles() map[string][]string
+	GetVersionStrings() []version.OCFLVersion
+	GetVersions() map[version.OCFLVersion]Version
+	GetFiles() map[version.OCFLVersion][]string
 	GetManifest() Manifest
-	GetFixity() FixityT
+	GetFixity() Fixity
 	GetFilesFlat() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
-	GetFixityDigestAlgorithm() []checksum.DigestAlgorithm
+	GetFixityDigestAlgorithm() iter.Seq[checksum.DigestAlgorithm]
 	IsWriteable() bool
 	IsModified() bool
 	BuildManifestName(stateFilename string) string
-	BuildManifestNameVersion(stateFilename string, version string) string
+	BuildManifestNameVersion(stateFilename string, version version.OCFLVersion) string
 	NewVersion(msg, UserName, UserAddress string) error
-	GetDuplicates(checksum string) []string
+	//GetDuplicates(checksum string) []string
 	AlreadyExists(stateFilename, checksum string) (bool, error)
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)
 	Clean() error
 
-	VersionLessOrEqual(v1, v2 string) bool
 	EchoDelete(existing []string, pathprefix string) error
 }
 

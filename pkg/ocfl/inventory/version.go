@@ -7,6 +7,8 @@ import (
 )
 
 type Version interface {
+	Operations
+
 	String() string
 	Equals(other Version) bool
 	Finalize(val validation.Validation, factory Factory, inCreation bool) error
@@ -20,4 +22,5 @@ type Version interface {
 	SetUser(user User) Version
 	Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error
 	Err() error
+	FileChecksum(path string) string
 }
