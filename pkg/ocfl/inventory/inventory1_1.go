@@ -20,7 +20,8 @@ type InventoryV1_1 struct {
 
 func newInventoryV1_1(ctx context.Context, ver version.OCFLVersion, folder string, logger zLogger.ZLogger) (*InventoryV1_1, error) {
 	ivUrl, _ := url.Parse(string(InventorySpec1_1))
-	ib, err := newInventoryBase(ctx, ver, folder, ivUrl, "", logger)
+	factory := NewFactory11()
+	ib, err := newInventoryBase(ctx, factory, ver, folder, ivUrl, "", logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create InventoryBase")
 	}

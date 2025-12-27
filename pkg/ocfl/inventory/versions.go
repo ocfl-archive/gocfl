@@ -25,4 +25,5 @@ type Versions interface {
 	VersionLessOrEqual(v1, v2 version.OCFLVersion) bool
 	LatestVersion() version.OCFLVersion
 	FileExists(path, digest string) (bool, error)
+	Delete(versionString version.OCFLVersion) (bool, error)
 }

@@ -16,10 +16,10 @@ type Version interface {
 	GetUser() User
 	GetCreated() time.Time
 	GetMessage() string
-	SetCreated(t time.Time) Version
-	SetMessage(msg string) Version
-	SetState(state State) Version
-	SetUser(user User) Version
+	WithCreated(t time.Time) Version
+	WithMessage(msg string) Version
+	WithState(state State) Version
+	WithUser(user User) Version
 	Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error
 	Err() error
 	FileChecksum(path string) string

@@ -7,12 +7,51 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 type StateBase struct {
-	State map[string][]string
-	err   error
+	State           map[string][]string
+	err             error
+	digestAlgorithm checksum.DigestAlgorithm
+}
+
+func (s *StateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) State {
+	s.digestAlgorithm = dgst
+	return s
+}
+
+func (s *StateBase) AddFile(stateFilename string, digest string) (bool, error) {
+	digest = strings.ToLower(digest)
+	if s.State[digest] == nil {
+		s.State[digest] = []string{}
+	}
+	if slices.Contains(s.State[digest], stateFilename) {
+		return false, nil
+	}
+	s.State[digest] = append(s.State[digest], stateFilename)
+	return true, nil
+}
+
+func (s *StateBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
+	var modified bool
+	slices.Sort(existing)
+	for _, paths := range s.State {
+		for _, path := range paths {
+			if !strings.HasPrefix(path, pathPrefix) {
+				continue
+			}
+			if _, found := slices.BinarySearch(existing, path); !found {
+				m, err := s.DeleteFile(path)
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to delete file %s", path)
+				}
+				modified = modified || m
+			}
+		}
+	}
+	return modified, nil
 }
 
 func (s *StateBase) CopyFile(stateFilename, digest string) (bool, error) {

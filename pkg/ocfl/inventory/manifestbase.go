@@ -22,6 +22,17 @@ type ManifestBase struct {
 	err      error
 }
 
+func (s *ManifestBase) AddFile(filename string, digest string) (bool, error) {
+	if _, ok := s.manifest[digest]; !ok {
+		s.manifest[digest] = []string{}
+	}
+	if slices.Contains(s.manifest[digest], filename) {
+		return false, nil
+	}
+	s.manifest[digest] = append(s.manifest[digest], filename)
+	return true, nil
+}
+
 func (s *ManifestBase) GetDuplicates(digest string) []string {
 	// not necessary but fast...
 	if digest == "" {

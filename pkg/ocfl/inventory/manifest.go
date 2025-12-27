@@ -8,6 +8,8 @@ import (
 //var DigestNotFound = errors.New("Digest not found")
 
 type Manifest interface {
+	AddFile(filename string, digest string) (bool, error)
+
 	String() string
 	IterateFiles() func(yield func(digest string, external []string) bool)
 	GetFiles(digest string) ([]string, error)

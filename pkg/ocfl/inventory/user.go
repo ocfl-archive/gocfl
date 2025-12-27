@@ -9,7 +9,7 @@ type User interface {
 	GetName() (string, error)
 	Err() error
 	Finalize()
-	SetAddress(address string) User
-	SetName(name string) User
+	WithAddress(address string) User
+	WithName(name string) User
 	Check(val validation.Validation, version string) error
 }

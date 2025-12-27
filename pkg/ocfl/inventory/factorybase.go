@@ -1,6 +1,9 @@
 package inventory
 
-import "github.com/je4/utils/v2/pkg/checksum"
+import (
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+)
 
 func NewFactoryBase() *FactoryBase {
 	return &FactoryBase{}
@@ -22,7 +25,7 @@ func (f *FactoryBase) NewManifest() Manifest {
 
 func (f *FactoryBase) NewVersions() Versions {
 	return &VersionsBase{
-		Versions: map[string]*VersionBase{},
+		Versions: map[version.OCFLVersion]*VersionBase{},
 	}
 }
 func (f *FactoryBase) NewVersion() Version {

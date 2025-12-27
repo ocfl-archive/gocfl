@@ -50,6 +50,41 @@ type VersionsBase struct {
 	latestVersion version.OCFLVersion
 }
 
+func (v *VersionsBase) Delete(versionString version.OCFLVersion) (bool, error) {
+	if _, ok := v.Versions[versionString]; !ok {
+		return false, nil
+	}
+	delete(v.Versions, versionString)
+	v.latestVersion = ""
+	return true, nil
+}
+
+func (v *VersionsBase) AddFile(stateFilename string, digest string) (bool, error) {
+	latestVersionString := v.LatestVersion()
+	latestVersion := v.GetVersion(latestVersionString)
+	if latestVersion == nil {
+		return false, errors.Errorf("version %s not found", latestVersionString)
+	}
+	modified, err := latestVersion.AddFile(stateFilename, digest)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return modified, nil
+}
+
+func (v *VersionsBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
+	latestVersionString := v.LatestVersion()
+	latestVersion := v.GetVersion(latestVersionString)
+	if latestVersion == nil {
+		return false, errors.Errorf("version %s not found", latestVersionString)
+	}
+	modified, err := latestVersion.EchoDelete(existing, pathPrefix)
+	if err != nil {
+		return modified, errors.WithStack(err)
+	}
+	return modified, nil
+}
+
 func (v *VersionsBase) CopyFile(stateFilename, digest string) (bool, error) {
 	latestVersionString := v.LatestVersion()
 	latestVersion := v.GetVersion(latestVersionString)
@@ -90,6 +125,7 @@ func (v *VersionsBase) DeleteFile(stateFilename string) (bool, error) {
 }
 
 func (v *VersionsBase) FileExists(path, digest string) (bool, error) {
+	// find all versions, which contain the path
 	css := map[version.OCFLVersion]string{}
 	for versionString, ver := range v.Iterate() {
 		cs := ver.FileChecksum(path)
@@ -109,6 +145,8 @@ func (v *VersionsBase) FileExists(path, digest string) (bool, error) {
 		}
 		versions = append(versions, int(versionInt))
 	}
+
+	// get the latest version with this path
 	sort.Ints(versions)
 	lastVersion := versions[len(versions)-1]
 
@@ -121,6 +159,7 @@ func (v *VersionsBase) FileExists(path, digest string) (bool, error) {
 		return false, errors.Errorf("checksum for version %s does not exist", lastVersionString)
 	}
 
+	// check whether the latest version is the correct file
 	return lastChecksum == digest, nil
 }
 

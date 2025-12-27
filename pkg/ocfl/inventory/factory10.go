@@ -1,5 +1,7 @@
 package inventory
 
+var factory10 = NewFactory10()
+
 func NewFactory10() *Factory10 {
 	return &Factory10{
 		FactoryBase: NewFactoryBase(),

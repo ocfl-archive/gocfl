@@ -15,6 +15,18 @@ type VersionBase struct {
 	User    User        `json:"user"`
 }
 
+func (v *VersionBase) AddFile(stateFilename string, digest string) (bool, error) {
+	return v.State.AddFile(stateFilename, digest)
+}
+
+func (v *VersionBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
+	modified, err := v.State.EchoDelete(existing, pathPrefix)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return modified, nil
+}
+
 func (v *VersionBase) CopyFile(stateFilename, digest string) (bool, error) {
 	modified, err := v.State.CopyFile(stateFilename, digest)
 	if err != nil {
@@ -71,22 +83,22 @@ func (v *VersionBase) Err() error {
 	)
 }
 
-func (v *VersionBase) SetCreated(t time.Time) Version {
+func (v *VersionBase) WithCreated(t time.Time) Version {
 	v.Created = NewOCFLTime(t)
 	return v
 }
 
-func (v *VersionBase) SetMessage(msg string) Version {
+func (v *VersionBase) WithMessage(msg string) Version {
 	v.Message = NewOCFLString(msg)
 	return v
 }
 
-func (v *VersionBase) SetState(state State) Version {
+func (v *VersionBase) WithState(state State) Version {
 	v.State = state
 	return v
 }
 
-func (v *VersionBase) SetUser(user User) Version {
+func (v *VersionBase) WithUser(user User) Version {
 	v.User = user
 	return v
 }

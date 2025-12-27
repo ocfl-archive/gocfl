@@ -30,6 +30,23 @@ type FixityBase struct {
 	fixityDigestAlgorithms []checksum.DigestAlgorithm
 }
 
+func (f *FixityBase) AddFile(manifestFilename string, digests map[checksum.DigestAlgorithm]string) (bool, error) {
+	var modified bool
+	for alg, digest := range digests {
+		if _, ok := f.fixity[alg]; !ok {
+			f.fixity[alg] = map[string][]string{}
+		}
+		if _, ok := f.fixity[alg][digest]; !ok {
+			f.fixity[alg][digest] = []string{}
+		}
+		if !slices.Contains(f.fixity[alg][digest], manifestFilename) {
+			f.fixity[alg][digest] = append(f.fixity[alg][digest], manifestFilename)
+			modified = true
+		}
+	}
+	return modified, nil
+}
+
 func (f *FixityBase) GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm] {
 	return maps.Keys(f.fixity)
 }

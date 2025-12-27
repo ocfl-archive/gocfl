@@ -514,8 +514,8 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 	}
 	ver := i.factory.NewVersion()
 	state := i.factory.NewState()
-	user := i.factory.NewUser().SetAddress(UserAddress).SetName(UserName)
-	ver.SetCreated(time.Now()).SetMessage(msg).SetState(state).SetUser(user)
+	user := i.factory.NewUser().WithAddress(UserAddress).WithName(UserName)
+	ver.WithCreated(time.Now()).WithMessage(msg).WithState(state).WithUser(user)
 	if lastHead != "" {
 		lastVersion := i.Versions.GetVersion(lastHead)
 		if lastVersion == nil {
@@ -527,7 +527,7 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 		}
 		newState := i.factory.NewState()
 		newState.CopyFrom(lastState)
-		ver.SetState(newState)
+		ver.WithState(newState)
 	}
 	i.Versions.SetVersion(version.OCFLVersion(i.Head.string), ver)
 	i.writeable = true
@@ -546,32 +546,11 @@ func (i *InventoryBase) IsUpdate(virtualFilename, checksum string) (bool, error)
 }
 
 func (i *InventoryBase) EchoDelete(existing []string, pathPrefix string) error {
-	var deleteFiles = []string{}
-	version, ok := i.Versions.Versions[i.GetHead()]
-	if !ok {
-		return errors.Errorf("cannot get version '%s'", i.Head.string)
+	modified, err := i.Versions.EchoDelete(existing, pathPrefix)
+	if err != nil {
+		return errors.WithStack(err)
 	}
-	statefiles := []string{}
-	for _, state := range version.State.State {
-		for _, filename := range state {
-			statefiles = append(statefiles, filename)
-		}
-	}
-	for _, filename := range statefiles {
-		if !strings.HasPrefix(filename, pathPrefix) {
-			continue
-		}
-		if _, found := slices.BinarySearch(existing, filename); !found {
-			deleteFiles = append(deleteFiles, filename)
-		}
-
-	}
-	for _, filename := range deleteFiles {
-		//		i.logger.Info().Msgf("removing '%s' from state", filename)
-		if err := i.DeleteFile(filename); err != nil {
-			return errors.Wrapf(err, "cannot delete '%s'", filename)
-		}
-	}
+	i.modified = i.modified || modified
 	return nil
 }
 
@@ -612,23 +591,25 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 	}
 	digest = strings.ToLower(digest) // paranoia
 
-	for alg, fixityDigest := range checksums {
+	fixitydigests := map[checksum.DigestAlgorithm]string{}
+	for alg, cs := range checksums {
 		if alg == i.GetDigestAlgorithm() {
 			continue
 		}
-		if i.Fixity == nil {
-			i.Fixity = map[checksum.DigestAlgorithm]map[string][]string{}
+		fixitydigests[alg] = cs
+	}
+	modified, err := i.Fixity.AddFile(manifestFilename, fixitydigests)
+	if err != nil {
+		return errors.Wrapf(err, "cannot add fixity '%s' to '%s'", digest, manifestFilename)
+	}
+	i.modified = i.modified || modified
+
+	if manifestFilename != "" {
+		modified, err := i.Manifest.AddFile(manifestFilename, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot add manifest '%s' to '%s'", digest, manifestFilename)
 		}
-		if _, ok := i.Fixity[alg]; !ok {
-			i.Fixity[alg] = map[string][]string{}
-		}
-		if _, ok := i.Fixity[alg][fixityDigest]; !ok {
-			i.Fixity[alg][fixityDigest] = []string{}
-		}
-		if !slices.Contains(i.Fixity[alg][fixityDigest], manifestFilename) {
-			i.Fixity[alg][fixityDigest] = append(i.Fixity[alg][fixityDigest], manifestFilename)
-			i.modified = true
-		}
+		i.modified = i.modified || modified
 	}
 
 	for _, virtualFilename := range stateFilenames {
@@ -641,16 +622,11 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 			// return nil
 		}
 
-		if manifestFilename != "" {
-			if _, ok := i.Manifest.Manifest[digest]; !ok {
-				i.Manifest.Manifest[digest] = []string{}
-			}
-			i.Manifest.Manifest[digest] = append(i.Manifest.Manifest[digest], manifestFilename)
+		modfied, err := i.Versions.AddFile(virtualFilename, digest)
+		if err != nil {
+			return errors.Wrapf(err, "cannot add state '%s' to '%s'", digest, virtualFilename)
 		}
-
-		if _, ok := i.Versions.Versions[i.Head.string].State.State[digest]; !ok {
-			i.Versions.Versions[i.Head.string].State.State[digest] = []string{}
-		}
+		i.modified = i.modified || modfied
 
 		upd, err := i.IsUpdate(virtualFilename, digest)
 		if err != nil {
@@ -665,8 +641,11 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 		}
 
 		if !dup {
-			i.Versions.Versions[i.Head.string].State.State[digest] = append(i.Versions.Versions[i.Head.string].State.State[digest], virtualFilename)
-			i.modified = true
+			modified, err := i.Versions.AddFile(virtualFilename, digest)
+			if err != nil {
+				return errors.Wrapf(err, "cannot add version of '%s' [%s]", stateFilenames, digest)
+			}
+			i.modified = i.modified || modified
 		}
 	}
 
@@ -685,15 +664,15 @@ func (i *InventoryBase) Clean() error {
 		return nil
 	}
 	i.logger.Debug().Msgf("deleting %v", i.GetHead())
-	delete(i.Versions.Versions, i.GetHead())
-	lastVersion := i.getLastVersion()
+	i.Versions.Delete(i.GetHead())
+	lastVersion := i.Versions.LatestVersion()
 	if lastVersion == "" {
 		return errors.New("cannot get last version")
 	}
-	i.Head.string = lastVersion
+	i.Head.string = string(lastVersion)
 	i.Head.err = nil
 	return nil
 }
 
 var _ Inventory = (*InventoryBase)(nil)
-var _ validation.Validator = (*InventoryBase)(nil)
+var _ validation.Validation = (*InventoryBase)(nil)

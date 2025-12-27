@@ -48,12 +48,12 @@ func (u *UserBase) Check(val validation.Validation, version string) error {
 	return nil
 }
 
-func (u *UserBase) SetAddress(address string) User {
+func (u *UserBase) WithAddress(address string) User {
 	u.Address = NewOCFLString(address)
 	return u
 }
 
-func (u *UserBase) SetName(name string) User {
+func (u *UserBase) WithName(name string) User {
 	u.Name = NewOCFLString(name)
 	return u
 }

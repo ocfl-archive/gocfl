@@ -13,6 +13,8 @@ var DigestAlgNotFound = errors.New("digest algorithm not found")
 var FixityTypeDifferent = errors.New("fixity type different")
 
 type Fixity interface {
+	AddFile(manifestFilename string, digests map[checksum.DigestAlgorithm]string) (bool, error)
+
 	String() string
 	IterateFiles(alg checksum.DigestAlgorithm) func(yield func(digest string, external []string) bool)
 	GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm]
