@@ -21,7 +21,7 @@ type Inventory interface {
 	GetID() string
 	GetContentDir() string
 	GetRealContentDir() string
-	GetHead() version.OCFLVersion
+	GetHead() *VersionNumber
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
@@ -31,13 +31,13 @@ type Inventory interface {
 	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	CopyFile(dest string, digest string) error
 
-	IterateStateFiles(version version.OCFLVersion, fn StateFileCallback) error
-	GetStateFiles(version version.OCFLVersion, cs string) ([]string, error)
+	IterateStateFiles(version *VersionNumber, fn StateFileCallback) error
+	GetStateFiles(version *VersionNumber, cs string) ([]string, error)
 
 	//GetContentDirectory() string
-	GetVersionStrings() []version.OCFLVersion
-	GetVersions() map[version.OCFLVersion]Version
-	GetFiles() map[version.OCFLVersion][]string
+	GetVersionStrings() []*VersionNumber
+	GetVersions() map[*VersionNumber]Version
+	GetFiles() map[*VersionNumber][]string
 	GetManifest() Manifest
 	GetFixity() Fixity
 	GetFilesFlat() []string
@@ -46,7 +46,7 @@ type Inventory interface {
 	IsWriteable() bool
 	IsModified() bool
 	BuildManifestName(stateFilename string) string
-	BuildManifestNameVersion(stateFilename string, version version.OCFLVersion) string
+	BuildManifestNameVersion(stateFilename string, version *VersionNumber) string
 	NewVersion(msg, UserName, UserAddress string) error
 	//GetDuplicates(checksum string) []string
 	AlreadyExists(stateFilename, checksum string) (bool, error)
@@ -56,7 +56,7 @@ type Inventory interface {
 	EchoDelete(existing []string, pathprefix string) error
 }
 
-func NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {
+func NewInventory(ctx context.Context, folder string, ver *VersionNumber, logger zLogger.ZLogger) (Inventory, error) {
 	switch ver {
 	case version.Version1_1:
 		sr, err := newInventoryV1_1(ctx, ver, folder, logger)

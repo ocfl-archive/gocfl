@@ -16,7 +16,7 @@ type Manifest interface {
 	Err() error
 	Equals(manifest Manifest) bool
 	CopyFrom(manifest Manifest) Manifest
-	Check(val validation.Validation, version version.OCFLVersion, csFiles map[string][]string) error
+	Check(val validation.Validation, version *VersionNumber, csFiles map[string][]string) error
 	Finalize(val validation.Validation, factory Factory, creation bool) error
 	GetDuplicates(digest string) []string
 }

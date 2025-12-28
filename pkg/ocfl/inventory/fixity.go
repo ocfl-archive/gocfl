@@ -15,6 +15,7 @@ var FixityTypeDifferent = errors.New("fixity type different")
 type Fixity interface {
 	AddFile(manifestFilename string, digests map[checksum.DigestAlgorithm]string) (bool, error)
 
+	WithAlgorithms(algorithms ...checksum.DigestAlgorithm) Fixity
 	String() string
 	IterateFiles(alg checksum.DigestAlgorithm) func(yield func(digest string, external []string) bool)
 	GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm]
@@ -22,6 +23,6 @@ type Fixity interface {
 	Err() error
 	Equals(val validation.Validation, fixity Fixity) bool
 	CopyFrom(fixity Fixity) error
-	Check(val validation.Validation, version version.OCFLVersion, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
+	Check(val validation.Validation, version *VersionNumber, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 	Finalize(inCreation bool) error
 }

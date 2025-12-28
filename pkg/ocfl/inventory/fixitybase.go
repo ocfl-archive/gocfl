@@ -13,13 +13,10 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFixityBase(digestAlgs []checksum.DigestAlgorithm) *FixityBase {
+func NewFixityBase(factory Factory) *FixityBase {
 	f := &FixityBase{
 		fixity: map[checksum.DigestAlgorithm]map[string][]string{},
 		err:    nil,
-	}
-	for _, alg := range digestAlgs {
-		f.fixity[alg] = map[string][]string{}
 	}
 	return f
 }
@@ -28,6 +25,15 @@ type FixityBase struct {
 	fixity                 map[checksum.DigestAlgorithm]map[string][]string
 	err                    error
 	fixityDigestAlgorithms []checksum.DigestAlgorithm
+}
+
+func (f *FixityBase) WithAlgorithms(algorithms ...checksum.DigestAlgorithm) Fixity {
+	for _, alg := range algorithms {
+		if _, ok := f.fixity[alg]; !ok {
+			f.fixity[alg] = map[string][]string{}
+		}
+	}
+	return f
 }
 
 func (f *FixityBase) AddFile(manifestFilename string, digests map[checksum.DigestAlgorithm]string) (bool, error) {
@@ -128,7 +134,7 @@ func (f *FixityBase) CopyFrom(fixity Fixity) error {
 	return nil
 }
 
-func (f *FixityBase) Check(val validation.Validation, version version.OCFLVersion, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
+func (f *FixityBase) Check(val validation.Validation, version *VersionNumber, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
 	for digestAlg, fixity := range f.fixity {
 		// check calculated digests
 		if fileManifest != nil {

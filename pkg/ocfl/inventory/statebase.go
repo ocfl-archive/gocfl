@@ -11,18 +11,26 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-type StateBase struct {
+func NewStateBase(factory Factory) State {
+	return &stateBase{
+		State:           map[string][]string{},
+		err:             nil,
+		digestAlgorithm: "",
+	}
+}
+
+type stateBase struct {
 	State           map[string][]string
 	err             error
 	digestAlgorithm checksum.DigestAlgorithm
 }
 
-func (s *StateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) State {
+func (s *stateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) State {
 	s.digestAlgorithm = dgst
 	return s
 }
 
-func (s *StateBase) AddFile(stateFilename string, digest string) (bool, error) {
+func (s *stateBase) AddFile(stateFilename string, digest string) (bool, error) {
 	digest = strings.ToLower(digest)
 	if s.State[digest] == nil {
 		s.State[digest] = []string{}
@@ -34,7 +42,7 @@ func (s *StateBase) AddFile(stateFilename string, digest string) (bool, error) {
 	return true, nil
 }
 
-func (s *StateBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
+func (s *stateBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
 	var modified bool
 	slices.Sort(existing)
 	for _, paths := range s.State {
@@ -54,7 +62,7 @@ func (s *StateBase) EchoDelete(existing []string, pathPrefix string) (bool, erro
 	return modified, nil
 }
 
-func (s *StateBase) CopyFile(stateFilename, digest string) (bool, error) {
+func (s *stateBase) CopyFile(stateFilename, digest string) (bool, error) {
 	var modified bool
 	if _, ok := s.State[digest]; !ok {
 		return false, errors.Errorf("digest %s not found", digest)
@@ -66,7 +74,7 @@ func (s *StateBase) CopyFile(stateFilename, digest string) (bool, error) {
 	return modified, nil
 }
 
-func (s *StateBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
+func (s *stateBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
 	var newState = map[string][]string{}
 	modified := false
 	for cs, paths := range s.IterateFiles() {
@@ -90,7 +98,7 @@ func (s *StateBase) RenameFile(oldStateFilename, newStateFilename string) (bool,
 
 }
 
-func (s *StateBase) FileChecksum(path string) string {
+func (s *stateBase) FileChecksum(path string) string {
 	for d, ps := range s.IterateFiles() {
 		if slices.Contains(ps, path) {
 			return d
@@ -99,7 +107,7 @@ func (s *StateBase) FileChecksum(path string) string {
 	return ""
 }
 
-func (s *StateBase) Check(val validation.Validation, version string, manifestDigests []string, manifestDigestsLower []string) error {
+func (s *stateBase) Check(val validation.Validation, version string, manifestDigests []string, manifestDigestsLower []string) error {
 	logPaths := []string{}
 	if s.Err() != nil {
 		val.AddValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
@@ -144,8 +152,8 @@ func (s *StateBase) Check(val validation.Validation, version string, manifestDig
 	return nil
 }
 
-func (s *StateBase) CopyFrom(state State) error {
-	state2, ok := state.(*StateBase)
+func (s *stateBase) CopyFrom(state State) error {
+	state2, ok := state.(*stateBase)
 	if !ok {
 		return errors.WithStack(StateTypeDifferent)
 	}
@@ -160,15 +168,15 @@ func (s *StateBase) CopyFrom(state State) error {
 	return nil
 }
 
-func (s *StateBase) Err() error {
+func (s *stateBase) Err() error {
 	return s.err
 }
 
-func (s *StateBase) Equals(state State) bool {
+func (s *stateBase) Equals(state State) bool {
 	if s == nil || state == nil {
 		return false
 	}
-	stateB, ok := state.(*StateBase)
+	stateB, ok := state.(*stateBase)
 	if !ok {
 		return false
 	}
@@ -190,7 +198,7 @@ func (s *StateBase) Equals(state State) bool {
 	return true
 }
 
-func (s *StateBase) String() string {
+func (s *stateBase) String() string {
 	var num int64
 	var unique int64
 	for _, v := range s.State {
@@ -200,7 +208,7 @@ func (s *StateBase) String() string {
 	return fmt.Sprintf("%d files (%d unique)", num, unique)
 }
 
-func (s *StateBase) IterateFiles() func(yield func(digest string, external []string) bool) {
+func (s *stateBase) IterateFiles() func(yield func(digest string, external []string) bool) {
 	return func(yield func(digest string, external []string) bool) {
 		for digest, files := range s.State {
 			if !yield(digest, files) {
@@ -210,7 +218,7 @@ func (s *StateBase) IterateFiles() func(yield func(digest string, external []str
 	}
 }
 
-func (s *StateBase) GetFiles(digest string) ([]string, error) {
+func (s *stateBase) GetFiles(digest string) ([]string, error) {
 	files, ok := s.State[digest]
 	if !ok {
 		return nil, errors.Wrapf(DigestNotFound, "digest %s", digest)
@@ -218,7 +226,7 @@ func (s *StateBase) GetFiles(digest string) ([]string, error) {
 	return files, nil
 }
 
-func (s *StateBase) UnmarshalJSON(data []byte) error {
+func (s *stateBase) UnmarshalJSON(data []byte) error {
 	s.State = map[string][]string{}
 	if err := json.Unmarshal(data, &s.State); err != nil {
 		s.err = errors.Wrapf(err, "cannot unmarshal state %s", string(data))
@@ -227,11 +235,11 @@ func (s *StateBase) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *StateBase) MarshalJSON() ([]byte, error) {
+func (s *stateBase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.State)
 }
 
-func (s *StateBase) DeleteFile(stateFilename string) (bool, error) {
+func (s *stateBase) DeleteFile(stateFilename string) (bool, error) {
 	var newState = map[string][]string{}
 	modified := false
 	for cs, paths := range s.IterateFiles() {
@@ -253,4 +261,4 @@ func (s *StateBase) DeleteFile(stateFilename string) (bool, error) {
 	return modified, nil
 }
 
-var _ State = (*StateBase)(nil)
+var _ State = (*stateBase)(nil)

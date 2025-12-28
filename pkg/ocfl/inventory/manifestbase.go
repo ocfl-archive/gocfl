@@ -11,7 +11,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewManifestBase() *ManifestBase {
+func NewManifestBase(factory Factory) *ManifestBase {
 	return &ManifestBase{
 		manifest: map[string][]string{},
 	}
@@ -53,7 +53,7 @@ func (s *ManifestBase) Finalize(val validation.Validation, factory Factory, crea
 	return nil
 }
 
-func (s *ManifestBase) Check(val validation.Validation, version version.OCFLVersion, csFiles map[string][]string) error {
+func (s *ManifestBase) Check(val validation.Validation, version *VersionNumber, csFiles map[string][]string) error {
 	if s.Err() != nil {
 		return errors.Wrapf(s.Err(), "manifest for version %s has errors", version)
 	}

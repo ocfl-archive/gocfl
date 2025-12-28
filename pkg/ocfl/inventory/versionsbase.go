@@ -12,54 +12,59 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"golang.org/x/exp/slices"
 )
 
 var versionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
 var versionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
 
-type versionValue map[version.OCFLVersion]uint
+type versionValue map[*VersionNumber]uint
 
-func (v versionValue) GetInt(version version.OCFLVersion) (uint, bool) {
+func (v versionValue) GetInt(version *VersionNumber) (uint, bool) {
 	vInt, ok := v[version]
 	return vInt, ok
 }
 
-func (v versionValue) GetVersion(version uint) (version.OCFLVersion, bool) {
+func (v versionValue) GetVersion(version uint) (*VersionNumber, bool) {
 	for ver, verInt := range v {
 		if verInt == version {
 			return ver, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
-func NewVersionsBase() *VersionsBase {
-	return &VersionsBase{
-		Versions:     map[version.OCFLVersion]*VersionBase{},
-		versionValue: versionValue{},
+func NewVersionsBase(factory Factory) Versions {
+	return &versionsBase{
+		Versions:      map[*VersionNumber]Version{},
+		versionValue:  versionValue{},
+		latestVersion: NewVersionNumber(),
 	}
 }
 
-type VersionsBase struct {
-	Versions      map[version.OCFLVersion]*VersionBase
+type versionsBase struct {
+	Versions      map[*VersionNumber]Version
 	versionValue  versionValue
 	err           error
 	paddingLength int
-	latestVersion version.OCFLVersion
+	latestVersion *VersionNumber
 }
 
-func (v *VersionsBase) Delete(versionString version.OCFLVersion) (bool, error) {
+func (v *versionsBase) AddVersion() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (v *versionsBase) Delete(versionString *VersionNumber) (bool, error) {
 	if _, ok := v.Versions[versionString]; !ok {
 		return false, nil
 	}
 	delete(v.Versions, versionString)
-	v.latestVersion = ""
+	v.latestVersion = nil
 	return true, nil
 }
 
-func (v *VersionsBase) AddFile(stateFilename string, digest string) (bool, error) {
+func (v *versionsBase) AddFile(stateFilename string, digest string) (bool, error) {
 	latestVersionString := v.LatestVersion()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
@@ -72,7 +77,7 @@ func (v *VersionsBase) AddFile(stateFilename string, digest string) (bool, error
 	return modified, nil
 }
 
-func (v *VersionsBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
+func (v *versionsBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
 	latestVersionString := v.LatestVersion()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
@@ -85,7 +90,7 @@ func (v *VersionsBase) EchoDelete(existing []string, pathPrefix string) (bool, e
 	return modified, nil
 }
 
-func (v *VersionsBase) CopyFile(stateFilename, digest string) (bool, error) {
+func (v *versionsBase) CopyFile(stateFilename, digest string) (bool, error) {
 	latestVersionString := v.LatestVersion()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
@@ -98,7 +103,7 @@ func (v *VersionsBase) CopyFile(stateFilename, digest string) (bool, error) {
 	return modified, nil
 }
 
-func (v *VersionsBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
+func (v *versionsBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
 	latestVersionString := v.LatestVersion()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
@@ -111,7 +116,7 @@ func (v *VersionsBase) RenameFile(oldStateFilename, newStateFilename string) (bo
 	return modified, nil
 }
 
-func (v *VersionsBase) DeleteFile(stateFilename string) (bool, error) {
+func (v *versionsBase) DeleteFile(stateFilename string) (bool, error) {
 	latestVersionString := v.LatestVersion()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
@@ -124,9 +129,9 @@ func (v *VersionsBase) DeleteFile(stateFilename string) (bool, error) {
 	return modified, nil
 }
 
-func (v *VersionsBase) FileExists(path, digest string) (bool, error) {
+func (v *versionsBase) FileExists(path, digest string) (bool, error) {
 	// find all versions, which contain the path
-	css := map[version.OCFLVersion]string{}
+	css := map[*VersionNumber]string{}
 	for versionString, ver := range v.Iterate() {
 		cs := ver.FileChecksum(path)
 		if cs == "" {
@@ -163,10 +168,10 @@ func (v *VersionsBase) FileExists(path, digest string) (bool, error) {
 	return lastChecksum == digest, nil
 }
 
-func (v *VersionsBase) LatestVersion() version.OCFLVersion {
-	if v.latestVersion == "" {
+func (v *versionsBase) LatestVersion() *VersionNumber {
+	if !v.latestVersion.IsValid() {
 		if len(v.Versions) == 0 {
-			return ""
+			return nil
 		}
 		// sort versions ascending
 		var versions = []int{}
@@ -185,11 +190,11 @@ func (v *VersionsBase) LatestVersion() version.OCFLVersion {
 	return v.latestVersion
 }
 
-func (v *VersionsBase) GetVersionStrings() iter.Seq[version.OCFLVersion] {
+func (v *versionsBase) GetVersionStrings() iter.Seq[*VersionNumber] {
 	return maps.Keys(v.Versions)
 }
 
-func (v *VersionsBase) VersionLessOrEqual(v1, v2 version.OCFLVersion) bool {
+func (v *versionsBase) VersionLessOrEqual(v1, v2 *VersionNumber) bool {
 	v1Int, ok := v.versionValue[v1]
 	if !ok {
 		return false
@@ -201,7 +206,7 @@ func (v *VersionsBase) VersionLessOrEqual(v1, v2 version.OCFLVersion) bool {
 	return v1Int <= v2Int
 }
 
-func (v *VersionsBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
+func (v *versionsBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
 	for ver, version := range v.Iterate() {
 		vInt, err := strconv.Atoi(strings.TrimLeft(ver.String(), "v0"))
 		if err != nil {
@@ -216,7 +221,7 @@ func (v *VersionsBase) Finalize(val validation.Validation, factory Factory, inCr
 	return nil
 }
 
-func (v *VersionsBase) Check(val validation.Validation, manifestDigests []string) error {
+func (v *versionsBase) Check(val validation.Validation, manifestDigests []string) error {
 	if v.IsEmpty() {
 		val.AddValidationError(validation.E008, "length of ver is 0")
 		return nil
@@ -238,9 +243,9 @@ func (v *VersionsBase) Check(val validation.Validation, manifestDigests []string
 		versions = append(versions, int(vInt))
 		if versionZeroRegexp.MatchString(versionString.String()) {
 			if paddingLength == -1 {
-				paddingLength = len(versionString) - 2
+				paddingLength = len(versionString.String()) - 2
 			} else {
-				if paddingLength != len(versionString)-2 {
+				if paddingLength != len(versionString.String())-2 {
 					//i.AddValidationError(E011, "invalid ver padding '%s'", ver)
 					val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionString)
 					val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionString)
@@ -282,20 +287,20 @@ func (v *VersionsBase) Check(val validation.Validation, manifestDigests []string
 	return nil
 }
 
-func (v *VersionsBase) SetVersion(versionString version.OCFLVersion, ver Version) Versions {
-	verB, ok := ver.(*VersionBase)
+func (v *versionsBase) SetVersion(versionString *VersionNumber, ver Version) Versions {
+	verB, ok := ver.(*versionBase)
 	if !ok {
-		panic(fmt.Sprintf("cannot convert to VersionBase '%s'", versionString))
+		panic(fmt.Sprintf("cannot convert to versionBase '%s'", versionString))
 	}
 	v.Versions[versionString] = verB
 	return v
 }
 
-func (v *VersionsBase) IsEmpty() bool {
+func (v *versionsBase) IsEmpty() bool {
 	return len(v.Versions) == 0
 }
 
-func (v *VersionsBase) GetVersion(versionString version.OCFLVersion) Version {
+func (v *versionsBase) GetVersion(versionString *VersionNumber) Version {
 	version, ok := v.Versions[versionString]
 	if !ok {
 		return nil
@@ -303,8 +308,8 @@ func (v *VersionsBase) GetVersion(versionString version.OCFLVersion) Version {
 	return version
 }
 
-func (v *VersionsBase) Equals(other Versions) bool {
-	otherBase, ok := other.(*VersionsBase)
+func (v *versionsBase) Equals(other Versions) bool {
+	otherBase, ok := other.(*versionsBase)
 	if !ok {
 		return false
 	}
@@ -321,7 +326,7 @@ func (v *VersionsBase) Equals(other Versions) bool {
 	return false
 }
 
-func (v *VersionsBase) String() string {
+func (v *versionsBase) String() string {
 	var result string
 	for k := range maps.Keys(v.Versions) {
 		result += "; " + k.String()
@@ -329,8 +334,8 @@ func (v *VersionsBase) String() string {
 	return strings.TrimLeft(result, "; ")
 }
 
-func (v *VersionsBase) Iterate() func(yield func(versionString version.OCFLVersion, version Version) bool) {
-	return func(yield func(versionString version.OCFLVersion, version Version) bool) {
+func (v *versionsBase) Iterate() func(yield func(versionString *VersionNumber, version Version) bool) {
+	return func(yield func(versionString *VersionNumber, version Version) bool) {
 		for versionString, version := range v.Versions {
 			if !yield(versionString, version) {
 				return
@@ -339,8 +344,8 @@ func (v *VersionsBase) Iterate() func(yield func(versionString version.OCFLVersi
 	}
 }
 
-func (v *VersionsBase) UnmarshalJSON(data []byte) error {
-	v.Versions = map[version.OCFLVersion]*VersionBase{}
+func (v *versionsBase) UnmarshalJSON(data []byte) error {
+	v.Versions = map[*VersionNumber]Version{}
 	if err := json.Unmarshal(data, &v.Versions); err != nil {
 		v.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
 		return nil
@@ -349,8 +354,8 @@ func (v *VersionsBase) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v *VersionsBase) MarshalJSON() ([]byte, error) {
+func (v *versionsBase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.Versions)
 }
 
-var _ Versions = (*VersionsBase)(nil)
+var _ Versions = (*versionsBase)(nil)

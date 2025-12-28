@@ -7,7 +7,16 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-type VersionBase struct {
+func NewVersionBase(factory Factory) Version {
+	return &versionBase{
+		Created: NewOCFLTime(time.Now()),
+		Message: NewOCFLString("initial"),
+		State:   factory.NewState(),
+		User:    factory.NewUser(),
+	}
+}
+
+type versionBase struct {
 	version string
 	Created *OCFLTime   `json:"created"`
 	Message *OCFLString `json:"message"`
@@ -15,11 +24,11 @@ type VersionBase struct {
 	User    User        `json:"user"`
 }
 
-func (v *VersionBase) AddFile(stateFilename string, digest string) (bool, error) {
+func (v *versionBase) AddFile(stateFilename string, digest string) (bool, error) {
 	return v.State.AddFile(stateFilename, digest)
 }
 
-func (v *VersionBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
+func (v *versionBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
 	modified, err := v.State.EchoDelete(existing, pathPrefix)
 	if err != nil {
 		return false, errors.WithStack(err)
@@ -27,7 +36,7 @@ func (v *VersionBase) EchoDelete(existing []string, pathPrefix string) (bool, er
 	return modified, nil
 }
 
-func (v *VersionBase) CopyFile(stateFilename, digest string) (bool, error) {
+func (v *versionBase) CopyFile(stateFilename, digest string) (bool, error) {
 	modified, err := v.State.CopyFile(stateFilename, digest)
 	if err != nil {
 		return false, errors.WithStack(err)
@@ -35,7 +44,7 @@ func (v *VersionBase) CopyFile(stateFilename, digest string) (bool, error) {
 	return modified, nil
 }
 
-func (v *VersionBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
+func (v *versionBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
 	modified, err := v.State.RenameFile(oldStateFilename, newStateFilename)
 	if err != nil {
 		return false, errors.WithStack(err)
@@ -43,7 +52,7 @@ func (v *VersionBase) RenameFile(oldStateFilename, newStateFilename string) (boo
 	return modified, nil
 }
 
-func (v *VersionBase) DeleteFile(stateFilename string) (bool, error) {
+func (v *versionBase) DeleteFile(stateFilename string) (bool, error) {
 	modified, err := v.State.DeleteFile(stateFilename)
 	if err != nil {
 		return false, errors.WithStack(err)
@@ -51,11 +60,11 @@ func (v *VersionBase) DeleteFile(stateFilename string) (bool, error) {
 	return modified, nil
 }
 
-func (v *VersionBase) FileChecksum(path string) string {
+func (v *versionBase) FileChecksum(path string) string {
 	return v.State.FileChecksum(path)
 }
 
-func (v *VersionBase) Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error {
+func (v *versionBase) Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error {
 	if v.Created.Err() != nil {
 		val.AddValidationError(validation.E049, "invalid created format in version '%s': %v", v.version, v.Created.Err())
 	}
@@ -74,7 +83,7 @@ func (v *VersionBase) Check(val validation.Validation, manifestDigests, manifest
 	return nil
 }
 
-func (v *VersionBase) Err() error {
+func (v *versionBase) Err() error {
 	return errors.Combine(
 		v.User.Err(),
 		v.State.Err(),
@@ -83,43 +92,43 @@ func (v *VersionBase) Err() error {
 	)
 }
 
-func (v *VersionBase) WithCreated(t time.Time) Version {
+func (v *versionBase) WithCreated(t time.Time) Version {
 	v.Created = NewOCFLTime(t)
 	return v
 }
 
-func (v *VersionBase) WithMessage(msg string) Version {
+func (v *versionBase) WithMessage(msg string) Version {
 	v.Message = NewOCFLString(msg)
 	return v
 }
 
-func (v *VersionBase) WithState(state State) Version {
+func (v *versionBase) WithState(state State) Version {
 	v.State = state
 	return v
 }
 
-func (v *VersionBase) WithUser(user User) Version {
+func (v *versionBase) WithUser(user User) Version {
 	v.User = user
 	return v
 }
 
-func (v *VersionBase) GetMessage() string {
+func (v *versionBase) GetMessage() string {
 	return v.Message.String()
 }
 
-func (v *VersionBase) GetUser() User {
+func (v *versionBase) GetUser() User {
 	return v.User
 }
 
-func (v *VersionBase) GetCreated() time.Time {
+func (v *versionBase) GetCreated() time.Time {
 	return v.Created.Time
 }
 
-func (v *VersionBase) GetState() State {
+func (v *versionBase) GetState() State {
 	return v.State
 }
 
-func (v *VersionBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
+func (v *versionBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
 	if v.User == nil {
 		_ = val.AddValidationWarning(validation.W007, "no user key in version '%s'", v.version)
 		v.User = factory.NewUser()
@@ -135,11 +144,11 @@ func (v *VersionBase) Finalize(val validation.Validation, factory Factory, inCre
 	return nil
 }
 
-func (v *VersionBase) Equals(other Version) bool {
+func (v *versionBase) Equals(other Version) bool {
 	if v == nil || other == nil {
 		return false
 	}
-	otherVersion, ok := other.(*VersionBase)
+	otherVersion, ok := other.(*versionBase)
 	if !ok {
 		return false
 	}
@@ -152,11 +161,11 @@ func (v *VersionBase) Equals(other Version) bool {
 	return true
 }
 
-func (v *VersionBase) String() string {
+func (v *versionBase) String() string {
 	return v.version
 }
 
-func (v *VersionBase) EqualMeta(v2 *VersionBase) bool {
+func (v *versionBase) EqualMeta(v2 *versionBase) bool {
 	if v == nil || v2 == nil {
 		return false
 	}
@@ -167,7 +176,7 @@ func (v *VersionBase) EqualMeta(v2 *VersionBase) bool {
 	}
 	return true
 }
-func (v *VersionBase) EqualState(v2 *VersionBase) bool {
+func (v *versionBase) EqualState(v2 *versionBase) bool {
 	if v == nil || v2 == nil {
 		return false
 	}
@@ -177,4 +186,4 @@ func (v *VersionBase) EqualState(v2 *VersionBase) bool {
 	return true
 }
 
-var _ Version = (*VersionBase)(nil)
+var _ Version = (*versionBase)(nil)

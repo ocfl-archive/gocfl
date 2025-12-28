@@ -9,21 +9,21 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewUserBase(name, address string) *UserBase {
-	return &UserBase{
-		Address: NewOCFLString(address),
-		Name:    NewOCFLString(name),
+func NewUserBase(factory Factory) User {
+	return &userBase{
+		Address: NewOCFLString(""),
+		Name:    NewOCFLString(""),
 	}
 }
 
-type UserBase struct {
+type userBase struct {
 	Address *OCFLString
 	Name    *OCFLString
 }
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
 
-func (u *UserBase) Check(val validation.Validation, version string) error {
+func (u *userBase) Check(val validation.Validation, version string) error {
 	if u.Address.Err() != nil {
 		val.AddValidationError(validation.E054, "invalid user address in Version %s: %s", version, u.Address.Err().Error())
 	}
@@ -48,17 +48,17 @@ func (u *UserBase) Check(val validation.Validation, version string) error {
 	return nil
 }
 
-func (u *UserBase) WithAddress(address string) User {
+func (u *userBase) WithAddress(address string) User {
 	u.Address = NewOCFLString(address)
 	return u
 }
 
-func (u *UserBase) WithName(name string) User {
+func (u *userBase) WithName(name string) User {
 	u.Name = NewOCFLString(name)
 	return u
 }
 
-func (u *UserBase) Finalize() {
+func (u *userBase) Finalize() {
 	if u.Name == nil {
 		u.Name = NewOCFLString("")
 	}
@@ -67,28 +67,28 @@ func (u *UserBase) Finalize() {
 	}
 }
 
-func (u *UserBase) Err() error {
+func (u *userBase) Err() error {
 	return errors.Combine(u.Name.Err(), u.Address.Err())
 }
 
-func (u *UserBase) Equals(other User) bool {
-	otherU, ok := other.(*UserBase)
+func (u *userBase) Equals(other User) bool {
+	otherU, ok := other.(*userBase)
 	if !ok {
 		return false
 	}
 	return u.Address.Equals(otherU.Address) && u.Name.Equals(otherU.Name)
 }
 
-func (u *UserBase) GetAddress() (string, error) {
-	return u.Address.String(), u.Address.Err()
+func (u *userBase) GetAddress() string {
+	return u.Address.String()
 }
 
-func (u *UserBase) GetName() (string, error) {
-	return u.Name.String(), u.Name.Err()
+func (u *userBase) GetName() string {
+	return u.Name.String()
 }
 
-func (u *UserBase) String() string {
+func (u *userBase) String() string {
 	return fmt.Sprintf("%s [%s]", u.Name.String(), u.Address.String())
 }
 
-var _ User = (*UserBase)(nil)
+var _ User = (*userBase)(nil)

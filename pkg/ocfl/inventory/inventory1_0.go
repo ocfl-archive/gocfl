@@ -17,7 +17,7 @@ type InventoryV1_0 struct {
 	*InventoryBase
 }
 
-func newInventoryV1_0(ctx context.Context, ver version.OCFLVersion, folder string, logger zLogger.ZLogger) (*InventoryV1_0, error) {
+func newInventoryV1_0(ctx context.Context, ver *VersionNumber, folder string, logger zLogger.ZLogger) (*InventoryV1_0, error) {
 	ivUrl, _ := url.Parse(string(InventorySpec1_0))
 	factory := NewFactory10()
 	ib, err := newInventoryBase(ctx, factory, ver, folder, ivUrl, "", logger)

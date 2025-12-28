@@ -1,8 +1,12 @@
 package inventory
 
 import (
+	"encoding/json"
+	"strconv"
+	"strings"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 

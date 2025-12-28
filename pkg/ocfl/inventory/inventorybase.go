@@ -27,7 +27,7 @@ type InventoryBase struct {
 	ctx     context.Context
 	folder  string
 	//object                 ocfl.Object
-	version       version.OCFLVersion
+	version       *VersionNumber
 	modified      bool
 	writeable     bool
 	paddingLength int
@@ -44,7 +44,7 @@ type InventoryBase struct {
 	logger           zLogger.ZLogger
 }
 
-func newInventoryBase(ctx context.Context, factory Factory, ver version.OCFLVersion, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
+func newInventoryBase(ctx context.Context, factory Factory, ver *VersionNumber, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:     ctx,
 		factory: factory,
@@ -146,9 +146,9 @@ func (i *InventoryBase) AddValidationWarning(errno validation.ValidationErrorCod
 	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s'", i.GetID())
 	return errors.WithStack(validation.AddValidationWarnings(i.ctx, err))
 }
-func (i *InventoryBase) GetID() string                { return i.Id }
-func (i *InventoryBase) GetHead() version.OCFLVersion { return version.OCFLVersion(i.Head.String()) }
-func (i *InventoryBase) GetSpec() InventorySpec       { return i.Type }
+func (i *InventoryBase) GetID() string           { return i.Id }
+func (i *InventoryBase) GetHead() *VersionNumber { return *VersionNumber(i.Head.String()) }
+func (i *InventoryBase) GetSpec() InventorySpec  { return i.Type }
 
 func (i *InventoryBase) GetContentDir() string {
 	if i.ContentDirectory == "" {
@@ -168,17 +168,17 @@ func (i *InventoryBase) GetFixityDigestAlgorithm() iter.Seq[checksum.DigestAlgor
 func (i *InventoryBase) IsWriteable() bool { return i.writeable }
 func (i *InventoryBase) IsModified() bool  { return i.modified }
 
-func (i *InventoryBase) GetVersionStrings() []version.OCFLVersion {
+func (i *InventoryBase) GetVersionStrings() []*VersionNumber {
 	versionsInt := []int{}
-	versionString := map[int]version.OCFLVersion{}
+	versionString := map[int]*VersionNumber{}
 	for ver := range i.Versions.Iterate() {
 		matches := vRegexp.FindStringSubmatch(ver.String())
 		if matches == nil {
-			return []version.OCFLVersion{}
+			return []*VersionNumber{}
 		}
 		versionInt, err := strconv.Atoi(matches[1])
 		if err != nil {
-			return []version.OCFLVersion{}
+			return []*VersionNumber{}
 		}
 		versionsInt = append(versionsInt, versionInt)
 		versionString[versionInt] = ver
@@ -186,21 +186,21 @@ func (i *InventoryBase) GetVersionStrings() []version.OCFLVersion {
 
 	// sort versions ascending
 	sort.Ints(versionsInt)
-	var versions = []version.OCFLVersion{}
+	var versions = []*VersionNumber{}
 	for _, versionInt := range versionsInt {
 		versions = append(versions, versionString[versionInt])
 	}
 	return versions
 }
-func (i *InventoryBase) GetVersions() map[version.OCFLVersion]Version {
-	var versions = map[version.OCFLVersion]Version{}
+func (i *InventoryBase) GetVersions() map[*VersionNumber]Version {
+	var versions = map[*VersionNumber]Version{}
 	for versionStr, version := range i.Versions.Iterate() {
 		versions[versionStr] = version
 	}
 	return versions
 }
 
-func (i *InventoryBase) GetStateFiles(version version.OCFLVersion, cs string) ([]string, error) {
+func (i *InventoryBase) GetStateFiles(version *VersionNumber, cs string) ([]string, error) {
 	if version == "latest" || version == "" {
 		version = i.GetHead()
 	}
@@ -222,7 +222,7 @@ func (i *InventoryBase) GetStateFiles(version version.OCFLVersion, cs string) ([
 	return files, nil
 }
 
-func (i *InventoryBase) IterateStateFiles(version version.OCFLVersion, fn StateFileCallback) error {
+func (i *InventoryBase) IterateStateFiles(version *VersionNumber, fn StateFileCallback) error {
 	if version == "latest" || version == "" {
 		version = i.GetHead()
 	}
@@ -382,7 +382,7 @@ func (i *InventoryBase) checkVersions() error {
 		return errors.Wrap(err, "cannot check versions")
 	}
 	// check head is recent ver
-	var recentVersion version.OCFLVersion
+	var recentVersion *VersionNumber
 	for ver := range i.Versions.GetVersionStrings() {
 		if recentVersion == "" {
 			recentVersion = ver
@@ -397,7 +397,7 @@ func (i *InventoryBase) checkVersions() error {
 	}
 
 	// check that head exists in versions
-	if i.Head.string != "" && !slices.Contains(i.GetVersionStrings(), version.OCFLVersion(i.Head.string)) {
+	if i.Head.string != "" && !slices.Contains(i.GetVersionStrings(), *VersionNumber(i.Head.string)) {
 		i.AddValidationError(validation.E040, "manifest head '%s' does not exists in versions %v", i.Head.string, i.GetVersionStrings())
 	}
 
@@ -423,16 +423,16 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 	return nil
 }
 
-func (i *InventoryBase) GetFiles() map[version.OCFLVersion][]string {
-	var result = map[version.OCFLVersion][]string{}
-	versions := []version.OCFLVersion{}
+func (i *InventoryBase) GetFiles() map[*VersionNumber][]string {
+	var result = map[*VersionNumber][]string{}
+	versions := []*VersionNumber{}
 	for _, files := range i.Manifest.IterateFiles() {
 		for _, filename := range files {
 			parts := strings.Split(filename, "/")
 			if len(parts) < 3 {
 				i.AddValidationError(validation.E000, "invalid filepath in manifest '%s'", filename)
 			}
-			version := version.OCFLVersion(parts[0])
+			version := *VersionNumber(parts[0])
 			//fn := parts[2]
 			if parts[1] != i.GetContentDir() {
 				//i.AddValidationError(E015, "extra file/directory '%s' in manifest", parts[1])
@@ -481,7 +481,7 @@ func (i *InventoryBase) BuildManifestName(stateFilename string) string {
 	return i.BuildManifestNameVersion(stateFilename, i.GetHead())
 }
 
-func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version version.OCFLVersion) string {
+func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version *VersionNumber) string {
 	return filepath.ToSlash(filepath.Clean(filepath.Join(version.String(), i.GetContentDir(), stateFilename)))
 }
 
@@ -491,7 +491,7 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 			return errors.New(fmt.Sprintf("version '%s' already writeable", i.GetHead()))
 		}
 	*/
-	lastHead := version.OCFLVersion(i.Head.string)
+	lastHead := *VersionNumber(i.Head.string)
 	if lastHead == "" {
 		if i.paddingLength <= 0 {
 			i.Head.string = "v1"
@@ -529,7 +529,7 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 		newState.CopyFrom(lastState)
 		ver.WithState(newState)
 	}
-	i.Versions.SetVersion(version.OCFLVersion(i.Head.string), ver)
+	i.Versions.SetVersion(*VersionNumber(i.Head.string), ver)
 	i.writeable = true
 	return nil
 }
