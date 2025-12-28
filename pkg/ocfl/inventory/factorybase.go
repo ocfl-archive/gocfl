@@ -2,40 +2,35 @@ package inventory
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase() *FactoryBase {
+func NewFactoryBase() Factory {
 	return &FactoryBase{}
 }
 
 type FactoryBase struct{}
 
 func (f *FactoryBase) NewFixity(algorithms []checksum.DigestAlgorithm) Fixity {
-	return NewFixityBase(algorithms)
+	return NewFixityBase(f)
 }
 
 func (f *FactoryBase) NewUser() User {
-	return NewUserBase("", "")
+	return NewUserBase(f)
 }
 
 func (f *FactoryBase) NewManifest() Manifest {
-	return NewManifestBase()
+	return NewManifestBase(f)
 }
 
 func (f *FactoryBase) NewVersions() Versions {
-	return &VersionsBase{
-		Versions: map[version.OCFLVersion]*VersionBase{},
-	}
+	return NewVersionsBase(f)
 }
 func (f *FactoryBase) NewVersion() Version {
-	return &VersionBase{}
+	return NewVersionBase(f)
 }
 
 func (f *FactoryBase) NewState() State {
-	return &StateBase{
-		State: map[string][]string{},
-	}
+	return NewStateBase(f)
 }
 
 var _ Factory = (*FactoryBase)(nil)

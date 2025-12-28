@@ -1,15 +1,15 @@
 package inventory
 
-var factory11 = NewFactory11()
+var f11 = NewFactory11()
 
-func NewFactory11() *Factory11 {
-	return &Factory11{
-		FactoryBase: NewFactoryBase(),
+func NewFactory11() Factory {
+	return &factory11{
+		Factory: NewFactoryBase(),
 	}
 }
 
-type Factory11 struct {
-	*FactoryBase
+type factory11 struct {
+	Factory
 }
 
-var _ Factory = (*Factory11)(nil)
+var _ Factory = (*factory11)(nil)
