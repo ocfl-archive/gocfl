@@ -9,12 +9,12 @@ import (
 )
 
 func Test_UserJSONMarshal(t *testing.T) {
-	user := factory11.NewUser().WithName("Alice").WithAddress("mailto:alice@example.org")
+	user := f11.NewUser().WithName("Alice").WithAddress("mailto:alice@example.org")
 	bytes, err := json.Marshal(user)
 	if err != nil {
 		t.Fatalf("Failed to marshal user: %s", err)
 	}
-	user2 := factory11.NewUser()
+	user2 := f11.NewUser()
 	if err := json.Unmarshal(bytes, user2); err != nil {
 		t.Fatalf("Failed to unmarshal user: %s", err)
 	}
@@ -30,21 +30,15 @@ func Test_UserJSONUnmarshal(t *testing.T) {
 	"name": "Alice"
 }
 `)
-	user := factory11.NewUser()
+	user := f11.NewUser()
 	if err := json.Unmarshal(jsonData, user); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
-	name, err := user.GetName()
-	if err != nil {
-		t.Errorf("get name error: %v", err)
-	}
+	name := user.GetName()
 	if name != "Alice" {
 		t.Errorf("name error: %v", name)
 	}
-	address, err := user.GetAddress()
-	if err != nil {
-		t.Errorf("get address error: %v", err)
-	}
+	address := user.GetAddress()
 	if address != "mailto:alice@example.org" {
 		t.Errorf("address error: %v", address)
 	}
@@ -57,7 +51,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 	"name": "Alice"
 }
 `)
-	user := factory11.NewUser()
+	user := f11.NewUser()
 	if err := json.Unmarshal(jsonData, user); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
@@ -68,7 +62,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 
 func Test_UserInvalidAddressCheck(t *testing.T) {
 	val := NewDummyValidation()
-	user := factory11.NewUser().WithAddress("xxx")
+	user := f11.NewUser().WithAddress("xxx")
 	if err := user.Check(val, "v1"); err != nil {
 		t.Fatalf("check error: %v", err)
 	}

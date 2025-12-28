@@ -9,7 +9,7 @@ import (
 )
 
 func exampleState(cnt int, t *testing.T) State {
-	var state = factory11.NewState()
+	var state = f11.NewState()
 	for i := 0; i < cnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
 		if err != nil {
@@ -48,7 +48,7 @@ func Test_StateJSONMarshal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error marshalling state: %v", err)
 	}
-	state2 := factory11.NewState()
+	state2 := f11.NewState()
 	if err := json.Unmarshal(bytes, state2); err != nil {
 		t.Fatalf("Error unmarshalling state: %v", err)
 	}
@@ -64,7 +64,7 @@ func Test_StateJSONUnmarshal(t *testing.T) {
   "digest002" : [ "file002", "file002x" ],
   "digest003" : [ "file003", "file003x" ]
 }`)
-	var state = factory11.NewState()
+	var state = f11.NewState()
 	if err := json.Unmarshal(bytes, state); err != nil {
 		t.Fatalf("Error unmarshalling state: %v", err)
 	}
@@ -89,7 +89,7 @@ func Test_StateJSONUnmarshalError(t *testing.T) {
   "digest002" : [ "file002", "file002x" ],
   "digest003" : "file003"
 }`)
-	var state = factory11.NewState()
+	var state = f11.NewState()
 	if err := json.Unmarshal(bytes, state); err != nil {
 		t.Errorf("Error unmarshalling state: %v", err)
 	}
