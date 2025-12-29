@@ -43,7 +43,7 @@ func Test_VersionJSONMarshal(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(version, version2) {
-		t.Errorf("Versions are not equal. Expected %v, got %v", version, version2)
+		t.Errorf("versions are not equal. Expected %v, got %v", version, version2)
 	}
 }
 

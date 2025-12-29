@@ -51,16 +51,22 @@ func (s *OCFLString) String() string {
 }
 
 func (s *OCFLString) Equals(s2 *OCFLString) bool {
-	return s.string == s2.String() && s.err.Error() == s2.Err().Error()
+	if s.string != s2.String() {
+		return false
+	}
+	return errors.Is(s.err, s2.err)
 }
 
 func (s *OCFLString) Err() error {
+	if s == nil {
+		return nil
+	}
 	return s.err
 }
 
 func NewOCFLTime(t time.Time) *OCFLTime {
 	return &OCFLTime{
-		Time: t,
+		Time: t.UTC().Truncate(time.Second),
 	}
 }
 
@@ -90,6 +96,9 @@ func (t *OCFLTime) UnmarshalJSON(data []byte) error {
 }
 
 func (t *OCFLTime) Err() error {
+	if t == nil {
+		return nil
+	}
 	return t.err
 }
 

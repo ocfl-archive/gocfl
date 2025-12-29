@@ -2,7 +2,6 @@ package inventory
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -11,7 +10,7 @@ import (
 func Test_VersionsJSONMarshal(t *testing.T) {
 	versions := f11.NewVersions()
 	version := f11.NewVersion().WithMessage("test version")
-	versions.AddVersion("v1", version)
+	versions.SetVersion(NewVersionNumber().WithString("v1"), version)
 	bytes, err := json.Marshal(versions)
 	if err != nil {
 		t.Fatalf("Failed to marshal versions: %s", err)
@@ -20,7 +19,7 @@ func Test_VersionsJSONMarshal(t *testing.T) {
 	if err := json.Unmarshal(bytes, versions2); err != nil {
 		t.Fatalf("Failed to unmarshal versions: %s", err)
 	}
-	if !reflect.DeepEqual(versions, versions2) {
+	if !versions.Equals(versions2) {
 		t.Fatalf("Failed to unmarshal versions - not equal")
 	}
 }
@@ -43,7 +42,7 @@ func Test_VersionsJSONUnmarshal(t *testing.T) {
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
-	version := versions.GetVersion("v1")
+	version := versions.GetVersion(NewVersionNumber().WithString("v1"))
 	if version == nil {
 		t.Error("version v1 not found")
 	}
@@ -76,9 +75,9 @@ func Test_VersionsCheck(t *testing.T) {
 	val := NewDummyValidation()
 	versions := f11.NewVersions()
 	version := f11.NewVersion().WithMessage("test")
-	versions.AddVersion("v1", version)
+	versions.SetVersion(NewVersionNumber().WithString("v1"), version)
 
-	if err := versions.Check(val, []string{}, []string{}); err != nil {
+	if err := versions.Check(val, []string{}); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
 

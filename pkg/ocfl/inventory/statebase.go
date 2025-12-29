@@ -11,7 +11,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewStateBase(factory Factory) State {
+func NewStateBase() *stateBase {
 	return &stateBase{
 		State:           map[string][]string{},
 		err:             nil,
@@ -169,6 +169,9 @@ func (s *stateBase) CopyFrom(state State) error {
 }
 
 func (s *stateBase) Err() error {
+	if s == nil {
+		return nil
+	}
 	return s.err
 }
 
@@ -180,7 +183,7 @@ func (s *stateBase) Equals(state State) bool {
 	if !ok {
 		return false
 	}
-	if s.err.Error() != state.Err().Error() {
+	if !errors.Is(stateB.Err(), s.Err()) {
 		return false
 	}
 	if len(s.State) != len(stateB.State) {

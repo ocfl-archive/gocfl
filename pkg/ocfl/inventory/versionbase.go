@@ -11,8 +11,8 @@ func NewVersionBase(factory Factory) Version {
 	return &versionBase{
 		Created: NewOCFLTime(time.Now()),
 		Message: NewOCFLString("initial"),
-		State:   factory.NewState(),
-		User:    factory.NewUser(),
+		State:   NewStateBase(),
+		User:    NewUserBase(),
 	}
 }
 
@@ -20,8 +20,8 @@ type versionBase struct {
 	version string
 	Created *OCFLTime   `json:"created"`
 	Message *OCFLString `json:"message"`
-	State   State       `json:"state"`
-	User    User        `json:"user"`
+	State   *stateBase  `json:"state"`
+	User    *userBase   `json:"user"`
 }
 
 func (v *versionBase) AddFile(stateFilename string, digest string) (bool, error) {
@@ -84,6 +84,9 @@ func (v *versionBase) Check(val validation.Validation, manifestDigests, manifest
 }
 
 func (v *versionBase) Err() error {
+	if v == nil {
+		return nil
+	}
 	return errors.Combine(
 		v.User.Err(),
 		v.State.Err(),
@@ -103,12 +106,22 @@ func (v *versionBase) WithMessage(msg string) Version {
 }
 
 func (v *versionBase) WithState(state State) Version {
-	v.State = state
+	stateB, ok := state.(*stateBase)
+	if !ok {
+		panic("invalid state type")
+		return v
+	}
+	v.State = stateB
 	return v
 }
 
 func (v *versionBase) WithUser(user User) Version {
-	v.User = user
+	userB, ok := user.(*userBase)
+	if !ok {
+		panic("invalid user type")
+		return v
+	}
+	v.User = userB
 	return v
 }
 
@@ -131,7 +144,7 @@ func (v *versionBase) GetState() State {
 func (v *versionBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
 	if v.User == nil {
 		_ = val.AddValidationWarning(validation.W007, "no user key in version '%s'", v.version)
-		v.User = factory.NewUser()
+		v.User = NewUserBase()
 	}
 	v.User.Finalize()
 	if v.Message == nil {
@@ -139,7 +152,7 @@ func (v *versionBase) Finalize(val validation.Validation, factory Factory, inCre
 		v.Message = NewOCFLString("")
 	}
 	if v.State == nil {
-		v.State = factory.NewState()
+		v.State = NewStateBase()
 	}
 	return nil
 }
@@ -171,7 +184,7 @@ func (v *versionBase) EqualMeta(v2 *versionBase) bool {
 	}
 	if v.Created.Time.String() != v2.Created.Time.String() ||
 		v.Message.string != v2.Message.string ||
-		v.User.Equals(v2.User) {
+		!v.User.Equals(v2.User) {
 		return false
 	}
 	return true

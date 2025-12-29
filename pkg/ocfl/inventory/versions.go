@@ -13,17 +13,16 @@ type Versions interface {
 	Operations
 
 	String() string
-	Iterate() func(yield func(versionString *VersionNumber, version Version) bool)
-	GetVersionStrings() iter.Seq[*VersionNumber]
+	Iterate() func(yield func(versionNumber *VersionNumber, version Version) bool)
+	GetVersionNumbers() iter.Seq[*VersionNumber]
 	Equals(other Versions) bool
-	GetVersion(versionString *VersionNumber) Version
+	GetVersion(versionNumber *VersionNumber) Version
 	IsEmpty() bool
-	SetVersion(versionString *VersionNumber, ver Version) Versions
+	SetVersion(versionNumber *VersionNumber, ver Version) Versions
 	Check(val validation.Validation, manifestDigest []string) error
 	Finalize(val validation.Validation, factory Factory, inCreation bool) error
-	VersionLessOrEqual(v1, v2 *VersionNumber) bool
 	LatestVersion() *VersionNumber
 	FileExists(path, digest string) (bool, error)
-	Delete(versionString *VersionNumber) (bool, error)
-	AddVersion() error
+	Delete(versionNumber *VersionNumber) (bool, error)
+	Err() error
 }

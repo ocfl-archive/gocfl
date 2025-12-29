@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
-	"maps"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
@@ -36,31 +34,35 @@ func (v versionValue) GetVersion(version uint) (*VersionNumber, bool) {
 
 func NewVersionsBase(factory Factory) Versions {
 	return &versionsBase{
-		Versions:      map[*VersionNumber]Version{},
-		versionValue:  versionValue{},
-		latestVersion: NewVersionNumber(),
+		versions:    map[int]*versionBase{},
+		versionInts: map[string]int{},
 	}
 }
 
 type versionsBase struct {
-	Versions      map[*VersionNumber]Version
-	versionValue  versionValue
+	versions      map[int]*versionBase
+	versionInts   map[string]int
 	err           error
 	paddingLength int
-	latestVersion *VersionNumber
 }
 
-func (v *versionsBase) AddVersion() error {
-	//TODO implement me
-	panic("implement me")
+func (v *versionsBase) Err() error {
+	if v == nil {
+		return nil
+	}
+	var errs = []error{}
+	for _, version := range v.Iterate() {
+		errs = append(errs, version.Err())
+	}
+	return errors.Combine(errs...)
 }
 
-func (v *versionsBase) Delete(versionString *VersionNumber) (bool, error) {
-	if _, ok := v.Versions[versionString]; !ok {
+func (v *versionsBase) Delete(versionNumber *VersionNumber) (bool, error) {
+	if _, ok := v.versions[versionNumber.Int()]; !ok {
 		return false, nil
 	}
-	delete(v.Versions, versionString)
-	v.latestVersion = nil
+	delete(v.versions, versionNumber.Int())
+	delete(v.versionInts, versionNumber.String())
 	return true, nil
 }
 
@@ -131,89 +133,40 @@ func (v *versionsBase) DeleteFile(stateFilename string) (bool, error) {
 
 func (v *versionsBase) FileExists(path, digest string) (bool, error) {
 	// find all versions, which contain the path
-	css := map[*VersionNumber]string{}
+	css := map[int]string{}
 	for versionString, ver := range v.Iterate() {
 		cs := ver.FileChecksum(path)
 		if cs == "" {
 			continue
 		}
-		css[versionString] = cs
+		css[versionString.Int()] = cs
 	}
 	if len(css) == 0 {
 		return false, nil
 	}
-	var versions = make([]int, 0, len(css))
-	for versionString := range css {
-		versionInt, ok := v.versionValue[versionString]
-		if !ok {
-			return false, errors.Errorf("version %s does not exist", versionString)
-		}
-		versions = append(versions, int(versionInt))
-	}
+	latestVersion := v.LatestVersion()
 
-	// get the latest version with this path
-	sort.Ints(versions)
-	lastVersion := versions[len(versions)-1]
-
-	lastVersionString, ok := v.versionValue.GetVersion(uint(lastVersion))
+	lastChecksum, ok := css[latestVersion.Int()]
 	if !ok {
-		return false, errors.Errorf("version %d does not exist", lastVersion)
-	}
-	lastChecksum, ok := css[lastVersionString]
-	if !ok {
-		return false, errors.Errorf("checksum for version %s does not exist", lastVersionString)
+		return false, errors.Errorf("checksum for version %s does not exist", lastChecksum)
 	}
 
 	// check whether the latest version is the correct file
 	return lastChecksum == digest, nil
 }
 
-func (v *versionsBase) LatestVersion() *VersionNumber {
-	if !v.latestVersion.IsValid() {
-		if len(v.Versions) == 0 {
-			return nil
-		}
-		// sort versions ascending
-		var versions = []int{}
-		for intVer := range maps.Values(v.versionValue) {
-			versions = append(versions, int(intVer))
-		}
-		sort.Ints(versions)
-		lastVersion := uint(versions[len(versions)-1])
-		for versionString, intVer := range v.versionValue {
-			if intVer == lastVersion {
-				v.latestVersion = versionString
-				break
+func (v *versionsBase) GetVersionNumbers() iter.Seq[*VersionNumber] {
+	return func(yield func(*VersionNumber) bool) {
+		for versionString, versionInt := range v.versionInts {
+			if !yield(NewVersionNumber().Init(versionInt, versionString)) {
+				return
 			}
 		}
 	}
-	return v.latestVersion
-}
-
-func (v *versionsBase) GetVersionStrings() iter.Seq[*VersionNumber] {
-	return maps.Keys(v.Versions)
-}
-
-func (v *versionsBase) VersionLessOrEqual(v1, v2 *VersionNumber) bool {
-	v1Int, ok := v.versionValue[v1]
-	if !ok {
-		return false
-	}
-	v2Int, ok := v.versionValue[v2]
-	if !ok {
-		return false
-	}
-	return v1Int <= v2Int
 }
 
 func (v *versionsBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
 	for ver, version := range v.Iterate() {
-		vInt, err := strconv.Atoi(strings.TrimLeft(ver.String(), "v0"))
-		if err != nil {
-			val.AddValidationError(validation.E104, "invalid version format '%s'", ver)
-			continue
-		}
-		v.versionValue[ver] = uint(vInt)
 		if err := version.Finalize(val, factory, inCreation); err != nil {
 			return errors.Wrapf(err, "failed to finalize inventory version '%s'", ver)
 		}
@@ -226,7 +179,7 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 		val.AddValidationError(validation.E008, "length of ver is 0")
 		return nil
 	}
-	var versions = []int{}
+	var versionsSeq = []int{}
 	var paddingLength int = -1
 	manifestDigestsLower := []string{}
 	for _, manifestDigest := range manifestDigests {
@@ -234,48 +187,43 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 	}
 	slices.Sort(manifestDigests)
 	slices.Sort(manifestDigestsLower)
-	for versionString, ver := range v.Iterate() {
-		vInt, ok := v.versionValue[versionString]
-		if !ok {
-			//			i.AddValidationError(E104, "invalid ver format '%s'", ver)
-			continue
-		}
-		versions = append(versions, int(vInt))
-		if versionZeroRegexp.MatchString(versionString.String()) {
+	for versionNumber, ver := range v.Iterate() {
+		versionsSeq = append(versionsSeq, versionNumber.Int())
+		if versionZeroRegexp.MatchString(versionNumber.String()) {
 			if paddingLength == -1 {
-				paddingLength = len(versionString.String()) - 2
+				paddingLength = len(versionNumber.String()) - 2
 			} else {
-				if paddingLength != len(versionString.String())-2 {
+				if paddingLength != len(versionNumber.String())-2 {
 					//i.AddValidationError(E011, "invalid ver padding '%s'", ver)
-					val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionString)
-					val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionString)
+					val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionNumber)
+					val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionNumber)
 				}
 			}
 		} else {
-			if versionNoZeroRegexp.MatchString(versionString.String()) {
+			if versionNoZeroRegexp.MatchString(versionNumber.String()) {
 				if paddingLength == -1 {
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
-						val.AddValidationError(validation.E011, "invalid ver padding '%s'", versionString)
-						val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionString)
-						val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionString)
+						val.AddValidationError(validation.E011, "invalid ver padding '%s'", versionNumber)
+						val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionNumber)
+						val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionNumber)
 					}
 				}
 			} else {
 				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
-				val.AddValidationError(validation.E104, "invalid version format '%s'", versionString)
+				val.AddValidationError(validation.E104, "invalid version format '%s'", versionNumber)
 			}
 		}
 
 		if err := ver.Check(val, manifestDigests, manifestDigestsLower); err != nil {
-			return errors.Wrapf(err, "version %s validation check failed", versionString)
+			return errors.Wrapf(err, "version %s validation check failed", versionNumber)
 		}
 	}
-	slices.Sort(versions)
-	for key, vInt := range versions {
+	slices.Sort(versionsSeq)
+	for key, vInt := range versionsSeq {
 		if key != vInt-1 {
-			val.AddValidationError(validation.E010, "invalid ver sequence %v", versions)
+			val.AddValidationError(validation.E010, "invalid ver sequence %v", versionsSeq)
 			break
 		}
 	}
@@ -287,21 +235,22 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 	return nil
 }
 
-func (v *versionsBase) SetVersion(versionString *VersionNumber, ver Version) Versions {
+func (v *versionsBase) SetVersion(versionNumber *VersionNumber, ver Version) Versions {
 	verB, ok := ver.(*versionBase)
 	if !ok {
-		panic(fmt.Sprintf("cannot convert to versionBase '%s'", versionString))
+		panic(fmt.Sprintf("cannot convert to versionBase '%s'", versionNumber))
 	}
-	v.Versions[versionString] = verB
+	v.versions[versionNumber.Int()] = verB
+	v.versionInts[versionNumber.String()] = versionNumber.Int()
 	return v
 }
 
 func (v *versionsBase) IsEmpty() bool {
-	return len(v.Versions) == 0
+	return len(v.versions) == 0
 }
 
-func (v *versionsBase) GetVersion(versionString *VersionNumber) Version {
-	version, ok := v.Versions[versionString]
+func (v *versionsBase) GetVersion(versionNumber *VersionNumber) Version {
+	version, ok := v.versions[versionNumber.Int()]
 	if !ok {
 		return nil
 	}
@@ -313,7 +262,7 @@ func (v *versionsBase) Equals(other Versions) bool {
 	if !ok {
 		return false
 	}
-	if len(v.Versions) != len(otherBase.Versions) {
+	if len(v.versions) != len(otherBase.versions) {
 		return false
 	}
 	for key, version := range v.Iterate() {
@@ -328,16 +277,16 @@ func (v *versionsBase) Equals(other Versions) bool {
 
 func (v *versionsBase) String() string {
 	var result string
-	for k := range maps.Keys(v.Versions) {
+	for k := range v.GetVersionNumbers() {
 		result += "; " + k.String()
 	}
 	return strings.TrimLeft(result, "; ")
 }
 
-func (v *versionsBase) Iterate() func(yield func(versionString *VersionNumber, version Version) bool) {
+func (v *versionsBase) Iterate() func(yield func(versionNumber *VersionNumber, version Version) bool) {
 	return func(yield func(versionString *VersionNumber, version Version) bool) {
-		for versionString, version := range v.Versions {
-			if !yield(versionString, version) {
+		for versionNumber := range v.GetVersionNumbers() {
+			if !yield(versionNumber, v.versions[versionNumber.Int()]) {
 				return
 			}
 		}
@@ -345,17 +294,49 @@ func (v *versionsBase) Iterate() func(yield func(versionString *VersionNumber, v
 }
 
 func (v *versionsBase) UnmarshalJSON(data []byte) error {
-	v.Versions = map[*VersionNumber]Version{}
-	if err := json.Unmarshal(data, &v.Versions); err != nil {
+	var newVersions = map[string]*versionBase{}
+	if err := json.Unmarshal(data, &newVersions); err != nil {
 		v.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
 		return nil
 	}
-
+	v.versions = map[int]*versionBase{}
+	for key, ver := range newVersions {
+		versionNumber := NewVersionNumber().WithString(key)
+		ver.version = versionNumber.String()
+		v.versions[versionNumber.Int()] = ver
+		v.versionInts[versionNumber.String()] = versionNumber.Int()
+	}
 	return nil
 }
 
 func (v *versionsBase) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.Versions)
+	var newVersions = map[string]*versionBase{}
+	for versionNumber := range v.GetVersionNumbers() {
+		newVersions[versionNumber.String()] = v.versions[versionNumber.Int()]
+	}
+
+	return json.Marshal(newVersions)
+}
+
+func (v *versionsBase) GetVersionNumber(vInt int) *VersionNumber {
+	for versionNumber := range v.GetVersionNumbers() {
+		if versionNumber.Int() == vInt {
+			return versionNumber
+		}
+	}
+	return nil
+}
+
+func (v *versionsBase) LatestVersion() *VersionNumber {
+	var versions = make([]int, 0, len(v.versions))
+	for versionInt, _ := range v.versions {
+		versions = append(versions, versionInt)
+	}
+
+	// get the latest version with this path
+	sort.Ints(versions)
+	lastVersionInt := versions[len(versions)-1]
+	return v.GetVersionNumber(lastVersionInt)
 }
 
 var _ Versions = (*versionsBase)(nil)

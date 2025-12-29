@@ -234,7 +234,7 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 	mi.writer = brotli.NewWriter(mi.buffer[head])
 	//files := inventory.GetFiles()
 
-	versions := inventory.GetVersionStrings()
+	versions := inventory.GetVersionNumbers()
 	if len(versions) < 2 {
 		return errors.Errorf("cannot migrate files in object '%s' - no previous version", object.GetID())
 	}

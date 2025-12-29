@@ -368,7 +368,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 					cs:   cs,
 				}
 				stateVersions := maps.Keys(metaFile.VersionName)
-				for _, vStr := range inventory.GetVersionStrings() {
+				for _, vStr := range inventory.GetVersionNumbers() {
 					if slices.Contains(stateVersions, vStr) {
 						val.ingestVersion = vStr
 						break
@@ -392,7 +392,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 					if !ok {
 						return errors.Errorf("invalid type: %v", ext)
 					}
-					for _, ver := range inventory.GetVersionStrings() {
+					for _, ver := range inventory.GetVersionNumbers() {
 						if verHead, ok := extFSL[ver]; ok {
 							if len(verHead) > 0 {
 								creationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
@@ -753,7 +753,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 									if internal, ok := internalFiledata[extPath]; ok {
 										if internal.ingestVersion != "" {
 											ingestVersion = internal.ingestVersion
-											if versionData, ok := metadata.Versions[internal.ingestVersion]; ok {
+											if versionData, ok := metadata.versions[internal.ingestVersion]; ok {
 												ingestTime = versionData.Created
 											}
 										}
@@ -941,7 +941,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 			if !ok {
 				return errors.Errorf("invalid type: %v", ext)
 			}
-			for _, ver := range inventory.GetVersionStrings() {
+			for _, ver := range inventory.GetVersionNumbers() {
 				if verHead, ok := extFSL[ver]; ok {
 					if len(verHead) > 0 {
 						foundCreationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")

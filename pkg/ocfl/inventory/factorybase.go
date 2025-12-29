@@ -15,7 +15,7 @@ func (f *FactoryBase) NewFixity(algorithms []checksum.DigestAlgorithm) Fixity {
 }
 
 func (f *FactoryBase) NewUser() User {
-	return NewUserBase(f)
+	return NewUserBase()
 }
 
 func (f *FactoryBase) NewManifest() Manifest {
@@ -30,7 +30,7 @@ func (f *FactoryBase) NewVersion() Version {
 }
 
 func (f *FactoryBase) NewState() State {
-	return NewStateBase(f)
+	return NewStateBase()
 }
 
 var _ Factory = (*FactoryBase)(nil)

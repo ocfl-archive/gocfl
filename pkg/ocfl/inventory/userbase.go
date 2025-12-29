@@ -9,7 +9,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewUserBase(factory Factory) User {
+func NewUserBase() *userBase {
 	return &userBase{
 		Address: NewOCFLString(""),
 		Name:    NewOCFLString(""),
@@ -68,6 +68,9 @@ func (u *userBase) Finalize() {
 }
 
 func (u *userBase) Err() error {
+	if u == nil {
+		return nil
+	}
 	return errors.Combine(u.Name.Err(), u.Address.Err())
 }
 

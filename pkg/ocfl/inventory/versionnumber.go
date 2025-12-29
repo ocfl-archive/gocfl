@@ -17,9 +17,17 @@ type VersionNumber struct {
 	int
 }
 
-func (v *VersionNumber) WithString(s string) *VersionNumber {
-	v.string = s
-	v.int, _ = strconv.Atoi(strings.TrimLeft(s, "v0"))
+func (v *VersionNumber) Equal(v2 *VersionNumber) bool {
+	return v.int == v2.int
+}
+
+func (v *VersionNumber) Less(v2 *VersionNumber) bool {
+	return v.int < v2.int
+}
+
+func (v *VersionNumber) WithString(versionString string) *VersionNumber {
+	v.string = versionString
+	v.int, _ = strconv.Atoi(strings.TrimLeft(versionString, "v0"))
 	return v
 }
 
@@ -49,4 +57,10 @@ func (v *VersionNumber) UnmarshalJSON(data []byte) error {
 	v.string = s
 	v.int, _ = strconv.Atoi(strings.TrimLeft(s, "v0"))
 	return nil
+}
+
+func (v *VersionNumber) Init(versionInt int, versionString string) *VersionNumber {
+	v.string = versionString
+	v.int = versionInt
+	return v
 }

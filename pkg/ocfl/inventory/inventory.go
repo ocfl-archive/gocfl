@@ -35,12 +35,11 @@ type Inventory interface {
 	GetStateFiles(version *VersionNumber, cs string) ([]string, error)
 
 	//GetContentDirectory() string
-	GetVersionStrings() []*VersionNumber
+	GetVersionNumbers() []*VersionNumber
 	GetVersions() map[*VersionNumber]Version
-	GetFiles() map[*VersionNumber][]string
+	//GetFiles() map[*VersionNumber][]string
 	GetManifest() Manifest
 	GetFixity() Fixity
-	GetFilesFlat() []string
 	GetDigestAlgorithm() checksum.DigestAlgorithm
 	GetFixityDigestAlgorithm() iter.Seq[checksum.DigestAlgorithm]
 	IsWriteable() bool
@@ -56,7 +55,7 @@ type Inventory interface {
 	EchoDelete(existing []string, pathprefix string) error
 }
 
-func NewInventory(ctx context.Context, folder string, ver *VersionNumber, logger zLogger.ZLogger) (Inventory, error) {
+func NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {
 	switch ver {
 	case version.Version1_1:
 		sr, err := newInventoryV1_1(ctx, ver, folder, logger)

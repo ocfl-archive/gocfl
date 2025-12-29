@@ -3,12 +3,12 @@ package inventory
 import (
 	"encoding/json"
 	"fmt"
+	"iter"
 	"slices"
 	"strings"
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
 func NewManifestBase(factory Factory) *ManifestBase {
@@ -20,6 +20,18 @@ func NewManifestBase(factory Factory) *ManifestBase {
 type ManifestBase struct {
 	manifest map[string][]string
 	err      error
+}
+
+func (s *ManifestBase) GetFilesFlat() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, internal := range s.IterateFiles() {
+			for _, file := range internal {
+				if !yield(file) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func (s *ManifestBase) AddFile(filename string, digest string) (bool, error) {
@@ -53,9 +65,9 @@ func (s *ManifestBase) Finalize(val validation.Validation, factory Factory, crea
 	return nil
 }
 
-func (s *ManifestBase) Check(val validation.Validation, version *VersionNumber, csFiles map[string][]string) error {
+func (s *ManifestBase) Check(val validation.Validation, csFiles map[string][]string) error {
 	if s.Err() != nil {
-		return errors.Wrapf(s.Err(), "manifest for version %s has errors", version)
+		return errors.Wrap(s.Err(), "manifest has errors")
 	}
 	for digest, files := range s.IterateFiles() {
 		csFilenames, ok := csFiles[strings.ToLower(digest)]
@@ -85,6 +97,9 @@ func (s *ManifestBase) CopyFrom(manifest Manifest) Manifest {
 }
 
 func (s *ManifestBase) Err() error {
+	if s == nil {
+		return nil
+	}
 	return s.err
 }
 
@@ -124,7 +139,7 @@ func (s *ManifestBase) String() string {
 	return fmt.Sprintf("%d files (%d unique)", num, unique)
 }
 
-func (s *ManifestBase) IterateFiles() func(yield func(digest string, external []string) bool) {
+func (s *ManifestBase) IterateFiles() func(yield func(digest string, internal []string) bool) {
 	return func(yield func(digest string, external []string) bool) {
 		for digest, files := range s.manifest {
 			if !yield(digest, files) {

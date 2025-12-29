@@ -10,7 +10,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
 func NewFixityBase(factory Factory) *FixityBase {
@@ -85,6 +84,9 @@ func (f *FixityBase) GetFiles(alg checksum.DigestAlgorithm, digest string) ([]st
 }
 
 func (f *FixityBase) Err() error {
+	if f == nil {
+		return nil
+	}
 	return f.err
 }
 
@@ -134,7 +136,7 @@ func (f *FixityBase) CopyFrom(fixity Fixity) error {
 	return nil
 }
 
-func (f *FixityBase) Check(val validation.Validation, version *VersionNumber, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
+func (f *FixityBase) Check(val validation.Validation, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
 	for digestAlg, fixity := range f.fixity {
 		// check calculated digests
 		if fileManifest != nil {

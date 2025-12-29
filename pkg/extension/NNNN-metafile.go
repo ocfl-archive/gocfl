@@ -237,7 +237,7 @@ func (sl *MetaFile) UpdateObjectBefore(object object.Object) error {
 	}
 	if sl.metadataSource == nil {
 		// only a problem, if first version
-		if len(inventory.GetVersionStrings()) < 2 {
+		if len(inventory.GetVersionNumbers()) < 2 {
 			return errors.New("no metadata source configured")
 		}
 		return nil
@@ -383,7 +383,7 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 	inventory := object.GetInventory()
-	versions := inventory.GetVersionStrings()
+	versions := inventory.GetVersionNumbers()
 	slices.Reverse(versions)
 	var metadata []byte
 	for _, ver := range versions {

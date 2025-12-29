@@ -1057,7 +1057,7 @@ func (object *ObjectBase) checkVersionFolder(version string) error {
 func (object *ObjectBase) checkFilesAndVersions() error {
 	// create list of version content directories
 	versionContents := map[string]string{}
-	versionStrings := object.i.GetVersionStrings()
+	versionStrings := object.i.GetVersionNumbers()
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b string) int {
@@ -1238,16 +1238,14 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	// all files in any manifest must belong to a physical file #E092
 	//
 	for inventoryVersion, inventory := range versionInventories {
-		manifestFiles := inventory.GetFilesFlat()
-		for _, manifestFile := range manifestFiles {
+		for manifestFile := range inventory.GetManifest().GetFilesFlat() {
 			if !slices.Contains(objectFilesFlat, manifestFile) {
 				object.AddValidationError(validation.E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
 			}
 		}
 	}
 
-	rootManifestFiles := object.i.GetFilesFlat()
-	for _, manifestFile := range rootManifestFiles {
+	for manifestFile := range object.i.GetManifest().GetFilesFlat() {
 		if !slices.Contains(objectFilesFlat, manifestFile) {
 			object.AddValidationError(validation.E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
 		}
@@ -1298,7 +1296,7 @@ func (object *ObjectBase) Check() error {
 	//object.fs
 	object.logger.Info().Msgf("object '%s' with object version '%s' found", object.GetID(), object.GetVersion())
 	// check folders
-	versions := object.i.GetVersionStrings()
+	versions := object.i.GetVersionNumbers()
 
 	// check for allowed files and directories
 	allowedDirs := append(versions, "logs", "extensions")
@@ -1358,7 +1356,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	}
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
-	versions := object.i.GetVersionStrings()
+	versions := object.i.GetVersionNumbers()
 	for _, version := range versions {
 		if err := fs.WalkDir(
 			object.fsys,
@@ -1405,7 +1403,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventor
 		return object.versionInventories, nil
 	}
 
-	versionStrings := object.i.GetVersionStrings()
+	versionStrings := object.i.GetVersionNumbers()
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b string) int {
