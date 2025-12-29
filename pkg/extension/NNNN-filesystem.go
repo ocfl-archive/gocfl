@@ -17,6 +17,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	inventory2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
@@ -126,10 +127,16 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 			return errors.Wrap(err, "cannot calculate checksum for empty file")
 		}
 		manifest := inventory.GetManifest()
-		_, emptyExists = manifest[emptyChecksum]
+		emptyFiles, err := manifest.GetFiles(emptyChecksum)
+		if err != nil {
+			if !errors.Is(err, inventory2.DigestNotFound) {
+				return errors.Wrap(err, "cannot get files empty manifest")
+			}
+		}
+		emptyExists = len(emptyFiles) != 0
 	}
 
-	head := inventory.GetHead()
+	head := inventory.GetHead().String()
 	if _, ok := extFS.buffer[head]; !ok {
 		extFS.buffer[head] = &bytes.Buffer{}
 	}
@@ -146,7 +153,7 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 			}
 			return errors.Wrapf(err, "cannot get fullpath for '%v/%s'", sourceFS, src)
 		}
-		fsMeta := &FilesystemMeta{StateVersion: inventory.GetHead()}
+		fsMeta := &FilesystemMeta{StateVersion: inventory.GetHead().String()}
 		// we work only on local filesystems with this extension
 		stat, err := os.Stat(fullpath)
 		if err != nil {
@@ -225,14 +232,14 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
-	for checksum, names := range manifest {
+	for checksum, names := range manifest.IterateFiles() {
 		for _, name := range names {
 			path2digest[name] = checksum
 		}
 	}
 	for v := range inventory.GetVersions() {
 		var data []byte
-		if buf, ok := extFS.buffer[v]; ok && buf.Len() > 0 {
+		if buf, ok := extFS.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
 			// need a new reader on the buffer
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
@@ -241,7 +248,7 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
+			data, err = ReadJsonL(object, "filesystem", v.String(), extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
@@ -300,10 +307,10 @@ func (extFS *Filesystem) UpdateObjectAfter(object object.Object) error {
 		return errors.Wrap(err, "cannot close brotli writer")
 	}
 	head := object.GetInventory().GetHead()
-	if head == "" {
+	if !head.IsValid() {
 		return errors.Errorf("no head for object '%s'", object.GetID())
 	}
-	buffer, ok := extFS.buffer[head]
+	buffer, ok := extFS.buffer[head.String()]
 	if !ok {
 		return nil
 	}

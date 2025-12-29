@@ -356,7 +356,7 @@ func (sl *MetaFile) UpdateObjectBefore(object object.Object) error {
 	}
 
 	// remember the content
-	sl.info[inventory.GetHead()] = infoData
+	sl.info[inventory.GetHead().String()] = infoData
 	return nil
 }
 
@@ -388,10 +388,10 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 	var metadata []byte
 	for _, ver := range versions {
 		var ok bool
-		if metadata, ok = sl.info[ver]; ok {
+		if metadata, ok = sl.info[ver.String()]; ok {
 			break
 		}
-		if metadata, err = ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys); err == nil {
+		if metadata, err = ReadFile(object, sl.MetaName, ver.String(), sl.StorageType, sl.StorageName, sl.fsys); err == nil {
 			break
 		}
 	}

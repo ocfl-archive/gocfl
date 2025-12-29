@@ -242,10 +242,10 @@ func (sl *Indexer) UpdateObjectAfter(object object.Object) error {
 		return errors.Wrap(err, "cannot close brotli writer")
 	}
 	head := object.GetInventory().GetHead()
-	if head == "" {
+	if !head.IsValid() {
 		return errors.Errorf("no head for object '%s'", object.GetID())
 	}
-	buffer, ok := sl.buffer[head]
+	buffer, ok := sl.buffer[head.String()]
 	if !ok {
 		return nil
 	}
@@ -270,14 +270,14 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
-	for checksum, names := range manifest {
+	for checksum, names := range manifest.IterateFiles() {
 		for _, name := range names {
 			path2digest[name] = checksum
 		}
 	}
 	for v, _ := range inventory.GetVersions() {
 		var data []byte
-		if buf, ok := sl.buffer[v]; ok && buf.Len() > 0 {
+		if buf, ok := sl.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
 			// need a new reader on the buffer
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
@@ -286,7 +286,7 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
+			data, err = ReadJsonL(object, "indexer", v.String(), sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
 			}
@@ -321,12 +321,12 @@ func (sl *Indexer) StreamObject(object object.Object, reader io.Reader, stateFil
 
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
-	if _, ok := sl.buffer[head]; !ok {
-		sl.buffer[head] = &bytes.Buffer{}
+	if _, ok := sl.buffer[head.String()]; !ok {
+		sl.buffer[head.String()] = &bytes.Buffer{}
 	}
-	if sl.currentHead != head {
-		sl.writer = brotli.NewWriter(sl.buffer[head])
-		sl.currentHead = head
+	if sl.currentHead != head.String() {
+		sl.writer = brotli.NewWriter(sl.buffer[head.String()])
+		sl.currentHead = head.String()
 	}
 
 	var result *ironmaiden.ResultV2
