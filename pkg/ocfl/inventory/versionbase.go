@@ -11,17 +11,21 @@ func NewVersionBase(factory Factory) Version {
 	return &versionBase{
 		Created: NewOCFLTime(time.Now()),
 		Message: NewOCFLString("initial"),
-		State:   NewStateBase(),
-		User:    NewUserBase(),
+		State:   factory.NewState(),
+		User:    factory.NewUser(),
 	}
 }
 
 type versionBase struct {
-	version string
+	version *VersionNumber
 	Created *OCFLTime   `json:"created"`
 	Message *OCFLString `json:"message"`
-	State   *stateBase  `json:"state"`
-	User    *userBase   `json:"user"`
+	State   State       `json:"state"`
+	User    User        `json:"user"`
+}
+
+func (v *versionBase) SetVersion(number *VersionNumber) {
+	v.version = number
 }
 
 func (v *versionBase) AddFile(stateFilename string, digest string) (bool, error) {
@@ -175,7 +179,7 @@ func (v *versionBase) Equals(other Version) bool {
 }
 
 func (v *versionBase) String() string {
-	return v.version
+	return v.version.String()
 }
 
 func (v *versionBase) EqualMeta(v2 *versionBase) bool {

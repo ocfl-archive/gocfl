@@ -192,16 +192,12 @@ func (i *InventoryBase) GetVersionNumbers() []*VersionNumber {
 	}
 	return versions
 }
-func (i *InventoryBase) GetVersions() map[*VersionNumber]Version {
-	var versions = map[*VersionNumber]Version{}
-	for versionStr, version := range i.Versions.Iterate() {
-		versions[versionStr] = version
-	}
-	return versions
+func (i *InventoryBase) GetVersions() Versions {
+	return i.Versions
 }
 
 func (i *InventoryBase) GetStateFiles(version *VersionNumber, cs string) ([]string, error) {
-	if !version.IsValid() {
+	if version.IsLatest() {
 		version = i.GetHead()
 	}
 	ver := i.Versions.GetVersion(version)
@@ -234,7 +230,7 @@ func (i *InventoryBase) IterateStateFiles(version *VersionNumber, fn StateFileCa
 	if state == nil {
 		return errors.Errorf("cannot get state for '%s'", version)
 	}
-	for digest, externalNames := range state.IterateFiles() {
+	for digest, externalNames := range state.Iterate() {
 		internalNames, err := i.Manifest.GetFiles(digest)
 		if err != nil {
 			return errors.Wrapf(err, "no manifest for [%s]%v", digest, externalNames)
@@ -307,7 +303,7 @@ func (i *InventoryBase) checkManifest() error {
 		if state == nil {
 			return errors.Errorf("cannot get state for version '%s'", versionString)
 		}
-		for digest, _ := range state.IterateFiles() {
+		for digest, _ := range state.Iterate() {
 			versionDigests = append(versionDigests, digest)
 		}
 	}
@@ -315,7 +311,7 @@ func (i *InventoryBase) checkManifest() error {
 
 	digests := []string{}
 	allPaths := []string{}
-	for digest, paths := range i.Manifest.IterateFiles() {
+	for digest, paths := range i.Manifest.Iterate() {
 		//		digest = strings.ToLower(digest)
 		if slices.Contains(digests, digest) {
 			i.AddValidationError(validation.E096, "manifest digest '%s' is duplicate", digest)
@@ -370,7 +366,7 @@ func (i *InventoryBase) checkVersions() error {
 	i.logger.Debug().Msgf("[%s] checkVersions", i.GetID())
 	defer i.logger.Debug().Msgf("[%s] checkVersions done", i.GetID())
 	manifestDigests := []string{}
-	for mDigest, _ := range i.Manifest.IterateFiles() {
+	for mDigest, _ := range i.Manifest.Iterate() {
 		manifestDigests = append(manifestDigests, mDigest)
 	}
 
@@ -423,7 +419,7 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 func (i *InventoryBase) GetFiles() map[*VersionNumber][]string {
 	var result = map[*VersionNumber][]string{}
 	versions := []*VersionNumber{}
-	for _, files := range i.Manifest.IterateFiles() {
+	for _, files := range i.Manifest.Iterate() {
 		for _, filename := range files {
 			parts := strings.Split(filename, "/")
 			if len(parts) < 3 {
@@ -653,7 +649,7 @@ func (i *InventoryBase) Clean() error {
 	}
 	i.logger.Debug().Msgf("deleting %v", i.GetHead())
 	i.Versions.Delete(i.GetHead())
-	lastVersion := i.Versions.LatestVersion()
+	lastVersion := i.Versions.LatestVersionNumber()
 	if !lastVersion.IsValid() {
 		return errors.New("cannot get last version")
 	}

@@ -19,6 +19,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
@@ -87,31 +88,29 @@ func (object *ObjectBase) AddValidationWarning(errno validation.ValidationErrorC
 	return errors.WithStack(validation.AddValidationWarnings(object.ctx, valError))
 }
 
-func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
+func (object *ObjectBase) GetMetadata() (*Metadata, error) {
 	inventory := object.GetInventory()
 	if inventory == nil {
 		return nil, errors.Errorf("inventory is nil")
 	}
 
-	result := &ObjectMetadata{
+	result := &Metadata{
 		ID:              object.GetID(),
 		Head:            inventory.GetHead(),
 		Files:           map[string]*FileMetadata{},
 		DigestAlgorithm: object.GetDigestAlgorithm(),
 		Versions:        map[string]*VersionMetadata{},
 	}
-	manifest := inventory.GetManifest()
 	versions := inventory.GetVersions()
-	fixity := inventory.GetFixity()
 	versionStrings := []string{}
-	for v, version := range versions {
-		result.Versions[v] = &VersionMetadata{
-			Created: version.Created.Time,
-			Message: version.Message.String(),
-			Name:    version.User.Name.String(),
-			Address: version.User.Address.String(),
+	for v, ver := range versions.Iterate() {
+		result.Versions[v.String()] = &VersionMetadata{
+			Created: ver.GetCreated(),
+			Message: ver.GetMessage(),
+			Name:    ver.GetUser().GetName(),
+			Address: ver.GetUser().GetAddress(),
 		}
-		versionStrings = append(versionStrings, v)
+		versionStrings = append(versionStrings, v.String())
 	}
 	// sort version strings in ascending order
 	slices.SortFunc(versionStrings, func(a, b string) int {
@@ -134,7 +133,9 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 		*/
 		result.Extension = objectMeta
 	}
-	for digest, fnames := range manifest {
+	manifest := inventory.GetManifest()
+	fixity := inventory.GetFixity()
+	for digest, fnames := range manifest.Iterate() {
 		if len(fnames) == 0 {
 			continue
 		}
@@ -145,13 +146,13 @@ func (object *ObjectBase) GetMetadata() (*ObjectMetadata, error) {
 			Extension:    map[string]any{},
 		}
 		fm.Checksums = fixity.Checksums(fnames[0])
-		for v, version := range versions {
-			for d, fnames := range version.State.State {
+		for v, ver := range versions.Iterate() {
+			for d, externalNames := range ver.GetState().Iterate() {
 				if digest == d {
-					if _, ok := fm.VersionName[v]; !ok {
-						fm.VersionName[v] = []string{}
+					if _, ok := fm.VersionName[v.String()]; !ok {
+						fm.VersionName[v.String()] = []string{}
 					}
-					fm.VersionName[v] = append(fm.VersionName[v], fnames...)
+					fm.VersionName[v.String()] = append(fm.VersionName[v.String()], externalNames...)
 					break
 				}
 			}
@@ -170,35 +171,43 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 	fmt.Fprintf(w, "[%s] Path: %s\n", object.GetID(), object.GetDigestAlgorithm())
 	i := object.GetInventory()
 	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
-	f := i.GetFixity()
+	fixity := i.GetFixity()
 	algs := []string{}
-	for alg, _ := range f {
+	for alg := range fixity.GetDigestAlgorithms() {
 		algs = append(algs, string(alg))
 	}
 	fmt.Fprintf(w, "[%s] Fixity: %s\n", object.GetID(), strings.Join(algs, ", "))
-	m := i.GetManifest()
+	manifest := i.GetManifest()
 	cnt := 0
-	for _, fs := range m {
+	for _, fs := range manifest.Iterate() {
 		cnt += len(fs)
 	}
-	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", object.GetID(), cnt, len(m))
+
+	var uniqueFileCount int
+	for _, _ = range manifest.Iterate() {
+		uniqueFileCount++
+	}
+	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", object.GetID(), cnt, uniqueFileCount)
 	if slices.Contains(statInfo, stat.StatObjectVersions) || len(statInfo) == 0 {
-		for vString, ver := range i.GetVersions() {
+		for vString, ver := range i.GetVersions().Iterate() {
 			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)
-			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), ver.User.User.Name.String(), ver.User.User.Address.String())
-			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), ver.Created.String())
-			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), ver.Message.String())
+			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), ver.GetUser().GetName(), ver.GetUser().GetAddress())
+			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), ver.GetCreated().String())
+			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), ver.GetMessage())
 			if slices.Contains(statInfo, stat.StatObjectVersionState) || len(statInfo) == 0 {
-				state := ver.State.State
-				for cs, sList := range state {
+				for cs, sList := range ver.GetState().Iterate() {
 					for _, s := range sList {
 						fmt.Fprintf(w, "[%s]        %s\n", object.GetID(), s)
 						if slices.Contains(statInfo, stat.StatObjectManifest) || len(statInfo) == 0 {
-							ms, ok := m[cs]
-							if ok {
-								for _, m := range ms {
-									fmt.Fprintf(w, "[%s]           %s\n", object.GetID(), m)
+							ms, err := manifest.GetFiles(cs)
+							if err != nil {
+								if errors.Is(err, inventory.DigestNotFound) {
+									continue
 								}
+								return errors.Wrapf(err, "cannot get files for manifest '%s'", object.GetID())
+							}
+							for _, m := range ms {
+								fmt.Fprintf(w, "[%s]           %s\n", object.GetID(), m)
 							}
 						}
 					}
@@ -543,7 +552,8 @@ func (object *ObjectBase) echoDelete() error {
 	if basePath == "." {
 		basePath = ""
 	}
-	if err := object.i.EchoDelete(object.updateFiles, basePath); err != nil {
+	version := object.i.GetVersions().GetVersion(object.i.GetHead())
+	if _, err := version.EchoDelete(object.updateFiles, basePath); err != nil {
 		return errors.Wrap(err, "cannot remove deleted files from inventory")
 	}
 	return nil
@@ -672,7 +682,10 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate 
 
 func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *NamesStruct, noExtensionHook bool) (string, error) {
 
-	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
+	digestAlgorithms := []checksum.DigestAlgorithm{}
+	for alg := range object.i.GetFixityDigestAlgorithm() {
+		digestAlgorithms = append(digestAlgorithms, alg)
+	}
 
 	var digest string
 
@@ -804,7 +817,15 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 		return errors.New("object not writeable")
 	}
 
-	digestAlgorithms := object.i.GetFixityDigestAlgorithm()
+	ver := object.i.GetVersions().GetVersion(object.i.GetHead())
+	if ver == nil {
+		return errors.Errorf("version %s not found", object.i.GetHead())
+	}
+
+	digestAlgorithms := []checksum.DigestAlgorithm{}
+	for alg := range object.i.GetFixityDigestAlgorithm() {
+		digestAlgorithms = append(digestAlgorithms, alg)
+	}
 	var digest string
 
 	names, err := object.BuildNames([]string{path}, area)
@@ -843,9 +864,9 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 			return nil
 		}
 		// file already ingested, but new virtual name
-		if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
+		if dups, _ := object.i.GetManifest().GetFiles(digest); len(dups) > 0 {
 			object.logger.Info().Msgf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
-			if err := object.i.CopyFile(newPath, digest); err != nil {
+			if _, err := ver.CopyFile(newPath, digest); err != nil {
 				return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, names.InternalPath)
 			}
 			return nil
@@ -882,6 +903,11 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
 	object.logger.Info().Msgf("adding file %s:%s", area, path)
 
+	ver := object.i.GetVersions().GetVersion(object.i.GetHead())
+	if ver == nil {
+		return errors.Errorf("version %s not found", object.i.GetHead())
+	}
+
 	path = filepath.ToSlash(path)
 
 	if !object.i.IsWriteable() {
@@ -898,7 +924,10 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 	var digest string
 	if !isDir {
 
-		digestAlgorithms := object.i.GetFixityDigestAlgorithm()
+		digestAlgorithms := []checksum.DigestAlgorithm{}
+		for alg := range object.i.GetFixityDigestAlgorithm() {
+			digestAlgorithms = append(digestAlgorithms, alg)
+		}
 
 		file, err := fsys.Open(path)
 		if err != nil {
@@ -941,9 +970,9 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 				return nil
 			}
 			// file already ingested, but new virtual name
-			if dups := object.i.GetDuplicates(digest); len(dups) > 0 {
+			if dups, _ := object.i.GetManifest().GetFiles(digest); len(dups) > 0 {
 				object.logger.Info().Msgf("[%s] file with same content as '%s' already exists. creating virtual copy", object.GetID(), newPath)
-				if err := object.i.CopyFile(newPath, digest); err != nil {
+				if _, err := ver.CopyFile(newPath, digest); err != nil {
 					return errors.Wrapf(err, "cannot append '%s' to inventory as '%s'", path, names.InternalPath)
 				}
 				return nil
@@ -979,6 +1008,10 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 }
 
 func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) error {
+	ver := object.i.GetVersions().GetVersion(object.i.GetHead())
+	if ver == nil {
+		return errors.Errorf("version %s not found", object.i.GetHead())
+	}
 	virtualFilename = filepath.ToSlash(virtualFilename)
 	object.logger.Debug().Msgf("removing '%s' [%s]", virtualFilename, digest)
 
@@ -995,7 +1028,7 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 		object.logger.Debug().Msgf("'%s' [%s] not in archive - ignoring", virtualFilename, digest)
 		return nil
 	}
-	if err := object.i.DeleteFile(virtualFilename); err != nil {
+	if _, err := ver.DeleteFile(virtualFilename); err != nil {
 		return errors.Wrapf(err, "cannot delete '%s'", virtualFilename)
 	}
 	return nil
@@ -1003,6 +1036,10 @@ func (object *ObjectBase) DeleteFile(virtualFilename string, digest string) erro
 }
 
 func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error {
+	ver := object.i.GetVersions().GetVersion(object.i.GetHead())
+	if ver == nil {
+		return errors.Errorf("version %s not found", object.i.GetHead())
+	}
 	virtualFilenameSource = filepath.ToSlash(virtualFilenameSource)
 	object.logger.Debug().Msgf("removing '%s' [%s]", virtualFilenameSource, digest)
 
@@ -1019,7 +1056,7 @@ func (object *ObjectBase) RenameFile(virtualFilenameSource, virtualFilenameDest 
 		object.logger.Debug().Msgf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest)
 		return nil
 	}
-	if err := object.i.RenameFile(virtualFilenameSource, virtualFilenameDest); err != nil {
+	if _, err := ver.RenameFile(virtualFilenameSource, virtualFilenameDest); err != nil {
 		return errors.Wrapf(err, "cannot delete '%s'", virtualFilenameSource)
 	}
 	return nil
@@ -1060,20 +1097,20 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	versionStrings := object.i.GetVersionNumbers()
 
 	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b string) int {
-		if object.i.VersionLessOrEqual(a, b) && a != b {
+	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+		if a.Less(b) {
 			return -1
-		} else {
-			if a == b {
-				return 0
-			} else {
-				return 1
-			}
 		}
+
+		if a.Equal(b) {
+			return 0
+		}
+
+		return 1
 	})
 
 	for _, ver := range versionStrings {
-		versionContents[ver] = object.i.GetContentDir()
+		versionContents[ver.String()] = object.i.GetContentDir()
 	}
 
 	// load object content files
@@ -1115,7 +1152,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		if len(objectContentFiles[ver]) == 0 {
 			fi, err := fs.Stat(object.fsys, versionContent)
 			if err != nil {
-				if errors.Cause(err) != fs.ErrNotExist {
+				if !errors.Is(errors.Cause(err), fs.ErrNotExist) {
 					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
 				}
 			} else {
@@ -1141,10 +1178,10 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 
 	contentDir := ""
 	if len(versionStrings) > 0 {
-		contentDir = versionInventories[versionStrings[0]].GetRealContentDir()
+		contentDir = versionInventories[versionStrings[0].String()].GetRealContentDir()
 	}
 	for _, ver := range versionStrings {
-		inv := versionInventories[ver]
+		inv := versionInventories[ver.String()]
 		if inv == nil {
 			continue
 		}
@@ -1157,7 +1194,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		digestAlg := inv.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
 		allowedDirs := []string{inv.GetContentDir()}
-		versionEntries, err := fs.ReadDir(object.fsys, ver)
+		versionEntries, err := fs.ReadDir(object.fsys, ver.String())
 		if err != nil {
 			object.AddValidationError(validation.E010, "cannot read version folder '%s'", ver)
 			continue
@@ -1178,14 +1215,14 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 
 	for key := 0; key < len(versionStrings)-1; key++ {
 		v1 := versionStrings[key]
-		vi1, ok := versionInventories[v1]
+		vi1, ok := versionInventories[v1.String()]
 		if !ok {
 			object.AddValidationWarning(validation.W010, "no inventory for version '%s'", versionStrings[key])
 			continue
 			// return errors.Errorf("no inventory for version '%s'", versionStrings[key])
 		}
 		v2 := versionStrings[key+1]
-		vi2, ok := versionInventories[v2]
+		vi2, ok := versionInventories[v2.String()]
 		if !ok {
 			object.AddValidationWarning(validation.W000, "no inventory for version '%s'", versionStrings[key+1])
 			continue
@@ -1197,7 +1234,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 
 	if len(versionStrings) > 0 {
 		lastVersion := versionStrings[len(versionStrings)-1]
-		if lastInv, ok := versionInventories[lastVersion]; ok {
+		if lastInv, ok := versionInventories[lastVersion.String()]; ok {
 			if !lastInv.IsEqual(object.i) {
 				object.AddValidationError(validation.E064, "root inventory not equal to inventory version '%s'", lastVersion)
 			}
@@ -1212,7 +1249,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		if id != verInventory.GetID() {
 			object.AddValidationError(validation.E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
 		}
-		if verInventory.GetHead() != "" && verInventory.GetHead() != ver {
+		if verInventory.GetHead().IsValid() && verInventory.GetHead().String() != ver {
 			object.AddValidationError(validation.E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
 		}
 
@@ -1220,16 +1257,13 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			object.AddValidationError(validation.W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
 		}
 
-		for verVer, verVersion := range verInventory.GetVersions() {
-			testV, ok := versions[verVer]
-			if !ok {
-				object.AddValidationError(validation.E066, "version '%s' in version folder '%s' not in object root manifest", ver, verVer)
+		for versionNumber, vVersion := range verInventory.GetVersions().Iterate() {
+			testV := versions.GetVersion(versionNumber)
+			if testV == nil {
+				object.AddValidationError(validation.E066, "version '%s' in version folder '%s' not in object root manifest", vVersion, versionNumber)
 			}
-			if !testV.EqualState(verVersion) {
-				object.AddValidationError(validation.E066, "version '%s' in version folder '%s' not equal to version in object root manifest", ver, verVer)
-			}
-			if !testV.EqualMeta(verVersion) {
-				object.AddValidationError(validation.W011, "version '%s' in version folder '%s' has different metadata as version in object root manifest", ver, verVer)
+			if !testV.Equals(vVersion) {
+				object.AddValidationError(validation.E066, "version '%s' in version folder '%s' not equal to version in object root manifest", vVersion, versionNumber)
 			}
 		}
 	}
@@ -1255,19 +1289,21 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	// all object content files must belong to manifest
 	//
 
-	latestVersion := ""
+	latestVersion := inventory.NewVersionNumber()
 
 	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
-		if latestVersion == "" {
-			latestVersion = objectContentVersion
+		objectContentVersionNumber := inventory.NewVersionNumber().WithString(objectContentVersion)
+		if !latestVersion.IsValid() {
+			latestVersion = objectContentVersionNumber
 		}
-		if object.i.VersionLessOrEqual(latestVersion, objectContentVersion) {
-			latestVersion = objectContentVersion
+		if latestVersion.Less(objectContentVersionNumber) {
+			latestVersion = objectContentVersionNumber
 		}
 		// check version inventories
 		for inventoryVersion, versionInventory := range versionInventories {
-			if versionInventory.VersionLessOrEqual(objectContentVersion, inventoryVersion) {
-				versionManifestFiles := versionInventory.GetFilesFlat()
+			inventoryVersionNumber := inventory.NewVersionNumber().WithString(inventoryVersion)
+			if objectContentVersionNumber.Less(inventoryVersionNumber) {
+				versionManifestFiles := ocfl.SeqToSlice(versionInventory.GetManifest().GetFilesFlat())
 				for _, objectContentVersionFile := range objectContentVersionFiles {
 					// check all inventories which are less in version
 					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
@@ -1277,8 +1313,8 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 			}
 		}
 		rootVersion := object.i.GetHead()
-		if object.i.VersionLessOrEqual(objectContentVersion, rootVersion) {
-			rootManifestFiles := object.i.GetFilesFlat()
+		if objectContentVersionNumber.Less(rootVersion) {
+			rootManifestFiles := ocfl.SeqToSlice(object.i.GetManifest().GetFilesFlat())
 			for _, objectContentVersionFile := range objectContentVersionFiles {
 				// check all inventories which are less in version
 				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
@@ -1299,7 +1335,10 @@ func (object *ObjectBase) Check() error {
 	versions := object.i.GetVersionNumbers()
 
 	// check for allowed files and directories
-	allowedDirs := append(versions, "logs", "extensions")
+	allowedDirs := []string{"logs", "extensions"}
+	for _, v := range versions {
+		allowedDirs = append(allowedDirs, v.String())
+	}
 	versionCounter := 0
 	entries, err := fs.ReadDir(object.fsys, ".")
 	if err != nil {
@@ -1320,12 +1359,14 @@ func (object *ObjectBase) Check() error {
 			}
 
 			// check version directories
-			if slices.Contains(versions, entry.Name()) {
-				err := object.checkVersionFolder(entry.Name())
-				if err != nil {
-					return errors.WithStack(err)
+			for _, v := range versions {
+				if v.String() == entry.Name() {
+					if err := object.checkVersionFolder(entry.Name()); err != nil {
+						return errors.WithStack(err)
+					}
+					versionCounter++
+					break
 				}
-				versionCounter++
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
@@ -1343,7 +1384,7 @@ func (object *ObjectBase) Check() error {
 	}
 
 	dAlgs := []checksum.DigestAlgorithm{object.i.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, object.i.GetFixityDigestAlgorithm()...)
+	dAlgs = append(dAlgs, ocfl.SeqToSlice(object.i.GetFixityDigestAlgorithm())...)
 	return nil
 }
 
@@ -1361,7 +1402,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 		if err := fs.WalkDir(
 			object.fsys,
 			//fmt.Sprintf("%s/%s", version, object.i.GetContentDir()),
-			version,
+			version.String(),
 			func(path string, d fs.DirEntry, err error) error {
 				//object.logger.Debug(path)
 				if d.IsDir() {
@@ -1406,28 +1447,28 @@ func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventor
 	versionStrings := object.i.GetVersionNumbers()
 
 	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b string) int {
-		if object.i.VersionLessOrEqual(a, b) && a != b {
+	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+		if a.Less(b) {
 			return -1
-		} else {
-			if a == b {
-				return 0
-			} else {
-				return 1
-			}
 		}
+
+		if a.Equal(b) {
+			return 0
+		}
+
+		return 1
 	})
 	versionInventories := map[string]inventory.Inventory{}
 	for _, ver := range versionStrings {
-		vi, err := object.LoadInventory(ver)
+		vi, err := object.LoadInventory(ver.String())
 		if err != nil {
-			if errors.Cause(err) == fs.ErrNotExist {
+			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 				object.AddValidationWarning(validation.W010, "no inventory for version '%s'", ver)
 				continue
 			}
 			return nil, errors.Wrapf(err, "cannot load inventory from folder '%s'", ver)
 		}
-		versionInventories[ver] = vi
+		versionInventories[ver.String()] = vi
 	}
 	object.versionInventories = versionInventories
 	return object.versionInventories, nil
@@ -1441,7 +1482,7 @@ func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	allDigestAlgs := []checksum.DigestAlgorithm{object.i.GetDigestAlgorithm()}
 	for _, vi := range versionInventories {
 		allDigestAlgs = append(allDigestAlgs, vi.GetDigestAlgorithm())
-		for digestAlg, _ := range vi.GetFixity() {
+		for digestAlg := range vi.GetFixity().GetDigestAlgorithms() {
 			allDigestAlgs = append(allDigestAlgs, digestAlg)
 		}
 	}
@@ -1450,7 +1491,7 @@ func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	return allDigestAlgs, nil
 }
 
-func (object *ObjectBase) Extract(fsys fs.FS, version string, withManifest bool, area string) error {
+func (object *ObjectBase) Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error {
 	var manifest strings.Builder
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()

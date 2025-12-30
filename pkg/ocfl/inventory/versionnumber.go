@@ -25,6 +25,11 @@ func (v *VersionNumber) Less(v2 *VersionNumber) bool {
 	return v.int < v2.int
 }
 
+func (v *VersionNumber) WithLatest() *VersionNumber {
+	v.string = "latest"
+	return v
+}
+
 func (v *VersionNumber) WithString(versionString string) *VersionNumber {
 	v.string = versionString
 	v.int, _ = strconv.Atoi(strings.TrimLeft(versionString, "v0"))
@@ -37,6 +42,14 @@ func (v *VersionNumber) String() string {
 func (v *VersionNumber) Int() int {
 	return v.int
 }
+
+func (v *VersionNumber) IsLatest() bool {
+	if v == nil {
+		return false
+	}
+	return v.string == "latest"
+}
+
 func (v *VersionNumber) IsValid() bool {
 	if v == nil {
 		return false

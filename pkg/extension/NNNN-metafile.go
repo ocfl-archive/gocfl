@@ -391,7 +391,7 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 		if metadata, ok = sl.info[ver.String()]; ok {
 			break
 		}
-		if metadata, err = ReadFile(object, sl.MetaName, ver.String(), sl.StorageType, sl.StorageName, sl.fsys); err == nil {
+		if metadata, err = ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys); err == nil {
 			break
 		}
 	}

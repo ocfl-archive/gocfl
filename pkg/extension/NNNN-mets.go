@@ -231,10 +231,9 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 	}
 
 	head := inventory.GetHead()
-	versions := inventory.GetVersions()
-	v, ok := versions[head]
-	if !ok {
-		return errors.Wrapf(err, "object has no version %s", head)
+	v := inventory.GetVersions().GetVersion(head)
+	if v == nil {
+		return errors.Errorf("version not found: %v", v)
 	}
 
 	var contentSubPath = map[string]ContentSubPathEntry{}
@@ -360,7 +359,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 
 	// get ingest versions
 	for cs, metaFile := range metadata.Files {
-		if extNames, ok := metaFile.VersionName[head]; ok {
+		if extNames, ok := metaFile.VersionName[head.String()]; ok {
 			for _, extPath := range extNames {
 
 				val := metsInternalFiledata{
@@ -368,9 +367,9 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 					cs:   cs,
 				}
 				stateVersions := maps.Keys(metaFile.VersionName)
-				for _, vStr := range inventory.GetVersionNumbers() {
-					if slices.Contains(stateVersions, vStr) {
-						val.ingestVersion = vStr
+				for vNumber := range inventory.GetVersions().GetVersionNumbers() {
+					if slices.Contains(stateVersions, vNumber.String()) {
+						val.ingestVersion = vNumber.String()
 						break
 					}
 				}
@@ -380,7 +379,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 	}
 
 	for cs, metaFile := range metadata.Files {
-		if extNames, ok := metaFile.VersionName[head]; ok {
+		if extNames, ok := metaFile.VersionName[head.String()]; ok {
 			for _, extPath := range extNames {
 				uuidString := internalFiledata[extPath].uuid
 				var size int64
@@ -393,7 +392,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 						return errors.Errorf("invalid type: %v", ext)
 					}
 					for _, ver := range inventory.GetVersionNumbers() {
-						if verHead, ok := extFSL[ver]; ok {
+						if verHead, ok := extFSL[ver.String()]; ok {
 							if len(verHead) > 0 {
 								creationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
 								size = int64(verHead[0].Meta.Size)
@@ -685,7 +684,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 						})
 					*/
 				}
-				//		if extNames, ok := metaFile.VersionName[head]; ok {
+				//		if extNames, ok := metaFile.VersionName[head.String()]; ok {
 				//			for _, extPath := range extNames {
 				parts := strings.Split(extPath, "/")
 				var extArea = "content"
@@ -760,7 +759,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 									}
 				*/
 				if migrationAny, ok := metaFile.Extension[MigrationName]; ok {
-					ver, ok := metadata.Versions[head]
+					ver, ok := metadata.Versions[head.String()]
 					if !ok {
 						return errors.Errorf("cannot find head version '%s'", head)
 					}
@@ -886,7 +885,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 		var found *object.FileMetadata
 		var foundChecksum string
 		for checksum, metaFile := range metadata.Files {
-			if ver, ok := metaFile.VersionName[head]; ok {
+			if ver, ok := metaFile.VersionName[head.String()]; ok {
 				for _, name := range ver {
 					if name == metaFilename {
 						found = metaFile
@@ -942,7 +941,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 				return errors.Errorf("invalid type: %v", ext)
 			}
 			for _, ver := range inventory.GetVersionNumbers() {
-				if verHead, ok := extFSL[ver]; ok {
+				if verHead, ok := extFSL[ver.String()]; ok {
 					if len(verHead) > 0 {
 						foundCreationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
 						foundSize = int64(verHead[0].Meta.Size)
@@ -977,12 +976,12 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 				string(inventory.GetDigestAlgorithm())))
 			structPhysical["metadata"] = append(structPhysical["metadata"], id)
 		}
-		if len(found.VersionName[head]) > 0 {
+		if len(found.VersionName[head.String()]) > 0 {
 			id := fmt.Sprintf("dmdSec-ext-%s-%s", slug.Make(obj.GetID()), head)
 			dmdSecs = append(dmdSecs, newMDSec(
 				id,
 				"primary-metadata",
-				found.VersionName[head][0],
+				found.VersionName[head.String()][0],
 				"URL",
 				"",
 				foundMimetype,
@@ -999,8 +998,8 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 	agentIdentifier := metafilePersonAgentIdentifier
 	agentName := metafilePersonAgentName
 	if agentName == "" {
-		agentName = v.User.Name.String()
-		agentIdentifier = v.User.Address.String()
+		agentName = v.GetUser().GetName()
+		agentIdentifier = v.GetUser().GetAddress()
 	}
 
 	premisStruct := &premis.PremisComplexType{
@@ -1225,8 +1224,8 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 	archivistName := metafilePersonAgentName
 	archivistAddress := metafilePersonAgentIdentifier
 	if archivistName == "" {
-		archivistName = v.User.Name.String()
-		archivistAddress = v.User.Address.String()
+		archivistName = v.GetUser().GetName()
+		archivistAddress = v.GetUser().GetAddress()
 	}
 
 	m := &mets.Mets{
@@ -1237,12 +1236,12 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 		MetsType: &mets.MetsType{
 			XMLName:     xml.Name{},
 			OBJIDAttr:   metadata.ID,
-			LABELAttr:   fmt.Sprintf("METS Container for Object %s version %s - %s", metadata.ID, head, v.Message),
+			LABELAttr:   fmt.Sprintf("METS Container for Object %s version %s - %s", metadata.ID, head, v.GetMessage()),
 			TYPEAttr:    "AIP",
 			PROFILEAttr: "http://www.ra.ee/METS/v01/IP.xml",
 			MetsHdr: &mets.MetsHdr{
 				XMLName:          xml.Name{},
-				CREATEDATEAttr:   v.Created.Format("2006-01-02T15:04:05"),
+				CREATEDATEAttr:   v.GetCreated().Format("2006-01-02T15:04:05"),
 				RECORDSTATUSAttr: "NEW",
 				Agent: []*mets.Agent{
 					&mets.Agent{

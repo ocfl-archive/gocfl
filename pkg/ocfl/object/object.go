@@ -52,8 +52,8 @@ type Object interface {
 	GetFS() fs.FS
 	IsModified() bool
 	Stat(w io.Writer, statInfo []stat.StatInfo) error
-	Extract(fsys fs.FS, version string, withManifest bool, area string) error
-	GetMetadata() (*ObjectMetadata, error)
+	Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error
+	GetMetadata() (*Metadata, error)
 	GetAreaPath(area string) (string, error)
 	GetExtensionManager() ExtensionManager
 	BuildNames(files []string, area string) (*NamesStruct, error)
@@ -196,9 +196,9 @@ func CheckObject(ctx context.Context, fsys fs.FS, extensionFactory *extension.Ex
 	return nil
 }
 
-func Extract(ctx context.Context, destFS, fsys fs.FS, path, version string, withManifest bool, area string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
-	if version == "" {
-		version = "latest"
+func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
+	if !version.IsValid() {
+		version = inventory.NewVersionNumber().WithLatest()
 	}
 
 	logger.Debug().Msgf("Extracting object '%s' with version '%s'", path, version)
@@ -220,7 +220,7 @@ func Extract(ctx context.Context, destFS, fsys fs.FS, path, version string, with
 	return nil
 }
 
-func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (*ObjectMetadata, error) {
+func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (*Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
 	o, err := LoadObject(ctx, objFsys, extensionFactory, logger)

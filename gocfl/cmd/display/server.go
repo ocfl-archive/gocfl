@@ -47,7 +47,7 @@ type Server struct {
 	dataFS           fs.FS
 	storageRoot      storageroot.StorageRoot
 	object           object.Object
-	metadata         *object.ObjectMetadata
+	metadata         *object.Metadata
 	templateFS       fs.FS
 	obfuscate        bool
 	objectFS         http.FileSystem

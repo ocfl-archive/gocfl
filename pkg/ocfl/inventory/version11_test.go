@@ -109,7 +109,7 @@ func Test_VersionState(t *testing.T) {
 	}
 
 	var num int
-	for range state.IterateFiles() {
+	for range state.Iterate() {
 		num++
 	}
 	if num != 2 {

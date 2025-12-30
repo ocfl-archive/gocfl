@@ -63,7 +63,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 func Test_UserInvalidAddressCheck(t *testing.T) {
 	val := NewDummyValidation()
 	user := f11.NewUser().WithAddress("xxx")
-	if err := user.Check(val, "v1"); err != nil {
+	if err := user.Check(val, NewVersionNumber().WithString("v1")); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
 

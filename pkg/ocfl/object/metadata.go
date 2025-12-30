@@ -7,6 +7,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/google/uuid"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 )
@@ -88,16 +89,16 @@ type VersionMetadata struct {
 	Address string
 }
 
-type ObjectMetadata struct {
+type Metadata struct {
 	ID              string
 	DigestAlgorithm checksum.DigestAlgorithm
-	Head            string
+	Head            *inventory.VersionNumber
 	Versions        map[string]*VersionMetadata
 	Files           FilesMetadata
 	Extension       any
 }
 
-func (om *ObjectMetadata) Obfuscate() error {
+func (om *Metadata) Obfuscate() error {
 	var metafile any
 	var hasMetafile = false
 	extension := map[string]any{}
@@ -111,7 +112,7 @@ func (om *ObjectMetadata) Obfuscate() error {
 }
 
 type StorageRootMetadata struct {
-	Objects map[string]*ObjectMetadata
+	Objects map[string]*Metadata
 }
 
 func (srm *StorageRootMetadata) Obfuscate() error {

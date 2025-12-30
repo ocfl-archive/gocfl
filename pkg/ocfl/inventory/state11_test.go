@@ -34,7 +34,7 @@ func Test_StateJSONMarshal(t *testing.T) {
 	var state = exampleState(cnt, t)
 	var num int
 	var ps int
-	for _, paths := range state.IterateFiles() {
+	for _, paths := range state.Iterate() {
 		num++
 		ps += len(paths)
 	}
@@ -70,7 +70,7 @@ func Test_StateJSONUnmarshal(t *testing.T) {
 	}
 	var num int
 	var ps int
-	for _, paths := range state.IterateFiles() {
+	for _, paths := range state.Iterate() {
 		num++
 		ps += len(paths)
 	}
@@ -124,7 +124,7 @@ func Test_StateDelete(t *testing.T) {
 	}
 	var num int
 	var ps int
-	for _, paths := range state.IterateFiles() {
+	for _, paths := range state.Iterate() {
 		num++
 		ps += len(paths)
 	}

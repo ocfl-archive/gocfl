@@ -25,18 +25,18 @@ type Inventory interface {
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
-	DeleteFile(stateFilename string) error
-	RenameFile(stateSource, stateDest string) error
+	//	DeleteFile(stateFilename string) error
+	//	RenameFile(stateSource, stateDest string) error
 	//Rename(oldVirtualFilename, newVirtualFilename string) error
 	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
-	CopyFile(dest string, digest string) error
+	//	CopyFile(dest string, digest string) error
 
 	IterateStateFiles(version *VersionNumber, fn StateFileCallback) error
 	GetStateFiles(version *VersionNumber, cs string) ([]string, error)
 
 	//GetContentDirectory() string
 	GetVersionNumbers() []*VersionNumber
-	GetVersions() map[*VersionNumber]Version
+	GetVersions() Versions
 	//GetFiles() map[*VersionNumber][]string
 	GetManifest() Manifest
 	GetFixity() Fixity
@@ -52,7 +52,7 @@ type Inventory interface {
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)
 	Clean() error
 
-	EchoDelete(existing []string, pathprefix string) error
+	//	EchoDelete(existing []string, pathprefix string) error
 }
 
 func NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {

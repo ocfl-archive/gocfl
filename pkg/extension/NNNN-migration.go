@@ -15,6 +15,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -94,7 +95,7 @@ type MigrationFiles map[string]*MigrationTarget
 type Migration struct {
 	*MigrationConfig
 	fsys      fs.FS
-	lastHead  string
+	lastHead  *inventory.VersionNumber
 	migration *migration.Migration
 	//buffer *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
@@ -173,10 +174,10 @@ func (mi *Migration) UpdateObjectAfter(object object.Object) error {
 		if !ok {
 			continue
 		}
-		if _, ok := mi.migratedFiles[inventory.GetHead()]; !ok {
-			mi.migratedFiles[inventory.GetHead()] = map[string]string{}
+		if _, ok := mi.migratedFiles[inventory.GetHead().String()]; !ok {
+			mi.migratedFiles[inventory.GetHead().String()] = map[string]string{}
 		}
-		mi.migratedFiles[inventory.GetHead()][migrationMeta.Source] = migrationMeta.ID
+		mi.migratedFiles[inventory.GetHead().String()][migrationMeta.Source] = migrationMeta.ID
 
 	}
 	for cs, m := range meta.Files {
@@ -230,8 +231,8 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 	if extensionManager == nil {
 		return errors.Errorf("extension manager is nil")
 	}
-	mi.buffer[head] = &bytes.Buffer{}
-	mi.writer = brotli.NewWriter(mi.buffer[head])
+	mi.buffer[head.String()] = &bytes.Buffer{}
+	mi.writer = brotli.NewWriter(mi.buffer[head.String()])
 	//files := inventory.GetFiles()
 
 	versions := inventory.GetVersionNumbers()
@@ -239,8 +240,8 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 		return errors.Errorf("cannot migrate files in object '%s' - no previous version", object.GetID())
 	}
 	manifest := inventory.GetManifest()
-	if _, ok := mi.migratedFiles[head]; !ok {
-		mi.migratedFiles[head] = map[string]string{}
+	if _, ok := mi.migratedFiles[head.String()]; !ok {
+		mi.migratedFiles[head.String()] = map[string]string{}
 	}
 	for cs, mig := range mi.migrationFiles {
 		var isMigrated bool
@@ -259,8 +260,8 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 		}
 
 		var targetNames = []string{}
-		manifestFiles, ok := manifest[cs]
-		if !ok {
+		manifestFiles, err := manifest.GetFiles(cs)
+		if err != nil {
 			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, object.GetID())
 		}
 		// get the files from last version
@@ -269,14 +270,14 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 			return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
 		}
 		for _, sf := range stateFiles {
-			t := mig.GetDestinationName(sf, head, isMigrated)
+			t := mig.GetDestinationName(sf, head.String(), isMigrated)
 			if t == "" {
 				return errors.Errorf("cannot get destination name for file '%s' in object '%s'", sf, object.GetID())
 			}
 			targetNames = append(targetNames, t)
 		}
 
-		mi.migratedFiles[head][cs] = manifestFiles[0]
+		mi.migratedFiles[head.String()][cs] = manifestFiles[0]
 
 		var file io.ReadCloser
 		var ext string
@@ -290,7 +291,7 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 		}
 		if file == nil {
 			if mi.sourceFS != nil {
-				stateFiles, err := inventory.GetStateFiles("", cs)
+				stateFiles, err := inventory.GetVersions().GetVersion(inventory.GetHead()).GetState().GetFiles(cs)
 				if err != nil {
 					return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
 				}
@@ -388,7 +389,7 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 	if err := mi.writer.Close(); err != nil {
 		return errors.Wrapf(err, "cannot close migration line writer for object '%s'", object.GetID())
 	}
-	buffer, ok := mi.buffer[head]
+	buffer, ok := mi.buffer[head.String()]
 	if !ok {
 		return nil
 	}
@@ -413,14 +414,14 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
-	for checksum, names := range manifest {
+	for checksum, names := range manifest.Iterate() {
 		for _, name := range names {
 			path2digest[name] = checksum
 		}
 	}
-	for v := range inventory.GetVersions() {
+	for v := range inventory.GetVersions().GetVersionNumbers() {
 		var data []byte
-		if buf, ok := mi.buffer[v]; ok && buf.Len() > 0 {
+		if buf, ok := mi.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
 			// need a new reader on the buffer
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
@@ -447,7 +448,7 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
 			}
 			var digest string
-			for cs, names := range manifest {
+			for cs, names := range manifest.Iterate() {
 				for _, name := range names {
 					if name == meta.Migration.Source {
 						digest = cs

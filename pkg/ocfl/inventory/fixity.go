@@ -16,7 +16,7 @@ type Fixity interface {
 
 	WithAlgorithms(algorithms ...checksum.DigestAlgorithm) Fixity
 	String() string
-	IterateFiles(alg checksum.DigestAlgorithm) func(yield func(digest string, external []string) bool)
+	Iterate(alg checksum.DigestAlgorithm) func(yield func(digest string, external []string) bool)
 	GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm]
 	GetFiles(alg checksum.DigestAlgorithm, digest string) ([]string, error)
 	Err() error
@@ -24,4 +24,5 @@ type Fixity interface {
 	CopyFrom(fixity Fixity) error
 	Check(val validation.Validation, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 	Finalize(inCreation bool) error
+	Checksums(s string) map[checksum.DigestAlgorithm]string
 }

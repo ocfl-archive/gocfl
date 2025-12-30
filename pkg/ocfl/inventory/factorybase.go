@@ -11,7 +11,7 @@ func NewFactoryBase() Factory {
 type FactoryBase struct{}
 
 func (f *FactoryBase) NewFixity(algorithms []checksum.DigestAlgorithm) Fixity {
-	return NewFixityBase(f)
+	return NewFixityBase()
 }
 
 func (f *FactoryBase) NewUser() User {
@@ -19,7 +19,7 @@ func (f *FactoryBase) NewUser() User {
 }
 
 func (f *FactoryBase) NewManifest() Manifest {
-	return NewManifestBase(f)
+	return NewManifestBase()
 }
 
 func (f *FactoryBase) NewVersions() Versions {

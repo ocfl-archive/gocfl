@@ -11,5 +11,5 @@ type User interface {
 	Finalize()
 	WithAddress(address string) User
 	WithName(name string) User
-	Check(val validation.Validation, version string) error
+	Check(val validation.Validation, version *VersionNumber) error
 }

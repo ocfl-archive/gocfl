@@ -21,7 +21,7 @@ type Versions interface {
 	SetVersion(versionNumber *VersionNumber, ver Version) Versions
 	Check(val validation.Validation, manifestDigest []string) error
 	Finalize(val validation.Validation, factory Factory, inCreation bool) error
-	LatestVersion() *VersionNumber
+	LatestVersionNumber() *VersionNumber
 	FileExists(path, digest string) (bool, error)
 	Delete(versionNumber *VersionNumber) (bool, error)
 	Err() error

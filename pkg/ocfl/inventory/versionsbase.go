@@ -34,16 +34,18 @@ func (v versionValue) GetVersion(version uint) (*VersionNumber, bool) {
 
 func NewVersionsBase(factory Factory) Versions {
 	return &versionsBase{
-		versions:    map[int]*versionBase{},
+		versions:    map[int]Version{},
 		versionInts: map[string]int{},
+		factory:     factory,
 	}
 }
 
 type versionsBase struct {
-	versions      map[int]*versionBase
+	versions      map[int]Version
 	versionInts   map[string]int
 	err           error
 	paddingLength int
+	factory       Factory
 }
 
 func (v *versionsBase) Err() error {
@@ -67,7 +69,7 @@ func (v *versionsBase) Delete(versionNumber *VersionNumber) (bool, error) {
 }
 
 func (v *versionsBase) AddFile(stateFilename string, digest string) (bool, error) {
-	latestVersionString := v.LatestVersion()
+	latestVersionString := v.LatestVersionNumber()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
@@ -80,7 +82,7 @@ func (v *versionsBase) AddFile(stateFilename string, digest string) (bool, error
 }
 
 func (v *versionsBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {
-	latestVersionString := v.LatestVersion()
+	latestVersionString := v.LatestVersionNumber()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
@@ -93,7 +95,7 @@ func (v *versionsBase) EchoDelete(existing []string, pathPrefix string) (bool, e
 }
 
 func (v *versionsBase) CopyFile(stateFilename, digest string) (bool, error) {
-	latestVersionString := v.LatestVersion()
+	latestVersionString := v.LatestVersionNumber()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
@@ -106,7 +108,7 @@ func (v *versionsBase) CopyFile(stateFilename, digest string) (bool, error) {
 }
 
 func (v *versionsBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
-	latestVersionString := v.LatestVersion()
+	latestVersionString := v.LatestVersionNumber()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
@@ -119,7 +121,7 @@ func (v *versionsBase) RenameFile(oldStateFilename, newStateFilename string) (bo
 }
 
 func (v *versionsBase) DeleteFile(stateFilename string) (bool, error) {
-	latestVersionString := v.LatestVersion()
+	latestVersionString := v.LatestVersionNumber()
 	latestVersion := v.GetVersion(latestVersionString)
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
@@ -144,7 +146,7 @@ func (v *versionsBase) FileExists(path, digest string) (bool, error) {
 	if len(css) == 0 {
 		return false, nil
 	}
-	latestVersion := v.LatestVersion()
+	latestVersion := v.LatestVersionNumber()
 
 	lastChecksum, ok := css[latestVersion.Int()]
 	if !ok {
@@ -250,6 +252,9 @@ func (v *versionsBase) IsEmpty() bool {
 }
 
 func (v *versionsBase) GetVersion(versionNumber *VersionNumber) Version {
+	if versionNumber.IsLatest() {
+		versionNumber = v.LatestVersionNumber()
+	}
 	version, ok := v.versions[versionNumber.Int()]
 	if !ok {
 		return nil
@@ -294,15 +299,20 @@ func (v *versionsBase) Iterate() func(yield func(versionNumber *VersionNumber, v
 }
 
 func (v *versionsBase) UnmarshalJSON(data []byte) error {
-	var newVersions = map[string]*versionBase{}
+	var newVersions = map[string]json.RawMessage{}
 	if err := json.Unmarshal(data, &newVersions); err != nil {
 		v.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
 		return nil
 	}
-	v.versions = map[int]*versionBase{}
-	for key, ver := range newVersions {
+	v.versions = map[int]Version{}
+	for key, bytes := range newVersions {
 		versionNumber := NewVersionNumber().WithString(key)
-		ver.version = versionNumber.String()
+		ver := v.factory.NewVersion()
+		if err := json.Unmarshal(bytes, &ver); err != nil {
+			v.err = errors.Wrapf(err, "cannot unmarshal version '%s': '%s'", versionNumber.String(), string(bytes))
+			return nil
+		}
+		ver.SetVersion(versionNumber)
 		v.versions[versionNumber.Int()] = ver
 		v.versionInts[versionNumber.String()] = versionNumber.Int()
 	}
@@ -310,7 +320,7 @@ func (v *versionsBase) UnmarshalJSON(data []byte) error {
 }
 
 func (v *versionsBase) MarshalJSON() ([]byte, error) {
-	var newVersions = map[string]*versionBase{}
+	var newVersions = map[string]Version{}
 	for versionNumber := range v.GetVersionNumbers() {
 		newVersions[versionNumber.String()] = v.versions[versionNumber.Int()]
 	}
@@ -327,7 +337,7 @@ func (v *versionsBase) GetVersionNumber(vInt int) *VersionNumber {
 	return nil
 }
 
-func (v *versionsBase) LatestVersion() *VersionNumber {
+func (v *versionsBase) LatestVersionNumber() *VersionNumber {
 	var versions = make([]int, 0, len(v.versions))
 	for versionInt, _ := range v.versions {
 		versions = append(versions, versionInt)

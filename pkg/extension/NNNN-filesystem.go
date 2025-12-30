@@ -117,6 +117,7 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 	}
 
 	inventory := object.GetInventory()
+	latestVersion := inventory.GetVersions().GetVersion(inventory.GetVersions().LatestVersionNumber())
 
 	var err error
 	var emptyChecksum string
@@ -184,7 +185,7 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 					return errors.Errorf("cannot build external names for '%s'", newEmptyFile)
 				}
 				newEmptyFile = names.ExternalPaths[0]
-				if err := inventory.CopyFile(names.ExternalPaths[0], emptyChecksum); err != nil {
+				if _, err := latestVersion.CopyFile(names.ExternalPaths[0], emptyChecksum); err != nil {
 					return errors.Wrapf(err, "cannot copy empty file to '%s'", newEmptyFile)
 				}
 			}
@@ -232,12 +233,12 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
-	for checksum, names := range manifest.IterateFiles() {
+	for checksum, names := range manifest.Iterate() {
 		for _, name := range names {
 			path2digest[name] = checksum
 		}
 	}
-	for v := range inventory.GetVersions() {
+	for v := range inventory.GetVersions().GetVersionNumbers() {
 		var data []byte
 		if buf, ok := extFS.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
@@ -248,7 +249,7 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "filesystem", v.String(), extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
+			data, err = ReadJsonL(object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

@@ -20,6 +20,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -183,17 +184,17 @@ func (thumb *Thumbnail) WriteConfig() error {
 	return nil
 }
 
-func (thumb *Thumbnail) storeThumbnail(object object.Object, head string, mFile io.ReadCloser) (target string, digest string, err error) {
+func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventory.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
 	var targetName string
 	subfolder := thumb.StorageName
 	if thumb.StorageType == "area" {
 		subfolder = "thumbnails"
 	}
 	if thumb.SingleDirectory {
-		targetName = fmt.Sprintf("%s/%s/%05d.%s", subfolder, head, thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
+		targetName = fmt.Sprintf("%s/%s/%05d.%s", subfolder, head, thumb.counter[head.String()], strings.ToLower(thumb.ThumbnailConfig.Ext))
 	} else {
 		cs := fmt.Sprintf("%02x", rand.Intn(64))
-		targetName = fmt.Sprintf("%s/%s/%s/%s/%05d.%s", subfolder, head, string([]rune(cs)[0]), string([]rune(cs)[1]), thumb.counter[head], strings.ToLower(thumb.ThumbnailConfig.Ext))
+		targetName = fmt.Sprintf("%s/%s/%s/%s/%05d.%s", subfolder, head, string([]rune(cs)[0]), string([]rune(cs)[1]), thumb.counter[head.String()], strings.ToLower(thumb.ThumbnailConfig.Ext))
 	}
 	switch strings.ToLower(thumb.StorageType) {
 	case "area":
@@ -234,7 +235,7 @@ func (thumb *Thumbnail) storeThumbnail(object object.Object, head string, mFile 
 	}
 }
 
-func (thumb *Thumbnail) DoThumbnail(object object.Object, head string, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
+func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventory.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")
@@ -246,7 +247,7 @@ func (thumb *Thumbnail) DoThumbnail(object object.Object, head string, thumbFunc
 	if err := file.Close(); err != nil {
 		return "", "", errors.Wrap(err, "cannot close file")
 	}
-	thumb.counter[head]++
+	thumb.counter[head.String()]++
 	tmpFilename := filepath.ToSlash(tmpFile.Name())
 	targetTempName := filepath.ToSlash(
 		filepath.Join(
@@ -293,14 +294,14 @@ func (thumb *Thumbnail) UpdateObjectBefore(object.Object) error {
 func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
-	thumb.buffer[head] = &bytes.Buffer{}
-	thumb.writer = brotli.NewWriter(thumb.buffer[head])
+	thumb.buffer[head.String()] = &bytes.Buffer{}
+	thumb.writer = brotli.NewWriter(thumb.buffer[head.String()])
 	if inventory == nil {
 		return errors.Errorf("inventory is nil")
 	}
 
-	if _, ok := thumb.counter[head]; !ok {
-		thumb.counter[head] = 0
+	if _, ok := thumb.counter[head.String()]; !ok {
+		thumb.counter[head.String()] = 0
 	}
 
 	// first get the metadata from the object
@@ -310,7 +311,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 	}
 	for cs, m := range meta.Files {
 		var found *ThumbnailResult = nil
-		for name, info := range thumb.streamInfo[head] {
+		for name, info := range thumb.streamInfo[head.String()] {
 			if slices.Contains(m.InternalName, name) {
 				found = info
 				found.SourceDigest = cs
@@ -351,7 +352,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 			if file == nil {
 				if thumb.sourceFS != nil {
 					thumb.logger.Info().Msgf("create thumbnail for %s", m.InternalName[0])
-					stateFiles, err := inventory.GetStateFiles("", cs)
+					stateFiles, err := inventory.GetVersions().GetVersion(inventory.GetHead()).GetState().GetFiles(cs)
 					if err != nil {
 						return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
 					}
@@ -401,7 +402,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 	thumb.writer.Flush()
 	thumb.writer.Close()
 	thumb.writer = nil
-	buffer, ok := thumb.buffer[head]
+	buffer, ok := thumb.buffer[head.String()]
 	if !ok {
 		return nil
 	}
@@ -436,9 +437,9 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 		}
 	*/
 	versions := inventory.GetVersions()
-	for v := range versions {
+	for v := range versions.GetVersionNumbers() {
 		var data []byte
-		if buf, ok := thumb.buffer[v]; ok && buf.Len() > 0 {
+		if buf, ok := thumb.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
 			// need a new reader on the buffer
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
@@ -470,12 +471,11 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 
 			// just to make sure, that we have a corresponding file in manifest
 
-			_, ok := manifest[meta.SourceDigest]
-			if !ok {
+			if _, err := manifest.GetFiles(meta.SourceDigest); err != nil {
 				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.SourceDigest, object.GetID())
 			}
 
-			if _, ok := manifest[meta.ThumbDigest]; ok {
+			if _, err := manifest.GetFiles(meta.ThumbDigest); err != nil {
 				source := ""
 				if state, err := inventory.GetStateFiles(inventory.GetHead(), meta.SourceDigest); err == nil && len(state) > 0 {
 					source = state[0]

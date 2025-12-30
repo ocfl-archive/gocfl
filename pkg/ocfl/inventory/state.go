@@ -14,12 +14,12 @@ type State interface {
 	AddFile(stateFilename string, digest string) (bool, error)
 
 	String() string
-	IterateFiles() func(yield func(digest string, external []string) bool)
+	Iterate() func(yield func(digest string, external []string) bool)
 	GetFiles(digest string) ([]string, error)
 	Err() error
 	Equals(state State) bool
 	CopyFrom(state State) error
-	Check(val validation.Validation, version string, manifestDigests []string, manifestDigestsLower []string) error
+	Check(val validation.Validation, version *VersionNumber, manifestDigests []string, manifestDigestsLower []string) error
 	FileChecksum(path string) string
 	WithDigestAlgorithm(dgst checksum.DigestAlgorithm) State
 }

@@ -23,7 +23,7 @@ type userBase struct {
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
 
-func (u *userBase) Check(val validation.Validation, version string) error {
+func (u *userBase) Check(val validation.Validation, version *VersionNumber) error {
 	if u.Address.Err() != nil {
 		val.AddValidationError(validation.E054, "invalid user address in Version %s: %s", version, u.Address.Err().Error())
 	}

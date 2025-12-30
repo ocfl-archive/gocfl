@@ -12,7 +12,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewFixityBase(factory Factory) *FixityBase {
+func NewFixityBase() *FixityBase {
 	f := &FixityBase{
 		fixity: map[checksum.DigestAlgorithm]map[string][]string{},
 		err:    nil,
@@ -24,6 +24,26 @@ type FixityBase struct {
 	fixity                 map[checksum.DigestAlgorithm]map[string][]string
 	err                    error
 	fixityDigestAlgorithms []checksum.DigestAlgorithm
+}
+
+func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {
+	var result = map[checksum.DigestAlgorithm]string{}
+	for alg, csFiles := range f.fixity {
+		var found bool
+		for cs, files := range csFiles {
+			for _, file := range files {
+				if file == s {
+					result[alg] = cs
+				}
+				found = true
+				break
+			}
+			if found {
+				break
+			}
+		}
+	}
+	return result
 }
 
 func (f *FixityBase) WithAlgorithms(algorithms ...checksum.DigestAlgorithm) Fixity {
@@ -56,7 +76,7 @@ func (f *FixityBase) GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm] {
 	return maps.Keys(f.fixity)
 }
 
-func (f *FixityBase) IterateFiles(alg checksum.DigestAlgorithm) func(yield func(digest string, internal []string) bool) {
+func (f *FixityBase) Iterate(alg checksum.DigestAlgorithm) func(yield func(digest string, internal []string) bool) {
 	return func(yield func(digest string, internal []string) bool) {
 		dfiles, ok := f.fixity[alg]
 		if !ok {
@@ -128,7 +148,7 @@ func (f *FixityBase) CopyFrom(fixity Fixity) error {
 	f.fixity = map[checksum.DigestAlgorithm]map[string][]string{}
 	for digestAlg := range fixity.GetDigestAlgorithms() {
 		f.fixity[digestAlg] = map[string][]string{}
-		for digest, files := range fixity.IterateFiles(digestAlg) {
+		for digest, files := range fixity.Iterate(digestAlg) {
 			f.fixity[digestAlg][digest] = make([]string, len(files))
 			copy(f.fixity[digestAlg][digest], files)
 		}

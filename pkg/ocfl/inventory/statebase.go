@@ -77,7 +77,7 @@ func (s *stateBase) CopyFile(stateFilename, digest string) (bool, error) {
 func (s *stateBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
 	var newState = map[string][]string{}
 	modified := false
-	for cs, paths := range s.IterateFiles() {
+	for cs, paths := range s.Iterate() {
 		var newPaths = make([]string, 0, len(paths))
 		for _, path := range paths {
 			if path == oldStateFilename {
@@ -99,7 +99,7 @@ func (s *stateBase) RenameFile(oldStateFilename, newStateFilename string) (bool,
 }
 
 func (s *stateBase) FileChecksum(path string) string {
-	for d, ps := range s.IterateFiles() {
+	for d, ps := range s.Iterate() {
 		if slices.Contains(ps, path) {
 			return d
 		}
@@ -107,12 +107,12 @@ func (s *stateBase) FileChecksum(path string) string {
 	return ""
 }
 
-func (s *stateBase) Check(val validation.Validation, version string, manifestDigests []string, manifestDigestsLower []string) error {
+func (s *stateBase) Check(val validation.Validation, version *VersionNumber, manifestDigests []string, manifestDigestsLower []string) error {
 	logPaths := []string{}
 	if s.Err() != nil {
 		val.AddValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
 	}
-	for digest, paths := range s.IterateFiles() {
+	for digest, paths := range s.Iterate() {
 		// massive performance boost by using sorted manifest
 		if _, found := slices.BinarySearch(manifestDigests, digest); !found {
 			if _, found := slices.BinarySearch(manifestDigestsLower, strings.ToLower(digest)); found {
@@ -160,7 +160,7 @@ func (s *stateBase) CopyFrom(state State) error {
 	s.err = state2.Err()
 
 	s.State = make(map[string][]string)
-	for k, vs := range state2.IterateFiles() {
+	for k, vs := range state2.Iterate() {
 		newVs := make([]string, len(vs))
 		copy(newVs, vs)
 		s.State[k] = newVs
@@ -211,7 +211,7 @@ func (s *stateBase) String() string {
 	return fmt.Sprintf("%d files (%d unique)", num, unique)
 }
 
-func (s *stateBase) IterateFiles() func(yield func(digest string, external []string) bool) {
+func (s *stateBase) Iterate() func(yield func(digest string, external []string) bool) {
 	return func(yield func(digest string, external []string) bool) {
 		for digest, files := range s.State {
 			if !yield(digest, files) {
@@ -245,7 +245,7 @@ func (s *stateBase) MarshalJSON() ([]byte, error) {
 func (s *stateBase) DeleteFile(stateFilename string) (bool, error) {
 	var newState = map[string][]string{}
 	modified := false
-	for cs, paths := range s.IterateFiles() {
+	for cs, paths := range s.Iterate() {
 		var newPaths = make([]string, 0, len(paths))
 		for _, path := range paths {
 			if path == stateFilename {

@@ -45,7 +45,7 @@ type ObjectFS struct {
 	object object.Object
 	//	metadata  *ocfl.ObjectMetadata
 	inventory inventory.Inventory
-	manifest  map[string][]string
+	manifest  inventory.Manifest
 }
 
 func (o *ObjectFS) readDir(name string, num int) (files []fs.DirEntry, err error) {

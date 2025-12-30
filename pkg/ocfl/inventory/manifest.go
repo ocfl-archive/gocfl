@@ -12,7 +12,7 @@ type Manifest interface {
 	AddFile(filename string, digest string) (bool, error)
 
 	String() string
-	IterateFiles() func(yield func(digest string, internal []string) bool)
+	Iterate() func(yield func(digest string, internal []string) bool)
 	GetFiles(digest string) ([]string, error)
 	Err() error
 	Equals(manifest Manifest) bool

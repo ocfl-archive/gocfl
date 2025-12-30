@@ -11,7 +11,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewManifestBase(factory Factory) *ManifestBase {
+func NewManifestBase() *ManifestBase {
 	return &ManifestBase{
 		manifest: map[string][]string{},
 	}
@@ -24,7 +24,7 @@ type ManifestBase struct {
 
 func (s *ManifestBase) GetFilesFlat() iter.Seq[string] {
 	return func(yield func(string) bool) {
-		for _, internal := range s.IterateFiles() {
+		for _, internal := range s.Iterate() {
 			for _, file := range internal {
 				if !yield(file) {
 					return
@@ -50,7 +50,7 @@ func (s *ManifestBase) GetDuplicates(digest string) []string {
 	if digest == "" {
 		return nil
 	}
-	for cs, files := range s.IterateFiles() {
+	for cs, files := range s.Iterate() {
 		if cs == digest {
 			return files
 		}
@@ -69,7 +69,7 @@ func (s *ManifestBase) Check(val validation.Validation, csFiles map[string][]str
 	if s.Err() != nil {
 		return errors.Wrap(s.Err(), "manifest has errors")
 	}
-	for digest, files := range s.IterateFiles() {
+	for digest, files := range s.Iterate() {
 		csFilenames, ok := csFiles[strings.ToLower(digest)]
 		if !ok {
 			val.AddValidationError(validation.E092, "digest '%s' for file(s) %v not found in content", digest, files)
@@ -88,7 +88,7 @@ func (s *ManifestBase) CopyFrom(manifest Manifest) Manifest {
 	s.err = manifest.Err()
 
 	s.manifest = make(map[string][]string)
-	for k, vs := range manifest.IterateFiles() {
+	for k, vs := range manifest.Iterate() {
 		newVs := make([]string, len(vs))
 		copy(newVs, vs)
 		s.manifest[k] = newVs
@@ -139,7 +139,7 @@ func (s *ManifestBase) String() string {
 	return fmt.Sprintf("%d files (%d unique)", num, unique)
 }
 
-func (s *ManifestBase) IterateFiles() func(yield func(digest string, internal []string) bool) {
+func (s *ManifestBase) Iterate() func(yield func(digest string, internal []string) bool) {
 	return func(yield func(digest string, external []string) bool) {
 		for digest, files := range s.manifest {
 			if !yield(digest, files) {

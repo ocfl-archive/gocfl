@@ -32,14 +32,14 @@ func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, sta
 	}
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
-	if _, ok := thumb.counter[head]; !ok {
-		thumb.counter[head] = 0
+	if _, ok := thumb.counter[head.String()]; !ok {
+		thumb.counter[head.String()] = 0
 	}
-	if _, ok := thumb.streamInfo[head]; !ok {
-		thumb.streamInfo[head] = map[string]*ThumbnailResult{}
+	if _, ok := thumb.streamInfo[head.String()]; !ok {
+		thumb.streamInfo[head.String()] = map[string]*ThumbnailResult{}
 	}
 	infoName := fmt.Sprintf("%s/content/%s", head, stateFiles[0])
-	if _, ok := thumb.streamInfo[head][infoName]; ok {
+	if _, ok := thumb.streamInfo[head.String()][infoName]; ok {
 		thumb.logger.Info().Msgf("thumbnail for '%s' already created", stateFiles[0])
 		return nil
 	}
@@ -75,10 +75,10 @@ func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, sta
 	if newImg == nil {
 		return errors.Errorf("cannot resize image '%s'", stateFiles[0])
 	}
-	if _, ok := thumb.streamImg[head]; !ok {
-		thumb.streamImg[head] = map[string]image.Image{}
+	if _, ok := thumb.streamImg[head.String()]; !ok {
+		thumb.streamImg[head.String()] = map[string]image.Image{}
 	}
-	thumb.streamImg[head][infoName] = newImg
+	thumb.streamImg[head.String()][infoName] = newImg
 	/*
 		fsys := object.GetFS()
 		if fsys == nil {
@@ -110,7 +110,7 @@ func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, sta
 			}
 		}()
 
-		thumb.counter[head]++
+		thumb.counter[head.String()]++
 		targetFile, digest, err := thumb.storeThumbnail(object, head, pr)
 		if err != nil {
 			return errors.Wrap(err, "cannot store thumbnail")
@@ -127,7 +127,7 @@ func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, sta
 			ID:          "internal",
 			ThumbDigest: digest,
 		}
-		thumb.streamInfo[head][infoName] = ml
+		thumb.streamInfo[head.String()][infoName] = ml
 
 	*/
 	return nil
@@ -136,19 +136,19 @@ func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, sta
 func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath string, digest string, area string, isDir bool) error {
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
-	if _, ok := thumb.counter[head]; !ok {
-		thumb.counter[head] = 0
+	if _, ok := thumb.counter[head.String()]; !ok {
+		thumb.counter[head.String()] = 0
 	}
 	infoName := internalPath // fmt.Sprintf("%s/content/%s", head, dest)
-	if _, ok := thumb.streamInfo[head]; !ok {
+	if _, ok := thumb.streamInfo[head.String()]; !ok {
 		return nil
 	}
-	newImg, ok := thumb.streamImg[head][infoName]
+	newImg, ok := thumb.streamImg[head.String()][infoName]
 	if !ok {
 		return nil
 	}
 	defer func() {
-		delete(thumb.streamImg[head], infoName)
+		delete(thumb.streamImg[head.String()], infoName)
 		newImg = nil
 	}()
 	fsys := object.GetFS()
@@ -181,7 +181,7 @@ func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, sourc
 		}
 	}()
 
-	thumb.counter[head]++
+	thumb.counter[head.String()]++
 	targetFile, digest, err := thumb.storeThumbnail(object, head, pr)
 	if err != nil {
 		return errors.Wrap(err, "cannot store thumbnail")
@@ -195,7 +195,7 @@ func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, sourc
 		ID:          "internal",
 		ThumbDigest: digest,
 	}
-	thumb.streamInfo[head][infoName] = ml
+	thumb.streamInfo[head.String()][infoName] = ml
 	return nil
 }
 

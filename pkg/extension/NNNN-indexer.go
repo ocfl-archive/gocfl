@@ -270,12 +270,12 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 	inventory := object.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
-	for checksum, names := range manifest.IterateFiles() {
+	for checksum, names := range manifest.Iterate() {
 		for _, name := range names {
 			path2digest[name] = checksum
 		}
 	}
-	for v, _ := range inventory.GetVersions() {
+	for v := range inventory.GetVersions().GetVersionNumbers() {
 		var data []byte
 		if buf, ok := sl.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
@@ -286,7 +286,7 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "indexer", v.String(), sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
+			data, err = ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
 			}
