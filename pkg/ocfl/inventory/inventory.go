@@ -35,7 +35,7 @@ type Inventory interface {
 	GetStateFiles(version *VersionNumber, cs string) ([]string, error)
 
 	//GetContentDirectory() string
-	GetVersionNumbers() []*VersionNumber
+	//GetVersionNumbers() []*VersionNumber
 	GetVersions() Versions
 	//GetFiles() map[*VersionNumber][]string
 	GetManifest() Manifest
@@ -55,7 +55,7 @@ type Inventory interface {
 	//	EchoDelete(existing []string, pathprefix string) error
 }
 
-func NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {
+func _NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (Inventory, error) {
 	switch ver {
 	case version.Version1_1:
 		sr, err := newInventoryV1_1(ctx, ver, folder, logger)

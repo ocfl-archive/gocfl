@@ -6,6 +6,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
 	"io/fs"
@@ -18,7 +19,8 @@ type ObjectV2_0 struct {
 }
 
 func newObjectV2_0(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectV2_0, error) {
-	ob, err := newObjectBase(ctx, fsys, version.Version2_0, extensionFactory, extensionManager, logger)
+	inventoryFactory := inventory.NewFactory20(logger)
+	ob, err := newObjectBase(ctx, inventoryFactory, fsys, version.Version2_0, extensionFactory, extensionManager, logger)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

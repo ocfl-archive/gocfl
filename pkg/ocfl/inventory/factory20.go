@@ -5,18 +5,18 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-var f11 = NewFactory11(nil)
+var f20 = NewFactory20(nil)
 
-func NewFactory11(logger zLogger.ZLogger) Factory {
-	return &factory11{
+func NewFactory20(logger zLogger.ZLogger) Factory {
+	return &factory20{
 		logger:  logger,
 		Factory: NewFactoryBase(version.Version1_1, InventorySpec1_1, logger),
 	}
 }
 
-type factory11 struct {
+type factory20 struct {
 	Factory
 	logger zLogger.ZLogger
 }
 
-var _ Factory = (*factory11)(nil)
+var _ Factory = (*factory20)(nil)

@@ -1,6 +1,8 @@
 package inventory
 
-import "github.com/je4/utils/v2/pkg/checksum"
+import (
+	"context"
+)
 
 type Factory interface {
 	NewVersions() Versions
@@ -8,5 +10,6 @@ type Factory interface {
 	NewState() State
 	NewUser() User
 	NewManifest() Manifest
-	NewFixity(algorithms []checksum.DigestAlgorithm) Fixity
+	NewFixity() Fixity
+	NewInventory(ctx context.Context, objectFolder string, contentDir string) Inventory
 }

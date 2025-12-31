@@ -6,11 +6,13 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 )
 
 func exampleVersion(stateFileCnt int, t *testing.T) Version {
-	var user = f11.NewUser().WithName("Test User").WithAddress("test@example.com")
-	var state = f11.NewState()
+	var user = ocfl.f11.NewUser().WithName("Test User").WithAddress("test@example.com")
+	var state = ocfl.f11.NewState()
 	for i := 0; i < stateFileCnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
 		if err != nil {
@@ -20,7 +22,7 @@ func exampleVersion(stateFileCnt int, t *testing.T) Version {
 			t.Fatalf("File %d has not modified state", i)
 		}
 	}
-	var version = f11.NewVersion().
+	var version = ocfl.f11.NewVersion().
 		WithState(state).
 		WithMessage("Test version message").
 		WithUser(user).
@@ -37,7 +39,7 @@ func Test_VersionJSONMarshal(t *testing.T) {
 		t.Fatalf("Error marshalling version: %v", err)
 	}
 
-	version2 := f11.NewVersion()
+	version2 := ocfl.f11.NewVersion()
 	if err := json.Unmarshal(bytes, version2); err != nil {
 		t.Fatalf("Error unmarshalling version: %v", err)
 	}
@@ -60,7 +62,7 @@ func Test_VersionJSONUnmarshal(t *testing.T) {
     "digest002": ["file002"]
   }
 }`)
-	var version = f11.NewVersion()
+	var version = ocfl.f11.NewVersion()
 	if err := json.Unmarshal(bytes, version); err != nil {
 		t.Fatalf("Error unmarshalling version: %v", err)
 	}
@@ -91,7 +93,7 @@ func Test_VersionJSONUnmarshalError(t *testing.T) {
     "digest001": "invalid-not-array"
   }
 }`)
-	var version = f11.NewVersion()
+	var version = ocfl.f11.NewVersion()
 	if err := json.Unmarshal(bytes, version); err != nil {
 		t.Errorf("Error unmarshalling version: %v", err)
 	}
@@ -118,7 +120,7 @@ func Test_VersionState(t *testing.T) {
 }
 
 func Test_VersionMessage(t *testing.T) {
-	var version = f11.NewVersion().WithMessage("Test message")
+	var version = ocfl.f11.NewVersion().WithMessage("Test message")
 
 	message := version.GetMessage()
 	if message != "Test message" {
@@ -128,7 +130,7 @@ func Test_VersionMessage(t *testing.T) {
 
 func Test_VersionCreated(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
-	var version = f11.NewVersion().WithCreated(now)
+	var version = ocfl.f11.NewVersion().WithCreated(now)
 
 	created := version.GetCreated()
 	if !created.Equal(now) {

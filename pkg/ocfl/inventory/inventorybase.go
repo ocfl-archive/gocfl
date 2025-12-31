@@ -102,7 +102,7 @@ func (i *InventoryBase) IsEqual(invent Inventory) bool {
 func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (err error) {
 	i.Id = id
 	i.DigestAlgorithm = digest
-	i.Fixity = i.factory.NewFixity(fixity)
+	i.Fixity = i.factory.NewFixity().WithAlgorithms(fixity...)
 	return nil
 }
 func (i *InventoryBase) Finalize(inCreation bool) (err error) {

@@ -363,7 +363,7 @@ func addObjectByPath(
 		}
 		// if we update, fixity is taken from last object version
 		f := o.GetInventory().GetFixity()
-		for alg, _ := range f {
+		for alg := range f.GetDigestAlgorithms() {
 			fixity = append(fixity, alg)
 		}
 	} else {

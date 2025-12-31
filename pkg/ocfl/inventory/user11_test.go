@@ -5,16 +5,17 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 func Test_UserJSONMarshal(t *testing.T) {
-	user := f11.NewUser().WithName("Alice").WithAddress("mailto:alice@example.org")
+	user := ocfl.f11.NewUser().WithName("Alice").WithAddress("mailto:alice@example.org")
 	bytes, err := json.Marshal(user)
 	if err != nil {
 		t.Fatalf("Failed to marshal user: %s", err)
 	}
-	user2 := f11.NewUser()
+	user2 := ocfl.f11.NewUser()
 	if err := json.Unmarshal(bytes, user2); err != nil {
 		t.Fatalf("Failed to unmarshal user: %s", err)
 	}
@@ -30,7 +31,7 @@ func Test_UserJSONUnmarshal(t *testing.T) {
 	"name": "Alice"
 }
 `)
-	user := f11.NewUser()
+	user := ocfl.f11.NewUser()
 	if err := json.Unmarshal(jsonData, user); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
@@ -51,7 +52,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 	"name": "Alice"
 }
 `)
-	user := f11.NewUser()
+	user := ocfl.f11.NewUser()
 	if err := json.Unmarshal(jsonData, user); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
@@ -62,7 +63,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 
 func Test_UserInvalidAddressCheck(t *testing.T) {
 	val := NewDummyValidation()
-	user := f11.NewUser().WithAddress("xxx")
+	user := ocfl.f11.NewUser().WithAddress("xxx")
 	if err := user.Check(val, NewVersionNumber().WithString("v1")); err != nil {
 		t.Fatalf("check error: %v", err)
 	}

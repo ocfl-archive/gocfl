@@ -4,18 +4,19 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 func Test_VersionsJSONMarshal(t *testing.T) {
-	versions := f11.NewVersions()
-	version := f11.NewVersion().WithMessage("test version")
+	versions := ocfl.f11.NewVersions()
+	version := ocfl.f11.NewVersion().WithMessage("test version")
 	versions.SetVersion(NewVersionNumber().WithString("v1"), version)
 	bytes, err := json.Marshal(versions)
 	if err != nil {
 		t.Fatalf("Failed to marshal versions: %s", err)
 	}
-	versions2 := f11.NewVersions()
+	versions2 := ocfl.f11.NewVersions()
 	if err := json.Unmarshal(bytes, versions2); err != nil {
 		t.Fatalf("Failed to unmarshal versions: %s", err)
 	}
@@ -38,7 +39,7 @@ func Test_VersionsJSONUnmarshal(t *testing.T) {
 	}
 }
 `)
-	versions := f11.NewVersions()
+	versions := ocfl.f11.NewVersions()
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
@@ -62,7 +63,7 @@ func Test_VersionsInvalidJSON(t *testing.T) {
 	}
 }
 `)
-	versions := f11.NewVersions()
+	versions := ocfl.f11.NewVersions()
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
@@ -73,8 +74,8 @@ func Test_VersionsInvalidJSON(t *testing.T) {
 
 func Test_VersionsCheck(t *testing.T) {
 	val := NewDummyValidation()
-	versions := f11.NewVersions()
-	version := f11.NewVersion().WithMessage("test")
+	versions := ocfl.f11.NewVersions()
+	version := ocfl.f11.NewVersion().WithMessage("test")
 	versions.SetVersion(NewVersionNumber().WithString("v1"), version)
 
 	if err := versions.Check(val, []string{}); err != nil {

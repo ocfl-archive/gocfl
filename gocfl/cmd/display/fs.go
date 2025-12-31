@@ -88,28 +88,30 @@ func (o *ObjectFS) openState(name string) (fs.File, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionStr string
-	if parts[0] == "latest" {
-		versionStr = o.inventory.GetHead()
-	} else {
-		versionStr = parts[0]
-	}
+	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
+	/*
+		if parts[0] == "latest" {
+			versionStr = o.inventory.GetHead()
+		} else {
+			versionStr = parts[0]
+		}
+	*/
 	path := parts[1]
 	versions := o.inventory.GetVersions()
-	version, ok := versions[versionStr]
-	if !ok {
+	version := versions.GetVersion(versionNumber)
+	if version == nil {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid version: %s", version)
 	}
-	for cs, paths := range version.State.State {
+	for cs, paths := range version.GetState().Iterate() {
 		if !slices.Contains(paths, path) {
 			continue
 		}
-		realpaths, ok := o.manifest[cs]
-		if !ok {
-			return nil, errors.Wrapf(fs.ErrNotExist, "unknown checksum %s for version %s and path %s", cs, versionStr, path)
+		realpaths, err := o.manifest.GetFiles(cs)
+		if err != nil {
+			return nil, errors.Wrapf(errors.Combine(fs.ErrNotExist, err), "unknown checksum %s for version %s and path %s", cs, versionNumber.String(), path)
 		}
 		if len(realpaths) == 0 {
-			return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s for version %s and path %s", cs, versionStr, path)
+			return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s for version %s and path %s", cs, versionNumber.String(), path)
 		}
 		fsys := o.object.GetFS()
 		return fsys.Open(realpaths[0])
@@ -121,28 +123,30 @@ func (o *ObjectFS) statState(name string) (fs.FileInfo, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionStr string
-	if parts[0] == "latest" {
-		versionStr = o.inventory.GetHead()
-	} else {
-		versionStr = parts[0]
-	}
+	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
+	/*
+		if parts[0] == "latest" {
+			versionStr = o.inventory.GetHead()
+		} else {
+			versionStr = parts[0]
+		}
+	*/
 	path := parts[1]
 	versions := o.inventory.GetVersions()
-	version, ok := versions[versionStr]
-	if !ok {
+	version := versions.GetVersion(versionNumber)
+	if version == nil {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid version: %s", version)
 	}
-	for cs, paths := range version.State.State {
+	for cs, paths := range version.GetState().Iterate() {
 		if !slices.Contains(paths, path) {
 			continue
 		}
-		realpaths, ok := o.manifest[cs]
-		if !ok {
-			return nil, errors.Wrapf(fs.ErrNotExist, "unknown checksum %s for version %s and path %s", cs, versionStr, path)
+		realpaths, err := o.manifest.GetFiles(cs)
+		if err != nil {
+			return nil, errors.Wrapf(errors.Combine(fs.ErrNotExist, err), "unknown checksum %s for version %s and path %s", cs, versionNumber, path)
 		}
 		if len(realpaths) == 0 {
-			return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s for version %s and path %s", cs, versionStr, path)
+			return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s for version %s and path %s", cs, versionNumber, path)
 		}
 		fsys := o.object.GetFS()
 		return fs.Stat(fsys, realpaths[0])
@@ -157,8 +161,8 @@ func (o *ObjectFS) readDirState(name string, num int) (files []fs.DirEntry, err 
 	name = strings.TrimSuffix(name, "/")
 	if name == "" {
 		versions := o.inventory.GetVersions()
-		for versionStr, version := range versions {
-			files = append(files, NewObjectFileInfoDir(versionStr, version.Created.Time))
+		for versionNumber, version := range versions.Iterate() {
+			files = append(files, NewObjectFileInfoDir(versionNumber.String(), version.GetCreated()))
 		}
 		return files, nil
 	}
@@ -166,24 +170,26 @@ func (o *ObjectFS) readDirState(name string, num int) (files []fs.DirEntry, err 
 	if len(parts) == 0 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionStr string
-	if parts[0] == "latest" {
-		versionStr = o.inventory.GetHead()
-	} else {
-		versionStr = parts[0]
-	}
+	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
+	/*
+		if parts[0] == "latest" {
+			versionNumber = o.inventory.GetHead()
+		} else {
+			versionNumber = parts[0]
+		}
+	*/
 	path := ""
 	if len(parts) > 1 {
 		path = parts[1]
 	}
 	versions := o.inventory.GetVersions()
-	version, ok := versions[versionStr]
-	if !ok {
+	version := versions.GetVersion(versionNumber)
+	if version == nil {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid version: %s", version)
 	}
 	var entries = []fs.DirEntry{}
 	var found bool
-	for _, paths := range version.State.State {
+	for _, paths := range version.GetState().Iterate() {
 		for _, p := range paths {
 			if strings.HasPrefix(p, path) {
 				sub := strings.TrimPrefix(p, path)
@@ -239,42 +245,41 @@ func (o *ObjectFS) readDirState(name string, num int) (files []fs.DirEntry, err 
 	return entries[:num], nil
 }
 
-func (o *ObjectFS) openManifest(name string) (fs.File, error) {
-	realpaths, ok := o.manifest[name]
-	if !ok {
-		return nil, errors.Wrapf(fs.ErrNotExist, "unknown checksum %s", name)
+func (o *ObjectFS) openManifest(cs string) (fs.File, error) {
+	realpaths, err := o.manifest.GetFiles(cs)
+	if err != nil {
+		return nil, errors.Wrapf(fs.ErrNotExist, "unknown checksum %s", cs)
 	}
 	if len(realpaths) == 0 {
-		return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s", name)
+		return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s", cs)
 	}
 	fsys := o.object.GetFS()
 	return fsys.Open(realpaths[0])
 }
-func (o *ObjectFS) statManifest(name string) (fs.FileInfo, error) {
-	realpaths, ok := o.manifest[name]
-	if !ok {
-		return nil, errors.Wrapf(fs.ErrNotExist, "unknown checksum %s", name)
+func (o *ObjectFS) statManifest(cs string) (fs.FileInfo, error) {
+	realpaths, err := o.manifest.GetFiles(cs)
+	if err != nil {
+		return nil, errors.Wrapf(errors.Combine(fs.ErrNotExist, err), "unknown checksum %s", cs)
 	}
 	if len(realpaths) == 0 {
-		return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s", name)
+		return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s", cs)
 	}
 	fsys := o.object.GetFS()
 	return fs.Stat(fsys, realpaths[0])
 }
-func (o *ObjectFS) readDirManifest(name string, num int) (files []fs.DirEntry, err error) {
-	if name != "" {
-		if _, ok := o.manifest[name]; !ok {
-			return nil, errors.Wrapf(fs.ErrNotExist, "unknown checksum %s", name)
-		} else {
-			return nil, errors.Wrapf(fs.ErrInvalid, "%s is a file", name)
+func (o *ObjectFS) readDirManifest(cs string, num int) (files []fs.DirEntry, err error) {
+	if cs != "" {
+		if _, err := o.manifest.GetFiles(cs); err != nil {
+			return nil, errors.Wrapf(errors.Combine(fs.ErrNotExist, err), "unknown checksum %s", cs)
 		}
+		return nil, errors.Wrapf(fs.ErrInvalid, "%s is a file", cs)
 	}
 	if num == -1 {
 		num = math.MaxInt
 	}
 	files = []fs.DirEntry{}
 	var count int
-	for checksum := range o.manifest {
+	for checksum := range o.manifest.Iterate() {
 		if count >= num {
 			break
 		}
@@ -286,7 +291,7 @@ func (o *ObjectFS) readDirManifest(name string, num int) (files []fs.DirEntry, e
 }
 
 func (o *ObjectFS) openData(name string) (fs.File, error) {
-	for _, realpaths := range o.manifest {
+	for _, realpaths := range o.manifest.Iterate() {
 		if !slices.Contains(realpaths, name) {
 			continue
 		}
@@ -296,7 +301,7 @@ func (o *ObjectFS) openData(name string) (fs.File, error) {
 	return nil, errors.Wrapf(fs.ErrNotExist, "unknown file %s", name)
 }
 func (o *ObjectFS) statData(name string) (fs.FileInfo, error) {
-	for _, realpaths := range o.manifest {
+	for _, realpaths := range o.manifest.Iterate() {
 		if !slices.Contains(realpaths, name) {
 			continue
 		}
@@ -313,7 +318,7 @@ func (o *ObjectFS) readDirData(name string, num int) (files []fs.DirEntry, err e
 	name = strings.TrimSuffix(name, "/")
 	var entries = []fs.DirEntry{}
 	var found bool
-	for _, paths := range o.manifest {
+	for _, paths := range o.manifest.Iterate() {
 		for _, p := range paths {
 			if strings.HasPrefix(p, name) {
 				sub := strings.TrimPrefix(p, name)

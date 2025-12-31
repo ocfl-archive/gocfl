@@ -1,16 +1,50 @@
 package inventory
 
 import (
-	"github.com/je4/utils/v2/pkg/checksum"
+	"context"
+
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase() Factory {
-	return &FactoryBase{}
+func NewFactoryBase(version version.OCFLVersion, spec InventorySpec, logger zLogger.ZLogger) Factory {
+	return &FactoryBase{
+		logger:  logger,
+		version: version,
+		spec:    spec,
+	}
 }
 
-type FactoryBase struct{}
+type FactoryBase struct {
+	logger  zLogger.ZLogger
+	version version.OCFLVersion
+	spec    InventorySpec
+}
 
-func (f *FactoryBase) NewFixity(algorithms []checksum.DigestAlgorithm) Fixity {
+func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, contentDir string) Inventory {
+	if contentDir == "" {
+		contentDir = "content"
+	}
+	i := &InventoryBase{
+		ctx:     ctx,
+		factory: f,
+		//object:                 object,
+		version:       f.version,
+		folder:        objectFolder,
+		paddingLength: 0,
+		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
+		Type:             f.spec,
+		Head:             NewVersionNumber(),
+		ContentDirectory: contentDir,
+		Manifest:         f.NewManifest(),
+		Versions:         f.NewVersions(),
+		Fixity:           f.NewFixity(),
+		logger:           f.logger,
+	}
+	return i
+}
+
+func (f *FactoryBase) NewFixity() Fixity {
 	return NewFixityBase()
 }
 

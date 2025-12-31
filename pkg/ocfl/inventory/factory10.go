@@ -1,10 +1,15 @@
 package inventory
 
-var f10 = NewFactory10()
+import (
+	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+)
 
-func NewFactory10() Factory {
+var f10 = NewFactory10(nil)
+
+func NewFactory10(logger zLogger.ZLogger) Factory {
 	return &factory10{
-		Factory: NewFactoryBase(),
+		Factory: NewFactoryBase(version.Version1_0, InventorySpec1_0, logger),
 	}
 }
 

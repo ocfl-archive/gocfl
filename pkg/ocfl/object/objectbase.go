@@ -49,12 +49,14 @@ type ObjectBase struct {
 	echo               bool
 	updateFiles        []string
 	area               string
+	inventoryFactory   inventory.Factory
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, inventoryFactory inventory.Factory, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
+		inventoryFactory: inventoryFactory,
 		fsys:             fsys,
 		version:          defaultVersion,
 		extensionFactory: extensionFactory,
@@ -237,10 +239,13 @@ func (object *ObjectBase) GetFS() fs.FS {
 }
 
 func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (inventory.Inventory, error) {
-	inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create empty inventory")
-	}
+	inventory := object.inventoryFactory.NewInventory(object.ctx, "new", "")
+	/*
+		inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create empty inventory")
+		}
+	*/
 	if err := inventory.Init(id, digest, fixity); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize empty inventory")
 	}
@@ -276,10 +281,13 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (inventory.I
 		// if we don't know anything use the old stuff
 		ver = version.Version1_0
 	}
-	inventory, err := inventory.NewInventory(object.ctx, folder, ver, object.logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create empty inventory")
-	}
+	inventory := object.inventoryFactory.NewInventory(object.ctx, folder, "")
+	/*
+		inventory, err := inventory.NewInventory(object.ctx, folder, ver, object.logger)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create empty inventory")
+		}
+	*/
 	if err := json.Unmarshal(data, inventory); err != nil {
 		// now lets try it again
 		jsonMap := map[string]any{}
@@ -326,7 +334,8 @@ func (object *ObjectBase) LoadInventory(folder string) (inventory.Inventory, err
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		return inventory.NewInventory(object.ctx, folder, object.version, object.logger)
+		inventory := object.inventoryFactory.NewInventory(object.ctx, folder, "")
+		return inventory, nil
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
 	if err != nil {
@@ -1094,7 +1103,7 @@ func (object *ObjectBase) checkVersionFolder(version string) error {
 func (object *ObjectBase) checkFilesAndVersions() error {
 	// create list of version content directories
 	versionContents := map[string]string{}
-	versionStrings := object.i.GetVersionNumbers()
+	versionStrings := ocfl.SeqToSlice(object.i.GetVersions().GetVersionNumbers())
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
@@ -1332,11 +1341,10 @@ func (object *ObjectBase) Check() error {
 	//object.fs
 	object.logger.Info().Msgf("object '%s' with object version '%s' found", object.GetID(), object.GetVersion())
 	// check folders
-	versions := object.i.GetVersionNumbers()
 
 	// check for allowed files and directories
 	allowedDirs := []string{"logs", "extensions"}
-	for _, v := range versions {
+	for v := range object.i.GetVersions().GetVersionNumbers() {
 		allowedDirs = append(allowedDirs, v.String())
 	}
 	versionCounter := 0
@@ -1359,7 +1367,7 @@ func (object *ObjectBase) Check() error {
 			}
 
 			// check version directories
-			for _, v := range versions {
+			for v := range object.i.GetVersions().GetVersionNumbers() {
 				if v.String() == entry.Name() {
 					if err := object.checkVersionFolder(entry.Name()); err != nil {
 						return errors.WithStack(err)
@@ -1375,8 +1383,9 @@ func (object *ObjectBase) Check() error {
 		}
 	}
 
-	if versionCounter != len(versions) {
-		object.AddValidationError(validation.E010, "number of versions in inventory (%v) does not fit versions in filesystem (%v)", versionCounter, len(versions))
+	invVersionCounter := len(ocfl.SeqToSlice(object.i.GetVersions().GetVersionNumbers()))
+	if versionCounter != invVersionCounter {
+		object.AddValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
 	}
 
 	if err := object.checkFilesAndVersions(); err != nil {
@@ -1397,12 +1406,11 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	}
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
-	versions := object.i.GetVersionNumbers()
-	for _, version := range versions {
+	for versionNumber := range object.i.GetVersions().GetVersionNumbers() {
 		if err := fs.WalkDir(
 			object.fsys,
 			//fmt.Sprintf("%s/%s", version, object.i.GetContentDir()),
-			version.String(),
+			versionNumber.String(),
 			func(path string, d fs.DirEntry, err error) error {
 				//object.logger.Debug(path)
 				if d.IsDir() {
@@ -1444,7 +1452,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventor
 		return object.versionInventories, nil
 	}
 
-	versionStrings := object.i.GetVersionNumbers()
+	versionStrings := ocfl.SeqToSlice(object.i.GetVersions().GetVersionNumbers())
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
