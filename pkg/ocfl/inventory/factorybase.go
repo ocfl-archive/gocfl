@@ -23,45 +23,29 @@ type FactoryBase struct {
 }
 
 func (f *FactoryBase) NewInventory(ctx context.Context) types.Inventory {
-	i := &InventoryBase{
-		ctx:     ctx,
-		factory: f,
-		//object:                 object,
-		version: f.version,
-		//folder:  objectFolder,
-		//paddingLength: 0,
-		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
-		Type:             f.spec,
-		Head:             types.NewVersionNumber(),
-		contentDirectory: "content",
-		Manifest:         f.NewManifest(),
-		Versions:         f.NewVersions(),
-		Fixity:           f.NewFixity(),
-		logger:           f.logger,
-	}
-	return i
+	return NewInventoryBase(ctx, f, f.version, f.spec, f.logger)
 }
 
-func (f *FactoryBase) NewFixity() types.Fixity {
-	return NewFixityBase()
+func (f *FactoryBase) NewFixity(context.Context) types.Fixity {
+	return NewFixityBase(f.logger)
 }
 
-func (f *FactoryBase) NewUser() types.User {
+func (f *FactoryBase) NewUser(context.Context) types.User {
 	return NewUserBase()
 }
 
-func (f *FactoryBase) NewManifest() types.Manifest {
-	return NewManifestBase()
+func (f *FactoryBase) NewManifest(context.Context) types.Manifest {
+	return NewManifestBase(f.logger)
 }
 
-func (f *FactoryBase) NewVersions() types.Versions {
-	return NewVersionsBase(f)
+func (f *FactoryBase) NewVersions(context.Context) types.Versions {
+	return NewVersionsBase(f, f.logger)
 }
-func (f *FactoryBase) NewVersion() types.Version {
-	return NewVersionBase(f)
+func (f *FactoryBase) NewVersion(context.Context) types.Version {
+	return NewVersionBase(f, f.logger)
 }
 
-func (f *FactoryBase) NewState() types.State {
+func (f *FactoryBase) NewState(context.Context) types.State {
 	return NewStateBase()
 }
 

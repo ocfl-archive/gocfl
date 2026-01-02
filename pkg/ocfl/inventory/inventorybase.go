@@ -16,6 +16,27 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+func NewInventoryBase(ctx context.Context, f types.Factory, version version.OCFLVersion, spec types.InventorySpec, logger zLogger.ZLogger) *InventoryBase {
+	i := &InventoryBase{
+		ctx:     ctx,
+		factory: f,
+		//object:                 object,
+		version: version,
+		//folder:  objectFolder,
+		//paddingLength: 0,
+		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
+		Type:             spec,
+		Head:             types.NewVersionNumber(),
+		ContentDirectory: "content",
+		Manifest:         f.NewManifest(ctx),
+		Versions:         f.NewVersions(ctx),
+		Fixity:           f.NewFixity(ctx),
+		logger:           logger,
+	}
+	return i
+
+}
+
 type InventoryBase struct {
 	factory types.Factory
 	ctx     context.Context
@@ -31,7 +52,7 @@ type InventoryBase struct {
 	Type             types.InventorySpec      `json:"type"`
 	DigestAlgorithm  checksum.DigestAlgorithm `json:"digestAlgorithm"`
 	Head             *types.VersionNumber     `json:"head"`
-	contentDirectory string                   `json:"contentDirectory,omitempty"`
+	ContentDirectory string                   `json:"ContentDirectory,omitempty"`
 	Manifest         types.Manifest           `json:"manifest,omitempty"`
 	Versions         types.Versions           `json:"versions"`
 	Fixity           types.Fixity             `json:"fixity,omitempty"`
@@ -42,7 +63,7 @@ func (i *InventoryBase) WithContentDir(contentDir string) types.Inventory {
 	if contentDir == "" {
 		contentDir = "content"
 	}
-	i.contentDirectory = contentDir
+	i.ContentDirectory = contentDir
 	return i
 }
 
@@ -58,7 +79,7 @@ func newInventoryBase(ctx context.Context, factory types.Factory, ver version.OC
 		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
 		Type:             types.InventorySpec(objectType.String()),
 		Head:             types.NewVersionNumber(),
-		contentDirectory: contentDir,
+		ContentDirectory: contentDir,
 		Manifest:         nil,
 		Versions:         factory.NewVersions(),
 		Fixity:           nil,
@@ -81,7 +102,7 @@ func (i *InventoryBase) IsEqual(invent types.Inventory) bool {
 	if !i.Head.Equal(i2.Head) {
 		return false
 	}
-	if i.contentDirectory != i2.contentDirectory {
+	if i.ContentDirectory != i2.ContentDirectory {
 		return false
 	}
 	if (i.Manifest == nil && i2.Manifest != nil) || (i.Manifest != nil && i2.Manifest == nil) {
@@ -106,7 +127,7 @@ func (i *InventoryBase) IsEqual(invent types.Inventory) bool {
 func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (err error) {
 	i.Id = id
 	i.DigestAlgorithm = digest
-	i.Fixity = i.factory.NewFixity().WithAlgorithms(fixity...)
+	i.Fixity = i.factory.NewFixity(nil).WithAlgorithms(fixity...)
 	return nil
 }
 func (i *InventoryBase) Finalize(inCreation bool) (err error) {
@@ -114,7 +135,7 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 		if !inCreation {
 			i.AddValidationError(validation.E041, "no manifest in inventory")
 		}
-		i.Manifest = i.factory.NewManifest()
+		i.Manifest = i.factory.NewManifest(nil)
 	}
 	if err := i.Manifest.Finalize(i, i.factory, inCreation); err != nil {
 		return errors.Wrap(err, "error finalizing manifest")
@@ -124,7 +145,7 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 		if !inCreation {
 			i.AddValidationError(validation.E041, "no versions in inventory")
 		}
-		i.Versions = i.factory.NewVersions()
+		i.Versions = i.factory.NewVersions(nil)
 	}
 	if err := i.Versions.Finalize(i, i.factory, inCreation); err != nil {
 		return errors.Wrap(err, "error finalizing versions")
@@ -155,14 +176,14 @@ func (i *InventoryBase) GetHead() *types.VersionNumber { return i.Head }
 func (i *InventoryBase) GetSpec() types.InventorySpec  { return i.Type }
 
 func (i *InventoryBase) GetContentDir() string {
-	if i.contentDirectory == "" {
+	if i.ContentDirectory == "" {
 		return "content"
 	}
-	return i.contentDirectory
+	return i.ContentDirectory
 }
 
 func (i *InventoryBase) GetRealContentDir() string {
-	return i.contentDirectory
+	return i.ContentDirectory
 }
 
 func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
@@ -229,7 +250,7 @@ func (i *InventoryBase) GetStateFiles(version *VersionNumber, cs string) ([]stri
 }
 */
 
-func (i *InventoryBase) IterateStateFiles(version *types.VersionNumber, fn types.StateFileCallback) error {
+func (i *InventoryBase) IterateFiles(version *types.VersionNumber, fn types.StateFileCallback) error {
 	if !version.IsValid() {
 		version = i.GetHead()
 	}
@@ -315,9 +336,9 @@ func (i *InventoryBase) check() error {
 		}
 	}
 
-	if i.contentDirectory != "" {
-		if slices.Contains([]string{"", ".", ".."}, i.contentDirectory) || strings.Contains(i.contentDirectory, "/") {
-			i.AddValidationError(validation.E017, "invalid content directory '%s'", i.contentDirectory)
+	if i.ContentDirectory != "" {
+		if slices.Contains([]string{"", ".", ".."}, i.ContentDirectory) || strings.Contains(i.ContentDirectory, "/") {
+			i.AddValidationError(validation.E017, "invalid content directory '%s'", i.ContentDirectory)
 		}
 	}
 

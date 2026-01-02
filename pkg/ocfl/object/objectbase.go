@@ -1502,7 +1502,7 @@ func (object *ObjectBase) Extract(fsys fs.FS, version *types.VersionNumber, with
 	var manifest strings.Builder
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()
-	if err := object.i.IterateStateFiles(version, func(internals, externals []string, digest string) error {
+	if err := object.i.IterateFiles(version, func(internals, externals []string, digest string) error {
 		for _, external := range externals {
 			external, err = object.extensionManager.BuildObjectExtractPath(object, external, area)
 			if err != nil {

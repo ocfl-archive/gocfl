@@ -8,15 +8,17 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewFixityBase() *FixityBase {
+func NewFixityBase(logger zLogger.ZLogger) *FixityBase {
 	f := &FixityBase{
 		fixity: map[checksum.DigestAlgorithm]map[string][]string{},
 		err:    nil,
+		logger: logger,
 	}
 	return f
 }
@@ -25,6 +27,7 @@ type FixityBase struct {
 	fixity                 map[checksum.DigestAlgorithm]map[string][]string
 	err                    error
 	fixityDigestAlgorithms []checksum.DigestAlgorithm
+	logger                 zLogger.ZLogger
 }
 
 func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {

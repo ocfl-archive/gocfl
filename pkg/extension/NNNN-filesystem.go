@@ -269,7 +269,7 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 			}
 			lines = append(lines, meta)
 		}
-		if err := inventory.IterateStateFiles(v, func(internals, externals []string, digest string) error {
+		if err := inventory.IterateFiles(v, func(internals, externals []string, digest string) error {
 			for _, line := range lines {
 				if slices.Contains(externals, line.Path) {
 					if _, ok := result[digest]; !ok {

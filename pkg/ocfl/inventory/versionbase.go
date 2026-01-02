@@ -4,16 +4,18 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewVersionBase(factory types.Factory) types.Version {
+func NewVersionBase(factory types.Factory, logger zLogger.ZLogger) types.Version {
 	return &versionBase{
 		Created: types.NewOCFLTime(time.Now()),
 		Message: types.NewOCFLString("initial"),
-		State:   factory.NewState(),
-		User:    factory.NewUser(),
+		State:   factory.NewState(nil),
+		User:    factory.NewUser(nil),
+		logger:  logger,
 	}
 }
 
@@ -23,6 +25,7 @@ type versionBase struct {
 	Message *types.OCFLString `json:"message"`
 	State   types.State       `json:"state"`
 	User    types.User        `json:"user"`
+	logger  zLogger.ZLogger
 }
 
 func (v *versionBase) GetVersionNumber() *types.VersionNumber {

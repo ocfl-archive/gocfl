@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"golang.org/x/exp/slices"
@@ -30,11 +31,12 @@ func (v versionValue) GetVersion(version uint) (*types.VersionNumber, bool) {
 	return nil, false
 }
 
-func NewVersionsBase(factory types.Factory) types.Versions {
+func NewVersionsBase(factory types.Factory, logger zLogger.ZLogger) types.Versions {
 	return &versionsBase{
 		versions:    map[int]types.Version{},
 		versionInts: map[string]int{},
 		factory:     factory,
+		logger:      logger,
 	}
 }
 
@@ -44,6 +46,7 @@ type versionsBase struct {
 	err         error
 	//paddingLength int
 	factory types.Factory
+	logger  zLogger.ZLogger
 }
 
 func (v *versionsBase) NewVersion(head *types.VersionNumber, msg, UserName, UserAddress string) error {
@@ -57,14 +60,14 @@ func (v *versionsBase) NewVersion(head *types.VersionNumber, msg, UserName, User
 	} else {
 		newVersionNumber = types.NewVersionNumber().WithString("v1")
 	}
-	state := v.factory.NewState()
+	state := v.factory.NewState(nil)
 	if head != nil {
 		if err := state.CopyFrom(v.GetVersion(head).GetState()); err != nil {
 			return errors.Wrapf(err, "Failed to copy version from %s", head)
 		}
 	}
-	user := v.factory.NewUser().WithAddress(UserAddress).WithName(UserName)
-	ver := v.factory.NewVersion().
+	user := v.factory.NewUser(nil).WithAddress(UserAddress).WithName(UserName)
+	ver := v.factory.NewVersion(nil).
 		WithCreated(time.Now()).
 		WithMessage(msg).
 		WithState(state).
@@ -332,7 +335,7 @@ func (v *versionsBase) UnmarshalJSON(data []byte) error {
 	v.versions = map[int]types.Version{}
 	for key, bytes := range newVersions {
 		versionNumber := types.NewVersionNumber().WithString(key)
-		ver := v.factory.NewVersion()
+		ver := v.factory.NewVersion(nil)
 		if err := json.Unmarshal(bytes, &ver); err != nil {
 			v.err = errors.Wrapf(err, "cannot unmarshal version '%s': '%s'", versionNumber.String(), string(bytes))
 			return nil

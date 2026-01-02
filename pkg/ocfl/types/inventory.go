@@ -24,7 +24,7 @@ type Inventory interface {
 	AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error
 	//	CopyFile(dest string, digest string) error
 
-	IterateStateFiles(version *VersionNumber, fn StateFileCallback) error
+	IterateFiles(version *VersionNumber, fn StateFileCallback) error
 	//	GetStateFiles(version *VersionNumber, cs string) ([]string, error)
 
 	//GetContentDirectory() string
