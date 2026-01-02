@@ -22,7 +22,7 @@ type FactoryBase struct {
 	spec    types.InventorySpec
 }
 
-func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, contentDir string) types.Inventory {
+func (f *FactoryBase) NewInventory(ctx context.Context, contentDir string) types.Inventory {
 	if contentDir == "" {
 		contentDir = "content"
 	}

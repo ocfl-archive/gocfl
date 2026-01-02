@@ -20,7 +20,7 @@ import (
 type InventoryBase struct {
 	factory types.Factory
 	ctx     context.Context
-	folder  string
+	//folder  string
 	//object                 ocfl.Object
 	version   version.OCFLVersion
 	modified  bool
@@ -45,7 +45,7 @@ func newInventoryBase(ctx context.Context, factory types.Factory, ver version.OC
 		factory: factory,
 		//object:                 object,
 		version: ver,
-		folder:  folder,
+		//folder:  folder,
 		//paddingLength: 0,
 		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
 		Type:             types.InventorySpec(objectType.String()),
@@ -134,11 +134,11 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 }
 
 func (i *InventoryBase) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
-	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s'", i.GetID())
+	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", i.GetID())
 	return errors.WithStack(validation.AddValidationErrors(i.ctx, err))
 }
 func (i *InventoryBase) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
-	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s'", i.GetID())
+	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", i.GetID())
 	return errors.WithStack(validation.AddValidationWarnings(i.ctx, err))
 }
 func (i *InventoryBase) GetID() string                 { return i.Id }
