@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec InventorySpec, logger zLogger.ZLogger) Factory {
+func NewFactoryBase(version version.OCFLVersion, spec InventorySpec, logger zLogger.ZLogger) interfaces.Factory {
 	return &FactoryBase{
 		logger:  logger,
 		version: version,
@@ -21,7 +22,7 @@ type FactoryBase struct {
 	spec    InventorySpec
 }
 
-func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, contentDir string) Inventory {
+func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, contentDir string) interfaces.Inventory {
 	if contentDir == "" {
 		contentDir = "content"
 	}
@@ -34,7 +35,7 @@ func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, con
 		paddingLength: 0,
 		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
 		Type:             f.spec,
-		Head:             NewVersionNumber(),
+		Head:             interfaces.NewVersionNumber(),
 		ContentDirectory: contentDir,
 		Manifest:         f.NewManifest(),
 		Versions:         f.NewVersions(),
@@ -44,27 +45,27 @@ func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, con
 	return i
 }
 
-func (f *FactoryBase) NewFixity() Fixity {
+func (f *FactoryBase) NewFixity() interfaces.Fixity {
 	return NewFixityBase()
 }
 
-func (f *FactoryBase) NewUser() User {
+func (f *FactoryBase) NewUser() interfaces.User {
 	return NewUserBase()
 }
 
-func (f *FactoryBase) NewManifest() Manifest {
+func (f *FactoryBase) NewManifest() interfaces.Manifest {
 	return NewManifestBase()
 }
 
-func (f *FactoryBase) NewVersions() Versions {
+func (f *FactoryBase) NewVersions() interfaces.Versions {
 	return NewVersionsBase(f)
 }
-func (f *FactoryBase) NewVersion() Version {
+func (f *FactoryBase) NewVersion() interfaces.Version {
 	return NewVersionBase(f)
 }
 
-func (f *FactoryBase) NewState() State {
+func (f *FactoryBase) NewState() interfaces.State {
 	return NewStateBase()
 }
 
-var _ Factory = (*FactoryBase)(nil)
+var _ interfaces.Factory = (*FactoryBase)(nil)

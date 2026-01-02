@@ -20,7 +20,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -184,7 +184,7 @@ func (thumb *Thumbnail) WriteConfig() error {
 	return nil
 }
 
-func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventory.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
+func (thumb *Thumbnail) storeThumbnail(object object.Object, head *interfaces.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
 	var targetName string
 	subfolder := thumb.StorageName
 	if thumb.StorageType == "area" {
@@ -235,7 +235,7 @@ func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventory.Ver
 	}
 }
 
-func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventory.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
+func (thumb *Thumbnail) DoThumbnail(object object.Object, head *interfaces.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")
@@ -477,8 +477,16 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 
 			if _, err := manifest.GetFiles(meta.ThumbDigest); err != nil {
 				source := ""
-				if state, err := inventory.GetStateFiles(inventory.GetHead(), meta.SourceDigest); err == nil && len(state) > 0 {
-					source = state[0]
+				ver := inventory.GetVersions().GetVersion(inventory.GetHead())
+				if ver == nil {
+					return nil, errors.Wrapf(err, "cannot find latest version %s for file '%s' in object '%s'", inventory.GetHead(), meta.SourceDigest, object.GetID())
+				}
+				externalFiles, err := ver.GetState().GetFiles(meta.SourceDigest)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot find state file for file '%s' in object '%s'", meta.SourceDigest, object.GetID())
+				}
+				if len(externalFiles) > 0 {
+					source = externalFiles[0]
 				}
 				if meta.SourceName == nil {
 					meta.SourceName = []string{}

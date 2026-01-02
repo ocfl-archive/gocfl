@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewVersionBase(factory Factory) Version {
+func NewVersionBase(factory interfaces.Factory) interfaces.Version {
 	return &versionBase{
 		Created: NewOCFLTime(time.Now()),
 		Message: NewOCFLString("initial"),
@@ -17,14 +18,14 @@ func NewVersionBase(factory Factory) Version {
 }
 
 type versionBase struct {
-	version *VersionNumber
-	Created *OCFLTime   `json:"created"`
-	Message *OCFLString `json:"message"`
-	State   State       `json:"state"`
-	User    User        `json:"user"`
+	version *interfaces.VersionNumber
+	Created *OCFLTime        `json:"created"`
+	Message *OCFLString      `json:"message"`
+	State   interfaces.State `json:"state"`
+	User    interfaces.User  `json:"user"`
 }
 
-func (v *versionBase) SetVersion(number *VersionNumber) {
+func (v *versionBase) SetVersion(number *interfaces.VersionNumber) {
 	v.version = number
 }
 
@@ -99,17 +100,17 @@ func (v *versionBase) Err() error {
 	)
 }
 
-func (v *versionBase) WithCreated(t time.Time) Version {
+func (v *versionBase) WithCreated(t time.Time) interfaces.Version {
 	v.Created = NewOCFLTime(t)
 	return v
 }
 
-func (v *versionBase) WithMessage(msg string) Version {
+func (v *versionBase) WithMessage(msg string) interfaces.Version {
 	v.Message = NewOCFLString(msg)
 	return v
 }
 
-func (v *versionBase) WithState(state State) Version {
+func (v *versionBase) WithState(state interfaces.State) interfaces.Version {
 	stateB, ok := state.(*stateBase)
 	if !ok {
 		panic("invalid state type")
@@ -119,7 +120,7 @@ func (v *versionBase) WithState(state State) Version {
 	return v
 }
 
-func (v *versionBase) WithUser(user User) Version {
+func (v *versionBase) WithUser(user interfaces.User) interfaces.Version {
 	userB, ok := user.(*userBase)
 	if !ok {
 		panic("invalid user type")
@@ -133,7 +134,7 @@ func (v *versionBase) GetMessage() string {
 	return v.Message.String()
 }
 
-func (v *versionBase) GetUser() User {
+func (v *versionBase) GetUser() interfaces.User {
 	return v.User
 }
 
@@ -141,11 +142,11 @@ func (v *versionBase) GetCreated() time.Time {
 	return v.Created.Time
 }
 
-func (v *versionBase) GetState() State {
+func (v *versionBase) GetState() interfaces.State {
 	return v.State
 }
 
-func (v *versionBase) Finalize(val validation.Validation, factory Factory, inCreation bool) error {
+func (v *versionBase) Finalize(val validation.Validation, factory interfaces.Factory, inCreation bool) error {
 	if v.User == nil {
 		_ = val.AddValidationWarning(validation.W007, "no user key in version '%s'", v.version)
 		v.User = NewUserBase()
@@ -161,7 +162,7 @@ func (v *versionBase) Finalize(val validation.Validation, factory Factory, inCre
 	return nil
 }
 
-func (v *versionBase) Equals(other Version) bool {
+func (v *versionBase) Equals(other interfaces.Version) bool {
 	if v == nil || other == nil {
 		return false
 	}
@@ -203,4 +204,4 @@ func (v *versionBase) EqualState(v2 *versionBase) bool {
 	return true
 }
 
-var _ Version = (*versionBase)(nil)
+var _ interfaces.Version = (*versionBase)(nil)

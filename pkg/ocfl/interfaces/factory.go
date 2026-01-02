@@ -1,4 +1,4 @@
-package inventory
+package interfaces
 
 import (
 	"context"

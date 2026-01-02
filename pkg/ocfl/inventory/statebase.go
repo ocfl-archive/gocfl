@@ -8,6 +8,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
@@ -25,7 +26,7 @@ type stateBase struct {
 	digestAlgorithm checksum.DigestAlgorithm
 }
 
-func (s *stateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) State {
+func (s *stateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) interfaces.State {
 	s.digestAlgorithm = dgst
 	return s
 }
@@ -107,7 +108,7 @@ func (s *stateBase) FileChecksum(path string) string {
 	return ""
 }
 
-func (s *stateBase) Check(val validation.Validation, version *VersionNumber, manifestDigests []string, manifestDigestsLower []string) error {
+func (s *stateBase) Check(val validation.Validation, version *interfaces.VersionNumber, manifestDigests []string, manifestDigestsLower []string) error {
 	logPaths := []string{}
 	if s.Err() != nil {
 		val.AddValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
@@ -152,10 +153,10 @@ func (s *stateBase) Check(val validation.Validation, version *VersionNumber, man
 	return nil
 }
 
-func (s *stateBase) CopyFrom(state State) error {
+func (s *stateBase) CopyFrom(state interfaces.State) error {
 	state2, ok := state.(*stateBase)
 	if !ok {
-		return errors.WithStack(StateTypeDifferent)
+		return errors.WithStack(interfaces.StateTypeDifferent)
 	}
 	s.err = state2.Err()
 
@@ -175,7 +176,7 @@ func (s *stateBase) Err() error {
 	return s.err
 }
 
-func (s *stateBase) Equals(state State) bool {
+func (s *stateBase) Equals(state interfaces.State) bool {
 	if s == nil || state == nil {
 		return false
 	}
@@ -224,7 +225,7 @@ func (s *stateBase) Iterate() func(yield func(digest string, external []string) 
 func (s *stateBase) GetFiles(digest string) ([]string, error) {
 	files, ok := s.State[digest]
 	if !ok {
-		return nil, errors.Wrapf(DigestNotFound, "digest %s", digest)
+		return nil, errors.Wrapf(interfaces.DigestNotFound, "digest %s", digest)
 	}
 	return files, nil
 }
@@ -264,4 +265,4 @@ func (s *stateBase) DeleteFile(stateFilename string) (bool, error) {
 	return modified, nil
 }
 
-var _ State = (*stateBase)(nil)
+var _ interfaces.State = (*stateBase)(nil)

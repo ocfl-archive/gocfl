@@ -5,6 +5,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
 	"net/url"
@@ -30,7 +31,7 @@ func newInventoryV1_1(ctx context.Context, ver version.OCFLVersion, folder strin
 	return i, nil
 }
 
-func (i *InventoryV1_1) IsEqual(i2 Inventory) bool {
+func (i *InventoryV1_1) IsEqual(i2 interfaces.Inventory) bool {
 	i11_2, ok := i2.(*InventoryV1_1)
 	if !ok {
 		return false
@@ -39,5 +40,5 @@ func (i *InventoryV1_1) IsEqual(i2 Inventory) bool {
 }
 
 var (
-	_ Inventory = &InventoryV1_1{}
+	_ interfaces.Inventory = &InventoryV1_1{}
 )

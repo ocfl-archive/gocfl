@@ -1,6 +1,8 @@
-package inventory
+package interfaces
 
-import "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+import (
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+)
 
 type User interface {
 	String() string

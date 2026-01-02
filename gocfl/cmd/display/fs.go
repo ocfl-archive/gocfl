@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
@@ -44,8 +44,8 @@ func NewObjectFS(obj object.Object) (*ObjectFS, error) {
 type ObjectFS struct {
 	object object.Object
 	//	metadata  *ocfl.ObjectMetadata
-	inventory inventory.Inventory
-	manifest  inventory.Manifest
+	inventory interfaces.Inventory
+	manifest  interfaces.Manifest
 }
 
 func (o *ObjectFS) readDir(name string, num int) (files []fs.DirEntry, err error) {
@@ -88,7 +88,7 @@ func (o *ObjectFS) openState(name string) (fs.File, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
+	var versionNumber = interfaces.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionStr = o.inventory.GetHead()
@@ -123,7 +123,7 @@ func (o *ObjectFS) statState(name string) (fs.FileInfo, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
+	var versionNumber = interfaces.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionStr = o.inventory.GetHead()
@@ -170,7 +170,7 @@ func (o *ObjectFS) readDirState(name string, num int) (files []fs.DirEntry, err 
 	if len(parts) == 0 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
+	var versionNumber = interfaces.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionNumber = o.inventory.GetHead()

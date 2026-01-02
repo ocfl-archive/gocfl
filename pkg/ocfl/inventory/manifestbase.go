@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
@@ -22,9 +24,9 @@ type ManifestBase struct {
 	err      error
 }
 
-func (s *ManifestBase) GetFilesFlat() iter.Seq[string] {
+func (manifest *ManifestBase) GetFilesFlat() iter.Seq[string] {
 	return func(yield func(string) bool) {
-		for _, internal := range s.Iterate() {
+		for _, internal := range manifest.Iterate() {
 			for _, file := range internal {
 				if !yield(file) {
 					return
@@ -34,23 +36,23 @@ func (s *ManifestBase) GetFilesFlat() iter.Seq[string] {
 	}
 }
 
-func (s *ManifestBase) AddFile(filename string, digest string) (bool, error) {
-	if _, ok := s.manifest[digest]; !ok {
-		s.manifest[digest] = []string{}
+func (manifest *ManifestBase) AddFile(filename string, digest string) (bool, error) {
+	if _, ok := manifest.manifest[digest]; !ok {
+		manifest.manifest[digest] = []string{}
 	}
-	if slices.Contains(s.manifest[digest], filename) {
+	if slices.Contains(manifest.manifest[digest], filename) {
 		return false, nil
 	}
-	s.manifest[digest] = append(s.manifest[digest], filename)
+	manifest.manifest[digest] = append(manifest.manifest[digest], filename)
 	return true, nil
 }
 
-func (s *ManifestBase) GetDuplicates(digest string) []string {
+func (manifest *ManifestBase) GetDuplicates(digest string) []string {
 	// not necessary but fast...
 	if digest == "" {
 		return nil
 	}
-	for cs, files := range s.Iterate() {
+	for cs, files := range manifest.Iterate() {
 		if cs == digest {
 			return files
 		}
@@ -58,67 +60,116 @@ func (s *ManifestBase) GetDuplicates(digest string) []string {
 	return nil
 }
 
-func (s *ManifestBase) Finalize(val validation.Validation, factory Factory, creation bool) error {
-	if s.manifest == nil {
-		s.manifest = map[string][]string{}
+func (manifest *ManifestBase) Finalize(val validation.Validation, factory interfaces.Factory, creation bool) error {
+	if manifest.manifest == nil {
+		manifest.manifest = map[string][]string{}
 	}
 	return nil
 }
 
-func (s *ManifestBase) Check(val validation.Validation, csFiles map[string][]string) error {
-	if s.Err() != nil {
-		return errors.Wrap(s.Err(), "manifest has errors")
+func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[string][]string, versionDigests []string) error {
+	if manifest.Err() != nil {
+		return errors.Wrap(manifest.Err(), "manifest has errors")
 	}
-	for digest, files := range s.Iterate() {
-		csFilenames, ok := csFiles[strings.ToLower(digest)]
-		if !ok {
-			val.AddValidationError(validation.E092, "digest '%s' for file(s) %v not found in content", digest, files)
-			continue
-		}
-		for _, file := range files {
-			if !slices.Contains(csFilenames, file) {
-				val.AddValidationError(validation.E092, "invalid digest for file '%s'", file)
+	slices.Sort(versionDigests)
+	versionDigests = slices.Compact(versionDigests)
+	if csFiles != nil {
+		for digest, files := range manifest.Iterate() {
+			csFilenames, ok := csFiles[strings.ToLower(digest)]
+			if !ok {
+				val.AddValidationError(validation.E092, "digest '%manifest' for file(manifest) %v not found in content", digest, files)
+				continue
+			}
+			for _, file := range files {
+				if !slices.Contains(csFilenames, file) {
+					val.AddValidationError(validation.E092, "invalid digest for file '%manifest'", file)
+				}
 			}
 		}
 	}
+	digests := []string{}
+	allPaths := []string{}
+	for digest, paths := range manifest.Iterate() {
+		//		digest = strings.ToLower(digest)
+		if slices.Contains(digests, digest) {
+			val.AddValidationError(validation.E096, "manifest digest '%manifest' is duplicate", digest)
+		} else {
+			digests = util.SliceInsertSorted(digests, digest)
+			//digests = append(digests, digest)
+			if _, found := slices.BinarySearch(versionDigests, digest); !found {
+				//if !slices.Contains(versionDigests, digest) {
+				val.AddValidationError(validation.E107, "digest '%manifest' does not appear in any version", digest)
+			}
+		}
+		for _, path := range paths {
+			//allPaths = sliceInsertSorted(allPaths, path)
+			allPaths = append(allPaths, path)
+			if path[0] == '/' || path[len(path)-1] == '/' {
+				val.AddValidationError(validation.E100, "invalid path '%manifest' in manifest", path)
+			}
+			if path == "" {
+				val.AddValidationError(validation.E099, "empty path in manifest")
+			}
+			path2 := path
+			if path[0] == '/' {
+				path2 = path[1:]
+			}
+			elements := strings.Split(path2, "/")
+			for _, element := range elements {
+				if slices.Contains([]string{"", ".", ".."}, element) {
+					val.AddValidationError(validation.E099, "invalid path '%manifest' in manifest", path)
+				}
+			}
+
+		}
+
+	}
+	slices.Sort(allPaths)
+	for j := 0; j < len(allPaths)-1; j++ {
+		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
+		if strings.HasPrefix(allPaths[j], prefix) {
+			val.AddValidationError(validation.E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], prefix)
+		}
+	}
+
 	return nil
 }
 
-func (s *ManifestBase) CopyFrom(manifest Manifest) Manifest {
-	s.err = manifest.Err()
+func (manifest *ManifestBase) CopyFrom(manifest2 interfaces.Manifest) interfaces.Manifest {
+	manifest.err = manifest2.Err()
 
-	s.manifest = make(map[string][]string)
-	for k, vs := range manifest.Iterate() {
+	manifest.manifest = make(map[string][]string)
+	for k, vs := range manifest2.Iterate() {
 		newVs := make([]string, len(vs))
 		copy(newVs, vs)
-		s.manifest[k] = newVs
+		manifest.manifest[k] = newVs
 	}
-	return s
+	return manifest
 }
 
-func (s *ManifestBase) Err() error {
-	if s == nil {
+func (manifest *ManifestBase) Err() error {
+	if manifest == nil {
 		return nil
 	}
-	return s.err
+	return manifest.err
 }
 
-func (s *ManifestBase) Equals(manifest Manifest) bool {
-	if s == nil || manifest == nil {
+func (manifest *ManifestBase) Equals(manifest2 interfaces.Manifest) bool {
+	if manifest == nil || manifest2 == nil {
 		return false
 	}
-	manifestB, ok := manifest.(*ManifestBase)
+	manifest2B, ok := manifest2.(*ManifestBase)
 	if !ok {
 		return false
 	}
-	if s.err.Error() != manifest.Err().Error() {
+	if manifest.err.Error() != manifest2.Err().Error() {
 		return false
 	}
-	if len(s.manifest) != len(manifestB.manifest) {
+	if len(manifest.manifest) != len(manifest2B.manifest) {
 		return false
 	}
-	for k, v := range s.manifest {
-		v2, ok := manifestB.manifest[k]
+	for k, v := range manifest.manifest {
+		v2, ok := manifest2B.manifest[k]
 		if !ok {
 			return false
 		}
@@ -129,19 +180,19 @@ func (s *ManifestBase) Equals(manifest Manifest) bool {
 	return true
 }
 
-func (s *ManifestBase) String() string {
+func (manifest *ManifestBase) String() string {
 	var num int64
 	var unique int64
-	for _, v := range s.manifest {
+	for _, v := range manifest.manifest {
 		unique++
 		num += int64(len(v))
 	}
 	return fmt.Sprintf("%d files (%d unique)", num, unique)
 }
 
-func (s *ManifestBase) Iterate() func(yield func(digest string, internal []string) bool) {
+func (manifest *ManifestBase) Iterate() func(yield func(digest string, internal []string) bool) {
 	return func(yield func(digest string, external []string) bool) {
-		for digest, files := range s.manifest {
+		for digest, files := range manifest.manifest {
 			if !yield(digest, files) {
 				return
 			}
@@ -149,25 +200,25 @@ func (s *ManifestBase) Iterate() func(yield func(digest string, internal []strin
 	}
 }
 
-func (s *ManifestBase) GetFiles(digest string) ([]string, error) {
-	files, ok := s.manifest[digest]
+func (manifest *ManifestBase) GetFiles(digest string) ([]string, error) {
+	files, ok := manifest.manifest[digest]
 	if !ok {
-		return nil, errors.Wrapf(DigestNotFound, "digest %s", digest)
+		return nil, errors.Wrapf(interfaces.DigestNotFound, "digest %manifest", digest)
 	}
 	return files, nil
 }
 
-func (s *ManifestBase) UnmarshalJSON(data []byte) error {
-	s.manifest = map[string][]string{}
-	if err := json.Unmarshal(data, &s.manifest); err != nil {
-		s.err = errors.Wrapf(err, "cannot unmarshal state %s", string(data))
+func (manifest *ManifestBase) UnmarshalJSON(data []byte) error {
+	manifest.manifest = map[string][]string{}
+	if err := json.Unmarshal(data, &manifest.manifest); err != nil {
+		manifest.err = errors.Wrapf(err, "cannot unmarshal state %manifest", string(data))
 		return nil
 	}
 	return nil
 }
 
-func (s *ManifestBase) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.manifest)
+func (manifest *ManifestBase) MarshalJSON() ([]byte, error) {
+	return json.Marshal(manifest.manifest)
 }
 
-var _ Manifest = (*ManifestBase)(nil)
+var _ interfaces.Manifest = (*ManifestBase)(nil)

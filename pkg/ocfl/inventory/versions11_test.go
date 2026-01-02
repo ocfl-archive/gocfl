@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 func Test_VersionsJSONMarshal(t *testing.T) {
 	versions := ocfl.f11.NewVersions()
 	version := ocfl.f11.NewVersion().WithMessage("test version")
-	versions.SetVersion(NewVersionNumber().WithString("v1"), version)
+	versions.SetVersion(interfaces.NewVersionNumber().WithString("v1"), version)
 	bytes, err := json.Marshal(versions)
 	if err != nil {
 		t.Fatalf("Failed to marshal versions: %s", err)
@@ -43,7 +44,7 @@ func Test_VersionsJSONUnmarshal(t *testing.T) {
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
-	version := versions.GetVersion(NewVersionNumber().WithString("v1"))
+	version := versions.GetVersion(interfaces.NewVersionNumber().WithString("v1"))
 	if version == nil {
 		t.Error("version v1 not found")
 	}
@@ -76,7 +77,7 @@ func Test_VersionsCheck(t *testing.T) {
 	val := NewDummyValidation()
 	versions := ocfl.f11.NewVersions()
 	version := ocfl.f11.NewVersion().WithMessage("test")
-	versions.SetVersion(NewVersionNumber().WithString("v1"), version)
+	versions.SetVersion(interfaces.NewVersionNumber().WithString("v1"), version)
 
 	if err := versions.Check(val, []string{}); err != nil {
 		t.Fatalf("check error: %v", err)

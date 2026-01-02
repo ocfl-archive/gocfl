@@ -14,8 +14,9 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -95,7 +96,7 @@ type MigrationFiles map[string]*MigrationTarget
 type Migration struct {
 	*MigrationConfig
 	fsys      fs.FS
-	lastHead  *inventory.VersionNumber
+	lastHead  *interfaces.VersionNumber
 	migration *migration.Migration
 	//buffer *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
@@ -225,21 +226,21 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 			_ = meta
 		}
 	}
-	inventory := object.GetInventory()
-	head := inventory.GetHead()
+	inv := object.GetInventory()
+	head := inv.GetHead()
 	extensionManager := object.GetExtensionManager()
 	if extensionManager == nil {
 		return errors.Errorf("extension manager is nil")
 	}
 	mi.buffer[head.String()] = &bytes.Buffer{}
 	mi.writer = brotli.NewWriter(mi.buffer[head.String()])
-	//files := inventory.GetFiles()
+	//files := inv.GetFiles()
 
-	versions := inventory.GetVersionNumbers()
+	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	if len(versions) < 2 {
 		return errors.Errorf("cannot migrate files in object '%s' - no previous version", object.GetID())
 	}
-	manifest := inventory.GetManifest()
+	manifest := inv.GetManifest()
 	if _, ok := mi.migratedFiles[head.String()]; !ok {
 		mi.migratedFiles[head.String()] = map[string]string{}
 	}
@@ -265,14 +266,18 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, object.GetID())
 		}
 		// get the files from last version
-		stateFiles, err := inventory.GetStateFiles(versions[len(versions)-2], cs)
-		if err != nil {
-			return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+		ver := inv.GetVersions().GetVersion(versions[len(versions)-2])
+		if ver == nil {
+			return errors.Errorf("cannot get state files for checksum '%s' in object '%s' version %s", cs, object.GetID(), versions[len(versions)-2])
 		}
-		for _, sf := range stateFiles {
-			t := mig.GetDestinationName(sf, head.String(), isMigrated)
+		externalFiles, err := ver.GetState().GetFiles(cs)
+		if err != nil {
+			return errors.Errorf("cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+		}
+		for _, externalFile := range externalFiles {
+			t := mig.GetDestinationName(externalFile, head.String(), isMigrated)
 			if t == "" {
-				return errors.Errorf("cannot get destination name for file '%s' in object '%s'", sf, object.GetID())
+				return errors.Errorf("cannot get destination name for file '%s' in object '%s'", externalFile, object.GetID())
 			}
 			targetNames = append(targetNames, t)
 		}
@@ -291,7 +296,7 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 		}
 		if file == nil {
 			if mi.sourceFS != nil {
-				stateFiles, err := inventory.GetVersions().GetVersion(inventory.GetHead()).GetState().GetFiles(cs)
+				stateFiles, err := inv.GetVersions().GetVersion(inv.GetHead()).GetState().GetFiles(cs)
 				if err != nil {
 					return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
 				}
@@ -331,7 +336,7 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 		if err != nil {
 			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
 		}
-		path := inventory.BuildManifestName(manifestName)
+		path := inv.BuildManifestName(manifestName)
 		if err := migration.DoMigrate(object, mig, ext, extractTargetNames, file); err != nil {
 			ml = &migrationLine{
 				Path: path,
@@ -352,16 +357,16 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 			}
 			switch mig.Strategy {
 			case migration.StrategyReplace:
-				for _, n := range stateFiles {
-					if slices.Contains(targetNames, n) {
+				for _, externalFile := range externalFiles {
+					if slices.Contains(targetNames, externalFile) {
 						continue
 					}
-					if err := object.DeleteFile(n, cs); err != nil {
-						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", n, object.GetID())
+					if err := object.DeleteFile(externalFile, cs); err != nil {
+						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", externalFile, object.GetID())
 					}
 				}
 			case migration.StrategyFolder:
-				for _, src := range stateFiles {
+				for _, src := range externalFiles {
 					if slices.Contains(targetNames, src) {
 						continue
 					}

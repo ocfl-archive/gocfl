@@ -7,7 +7,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/google/uuid"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 )
@@ -92,7 +92,7 @@ type VersionMetadata struct {
 type Metadata struct {
 	ID              string
 	DigestAlgorithm checksum.DigestAlgorithm
-	Head            *inventory.VersionNumber
+	Head            *interfaces.VersionNumber
 	Versions        map[string]*VersionMetadata
 	Files           FilesMetadata
 	Extension       any

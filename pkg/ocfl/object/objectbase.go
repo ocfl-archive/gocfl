@@ -21,6 +21,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
@@ -39,9 +40,9 @@ type ObjectBase struct {
 	extensionManager   ExtensionManager
 	ctx                context.Context
 	fsys               fs.FS
-	i                  inventory.Inventory
+	i                  interfaces.Inventory
 	versionFolders     []string
-	versionInventories map[string]inventory.Inventory
+	versionInventories map[string]interfaces.Inventory
 	changed            bool
 	logger             zLogger.ZLogger
 	version            version.OCFLVersion
@@ -49,11 +50,11 @@ type ObjectBase struct {
 	echo               bool
 	updateFiles        []string
 	area               string
-	inventoryFactory   inventory.Factory
+	inventoryFactory   interfaces.Factory
 }
 
 // newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, inventoryFactory inventory.Factory, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
+func newObjectBase(ctx context.Context, inventoryFactory interfaces.Factory, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
 		inventoryFactory: inventoryFactory,
@@ -203,7 +204,7 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 						if slices.Contains(statInfo, stat.StatObjectManifest) || len(statInfo) == 0 {
 							ms, err := manifest.GetFiles(cs)
 							if err != nil {
-								if errors.Is(err, inventory.DigestNotFound) {
+								if errors.Is(err, interfaces.DigestNotFound) {
 									continue
 								}
 								return errors.Wrapf(err, "cannot get files for manifest '%s'", object.GetID())
@@ -238,7 +239,7 @@ func (object *ObjectBase) GetFS() fs.FS {
 	return object.fsys
 }
 
-func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (inventory.Inventory, error) {
+func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (interfaces.Inventory, error) {
 	inventory := object.inventoryFactory.NewInventory(object.ctx, "new", "")
 	/*
 		inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
@@ -252,11 +253,11 @@ func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgor
 
 	return inventory, inventory.Finalize(true)
 }
-func (object *ObjectBase) GetInventory() inventory.Inventory {
+func (object *ObjectBase) GetInventory() interfaces.Inventory {
 	return object.i
 }
 
-func (object *ObjectBase) loadInventory(data []byte, folder string) (inventory.Inventory, error) {
+func (object *ObjectBase) loadInventory(data []byte, folder string) (interfaces.Inventory, error) {
 	anyMap := map[string]any{}
 	if err := json.Unmarshal(data, &anyMap); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
@@ -326,7 +327,7 @@ func (object *ObjectBase) GetInventoryContent() (inventory []byte, checksumStrin
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
 
 // loadInventory loads inventory from existing Object
-func (object *ObjectBase) LoadInventory(folder string) (inventory.Inventory, error) {
+func (object *ObjectBase) LoadInventory(folder string) (interfaces.Inventory, error) {
 	// load inventory file
 	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
 	inventoryBytes, err := fs.ReadFile(object.fsys, filename)
@@ -692,7 +693,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate 
 func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *NamesStruct, noExtensionHook bool) (string, error) {
 
 	digestAlgorithms := []checksum.DigestAlgorithm{}
-	for alg := range object.i.GetFixityDigestAlgorithm() {
+	for alg := range object.i.GetFixity().GetDigestAlgorithms() {
 		digestAlgorithms = append(digestAlgorithms, alg)
 	}
 
@@ -832,7 +833,7 @@ func (object *ObjectBase) AddData(data []byte, path string, checkDuplicate bool,
 	}
 
 	digestAlgorithms := []checksum.DigestAlgorithm{}
-	for alg := range object.i.GetFixityDigestAlgorithm() {
+	for alg := range object.i.GetFixity().GetDigestAlgorithms() {
 		digestAlgorithms = append(digestAlgorithms, alg)
 	}
 	var digest string
@@ -934,7 +935,7 @@ func (object *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, chec
 	if !isDir {
 
 		digestAlgorithms := []checksum.DigestAlgorithm{}
-		for alg := range object.i.GetFixityDigestAlgorithm() {
+		for alg := range object.i.GetFixity().GetDigestAlgorithms() {
 			digestAlgorithms = append(digestAlgorithms, alg)
 		}
 
@@ -1106,7 +1107,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	versionStrings := ocfl.SeqToSlice(object.i.GetVersions().GetVersionNumbers())
 
 	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+	slices.SortFunc(versionStrings, func(a, b *interfaces.VersionNumber) int {
 		if a.Less(b) {
 			return -1
 		}
@@ -1298,10 +1299,10 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	// all object content files must belong to manifest
 	//
 
-	latestVersion := inventory.NewVersionNumber()
+	latestVersion := interfaces.NewVersionNumber()
 
 	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
-		objectContentVersionNumber := inventory.NewVersionNumber().WithString(objectContentVersion)
+		objectContentVersionNumber := interfaces.NewVersionNumber().WithString(objectContentVersion)
 		if !latestVersion.IsValid() {
 			latestVersion = objectContentVersionNumber
 		}
@@ -1310,7 +1311,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 		}
 		// check version inventories
 		for inventoryVersion, versionInventory := range versionInventories {
-			inventoryVersionNumber := inventory.NewVersionNumber().WithString(inventoryVersion)
+			inventoryVersionNumber := interfaces.NewVersionNumber().WithString(inventoryVersion)
 			if objectContentVersionNumber.Less(inventoryVersionNumber) {
 				versionManifestFiles := ocfl.SeqToSlice(versionInventory.GetManifest().GetFilesFlat())
 				for _, objectContentVersionFile := range objectContentVersionFiles {
@@ -1393,17 +1394,14 @@ func (object *ObjectBase) Check() error {
 	}
 
 	dAlgs := []checksum.DigestAlgorithm{object.i.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, ocfl.SeqToSlice(object.i.GetFixityDigestAlgorithm())...)
+	dAlgs = append(dAlgs, ocfl.SeqToSlice(object.i.GetFixity().GetDigestAlgorithms())...)
 	return nil
 }
 
 // create checksums of all content files
 func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	// get all possible digest algs
-	digestAlgorithms, err := object.getAllDigests()
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot get digests")
-	}
+	digestAlgorithms := append(ocfl.SeqToSlice(object.GetInventory().GetFixity().GetDigestAlgorithms()), object.GetDigestAlgorithm())
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 	for versionNumber := range object.i.GetVersions().GetVersionNumbers() {
@@ -1447,7 +1445,7 @@ var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$"
 
 // helper functions
 
-func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventory, error) {
+func (object *ObjectBase) getVersionInventories() (map[string]interfaces.Inventory, error) {
 	if object.versionInventories != nil {
 		return object.versionInventories, nil
 	}
@@ -1455,7 +1453,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventor
 	versionStrings := ocfl.SeqToSlice(object.i.GetVersions().GetVersionNumbers())
 
 	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+	slices.SortFunc(versionStrings, func(a, b *interfaces.VersionNumber) int {
 		if a.Less(b) {
 			return -1
 		}
@@ -1466,7 +1464,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventor
 
 		return 1
 	})
-	versionInventories := map[string]inventory.Inventory{}
+	versionInventories := map[string]interfaces.Inventory{}
 	for _, ver := range versionStrings {
 		vi, err := object.LoadInventory(ver.String())
 		if err != nil {
@@ -1482,6 +1480,7 @@ func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventor
 	return object.versionInventories, nil
 }
 
+/*
 func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	versionInventories, err := object.getVersionInventories()
 	if err != nil {
@@ -1498,8 +1497,9 @@ func (object *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
 	allDigestAlgs = slices.Compact(allDigestAlgs)
 	return allDigestAlgs, nil
 }
+*/
 
-func (object *ObjectBase) Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error {
+func (object *ObjectBase) Extract(fsys fs.FS, version *interfaces.VersionNumber, withManifest bool, area string) error {
 	var manifest strings.Builder
 	var err error
 	var digestAlg = object.i.GetDigestAlgorithm()

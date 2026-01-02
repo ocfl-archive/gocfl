@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
@@ -64,7 +65,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 func Test_UserInvalidAddressCheck(t *testing.T) {
 	val := NewDummyValidation()
 	user := ocfl.f11.NewUser().WithAddress("xxx")
-	if err := user.Check(val, NewVersionNumber().WithString("v1")); err != nil {
+	if err := user.Check(val, interfaces.NewVersionNumber().WithString("v1")); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
 

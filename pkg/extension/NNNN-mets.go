@@ -391,8 +391,8 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 					if !ok {
 						return errors.Errorf("invalid type: %v", ext)
 					}
-					for _, ver := range inventory.GetVersionNumbers() {
-						if verHead, ok := extFSL[ver.String()]; ok {
+					for versionNumber := range inventory.GetVersions().GetVersionNumbers() {
+						if verHead, ok := extFSL[versionNumber.String()]; ok {
 							if len(verHead) > 0 {
 								creationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
 								size = int64(verHead[0].Meta.Size)
@@ -940,8 +940,8 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 			if !ok {
 				return errors.Errorf("invalid type: %v", ext)
 			}
-			for _, ver := range inventory.GetVersionNumbers() {
-				if verHead, ok := extFSL[ver.String()]; ok {
+			for versionNumber := range inventory.GetVersions().GetVersionNumbers() {
+				if verHead, ok := extFSL[versionNumber.String()]; ok {
 					if len(verHead) > 0 {
 						foundCreationString = verHead[0].Meta.CTime.Format("2006-01-02T15:04:05")
 						foundSize = int64(verHead[0].Meta.Size)

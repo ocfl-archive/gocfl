@@ -16,7 +16,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
@@ -237,7 +239,7 @@ func (sl *MetaFile) UpdateObjectBefore(object object.Object) error {
 	}
 	if sl.metadataSource == nil {
 		// only a problem, if first version
-		if len(inventory.GetVersionNumbers()) < 2 {
+		if len(ocfl.SeqToSlice(inventory.GetVersions().GetVersionNumbers())) < 2 {
 			return errors.New("no metadata source configured")
 		}
 		return nil
@@ -382,8 +384,17 @@ func (sl *MetaFile) UpdateObjectAfter(object object.Object) error {
 func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
-	inventory := object.GetInventory()
-	versions := inventory.GetVersionNumbers()
+	inv := object.GetInventory()
+	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
+	slices.SortFunc(versions, func(a, b *interfaces.VersionNumber) int {
+		if a.Less(b) {
+			return -1
+		}
+		if a.Equal(b) {
+			return 0
+		}
+		return 1
+	})
 	slices.Reverse(versions)
 	var metadata []byte
 	for _, ver := range versions {

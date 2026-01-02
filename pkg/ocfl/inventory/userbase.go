@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
@@ -23,7 +24,7 @@ type userBase struct {
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
 
-func (u *userBase) Check(val validation.Validation, version *VersionNumber) error {
+func (u *userBase) Check(val validation.Validation, version *interfaces.VersionNumber) error {
 	if u.Address.Err() != nil {
 		val.AddValidationError(validation.E054, "invalid user address in Version %s: %s", version, u.Address.Err().Error())
 	}
@@ -48,12 +49,12 @@ func (u *userBase) Check(val validation.Validation, version *VersionNumber) erro
 	return nil
 }
 
-func (u *userBase) WithAddress(address string) User {
+func (u *userBase) WithAddress(address string) interfaces.User {
 	u.Address = NewOCFLString(address)
 	return u
 }
 
-func (u *userBase) WithName(name string) User {
+func (u *userBase) WithName(name string) interfaces.User {
 	u.Name = NewOCFLString(name)
 	return u
 }
@@ -74,7 +75,7 @@ func (u *userBase) Err() error {
 	return errors.Combine(u.Name.Err(), u.Address.Err())
 }
 
-func (u *userBase) Equals(other User) bool {
+func (u *userBase) Equals(other interfaces.User) bool {
 	otherU, ok := other.(*userBase)
 	if !ok {
 		return false
@@ -94,4 +95,4 @@ func (u *userBase) String() string {
 	return fmt.Sprintf("%s [%s]", u.Name.String(), u.Address.String())
 }
 
-var _ User = (*userBase)(nil)
+var _ interfaces.User = (*userBase)(nil)

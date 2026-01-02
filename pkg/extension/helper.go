@@ -11,11 +11,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
-func ReadFile(object object.Object, name string, version *inventory.VersionNumber, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadFile(object object.Object, name string, version *interfaces.VersionNumber, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	var targetname string
 	switch storageType {
 	case "area":
@@ -43,7 +43,7 @@ func ReadFile(object object.Object, name string, version *inventory.VersionNumbe
 	return fs.ReadFile(fsys, targetname)
 }
 
-func ReadJsonL(object object.Object, name string, version *inventory.VersionNumber, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadJsonL(object object.Object, name string, version *interfaces.VersionNumber, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	if fsys == nil {
 		return nil, errors.Errorf("[%s/%s] %s: fsys is nil", object.GetID(), version, name)
 	}
