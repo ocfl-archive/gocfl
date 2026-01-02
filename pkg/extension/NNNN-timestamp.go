@@ -12,7 +12,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -66,7 +66,7 @@ type Timestamp struct {
 	logger zLogger.ZLogger
 }
 
-func (sl *Timestamp) trustedTimestamp(object object.Object) error {
+func (sl *Timestamp) trustedTimestamp(object types.Object) error {
 	_, checksumString, err := object.GetInventoryContent()
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
@@ -159,7 +159,7 @@ func (sl *Timestamp) trustedTimestamp(object object.Object) error {
 	return nil
 }
 
-func (sl *Timestamp) VersionDone(object object.Object) error {
+func (sl *Timestamp) VersionDone(object types.Object) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
@@ -170,7 +170,7 @@ func (sl *Timestamp) Terminate() error {
 	return nil
 }
 
-func (sl *Timestamp) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *Timestamp) GetMetadata(object types.Object) (map[string]any, error) {
 	return map[string]any{"TimestampAuthority": sl.Authority}, nil
 }
 
@@ -216,6 +216,6 @@ func (sl *Timestamp) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension         = &Timestamp{}
-	_ object.ExtensionVersionDone = &Timestamp{}
+	_ extension.Extension        = &Timestamp{}
+	_ types.ExtensionVersionDone = &Timestamp{}
 )

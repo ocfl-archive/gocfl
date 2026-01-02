@@ -29,7 +29,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
 
@@ -45,16 +45,16 @@ type Server struct {
 	urlExt           *url.URL
 	accessLog        io.Writer
 	dataFS           fs.FS
-	storageRoot      storageroot.StorageRoot
-	object           object.Object
-	metadata         *object.Metadata
+	storageRoot      types.StorageRoot
+	object           types.Object
+	metadata         *types.Metadata
 	templateFS       fs.FS
 	obfuscate        bool
 	objectFS         http.FileSystem
 	extensionFactory *extension2.ExtensionFactory
 }
 
-func NewServer(storageRoot storageroot.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot types.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
@@ -1213,7 +1213,7 @@ func (s *Server) report(c *gin.Context) {
 	}
 	flattenTree(tree)
 
-	var files = map[string]*object.FileMetadata{}
+	var files = map[string]*types.FileMetadata{}
 	if full {
 		files = s.metadata.Files
 	}

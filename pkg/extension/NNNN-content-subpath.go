@@ -8,7 +8,7 @@ import (
 	"github.com/atsushinee/go-markdown-generator/doc"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -77,7 +77,7 @@ func (sl *ContentSubPath) Terminate() error {
 	return nil
 }
 
-func (sl *ContentSubPath) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *ContentSubPath) GetMetadata(object types.Object) (map[string]any, error) {
 	return map[string]any{"": sl.Paths}, nil
 }
 
@@ -126,7 +126,7 @@ func (sl *ContentSubPath) WriteConfig() error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectManifestPath(object types.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -141,11 +141,11 @@ func (sl *ContentSubPath) BuildObjectManifestPath(object object.Object, original
 	return path, nil
 }
 
-func (sl *ContentSubPath) UpdateObjectBefore(object object.Object) error {
+func (sl *ContentSubPath) UpdateObjectBefore(object types.Object) error {
 
 	return nil
 }
-func (sl *ContentSubPath) UpdateObjectAfter(object object.Object) error {
+func (sl *ContentSubPath) UpdateObjectAfter(object types.Object) error {
 	readme := doc.NewMarkDown()
 	readme.WriteTitle("Description of folders", doc.LevelTitle).
 		WriteLines(2)
@@ -165,7 +165,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object object.Object) error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectStatePath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectStatePath(object types.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -180,7 +180,7 @@ func (sl *ContentSubPath) BuildObjectStatePath(object object.Object, originalPat
 	return path, nil
 }
 
-func (sl *ContentSubPath) BuildObjectExtractPath(_ object.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectExtractPath(_ types.Object, originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -193,13 +193,13 @@ func (sl *ContentSubPath) BuildObjectExtractPath(_ object.Object, originalPath s
 	}
 	originalPath = strings.TrimLeft(originalPath, "/")
 	if !strings.HasPrefix(originalPath, subpath.Path) {
-		return "", errors.Wrapf(object.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, area)
+		return "", errors.Wrapf(types.ExtensionObjectExtractPathWrongAreaError, "'%s' does not belong to area '%s'", originalPath, area)
 	}
 	originalPath = strings.TrimLeft(strings.TrimPrefix(originalPath, subpath.Path), "/")
 	return originalPath, nil
 }
 
-func (sl *ContentSubPath) GetAreaPath(_ object.Object, area string) (string, error) {
+func (sl *ContentSubPath) GetAreaPath(_ types.Object, area string) (string, error) {
 	subpath, ok := sl.Paths[area]
 	if !ok {
 		return "", errors.Errorf("invalid area '%s'", sl.area)
@@ -209,11 +209,11 @@ func (sl *ContentSubPath) GetAreaPath(_ object.Object, area string) (string, err
 
 // check interface satisfaction
 var (
-	_ extension.Extension               = &ContentSubPath{}
-	_ object.ExtensionObjectContentPath = &ContentSubPath{}
-	_ object.ExtensionObjectChange      = &ContentSubPath{}
-	_ object.ExtensionObjectStatePath   = &ContentSubPath{}
-	_ object.ExtensionObjectExtractPath = &ContentSubPath{}
-	_ object.ExtensionArea              = &ContentSubPath{}
-	_ object.ExtensionMetadata          = &ContentSubPath{}
+	_ extension.Extension              = &ContentSubPath{}
+	_ types.ExtensionObjectContentPath = &ContentSubPath{}
+	_ types.ExtensionObjectChange      = &ContentSubPath{}
+	_ types.ExtensionObjectStatePath   = &ContentSubPath{}
+	_ types.ExtensionObjectExtractPath = &ContentSubPath{}
+	_ types.ExtensionArea              = &ContentSubPath{}
+	_ types.ExtensionMetadata          = &ContentSubPath{}
 )

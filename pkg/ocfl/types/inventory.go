@@ -8,9 +8,12 @@ type StateFileCallback func(internal []string, external []string, digest string)
 
 type Inventory interface {
 	Finalize(inCreation bool) error
-	IsEqual(i2 Inventory) bool
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
+	Equals(i2 Inventory) bool
+	//Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
+	WithID(id string) Inventory
 	GetID() string
+	WithDigestAlgorithm(algorithm checksum.DigestAlgorithm) Inventory
+	GetDigestAlgorithm() checksum.DigestAlgorithm
 	WithContentDir(contentDir string) Inventory
 	GetContentDir() string
 	GetRealContentDir() string
@@ -29,11 +32,13 @@ type Inventory interface {
 
 	//GetContentDirectory() string
 	//GetVersionNumbers() []*VersionNumber
+	WithVersions(versions Versions) Inventory
 	GetVersions() Versions
 	//GetFiles() map[*VersionNumber][]string
+	WithManifest(manifest Manifest) Inventory
 	GetManifest() Manifest
+	WithFixity(fixity Fixity) Inventory
 	GetFixity() Fixity
-	GetDigestAlgorithm() checksum.DigestAlgorithm
 	//GetFixityDigestAlgorithm() iter.Seq[checksum.DigestAlgorithm]
 	IsWriteable() bool
 	IsModified() bool
@@ -44,6 +49,5 @@ type Inventory interface {
 	AlreadyExists(stateFilename, checksum string) (bool, error)
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)
 	Clean() error
-
 	//	EchoDelete(existing []string, pathprefix string) error
 }

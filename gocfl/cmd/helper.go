@@ -23,6 +23,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
@@ -189,7 +190,7 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
+func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions types.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -217,7 +218,7 @@ func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storage
 		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
 	}
-	return _storageRootExtensions.(storageroot.ExtensionManager), _objectExtensions.(object.ExtensionManager), nil
+	return _storageRootExtensions.(storageroot.ExtensionManager), _objectExtensions.(types.ExtensionManager), nil
 }
 
 func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *config.AESConfig, s3Config *config.S3Config, noCompression, readOnly bool, logger zLogger.ZLogger) (*writefs.Factory, error) {
@@ -319,7 +320,7 @@ func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	return nil
 }
 
-func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extension.ExtensionFactory, id string, logger zLogger.ZLogger) (object.Object, error) {
+func LoadObjectByID(sr types.StorageRoot, extensionFactory *extension.ExtensionFactory, id string, logger zLogger.ZLogger) (types.Object, error) {
 	folder, err := sr.IdToFolder(id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
@@ -337,10 +338,10 @@ func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extension.Exte
 
 func addObjectByPath(
 	ctx context.Context,
-	sr storageroot.StorageRoot,
+	sr types.StorageRoot,
 	fixity []checksum.DigestAlgorithm,
 	extensionFactory *extension.ExtensionFactory,
-	extensionManager object.ExtensionManager,
+	extensionManager types.ExtensionManager,
 	checkDuplicates bool,
 	id, userName, userAddress, message string,
 	sourceFS fs.FS, area string,
@@ -351,7 +352,7 @@ func addObjectByPath(
 	if fixity == nil {
 		fixity = []checksum.DigestAlgorithm{}
 	}
-	var o object.Object
+	var o types.Object
 	exists, err := sr.ObjectExists(flagObjectID)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot check for existence of %s", id)

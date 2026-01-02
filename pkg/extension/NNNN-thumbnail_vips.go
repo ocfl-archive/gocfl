@@ -7,14 +7,14 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/davidbyttow/govips/v2/vips"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"slices"
 	"strings"
 )
 
-func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (thumb *Thumbnail) StreamObject(object types.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(stateFiles) == 0 {
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}

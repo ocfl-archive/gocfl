@@ -20,7 +20,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -184,7 +183,7 @@ func (thumb *Thumbnail) WriteConfig() error {
 	return nil
 }
 
-func (thumb *Thumbnail) storeThumbnail(object object.Object, head *types.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
+func (thumb *Thumbnail) storeThumbnail(object types.Object, head *types.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
 	var targetName string
 	subfolder := thumb.StorageName
 	if thumb.StorageType == "area" {
@@ -235,7 +234,7 @@ func (thumb *Thumbnail) storeThumbnail(object object.Object, head *types.Version
 	}
 }
 
-func (thumb *Thumbnail) DoThumbnail(object object.Object, head *types.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
+func (thumb *Thumbnail) DoThumbnail(object types.Object, head *types.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")
@@ -287,11 +286,11 @@ func (thumb *Thumbnail) DoThumbnail(object object.Object, head *types.VersionNum
 	return targetFile, digest, errors.Wrap(err, "cannot store thumbnail")
 }
 
-func (thumb *Thumbnail) UpdateObjectBefore(object.Object) error {
+func (thumb *Thumbnail) UpdateObjectBefore(types.Object) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
+func (thumb *Thumbnail) UpdateObjectAfter(object types.Object) error {
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	thumb.buffer[head.String()] = &bytes.Buffer{}
@@ -422,7 +421,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 	return nil
 }
 
-func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error) {
+func (thumb *Thumbnail) GetMetadata(object types.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -532,7 +531,7 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 }
 
 var (
-	_ extension.Extension          = &Thumbnail{}
-	_ object.ExtensionObjectChange = &Thumbnail{}
-	_ object.ExtensionMetadata     = &Thumbnail{}
+	_ extension.Extension         = &Thumbnail{}
+	_ types.ExtensionObjectChange = &Thumbnail{}
+	_ types.ExtensionMetadata     = &Thumbnail{}
 )

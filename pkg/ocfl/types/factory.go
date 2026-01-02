@@ -5,6 +5,7 @@ import (
 )
 
 type Factory interface {
+	NewObject(ctx context.Context) Object
 	NewVersions(ctx context.Context) Versions
 	NewVersion(ctx context.Context) Version
 	NewState(ctx context.Context) State

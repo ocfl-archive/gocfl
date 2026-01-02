@@ -19,6 +19,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -66,7 +67,7 @@ func (osr *StorageRootBase) String() string {
 func (osr *StorageRootBase) IsModified() bool {
 	return osr.modified
 }
-func (osr *StorageRootBase) setModified() {
+func (osr *StorageRootBase) SetModified() {
 	osr.modified = true
 }
 
@@ -336,7 +337,7 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 	return folder, errors.WithStack(err)
 }
 
-func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager extension.ExtensionManager) (object.Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager extension.ExtensionManager) (types.Object, error) {
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
 	if err != nil {

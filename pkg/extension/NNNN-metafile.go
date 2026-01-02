@@ -18,7 +18,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
@@ -224,7 +223,7 @@ func toStringKeys(val interface{}) (interface{}, error) {
 	}
 }
 
-func (sl *MetaFile) UpdateObjectBefore(object object.Object) error {
+func (sl *MetaFile) UpdateObjectBefore(object types.Object) error {
 	if sl.metadataSource.Path == "" {
 		return nil
 	}
@@ -377,11 +376,11 @@ func downloadFile(u string) ([]byte, error) {
 
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
-func (sl *MetaFile) UpdateObjectAfter(object object.Object) error {
+func (sl *MetaFile) UpdateObjectAfter(object types.Object) error {
 	return nil
 }
 
-func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *MetaFile) GetMetadata(object types.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 	inv := object.GetInventory()
@@ -419,7 +418,7 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 
 // check interface satisfaction
 var (
-	_ extension.Extension          = &MetaFile{}
-	_ object.ExtensionObjectChange = &MetaFile{}
-	_ object.ExtensionMetadata     = &MetaFile{}
+	_ extension.Extension         = &MetaFile{}
+	_ types.ExtensionObjectChange = &MetaFile{}
+	_ types.ExtensionMetadata     = &MetaFile{}
 )

@@ -33,10 +33,23 @@ import (
 
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
+// newObjectBase creates an empty ObjectBase structure
+func NewObjectBase(ctx context.Context, factory types.Factory, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) *ObjectBase {
+	ocfl := &ObjectBase{
+		ctx:              ctx,
+		factory:          factory,
+		version:          defaultVersion,
+		extensionFactory: extensionFactory,
+		extensionManager: extensionManager.(types.ExtensionManager),
+		logger:           logger,
+	}
+	return ocfl
+}
+
 type ObjectBase struct {
 	//	storageRoot        storageroot.StorageRoot
 	extensionFactory   *extension.ExtensionFactory
-	extensionManager   ExtensionManager
+	extensionManager   types.ExtensionManager
 	ctx                context.Context
 	fsys               fs.FS
 	i                  types.Inventory
@@ -49,28 +62,19 @@ type ObjectBase struct {
 	echo               bool
 	updateFiles        []string
 	area               string
-	inventoryFactory   types.Factory
-}
-
-// newObjectBase creates an empty ObjectBase structure
-func newObjectBase(ctx context.Context, inventoryFactory types.Factory, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (*ObjectBase, error) {
-	ocfl := &ObjectBase{
-		ctx:              ctx,
-		inventoryFactory: inventoryFactory,
-		fsys:             fsys,
-		version:          defaultVersion,
-		extensionFactory: extensionFactory,
-		extensionManager: extensionManager.(ExtensionManager),
-		logger:           logger,
-	}
-	return ocfl, nil
+	factory            types.Factory
 }
 
 var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
-func (object *ObjectBase) GetExtensionManager() ExtensionManager {
+func (object *ObjectBase) WithFS(fsys fs.FS) types.Object {
+	object.fsys = fsys
+	return object
+}
+
+func (object *ObjectBase) GetExtensionManager() types.ExtensionManager {
 	return object.extensionManager
 }
 
@@ -90,23 +94,23 @@ func (object *ObjectBase) AddValidationWarning(errno validation.ValidationErrorC
 	return errors.WithStack(validation.AddValidationWarnings(object.ctx, valError))
 }
 
-func (object *ObjectBase) GetMetadata() (*Metadata, error) {
+func (object *ObjectBase) GetMetadata() (*types.Metadata, error) {
 	inventory := object.GetInventory()
 	if inventory == nil {
 		return nil, errors.Errorf("inventory is nil")
 	}
 
-	result := &Metadata{
+	result := &types.Metadata{
 		ID:              object.GetID(),
 		Head:            inventory.GetHead(),
-		Files:           map[string]*FileMetadata{},
+		Files:           map[string]*types.FileMetadata{},
 		DigestAlgorithm: object.GetDigestAlgorithm(),
-		Versions:        map[string]*VersionMetadata{},
+		Versions:        map[string]*types.VersionMetadata{},
 	}
 	versions := inventory.GetVersions()
 	versionStrings := []string{}
 	for v, ver := range versions.Iterate() {
-		result.Versions[v.String()] = &VersionMetadata{
+		result.Versions[v.String()] = &types.VersionMetadata{
 			Created: ver.GetCreated(),
 			Message: ver.GetMessage(),
 			Name:    ver.GetUser().GetName(),
@@ -141,7 +145,7 @@ func (object *ObjectBase) GetMetadata() (*Metadata, error) {
 		if len(fnames) == 0 {
 			continue
 		}
-		fm := &FileMetadata{
+		fm := &types.FileMetadata{
 			Checksums:    map[checksum.DigestAlgorithm]string{},
 			InternalName: fnames,
 			VersionName:  map[string][]string{},
@@ -238,17 +242,24 @@ func (object *ObjectBase) GetFS() fs.FS {
 	return object.fsys
 }
 
-func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (types.Inventory, error) {
-	inventory := object.inventoryFactory.NewInventory(object.ctx)
+func (object *ObjectBase) CreateInventory(id string, digestAlg checksum.DigestAlgorithm, fixityAlgs []checksum.DigestAlgorithm) (types.Inventory, error) {
+	fixity := object.factory.NewFixity(object.ctx).WithAlgorithms(fixityAlgs...)
+	inventory := object.factory.NewInventory(object.ctx).
+		WithID(id).
+		WithDigestAlgorithm(digestAlg).
+		WithFixity(fixity)
+
 	/*
 		inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create empty inventory")
 		}
 	*/
-	if err := inventory.Init(id, digest, fixity); err != nil {
-		return nil, errors.Wrap(err, "cannot initialize empty inventory")
-	}
+	/*
+		if err := inventory.Init(id, digest, fixity); err != nil {
+			return nil, errors.Wrap(err, "cannot initialize empty inventory")
+		}
+	*/
 
 	return inventory, inventory.Finalize(true)
 }
@@ -281,7 +292,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (types.Inven
 		// if we don't know anything use the old stuff
 		ver = version.Version1_0
 	}
-	inventory := object.inventoryFactory.NewInventory(object.ctx)
+	inventory := object.factory.NewInventory(object.ctx)
 	/*
 		inventory, err := inventory.NewInventory(object.ctx, folder, ver, object.logger)
 		if err != nil {
@@ -334,7 +345,7 @@ func (object *ObjectBase) LoadInventory(folder string) (types.Inventory, error) 
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		inventory := object.inventoryFactory.NewInventory(object.ctx)
+		inventory := object.factory.NewInventory(object.ctx)
 		return inventory, nil
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
@@ -474,7 +485,7 @@ func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixit
 	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 
-	object.extensionManager = extensionManager.(ExtensionManager)
+	object.extensionManager = extensionManager.(types.ExtensionManager)
 
 	// first check whether object is not empty
 	fp, err := object.fsys.Open(objectConformanceDeclarationFile)
@@ -538,7 +549,7 @@ func (object *ObjectBase) Load() (err error) {
 			return errors.Wrap(err, "cannot create extension manager")
 		}
 	}
-	object.extensionManager = manager.(ExtensionManager)
+	object.extensionManager = manager.(types.ExtensionManager)
 
 	// load the inventory
 	if object.i, err = object.LoadInventory("."); err != nil {
@@ -689,7 +700,7 @@ func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate 
 	return nil
 }
 
-func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *NamesStruct, noExtensionHook bool) (string, error) {
+func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *types.NamesStruct, noExtensionHook bool) (string, error) {
 
 	digestAlgorithms := []checksum.DigestAlgorithm{}
 	for alg := range object.i.GetFixity().GetDigestAlgorithms() {
@@ -761,9 +772,9 @@ func (object *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *Nam
 	return digest, nil
 }
 
-func (object *ObjectBase) BuildNames(files []string, area string) (*NamesStruct, error) {
+func (object *ObjectBase) BuildNames(files []string, area string) (*types.NamesStruct, error) {
 	var err error
-	result := &NamesStruct{
+	result := &types.NamesStruct{
 		ExternalPaths: []string{},
 	}
 	for _, file := range files {
@@ -1244,7 +1255,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 	if len(versionStrings) > 0 {
 		lastVersion := versionStrings[len(versionStrings)-1]
 		if lastInv, ok := versionInventories[lastVersion.String()]; ok {
-			if !lastInv.IsEqual(object.i) {
+			if !lastInv.Equals(object.i) {
 				object.AddValidationError(validation.E064, "root inventory not equal to inventory version '%s'", lastVersion)
 			}
 		}
@@ -1507,7 +1518,7 @@ func (object *ObjectBase) Extract(fsys fs.FS, version *types.VersionNumber, with
 			external, err = object.extensionManager.BuildObjectExtractPath(object, external, area)
 			if err != nil {
 				errCause := errors.Cause(err)
-				if errors.Is(errCause, ExtensionObjectExtractPathWrongAreaError) {
+				if errors.Is(errCause, types.ExtensionObjectExtractPathWrongAreaError) {
 					return nil
 				}
 				return errors.Wrapf(err, "cannot map path '%s'", external)
@@ -1570,3 +1581,5 @@ func (object *ObjectBase) GetAreaPath(area string) (string, error) {
 	path, err := object.extensionManager.GetAreaPath(object, area)
 	return path, errors.WithStack(err)
 }
+
+var _ types.Object = (*ObjectBase)(nil)

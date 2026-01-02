@@ -7,8 +7,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -113,10 +113,10 @@ func (sl *PathDirect) WriteConfig() error {
 	return nil
 }
 
-func (sl *PathDirect) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *PathDirect) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
 	return id, nil
 }
-func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *PathDirect) BuildObjectManifestPath(object types.Object, originalPath string, area string) (string, error) {
 	return originalPath, nil
 }
 
@@ -124,5 +124,5 @@ func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath
 var (
 	_ extension.Extension                  = &PathDirect{}
 	_ storageroot.ExtensionStorageRootPath = &PathDirect{}
-	_ object.ExtensionObjectContentPath    = &PathDirect{}
+	_ types.ExtensionObjectContentPath     = &PathDirect{}
 )

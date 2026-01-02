@@ -3,6 +3,8 @@ package storageroot
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"regexp"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -10,47 +12,15 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-
-	"io"
-	"io/fs"
-	"regexp"
 )
-
-type StorageRoot interface {
-	fmt.Stringer
-	GetFS() fs.FS
-	GetDigest() checksum.DigestAlgorithm
-	SetDigest(digest checksum.DigestAlgorithm)
-	GetFiles() ([]string, error)
-	GetFolders() ([]string, error)
-	GetObjectFolders() ([]string, error)
-	ObjectExists(id string) (bool, error)
-	//LoadObjectByFolder(folder string) (object.Object, error)
-	//LoadObjectByID(id string) (object.Object, error)
-	//CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManager) (object.Object, error)
-	CreateExtension(fsys fs.FS) (extension.Extension, error)
-	CreateExtensions(fsys fs.FS, validation validation.Validation) (extension.ExtensionManager, error)
-	Check() error
-	IdToFolder(id string) (folder string, err error)
-	//CheckObjectByFolder(objectFolder string) error
-	//CheckObjectByID(objectID string) error
-	Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ExtensionManager) error
-	Load() error
-	IsModified() bool
-	setModified()
-	GetVersion() version.OCFLVersion
-	Stat(w io.Writer, path string, id string, statInfo []stat.StatInfo) error
-	//Extract(fsys fs.FS, path, id, version string, withManifest bool, area string) error
-	//ExtractMeta(path, id string) (*object.StorageRootMetadata, error)
-}
 
 var OCFLVersionRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 
-func newStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (StorageRoot, error) {
+func newStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (types.StorageRoot, error) {
 	switch ver {
 	case version.Version1_0:
 		sr, err := NewStorageRootV1_0(ctx, fsys, extensionFactory, extensionManager, logger)
@@ -88,7 +58,7 @@ func ValidVersion(ver version.OCFLVersion) bool {
 	}
 }
 
-func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager ExtensionManager, digest checksum.DigestAlgorithm, logger zLogger.ZLogger) (StorageRoot, error) {
+func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager ExtensionManager, digest checksum.DigestAlgorithm, logger zLogger.ZLogger) (types.StorageRoot, error) {
 	storageRoot, err := newStorageRoot(ctx, fsys, ver, extensionFactory, extensionManager, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate storage root")
@@ -101,7 +71,7 @@ func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion,
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (StorageRoot, error) {
+func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (types.StorageRoot, error) {
 	ver, err := util.GetVersion(ctx, fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
@@ -137,7 +107,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensio
 	return storageRoot, nil
 }
 
-func LoadStorageRootRO(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (StorageRoot, error) {
+func LoadStorageRootRO(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (types.StorageRoot, error) {
 	ver, err := util.GetVersion(ctx, fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
@@ -173,8 +143,3 @@ func LoadStorageRootRO(ctx context.Context, fsys fs.FS, extensionFactory *extens
 	}
 	return storageRoot, nil
 }
-
-var (
-	_ StorageRoot = &StorageRootV1_0{}
-	_ StorageRoot = &StorageRootV1_1{}
-)

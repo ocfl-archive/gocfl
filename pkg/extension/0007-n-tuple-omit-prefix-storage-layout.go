@@ -9,6 +9,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -138,7 +139,7 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
 	/*
 	  1) Remove the prefix, which is everything to the left of the right-most instance of the delimiter, as well as the delimiter. If there is no delimiter, the whole id is used; if the delimiter is found at the end, an error is thrown.
 	*/

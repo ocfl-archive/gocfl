@@ -9,6 +9,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -118,7 +119,7 @@ func (sl *FlatOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
 	last := strings.LastIndex(id, sl.Delimiter)
 	if last < 0 {
 		return id, nil

@@ -19,7 +19,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
 )
@@ -221,11 +221,11 @@ func (sl *Indexer) WriteConfig() error {
 	return nil
 }
 
-func (sl *Indexer) UpdateObjectBefore(object object.Object) error {
+func (sl *Indexer) UpdateObjectBefore(object types.Object) error {
 	return nil
 }
 
-func (sl *Indexer) UpdateObjectAfter(object object.Object) error {
+func (sl *Indexer) UpdateObjectAfter(object types.Object) error {
 	if sl.indexerActions == nil {
 		return errors.New("Please enable indexer in config file")
 	}
@@ -263,7 +263,7 @@ func (sl *Indexer) UpdateObjectAfter(object object.Object) error {
 	return nil
 }
 
-func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *Indexer) GetMetadata(object types.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -311,7 +311,7 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 	return result, nil
 }
 
-func (sl *Indexer) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (sl *Indexer) StreamObject(object types.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if !sl.active {
 		return nil
 	}
@@ -375,7 +375,7 @@ func (sl *Indexer) StreamObject(object object.Object, reader io.Reader, stateFil
 var (
 	_ extension.Extension = &Indexer{}
 	//	_ ocfl.ExtensionContentChange = &Indexer{}
-	_ object.ExtensionObjectChange = &Indexer{}
-	_ object.ExtensionMetadata     = &Indexer{}
-	_ object.ExtensionStream       = &Indexer{}
+	_ types.ExtensionObjectChange = &Indexer{}
+	_ types.ExtensionMetadata     = &Indexer{}
+	_ types.ExtensionStream       = &Indexer{}
 )

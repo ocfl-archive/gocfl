@@ -16,8 +16,8 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"golang.org/x/exp/constraints"
 )
 
@@ -195,11 +195,11 @@ func (sl *DirectClean) WriteLayout(fsys fs.FS) error {
 }
 
 // interface
-func (sl *DirectClean) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *DirectClean) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *DirectClean) BuildObjectManifestPath(object types.Object, originalPath string, area string) (string, error) {
 	return sl.build(originalPath)
 }
 
@@ -294,5 +294,5 @@ func (sl *DirectClean) build(fname string) (string, error) {
 var (
 	_ extension.Extension                  = &DirectClean{}
 	_ storageroot.ExtensionStorageRootPath = &DirectClean{}
-	_ object.ExtensionObjectContentPath    = &DirectClean{}
+	_ types.ExtensionObjectContentPath     = &DirectClean{}
 )

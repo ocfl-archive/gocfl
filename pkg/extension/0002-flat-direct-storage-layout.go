@@ -9,6 +9,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -116,7 +117,7 @@ func (sl *StorageLayoutFlatDirect) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 

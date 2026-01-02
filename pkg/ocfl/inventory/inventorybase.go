@@ -59,6 +59,48 @@ type InventoryBase struct {
 	logger           zLogger.ZLogger
 }
 
+func (i *InventoryBase) WithVersions(versions types.Versions) types.Inventory {
+	i.Versions = versions
+	return i
+}
+func (i *InventoryBase) GetVersions() types.Versions {
+	return i.Versions
+}
+
+func (i *InventoryBase) WithManifest(manifest types.Manifest) types.Inventory {
+	i.Manifest = manifest
+	return i
+}
+func (i *InventoryBase) GetManifest() types.Manifest {
+	return i.Manifest
+}
+
+func (i *InventoryBase) WithFixity(fixity types.Fixity) types.Inventory {
+	i.Fixity = fixity
+	return i
+}
+func (i *InventoryBase) GetFixity() types.Fixity {
+	/*
+		if i.Fixity == nil {
+			return map[checksum.DigestAlgorithm]map[string][]string{}
+		}
+
+	*/
+	return i.Fixity
+}
+
+func (i *InventoryBase) WithID(id string) types.Inventory {
+	i.Id = id
+	return i
+}
+func (i *InventoryBase) GetID() string { return i.Id }
+
+func (i *InventoryBase) WithDigestAlgorithm(algorithm checksum.DigestAlgorithm) types.Inventory {
+	i.DigestAlgorithm = algorithm
+	return i
+}
+func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
+
 func (i *InventoryBase) WithContentDir(contentDir string) types.Inventory {
 	if contentDir == "" {
 		contentDir = "content"
@@ -66,30 +108,17 @@ func (i *InventoryBase) WithContentDir(contentDir string) types.Inventory {
 	i.ContentDirectory = contentDir
 	return i
 }
-
-/*
-func newInventoryBase(ctx context.Context, factory types.Factory, ver version.OCFLVersion, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
-	i := &InventoryBase{
-		ctx:     ctx,
-		factory: factory,
-		//object:                 object,
-		version: ver,
-		//folder:  folder,
-		//paddingLength: 0,
-		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
-		Type:             types.InventorySpec(objectType.String()),
-		Head:             types.NewVersionNumber(),
-		ContentDirectory: contentDir,
-		Manifest:         nil,
-		Versions:         factory.NewVersions(),
-		Fixity:           nil,
-		logger:           logger,
+func (i *InventoryBase) GetContentDir() string {
+	if i.ContentDirectory == "" {
+		return "content"
 	}
-	return i, nil
+	return i.ContentDirectory
 }
-*/
+func (i *InventoryBase) GetRealContentDir() string {
+	return i.ContentDirectory
+}
 
-func (i *InventoryBase) IsEqual(invent types.Inventory) bool {
+func (i *InventoryBase) Equals(invent types.Inventory) bool {
 
 	i2, ok := invent.(*InventoryBase)
 	if !ok {
@@ -124,12 +153,6 @@ func (i *InventoryBase) IsEqual(invent types.Inventory) bool {
 	return true
 }
 
-func (i *InventoryBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (err error) {
-	i.Id = id
-	i.DigestAlgorithm = digest
-	i.Fixity = i.factory.NewFixity(nil).WithAlgorithms(fixity...)
-	return nil
-}
 func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	if i.Manifest == nil {
 		if !inCreation {
@@ -171,84 +194,11 @@ func (i *InventoryBase) AddValidationWarning(errno validation.ValidationErrorCod
 	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", i.GetID())
 	return errors.WithStack(validation.AddValidationWarnings(i.ctx, err))
 }
-func (i *InventoryBase) GetID() string                 { return i.Id }
 func (i *InventoryBase) GetHead() *types.VersionNumber { return i.Head }
 func (i *InventoryBase) GetSpec() types.InventorySpec  { return i.Type }
 
-func (i *InventoryBase) GetContentDir() string {
-	if i.ContentDirectory == "" {
-		return "content"
-	}
-	return i.ContentDirectory
-}
-
-func (i *InventoryBase) GetRealContentDir() string {
-	return i.ContentDirectory
-}
-
-func (i *InventoryBase) GetDigestAlgorithm() checksum.DigestAlgorithm { return i.DigestAlgorithm }
-
-/*
-	func (i *InventoryBase) GetFixityDigestAlgorithm() iter.Seq[checksum.DigestAlgorithm] {
-		return i.Fixity.GetDigestAlgorithms()
-	}
-*/
 func (i *InventoryBase) IsWriteable() bool { return i.writeable }
 func (i *InventoryBase) IsModified() bool  { return i.modified }
-
-/*
-	func (i *InventoryBase) GetVersionNumbers() []*VersionNumber {
-		versionsInt := []int{}
-		versionString := map[int]*VersionNumber{}
-		for ver := range i.Versions.Iterate() {
-			matches := vRegexp.FindStringSubmatch(ver.String())
-			if matches == nil {
-				return []*VersionNumber{}
-			}
-			versionInt, err := strconv.Atoi(matches[1])
-			if err != nil {
-				return []*VersionNumber{}
-			}
-			versionsInt = append(versionsInt, versionInt)
-			versionString[versionInt] = ver
-		}
-
-		// sort versions ascending
-		sort.Ints(versionsInt)
-		var versions = []*VersionNumber{}
-		for _, versionInt := range versionsInt {
-			versions = append(versions, versionString[versionInt])
-		}
-		return versions
-	}
-*/
-func (i *InventoryBase) GetVersions() types.Versions {
-	return i.Versions
-}
-
-/*
-func (i *InventoryBase) GetStateFiles(version *VersionNumber, cs string) ([]string, error) {
-	if version.IsLatest() {
-		version = i.GetHead()
-	}
-	ver := i.Versions.GetVersion(version)
-	if ver == nil {
-		return nil, errors.Errorf("invalid version '%s'", version)
-	}
-	state := ver.GetState()
-	if state == nil {
-		return nil, errors.Errorf("failed to get state of '%s'", version)
-	}
-	files, err := state.GetFiles(cs)
-	if err != nil {
-		if errors.Is(err, DigestNotFound) {
-			return nil, errors.Wrapf(err, "no state for in version %s [%s]", version, cs)
-		}
-		return nil, errors.Wrapf(err, "failed to get state for in version %s [%s]", version, cs)
-	}
-	return files, nil
-}
-*/
 
 func (i *InventoryBase) IterateFiles(version *types.VersionNumber, fn types.StateFileCallback) error {
 	if !version.IsValid() {
@@ -345,115 +295,6 @@ func (i *InventoryBase) check() error {
 	return nil
 }
 
-/*
-func (i *InventoryBase) checkManifest() error {
-	i.logger.Debug().Msgf("[%s] checkManifest", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkManifest done", i.GetID())
-	versionDigests := []string{}
-	for versionNumber, ver := range i.Versions.Iterate() {
-		state := ver.GetState()
-		if state == nil {
-			return errors.Errorf("cannot get state for version '%s'", versionNumber)
-		}
-		for digest, _ := range state.Iterate() {
-			versionDigests = append(versionDigests, digest)
-		}
-	}
-	slices.Sort(versionDigests)
-	versionDigests = slices.Compact(versionDigests)
-
-	digests := []string{}
-	allPaths := []string{}
-	for digest, paths := range i.Manifest.Iterate() {
-		//		digest = strings.ToLower(digest)
-		if slices.Contains(digests, digest) {
-			i.AddValidationError(validation.E096, "manifest digest '%s' is duplicate", digest)
-		} else {
-			digests = util.SliceInsertSorted(digests, digest)
-			//digests = append(digests, digest)
-			if _, found := slices.BinarySearch(versionDigests, digest); !found {
-				//if !slices.Contains(versionDigests, digest) {
-				i.AddValidationError(validation.E107, "digest '%s' does not appear in any version", digest)
-			}
-		}
-		for _, path := range paths {
-			//allPaths = sliceInsertSorted(allPaths, path)
-			allPaths = append(allPaths, path)
-			if path[0] == '/' || path[len(path)-1] == '/' {
-				i.AddValidationError(validation.E100, "invalid path '%s' in manifest", path)
-			}
-			if path == "" {
-				i.AddValidationError(validation.E099, "empty path in manifest")
-			}
-			path2 := path
-			if path[0] == '/' {
-				path2 = path[1:]
-			}
-			elements := strings.Split(path2, "/")
-			for _, element := range elements {
-				if slices.Contains([]string{"", ".", ".."}, element) {
-					i.AddValidationError(validation.E099, "invalid path '%s' in manifest", path)
-				}
-			}
-
-		}
-
-	}
-	i.logger.Debug().Msgf("[%s] checkManifest prefix", i.GetID())
-	slices.Sort(allPaths)
-	for j := 0; j < len(allPaths)-1; j++ {
-		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
-		if strings.HasPrefix(allPaths[j], prefix) {
-			i.AddValidationError(validation.E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], prefix)
-		}
-	}
-	return nil
-}
-*/
-
-/*
-func (i *InventoryBase) checkFixity() error {
-	i.logger.Debug().Msgf("[%s] checkFixity", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkFixity done", i.GetID())
-	return errors.Wrap(i.Fixity.Check(i, nil), "error checking fixity")
-}
-
-func (i *InventoryBase) checkVersions() error {
-	i.logger.Debug().Msgf("[%s] checkVersions", i.GetID())
-	defer i.logger.Debug().Msgf("[%s] checkVersions done", i.GetID())
-	manifestDigests := []string{}
-	for mDigest, _ := range i.Manifest.Iterate() {
-		manifestDigests = append(manifestDigests, mDigest)
-	}
-
-	if err := i.Versions.Check(i, manifestDigests); err != nil {
-		return errors.Wrap(err, "cannot check versions")
-	}
-	// check head is recent ver
-	var recentVersion *VersionNumber
-	for ver := range i.Versions.GetVersionNumbers() {
-		if !recentVersion.IsValid() {
-			recentVersion = ver
-		} else {
-			if recentVersion.Less(ver) {
-				recentVersion = ver
-			}
-		}
-	}
-	if !i.GetHead().Equal(recentVersion) && i.GetHead().IsValid() {
-		i.AddValidationError(validation.E040, "manifest head '%s' is not recent ver '%s'", i.GetHead(), recentVersion)
-	}
-
-	// check that head exists in versions
-	if !i.Head.IsValid() {
-		i.AddValidationError(validation.E040, "manifest head '%s' does not exists in versions %v", i.Head.string, ocfl.SeqToSlice(i.GetVersions().GetVersionNumbers()))
-	}
-
-	return nil
-}
-
-*/
-
 func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
 	i.logger.Debug().Msgf("[%s] checkFiles", i.GetID())
 	defer i.logger.Debug().Msgf("[%s] checkFiles done", i.GetID())
@@ -473,53 +314,6 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 	return nil
 }
 
-/*
-func (i *InventoryBase) GetFiles() map[*VersionNumber][]string {
-	var result = map[*VersionNumber][]string{}
-	versions := []*VersionNumber{}
-	for _, files := range i.Manifest.Iterate() {
-		for _, filename := range files {
-			parts := strings.Split(filename, "/")
-			if len(parts) < 3 {
-				i.AddValidationError(validation.E000, "invalid filepath in manifest '%s'", filename)
-			}
-			version := NewVersionNumber().WithString(parts[0])
-			//fn := parts[2]
-			if parts[1] != i.GetContentDir() {
-				//i.AddValidationError(E015, "extra file/directory '%s' in manifest", parts[1])
-				//i.AddValidationError(E019, "invalid content directory '%s' in '%s'", parts[1], filename)
-			}
-			if _, ok := result[version]; !ok {
-				versions = append(versions, version)
-				result[version] = []string{}
-			}
-			result[version] = append(result[version], filename)
-		}
-	}
-	iVersions := i.GetVersionNumbers()
-	if !util.SliceContains(iVersions, versions) {
-		slices.Sort(iVersions)
-		i.AddValidationError(validation.E023, "versions %v do not contains versions from manifest %v", iVersions, versions)
-	}
-	return result
-}
-
-*/
-
-func (i *InventoryBase) GetManifest() types.Manifest {
-	return i.Manifest
-}
-
-func (i *InventoryBase) GetFixity() types.Fixity {
-	/*
-		if i.Fixity == nil {
-			return map[checksum.DigestAlgorithm]map[string][]string{}
-		}
-
-	*/
-	return i.Fixity
-}
-
 func (i *InventoryBase) BuildManifestName(stateFilename string) string {
 	return i.BuildManifestNameVersion(stateFilename, i.GetHead())
 }
@@ -527,51 +321,6 @@ func (i *InventoryBase) BuildManifestName(stateFilename string) string {
 func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version *types.VersionNumber) string {
 	return filepath.ToSlash(filepath.Clean(filepath.Join(version.String(), i.GetContentDir(), stateFilename)))
 }
-
-/*
-func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
-	lastHead := i.Head
-	if !lastHead.IsValid() {
-		if i.paddingLength <= 0 {
-			i.Head.WithString("v1")
-		} else {
-			i.Head.WithString(fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), 1))
-		}
-	} else {
-		vStr := strings.TrimLeft(strings.ToLower(i.Head.string), "v0")
-		v, err := strconv.Atoi(vStr)
-		if err != nil {
-			return errors.Wrapf(err, "cannot determine head of ObjectBase - '%s'", vStr)
-		}
-
-		if i.paddingLength <= 0 {
-			i.Head.string = fmt.Sprintf("v%d", v+1)
-		} else {
-			i.Head.string = fmt.Sprintf(fmt.Sprintf("v0%%0%dd", i.paddingLength), v+1)
-		}
-	}
-	ver := i.factory.NewVersion()
-	state := i.factory.NewState()
-	user := i.factory.NewUser().WithAddress(UserAddress).WithName(UserName)
-	ver.WithCreated(time.Now()).WithMessage(msg).WithState(state).WithUser(user)
-	if !lastHead.IsValid() {
-		lastVersion := i.Versions.GetVersion(lastHead)
-		if lastVersion == nil {
-			return errors.Errorf("cannot determine version - '%s'", lastHead)
-		}
-		lastState := lastVersion.GetState()
-		if lastState == nil {
-			return errors.Errorf("cannot determine state - '%s'", lastHead)
-		}
-		newState := i.factory.NewState()
-		newState.CopyFrom(lastState)
-		ver.WithState(newState)
-	}
-	i.Versions.WithVersion(i.Head, ver)
-	i.writeable = true
-	return nil
-}
-*/
 
 var vRegexp *regexp.Regexp = regexp.MustCompile("^v(\\d+)$")
 

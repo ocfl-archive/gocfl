@@ -8,7 +8,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"io"
 	"io/fs"
@@ -110,6 +110,6 @@ func (sl *DigestAlgorithms) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension          = &DigestAlgorithms{}
-	_ object.ExtensionFixityDigest = &DigestAlgorithms{}
+	_ extension.Extension         = &DigestAlgorithms{}
+	_ types.ExtensionFixityDigest = &DigestAlgorithms{}
 )

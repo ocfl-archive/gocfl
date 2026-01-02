@@ -9,6 +9,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
 	"hash"
 	"io"
@@ -138,7 +139,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {

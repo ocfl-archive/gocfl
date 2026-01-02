@@ -16,7 +16,6 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -141,7 +140,7 @@ func (mi *Migration) WriteConfig() error {
 	return nil
 }
 
-func (mi *Migration) UpdateObjectBefore(object.Object) error {
+func (mi *Migration) UpdateObjectBefore(types.Object) error {
 	return nil
 }
 
@@ -154,7 +153,7 @@ func (mi *Migration) alreadyMigrated(cs string) bool {
 	return false
 }
 
-func (mi *Migration) UpdateObjectAfter(object object.Object) error {
+func (mi *Migration) UpdateObjectAfter(object types.Object) error {
 	inventory := object.GetInventory()
 	if inventory == nil {
 		return errors.Errorf("inventory is nil")
@@ -205,12 +204,12 @@ func (mi *Migration) UpdateObjectAfter(object object.Object) error {
 	return nil
 }
 
-func (mi *Migration) NeedNewVersion(object.Object) (bool, error) {
+func (mi *Migration) NeedNewVersion(types.Object) (bool, error) {
 	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
 // DoNewVersion todo: check for second migration step and do different naming
-func (mi *Migration) DoNewVersion(object object.Object) error {
+func (mi *Migration) DoNewVersion(object types.Object) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
@@ -412,7 +411,7 @@ func (mi *Migration) DoNewVersion(object object.Object) error {
 	return nil
 }
 
-func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
+func (mi *Migration) GetMetadata(object types.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -482,8 +481,8 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 }
 
 var (
-	_ extension.Extension          = &Migration{}
-	_ object.ExtensionObjectChange = &Migration{}
-	_ object.ExtensionMetadata     = &Migration{}
-	_ object.ExtensionNewVersion   = &Migration{}
+	_ extension.Extension         = &Migration{}
+	_ types.ExtensionObjectChange = &Migration{}
+	_ types.ExtensionMetadata     = &Migration{}
+	_ types.ExtensionNewVersion   = &Migration{}
 )

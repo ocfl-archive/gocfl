@@ -22,7 +22,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -171,7 +171,7 @@ func (me *Mets) WriteConfig() error {
 	return nil
 }
 
-func (me *Mets) UpdateObjectBefore(object object.Object) error {
+func (me *Mets) UpdateObjectBefore(object types.Object) error {
 	return nil
 }
 
@@ -223,7 +223,7 @@ type metaFileBase struct {
 
 */
 
-func (me *Mets) UpdateObjectAfter(obj object.Object) error {
+func (me *Mets) UpdateObjectAfter(obj types.Object) error {
 	inventory := obj.GetInventory()
 	metadata, err := obj.GetMetadata()
 	if err != nil {
@@ -262,7 +262,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 			}
 		}
 	}
-	var metsNames, premisNames *object.NamesStruct
+	var metsNames, premisNames *types.NamesStruct
 	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
 	switch strings.ToLower(me.StorageType) {
 	case "area":
@@ -291,13 +291,13 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 		}
 	case "extension":
 		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetVersion()))), "/")
-		metsNames = &object.NamesStruct{
+		metsNames = &types.NamesStruct{
 			ExternalPaths: []string{me.MetsFile},
 			InternalPath:  metsName,
 			ManifestPath:  "",
 		}
 		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetVersion()))), "/")
-		premisNames = &object.NamesStruct{
+		premisNames = &types.NamesStruct{
 			ExternalPaths: []string{me.PremisFile},
 			InternalPath:  premisName,
 			ManifestPath:  "",
@@ -882,7 +882,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 		default:
 			return errors.Errorf("invalid descriptive metadata '%s'", me.PrimaryDescriptiveMetadata)
 		}
-		var found *object.FileMetadata
+		var found *types.FileMetadata
 		var foundChecksum string
 		for checksum, metaFile := range metadata.Files {
 			if ver, ok := metaFile.VersionName[head.String()]; ok {
@@ -1397,5 +1397,5 @@ func newMDSec(id, groupid, href, loctype, otherloctype, mimetype, created string
 
 // check interface satisfaction
 var (
-	_ object.ExtensionObjectChange = &Mets{}
+	_ types.ExtensionObjectChange = &Mets{}
 )

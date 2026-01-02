@@ -14,7 +14,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/nfnt/resize"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	_ "golang.org/x/image/bmp"
 	_ "golang.org/x/image/tiff"
 	_ "golang.org/x/image/vp8"
@@ -22,7 +22,7 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (thumb *Thumbnail) StreamObject(object types.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(stateFiles) == 0 {
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}
@@ -133,7 +133,7 @@ func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, sta
 	return nil
 }
 
-func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath string, digest string, area string, isDir bool) error {
+func (thumb *Thumbnail) AddFileAfter(object types.Object, sourceFS fs.FS, source []string, internalPath string, digest string, area string, isDir bool) error {
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	if _, ok := thumb.counter[head.String()]; !ok {
@@ -199,24 +199,24 @@ func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, sourc
 	return nil
 }
 
-func (thumb *Thumbnail) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (thumb *Thumbnail) AddFileBefore(object types.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (thumb *Thumbnail) UpdateFileBefore(object types.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
-func (thumb *Thumbnail) DeleteFileBefore(object object.Object, dest string, area string) error {
+func (thumb *Thumbnail) DeleteFileBefore(object types.Object, dest string, area string) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateFileAfter(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (thumb *Thumbnail) UpdateFileAfter(object types.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (thumb *Thumbnail) DeleteFileAfter(object object.Object, dest string, area string) error {
+func (thumb *Thumbnail) DeleteFileAfter(object types.Object, dest string, area string) error {
 	return nil
 }
 
-var _ object.ExtensionContentChange = &Thumbnail{}
+var _ types.ExtensionContentChange = &Thumbnail{}

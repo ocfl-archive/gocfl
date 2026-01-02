@@ -4,22 +4,32 @@ import (
 	"context"
 
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec types.InventorySpec, logger zLogger.ZLogger) types.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec types.InventorySpec, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) types.Factory {
 	return &FactoryBase{
-		logger:  logger,
-		version: version,
-		spec:    spec,
+		logger:           logger,
+		version:          version,
+		spec:             spec,
+		extensionFactory: extensionFactory,
+		extensionManager: extensionManager,
 	}
 }
 
 type FactoryBase struct {
-	logger  zLogger.ZLogger
-	version version.OCFLVersion
-	spec    types.InventorySpec
+	logger           zLogger.ZLogger
+	version          version.OCFLVersion
+	spec             types.InventorySpec
+	extensionFactory *extension.ExtensionFactory
+	extensionManager extension.ExtensionManager
+}
+
+func (f *FactoryBase) NewObject(ctx context.Context) types.Object {
+	return object.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.extensionManager, f.logger)
 }
 
 func (f *FactoryBase) NewInventory(ctx context.Context) types.Inventory {
