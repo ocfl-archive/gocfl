@@ -7,11 +7,11 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func _NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (interfaces.Inventory, error) {
+func _NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (types.Inventory, error) {
 	switch ver {
 	case version.Version1_1:
 		sr, err := newInventoryV1_1(ctx, ver, folder, logger)
@@ -30,7 +30,7 @@ func _NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, 
 	}
 }
 
-func InventoryIsEqual(i1, i2 interfaces.Inventory) bool {
+func InventoryIsEqual(i1, i2 types.Inventory) bool {
 	data1, err := json.Marshal(i1)
 	if err != nil {
 		return false

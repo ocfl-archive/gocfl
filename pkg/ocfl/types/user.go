@@ -1,4 +1,4 @@
-package interfaces
+package types
 
 import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"

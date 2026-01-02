@@ -8,7 +8,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
@@ -47,7 +47,7 @@ func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {
 	return result
 }
 
-func (f *FixityBase) WithAlgorithms(algorithms ...checksum.DigestAlgorithm) interfaces.Fixity {
+func (f *FixityBase) WithAlgorithms(algorithms ...checksum.DigestAlgorithm) types.Fixity {
 	for _, alg := range algorithms {
 		if _, ok := f.fixity[alg]; !ok {
 			f.fixity[alg] = map[string][]string{}
@@ -95,11 +95,11 @@ func (f *FixityBase) Iterate(alg checksum.DigestAlgorithm) func(yield func(diges
 func (f *FixityBase) GetFiles(alg checksum.DigestAlgorithm, digest string) ([]string, error) {
 	dfiles, ok := f.fixity[alg]
 	if !ok {
-		return nil, errors.Wrapf(interfaces.DigestAlgNotFound, "digest algorithm '%s'", alg)
+		return nil, errors.Wrapf(types.DigestAlgNotFound, "digest algorithm '%s'", alg)
 	}
 	files, ok := dfiles[digest]
 	if !ok {
-		return nil, errors.Wrapf(interfaces.DigestNotFound, "digest  '%s-%s'", alg, digest)
+		return nil, errors.Wrapf(types.DigestNotFound, "digest  '%s-%s'", alg, digest)
 	}
 	return files, nil
 }
@@ -111,7 +111,7 @@ func (f *FixityBase) Err() error {
 	return f.err
 }
 
-func (f *FixityBase) Equals(val validation.Validation, fixity interfaces.Fixity) bool {
+func (f *FixityBase) Equals(val validation.Validation, fixity types.Fixity) bool {
 	fixity2, ok := fixity.(*FixityBase)
 	if !ok {
 		return false
@@ -145,7 +145,7 @@ func (f *FixityBase) Equals(val validation.Validation, fixity interfaces.Fixity)
 	return true
 }
 
-func (f *FixityBase) CopyFrom(fixity interfaces.Fixity) error {
+func (f *FixityBase) CopyFrom(fixity types.Fixity) error {
 	f.fixity = map[checksum.DigestAlgorithm]map[string][]string{}
 	for digestAlg := range fixity.GetDigestAlgorithms() {
 		f.fixity[digestAlg] = map[string][]string{}
@@ -233,4 +233,4 @@ func (f *FixityBase) Finalize(inCreation bool) error {
 	return nil
 }
 
-var _ interfaces.Fixity = (*FixityBase)(nil)
+var _ types.Fixity = (*FixityBase)(nil)

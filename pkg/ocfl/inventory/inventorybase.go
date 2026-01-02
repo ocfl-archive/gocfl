@@ -2,57 +2,54 @@ package inventory
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/uri"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"golang.org/x/exp/slices"
 )
 
 type InventoryBase struct {
-	factory interfaces.Factory
+	factory types.Factory
 	ctx     context.Context
 	folder  string
 	//object                 ocfl.Object
-	version       version.OCFLVersion
-	modified      bool
-	writeable     bool
-	paddingLength int
+	version   version.OCFLVersion
+	modified  bool
+	writeable bool
+	//paddingLength int
 	//versionValue           map[string]uint
 	//fixityDigestAlgorithms []checksum.DigestAlgorithm
-	Id               string                    `json:"id"`
-	Type             InventorySpec             `json:"type"`
-	DigestAlgorithm  checksum.DigestAlgorithm  `json:"digestAlgorithm"`
-	Head             *interfaces.VersionNumber `json:"head"`
-	ContentDirectory string                    `json:"contentDirectory,omitempty"`
-	Manifest         interfaces.Manifest       `json:"manifest,omitempty"`
-	Versions         interfaces.Versions       `json:"versions"`
-	Fixity           interfaces.Fixity         `json:"fixity,omitempty"`
+	Id               string                   `json:"id"`
+	Type             types.InventorySpec      `json:"type"`
+	DigestAlgorithm  checksum.DigestAlgorithm `json:"digestAlgorithm"`
+	Head             *types.VersionNumber     `json:"head"`
+	ContentDirectory string                   `json:"contentDirectory,omitempty"`
+	Manifest         types.Manifest           `json:"manifest,omitempty"`
+	Versions         types.Versions           `json:"versions"`
+	Fixity           types.Fixity             `json:"fixity,omitempty"`
 	logger           zLogger.ZLogger
 }
 
-func newInventoryBase(ctx context.Context, factory interfaces.Factory, ver version.OCFLVersion, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
+func newInventoryBase(ctx context.Context, factory types.Factory, ver version.OCFLVersion, folder string, objectType *url.URL, contentDir string, logger zLogger.ZLogger) (*InventoryBase, error) {
 	i := &InventoryBase{
 		ctx:     ctx,
 		factory: factory,
 		//object:                 object,
-		version:       ver,
-		folder:        folder,
-		paddingLength: 0,
+		version: ver,
+		folder:  folder,
+		//paddingLength: 0,
 		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
-		Type:             InventorySpec(objectType.String()),
-		Head:             interfaces.NewVersionNumber(),
+		Type:             types.InventorySpec(objectType.String()),
+		Head:             types.NewVersionNumber(),
 		ContentDirectory: contentDir,
 		Manifest:         nil,
 		Versions:         factory.NewVersions(),
@@ -62,7 +59,7 @@ func newInventoryBase(ctx context.Context, factory interfaces.Factory, ver versi
 	return i, nil
 }
 
-func (i *InventoryBase) IsEqual(invent interfaces.Inventory) bool {
+func (i *InventoryBase) IsEqual(invent types.Inventory) bool {
 
 	i2, ok := invent.(*InventoryBase)
 	if !ok {
@@ -72,7 +69,7 @@ func (i *InventoryBase) IsEqual(invent interfaces.Inventory) bool {
 	if i.Type != i2.Type {
 		return false
 	}
-	if i.Head.string != i2.Head.string {
+	if !i.Head.Equal(i2.Head) {
 		return false
 	}
 	if i.ContentDirectory != i2.ContentDirectory {
@@ -144,9 +141,9 @@ func (i *InventoryBase) AddValidationWarning(errno validation.ValidationErrorCod
 	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendDescription("(%s/inventory.json)", i.folder).AppendContext("object '%s'", i.GetID())
 	return errors.WithStack(validation.AddValidationWarnings(i.ctx, err))
 }
-func (i *InventoryBase) GetID() string                      { return i.Id }
-func (i *InventoryBase) GetHead() *interfaces.VersionNumber { return i.Head }
-func (i *InventoryBase) GetSpec() InventorySpec             { return i.Type }
+func (i *InventoryBase) GetID() string                 { return i.Id }
+func (i *InventoryBase) GetHead() *types.VersionNumber { return i.Head }
+func (i *InventoryBase) GetSpec() types.InventorySpec  { return i.Type }
 
 func (i *InventoryBase) GetContentDir() string {
 	if i.ContentDirectory == "" {
@@ -195,7 +192,7 @@ func (i *InventoryBase) IsModified() bool  { return i.modified }
 		return versions
 	}
 */
-func (i *InventoryBase) GetVersions() interfaces.Versions {
+func (i *InventoryBase) GetVersions() types.Versions {
 	return i.Versions
 }
 
@@ -223,7 +220,7 @@ func (i *InventoryBase) GetStateFiles(version *VersionNumber, cs string) ([]stri
 }
 */
 
-func (i *InventoryBase) IterateStateFiles(version *interfaces.VersionNumber, fn interfaces.StateFileCallback) error {
+func (i *InventoryBase) IterateStateFiles(version *types.VersionNumber, fn types.StateFileCallback) error {
 	if !version.IsValid() {
 		version = i.GetHead()
 	}
@@ -479,11 +476,11 @@ func (i *InventoryBase) GetFiles() map[*VersionNumber][]string {
 
 */
 
-func (i *InventoryBase) GetManifest() interfaces.Manifest {
+func (i *InventoryBase) GetManifest() types.Manifest {
 	return i.Manifest
 }
 
-func (i *InventoryBase) GetFixity() interfaces.Fixity {
+func (i *InventoryBase) GetFixity() types.Fixity {
 	/*
 		if i.Fixity == nil {
 			return map[checksum.DigestAlgorithm]map[string][]string{}
@@ -497,16 +494,12 @@ func (i *InventoryBase) BuildManifestName(stateFilename string) string {
 	return i.BuildManifestNameVersion(stateFilename, i.GetHead())
 }
 
-func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version *interfaces.VersionNumber) string {
+func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version *types.VersionNumber) string {
 	return filepath.ToSlash(filepath.Clean(filepath.Join(version.String(), i.GetContentDir(), stateFilename)))
 }
 
+/*
 func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
-	/*
-		if i.IsWriteable() {
-			return errors.New(fmt.Sprintf("version '%s' already writeable", i.GetHead()))
-		}
-	*/
 	lastHead := i.Head
 	if !lastHead.IsValid() {
 		if i.paddingLength <= 0 {
@@ -544,10 +537,11 @@ func (i *InventoryBase) NewVersion(msg, UserName, UserAddress string) error {
 		newState.CopyFrom(lastState)
 		ver.WithState(newState)
 	}
-	i.Versions.SetVersion(i.Head, ver)
+	i.Versions.WithVersion(i.Head, ver)
 	i.writeable = true
 	return nil
 }
+*/
 
 var vRegexp *regexp.Regexp = regexp.MustCompile("^v(\\d+)$")
 
@@ -688,5 +682,5 @@ func (i *InventoryBase) Clean() error {
 	return nil
 }
 
-var _ interfaces.Inventory = (*InventoryBase)(nil)
+var _ types.Inventory = (*InventoryBase)(nil)
 var _ validation.Validation = (*InventoryBase)(nil)

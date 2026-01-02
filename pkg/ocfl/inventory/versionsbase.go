@@ -4,27 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
-	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"golang.org/x/exp/slices"
 )
 
-var versionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
-var versionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
+type versionValue map[*types.VersionNumber]uint
 
-type versionValue map[*interfaces.VersionNumber]uint
-
-func (v versionValue) GetInt(version *interfaces.VersionNumber) (uint, bool) {
+func (v versionValue) GetInt(version *types.VersionNumber) (uint, bool) {
 	vInt, ok := v[version]
 	return vInt, ok
 }
 
-func (v versionValue) GetVersion(version uint) (*interfaces.VersionNumber, bool) {
+func (v versionValue) GetVersion(version uint) (*types.VersionNumber, bool) {
 	for ver, verInt := range v {
 		if verInt == version {
 			return ver, true
@@ -33,20 +30,48 @@ func (v versionValue) GetVersion(version uint) (*interfaces.VersionNumber, bool)
 	return nil, false
 }
 
-func NewVersionsBase(factory interfaces.Factory) interfaces.Versions {
+func NewVersionsBase(factory types.Factory) types.Versions {
 	return &versionsBase{
-		versions:    map[int]interfaces.Version{},
+		versions:    map[int]types.Version{},
 		versionInts: map[string]int{},
 		factory:     factory,
 	}
 }
 
 type versionsBase struct {
-	versions      map[int]interfaces.Version
-	versionInts   map[string]int
-	err           error
-	paddingLength int
-	factory       interfaces.Factory
+	versions    map[int]types.Version
+	versionInts map[string]int
+	err         error
+	//paddingLength int
+	factory types.Factory
+}
+
+func (v *versionsBase) NewVersion(head *types.VersionNumber, msg, UserName, UserAddress string) error {
+	var newVersionNumber *types.VersionNumber
+	if head != nil {
+		if paddingLength := head.GetPaddingLength(); paddingLength > 0 {
+			newVersionNumber = types.NewVersionNumber().WithString(fmt.Sprintf("v0%0*d", paddingLength, head.Int()+1))
+		} else {
+			newVersionNumber = types.NewVersionNumber().WithString(fmt.Sprintf("%d", head.Int()+1))
+		}
+	} else {
+		newVersionNumber = types.NewVersionNumber().WithString("v1")
+	}
+	state := v.factory.NewState()
+	if head != nil {
+		if err := state.CopyFrom(v.GetVersion(head).GetState()); err != nil {
+			return errors.Wrapf(err, "Failed to copy version from %s", head)
+		}
+	}
+	user := v.factory.NewUser().WithAddress(UserAddress).WithName(UserName)
+	ver := v.factory.NewVersion().
+		WithCreated(time.Now()).
+		WithMessage(msg).
+		WithState(state).
+		WithUser(user).
+		WithVersion(newVersionNumber)
+	v.SetVersion(newVersionNumber, ver)
+	return nil
 }
 
 func (v *versionsBase) Err() error {
@@ -60,7 +85,7 @@ func (v *versionsBase) Err() error {
 	return errors.Combine(errs...)
 }
 
-func (v *versionsBase) Delete(versionNumber *interfaces.VersionNumber) (bool, error) {
+func (v *versionsBase) Delete(versionNumber *types.VersionNumber) (bool, error) {
 	if _, ok := v.versions[versionNumber.Int()]; !ok {
 		return false, nil
 	}
@@ -158,17 +183,17 @@ func (v *versionsBase) FileExists(path, digest string) (bool, error) {
 	return lastChecksum == digest, nil
 }
 
-func (v *versionsBase) GetVersionNumbers() iter.Seq[*interfaces.VersionNumber] {
-	return func(yield func(*interfaces.VersionNumber) bool) {
+func (v *versionsBase) GetVersionNumbers() iter.Seq[*types.VersionNumber] {
+	return func(yield func(*types.VersionNumber) bool) {
 		for versionString, versionInt := range v.versionInts {
-			if !yield(interfaces.NewVersionNumber().Init(versionInt, versionString)) {
+			if !yield(types.NewVersionNumber().Init(versionInt, versionString)) {
 				return
 			}
 		}
 	}
 }
 
-func (v *versionsBase) Finalize(val validation.Validation, factory interfaces.Factory, inCreation bool) error {
+func (v *versionsBase) Finalize(val validation.Validation, factory types.Factory, inCreation bool) error {
 	for ver, version := range v.Iterate() {
 		if err := version.Finalize(val, factory, inCreation); err != nil {
 			return errors.Wrapf(err, "failed to finalize inventory version '%s'", ver)
@@ -192,7 +217,7 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 	slices.Sort(manifestDigestsLower)
 	for versionNumber, ver := range v.Iterate() {
 		versionsSeq = append(versionsSeq, versionNumber.Int())
-		if versionZeroRegexp.MatchString(versionNumber.String()) {
+		if types.VersionZeroRegexp.MatchString(versionNumber.String()) {
 			if paddingLength == -1 {
 				paddingLength = len(versionNumber.String()) - 2
 			} else {
@@ -203,7 +228,7 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 				}
 			}
 		} else {
-			if versionNoZeroRegexp.MatchString(versionNumber.String()) {
+			if types.VersionNoZeroRegexp.MatchString(versionNumber.String()) {
 				if paddingLength == -1 {
 					paddingLength = 0
 				} else {
@@ -230,7 +255,6 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 			break
 		}
 	}
-	v.paddingLength = paddingLength
 	if paddingLength > 0 {
 		val.AddValidationWarning(validation.W001, "padding length is %v", paddingLength)
 	}
@@ -238,7 +262,7 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 	return nil
 }
 
-func (v *versionsBase) SetVersion(versionNumber *interfaces.VersionNumber, ver interfaces.Version) interfaces.Versions {
+func (v *versionsBase) SetVersion(versionNumber *types.VersionNumber, ver types.Version) types.Versions {
 	verB, ok := ver.(*versionBase)
 	if !ok {
 		panic(fmt.Sprintf("cannot convert to versionBase '%s'", versionNumber))
@@ -252,7 +276,7 @@ func (v *versionsBase) IsEmpty() bool {
 	return len(v.versions) == 0
 }
 
-func (v *versionsBase) GetVersion(versionNumber *interfaces.VersionNumber) interfaces.Version {
+func (v *versionsBase) GetVersion(versionNumber *types.VersionNumber) types.Version {
 	if versionNumber.IsLatest() {
 		versionNumber = v.LatestVersionNumber()
 	}
@@ -263,7 +287,7 @@ func (v *versionsBase) GetVersion(versionNumber *interfaces.VersionNumber) inter
 	return version
 }
 
-func (v *versionsBase) Equals(other interfaces.Versions) bool {
+func (v *versionsBase) Equals(other types.Versions) bool {
 	otherBase, ok := other.(*versionsBase)
 	if !ok {
 		return false
@@ -289,8 +313,8 @@ func (v *versionsBase) String() string {
 	return strings.TrimLeft(result, "; ")
 }
 
-func (v *versionsBase) Iterate() func(yield func(versionNumber *interfaces.VersionNumber, version interfaces.Version) bool) {
-	return func(yield func(versionString *interfaces.VersionNumber, version interfaces.Version) bool) {
+func (v *versionsBase) Iterate() func(yield func(versionNumber *types.VersionNumber, version types.Version) bool) {
+	return func(yield func(versionString *types.VersionNumber, version types.Version) bool) {
 		for versionNumber := range v.GetVersionNumbers() {
 			if !yield(versionNumber, v.versions[versionNumber.Int()]) {
 				return
@@ -305,15 +329,15 @@ func (v *versionsBase) UnmarshalJSON(data []byte) error {
 		v.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
 		return nil
 	}
-	v.versions = map[int]interfaces.Version{}
+	v.versions = map[int]types.Version{}
 	for key, bytes := range newVersions {
-		versionNumber := interfaces.NewVersionNumber().WithString(key)
+		versionNumber := types.NewVersionNumber().WithString(key)
 		ver := v.factory.NewVersion()
 		if err := json.Unmarshal(bytes, &ver); err != nil {
 			v.err = errors.Wrapf(err, "cannot unmarshal version '%s': '%s'", versionNumber.String(), string(bytes))
 			return nil
 		}
-		ver.SetVersion(versionNumber)
+		ver.WithVersion(versionNumber)
 		v.versions[versionNumber.Int()] = ver
 		v.versionInts[versionNumber.String()] = versionNumber.Int()
 	}
@@ -321,7 +345,7 @@ func (v *versionsBase) UnmarshalJSON(data []byte) error {
 }
 
 func (v *versionsBase) MarshalJSON() ([]byte, error) {
-	var newVersions = map[string]interfaces.Version{}
+	var newVersions = map[string]types.Version{}
 	for versionNumber := range v.GetVersionNumbers() {
 		newVersions[versionNumber.String()] = v.versions[versionNumber.Int()]
 	}
@@ -329,16 +353,7 @@ func (v *versionsBase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(newVersions)
 }
 
-func (v *versionsBase) GetVersionNumber(vInt int) *interfaces.VersionNumber {
-	for versionNumber := range v.GetVersionNumbers() {
-		if versionNumber.Int() == vInt {
-			return versionNumber
-		}
-	}
-	return nil
-}
-
-func (v *versionsBase) LatestVersionNumber() *interfaces.VersionNumber {
+func (v *versionsBase) LatestVersionNumber() *types.VersionNumber {
 	var versions = make([]int, 0, len(v.versions))
 	for versionInt, _ := range v.versions {
 		versions = append(versions, versionInt)
@@ -347,7 +362,12 @@ func (v *versionsBase) LatestVersionNumber() *interfaces.VersionNumber {
 	// get the latest version with this path
 	sort.Ints(versions)
 	lastVersionInt := versions[len(versions)-1]
-	return v.GetVersionNumber(lastVersionInt)
+	for versionNumber := range v.GetVersionNumbers() {
+		if versionNumber.Int() == lastVersionInt {
+			return versionNumber
+		}
+	}
+	return nil
 }
 
-var _ interfaces.Versions = (*versionsBase)(nil)
+var _ types.Versions = (*versionsBase)(nil)

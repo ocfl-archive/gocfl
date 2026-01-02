@@ -18,8 +18,8 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
@@ -386,7 +386,7 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 	var result = map[string]any{}
 	inv := object.GetInventory()
 	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
-	slices.SortFunc(versions, func(a, b *interfaces.VersionNumber) int {
+	slices.SortFunc(versions, func(a, b *types.VersionNumber) int {
 		if a.Less(b) {
 			return -1
 		}

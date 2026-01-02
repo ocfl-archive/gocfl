@@ -1,4 +1,4 @@
-package interfaces
+package types
 
 type Operations interface {
 	DeleteFile(stateFilename string) (bool, error)

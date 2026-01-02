@@ -6,25 +6,25 @@ import (
 	"regexp"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 func NewUserBase() *userBase {
 	return &userBase{
-		Address: NewOCFLString(""),
-		Name:    NewOCFLString(""),
+		Address: types.NewOCFLString(""),
+		Name:    types.NewOCFLString(""),
 	}
 }
 
 type userBase struct {
-	Address *OCFLString
-	Name    *OCFLString
+	Address *types.OCFLString
+	Name    *types.OCFLString
 }
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
 
-func (u *userBase) Check(val validation.Validation, version *interfaces.VersionNumber) error {
+func (u *userBase) Check(val validation.Validation, version *types.VersionNumber) error {
 	if u.Address.Err() != nil {
 		val.AddValidationError(validation.E054, "invalid user address in Version %s: %s", version, u.Address.Err().Error())
 	}
@@ -49,22 +49,22 @@ func (u *userBase) Check(val validation.Validation, version *interfaces.VersionN
 	return nil
 }
 
-func (u *userBase) WithAddress(address string) interfaces.User {
-	u.Address = NewOCFLString(address)
+func (u *userBase) WithAddress(address string) types.User {
+	u.Address = types.NewOCFLString(address)
 	return u
 }
 
-func (u *userBase) WithName(name string) interfaces.User {
-	u.Name = NewOCFLString(name)
+func (u *userBase) WithName(name string) types.User {
+	u.Name = types.NewOCFLString(name)
 	return u
 }
 
 func (u *userBase) Finalize() {
 	if u.Name == nil {
-		u.Name = NewOCFLString("")
+		u.Name = types.NewOCFLString("")
 	}
 	if u.Address == nil {
-		u.Address = NewOCFLString("")
+		u.Address = types.NewOCFLString("")
 	}
 }
 
@@ -75,7 +75,7 @@ func (u *userBase) Err() error {
 	return errors.Combine(u.Name.Err(), u.Address.Err())
 }
 
-func (u *userBase) Equals(other interfaces.User) bool {
+func (u *userBase) Equals(other types.User) bool {
 	otherU, ok := other.(*userBase)
 	if !ok {
 		return false
@@ -95,4 +95,4 @@ func (u *userBase) String() string {
 	return fmt.Sprintf("%s [%s]", u.Name.String(), u.Address.String())
 }
 
-var _ interfaces.User = (*userBase)(nil)
+var _ types.User = (*userBase)(nil)

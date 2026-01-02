@@ -1,4 +1,4 @@
-package interfaces
+package types
 
 import (
 	"time"
@@ -12,16 +12,17 @@ type Version interface {
 	String() string
 	Equals(other Version) bool
 	Finalize(val validation.Validation, factory Factory, inCreation bool) error
-	GetState() State
-	GetUser() User
-	GetCreated() time.Time
-	GetMessage() string
 	WithCreated(t time.Time) Version
+	GetCreated() time.Time
 	WithMessage(msg string) Version
+	GetMessage() string
 	WithState(state State) Version
+	GetState() State
 	WithUser(user User) Version
+	GetUser() User
+	WithVersion(number *VersionNumber) Version
+	GetVersionNumber() *VersionNumber
 	Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error
 	Err() error
 	FileChecksum(path string) string
-	SetVersion(number *VersionNumber)
 }

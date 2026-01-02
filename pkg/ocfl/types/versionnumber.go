@@ -1,12 +1,16 @@
-package interfaces
+package types
 
 import (
 	"encoding/json"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
 )
+
+var VersionZeroRegexp = regexp.MustCompile("^v0[0-9]+$")
+var VersionNoZeroRegexp = regexp.MustCompile("^v[1-9][0-9]*$")
 
 func NewVersionNumber() *VersionNumber {
 	return &VersionNumber{}
@@ -15,6 +19,13 @@ func NewVersionNumber() *VersionNumber {
 type VersionNumber struct {
 	string
 	int
+}
+
+func (v *VersionNumber) GetPaddingLength() int {
+	if VersionZeroRegexp.MatchString(v.string) {
+		return len(v.string) - 2
+	}
+	return -1
 }
 
 func (v *VersionNumber) Equal(v2 *VersionNumber) bool {

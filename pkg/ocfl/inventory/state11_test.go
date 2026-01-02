@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 )
 
-func exampleState(cnt int, t *testing.T) interfaces.State {
+func exampleState(cnt int, t *testing.T) types.State {
 	var state = ocfl.f11.NewState()
 	for i := 0; i < cnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))

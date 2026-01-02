@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
@@ -60,7 +60,7 @@ func (manifest *ManifestBase) GetDuplicates(digest string) []string {
 	return nil
 }
 
-func (manifest *ManifestBase) Finalize(val validation.Validation, factory interfaces.Factory, creation bool) error {
+func (manifest *ManifestBase) Finalize(val validation.Validation, factory types.Factory, creation bool) error {
 	if manifest.manifest == nil {
 		manifest.manifest = map[string][]string{}
 	}
@@ -135,7 +135,7 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 	return nil
 }
 
-func (manifest *ManifestBase) CopyFrom(manifest2 interfaces.Manifest) interfaces.Manifest {
+func (manifest *ManifestBase) CopyFrom(manifest2 types.Manifest) types.Manifest {
 	manifest.err = manifest2.Err()
 
 	manifest.manifest = make(map[string][]string)
@@ -154,7 +154,7 @@ func (manifest *ManifestBase) Err() error {
 	return manifest.err
 }
 
-func (manifest *ManifestBase) Equals(manifest2 interfaces.Manifest) bool {
+func (manifest *ManifestBase) Equals(manifest2 types.Manifest) bool {
 	if manifest == nil || manifest2 == nil {
 		return false
 	}
@@ -203,7 +203,7 @@ func (manifest *ManifestBase) Iterate() func(yield func(digest string, internal 
 func (manifest *ManifestBase) GetFiles(digest string) ([]string, error) {
 	files, ok := manifest.manifest[digest]
 	if !ok {
-		return nil, errors.Wrapf(interfaces.DigestNotFound, "digest %manifest", digest)
+		return nil, errors.Wrapf(types.DigestNotFound, "digest %manifest", digest)
 	}
 	return files, nil
 }
@@ -221,4 +221,4 @@ func (manifest *ManifestBase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(manifest.manifest)
 }
 
-var _ interfaces.Manifest = (*ManifestBase)(nil)
+var _ types.Manifest = (*ManifestBase)(nil)

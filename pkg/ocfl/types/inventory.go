@@ -1,15 +1,7 @@
-package interfaces
+package types
 
 import (
-	"context"
-	"encoding/json"
-
-	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"golang.org/x/exp/slices"
 )
 
 type StateFileCallback func(internal []string, external []string, digest string) error
@@ -22,7 +14,7 @@ type Inventory interface {
 	GetContentDir() string
 	GetRealContentDir() string
 	GetHead() *VersionNumber
-	GetSpec() inventory.InventorySpec
+	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 
 	//	DeleteFile(stateFilename string) error
@@ -46,7 +38,7 @@ type Inventory interface {
 	IsModified() bool
 	BuildManifestName(stateFilename string) string
 	BuildManifestNameVersion(stateFilename string, version *VersionNumber) string
-	NewVersion(msg, UserName, UserAddress string) error
+	//NewVersion(msg, UserName, UserAddress string) error
 	//GetDuplicates(checksum string) []string
 	AlreadyExists(stateFilename, checksum string) (bool, error)
 	//	IsUpdate(virtualFilename, checksum string) (bool, error)

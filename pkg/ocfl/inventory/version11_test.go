@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 )
 
-func exampleVersion(stateFileCnt int, t *testing.T) interfaces.Version {
+func exampleVersion(stateFileCnt int, t *testing.T) types.Version {
 	var user = ocfl.f11.NewUser().WithName("Test User").WithAddress("test@example.com")
 	var state = ocfl.f11.NewState()
 	for i := 0; i < stateFileCnt; i++ {

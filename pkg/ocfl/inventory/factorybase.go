@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec InventorySpec, logger zLogger.ZLogger) interfaces.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec types.InventorySpec, logger zLogger.ZLogger) types.Factory {
 	return &FactoryBase{
 		logger:  logger,
 		version: version,
@@ -19,10 +19,10 @@ func NewFactoryBase(version version.OCFLVersion, spec InventorySpec, logger zLog
 type FactoryBase struct {
 	logger  zLogger.ZLogger
 	version version.OCFLVersion
-	spec    InventorySpec
+	spec    types.InventorySpec
 }
 
-func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, contentDir string) interfaces.Inventory {
+func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, contentDir string) types.Inventory {
 	if contentDir == "" {
 		contentDir = "content"
 	}
@@ -30,12 +30,12 @@ func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, con
 		ctx:     ctx,
 		factory: f,
 		//object:                 object,
-		version:       f.version,
-		folder:        objectFolder,
-		paddingLength: 0,
+		version: f.version,
+		folder:  objectFolder,
+		//paddingLength: 0,
 		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
 		Type:             f.spec,
-		Head:             interfaces.NewVersionNumber(),
+		Head:             types.NewVersionNumber(),
 		ContentDirectory: contentDir,
 		Manifest:         f.NewManifest(),
 		Versions:         f.NewVersions(),
@@ -45,27 +45,27 @@ func (f *FactoryBase) NewInventory(ctx context.Context, objectFolder string, con
 	return i
 }
 
-func (f *FactoryBase) NewFixity() interfaces.Fixity {
+func (f *FactoryBase) NewFixity() types.Fixity {
 	return NewFixityBase()
 }
 
-func (f *FactoryBase) NewUser() interfaces.User {
+func (f *FactoryBase) NewUser() types.User {
 	return NewUserBase()
 }
 
-func (f *FactoryBase) NewManifest() interfaces.Manifest {
+func (f *FactoryBase) NewManifest() types.Manifest {
 	return NewManifestBase()
 }
 
-func (f *FactoryBase) NewVersions() interfaces.Versions {
+func (f *FactoryBase) NewVersions() types.Versions {
 	return NewVersionsBase(f)
 }
-func (f *FactoryBase) NewVersion() interfaces.Version {
+func (f *FactoryBase) NewVersion() types.Version {
 	return NewVersionBase(f)
 }
 
-func (f *FactoryBase) NewState() interfaces.State {
+func (f *FactoryBase) NewState() types.State {
 	return NewStateBase()
 }
 
-var _ interfaces.Factory = (*FactoryBase)(nil)
+var _ types.Factory = (*FactoryBase)(nil)

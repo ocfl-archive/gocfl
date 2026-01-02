@@ -4,29 +4,34 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewVersionBase(factory interfaces.Factory) interfaces.Version {
+func NewVersionBase(factory types.Factory) types.Version {
 	return &versionBase{
-		Created: NewOCFLTime(time.Now()),
-		Message: NewOCFLString("initial"),
+		Created: types.NewOCFLTime(time.Now()),
+		Message: types.NewOCFLString("initial"),
 		State:   factory.NewState(),
 		User:    factory.NewUser(),
 	}
 }
 
 type versionBase struct {
-	version *interfaces.VersionNumber
-	Created *OCFLTime        `json:"created"`
-	Message *OCFLString      `json:"message"`
-	State   interfaces.State `json:"state"`
-	User    interfaces.User  `json:"user"`
+	version *types.VersionNumber
+	Created *types.OCFLTime   `json:"created"`
+	Message *types.OCFLString `json:"message"`
+	State   types.State       `json:"state"`
+	User    types.User        `json:"user"`
 }
 
-func (v *versionBase) SetVersion(number *interfaces.VersionNumber) {
+func (v *versionBase) GetVersionNumber() *types.VersionNumber {
+	return v.version
+}
+
+func (v *versionBase) WithVersion(number *types.VersionNumber) types.Version {
 	v.version = number
+	return nil
 }
 
 func (v *versionBase) AddFile(stateFilename string, digest string) (bool, error) {
@@ -100,17 +105,17 @@ func (v *versionBase) Err() error {
 	)
 }
 
-func (v *versionBase) WithCreated(t time.Time) interfaces.Version {
-	v.Created = NewOCFLTime(t)
+func (v *versionBase) WithCreated(t time.Time) types.Version {
+	v.Created = types.NewOCFLTime(t)
 	return v
 }
 
-func (v *versionBase) WithMessage(msg string) interfaces.Version {
-	v.Message = NewOCFLString(msg)
+func (v *versionBase) WithMessage(msg string) types.Version {
+	v.Message = types.NewOCFLString(msg)
 	return v
 }
 
-func (v *versionBase) WithState(state interfaces.State) interfaces.Version {
+func (v *versionBase) WithState(state types.State) types.Version {
 	stateB, ok := state.(*stateBase)
 	if !ok {
 		panic("invalid state type")
@@ -120,7 +125,7 @@ func (v *versionBase) WithState(state interfaces.State) interfaces.Version {
 	return v
 }
 
-func (v *versionBase) WithUser(user interfaces.User) interfaces.Version {
+func (v *versionBase) WithUser(user types.User) types.Version {
 	userB, ok := user.(*userBase)
 	if !ok {
 		panic("invalid user type")
@@ -134,7 +139,7 @@ func (v *versionBase) GetMessage() string {
 	return v.Message.String()
 }
 
-func (v *versionBase) GetUser() interfaces.User {
+func (v *versionBase) GetUser() types.User {
 	return v.User
 }
 
@@ -142,11 +147,11 @@ func (v *versionBase) GetCreated() time.Time {
 	return v.Created.Time
 }
 
-func (v *versionBase) GetState() interfaces.State {
+func (v *versionBase) GetState() types.State {
 	return v.State
 }
 
-func (v *versionBase) Finalize(val validation.Validation, factory interfaces.Factory, inCreation bool) error {
+func (v *versionBase) Finalize(val validation.Validation, factory types.Factory, inCreation bool) error {
 	if v.User == nil {
 		_ = val.AddValidationWarning(validation.W007, "no user key in version '%s'", v.version)
 		v.User = NewUserBase()
@@ -154,7 +159,7 @@ func (v *versionBase) Finalize(val validation.Validation, factory interfaces.Fac
 	v.User.Finalize()
 	if v.Message == nil {
 		_ = val.AddValidationWarning(validation.W007, "no message key in version '%s'", v.version)
-		v.Message = NewOCFLString("")
+		v.Message = types.NewOCFLString("")
 	}
 	if v.State == nil {
 		v.State = NewStateBase()
@@ -162,7 +167,7 @@ func (v *versionBase) Finalize(val validation.Validation, factory interfaces.Fac
 	return nil
 }
 
-func (v *versionBase) Equals(other interfaces.Version) bool {
+func (v *versionBase) Equals(other types.Version) bool {
 	if v == nil || other == nil {
 		return false
 	}
@@ -188,7 +193,7 @@ func (v *versionBase) EqualMeta(v2 *versionBase) bool {
 		return false
 	}
 	if v.Created.Time.String() != v2.Created.Time.String() ||
-		v.Message.string != v2.Message.string ||
+		!v.Message.Equals(v2.Message) ||
 		!v.User.Equals(v2.User) {
 		return false
 	}
@@ -204,4 +209,4 @@ func (v *versionBase) EqualState(v2 *versionBase) bool {
 	return true
 }
 
-var _ interfaces.Version = (*versionBase)(nil)
+var _ types.Version = (*versionBase)(nil)

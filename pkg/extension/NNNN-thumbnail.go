@@ -20,8 +20,8 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
@@ -184,7 +184,7 @@ func (thumb *Thumbnail) WriteConfig() error {
 	return nil
 }
 
-func (thumb *Thumbnail) storeThumbnail(object object.Object, head *interfaces.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
+func (thumb *Thumbnail) storeThumbnail(object object.Object, head *types.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
 	var targetName string
 	subfolder := thumb.StorageName
 	if thumb.StorageType == "area" {
@@ -235,7 +235,7 @@ func (thumb *Thumbnail) storeThumbnail(object object.Object, head *interfaces.Ve
 	}
 }
 
-func (thumb *Thumbnail) DoThumbnail(object object.Object, head *interfaces.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
+func (thumb *Thumbnail) DoThumbnail(object object.Object, head *types.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")

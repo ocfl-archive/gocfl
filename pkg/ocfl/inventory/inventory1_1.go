@@ -5,7 +5,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
 	"net/url"
@@ -20,7 +20,7 @@ type InventoryV1_1 struct {
 }
 
 func newInventoryV1_1(ctx context.Context, ver version.OCFLVersion, folder string, logger zLogger.ZLogger) (*InventoryV1_1, error) {
-	ivUrl, _ := url.Parse(string(InventorySpec1_1))
+	ivUrl, _ := url.Parse(string(types.InventorySpec1_1))
 	factory := NewFactory11(logger)
 	ib, err := newInventoryBase(ctx, factory, ver, folder, ivUrl, "", logger)
 	if err != nil {
@@ -31,7 +31,7 @@ func newInventoryV1_1(ctx context.Context, ver version.OCFLVersion, folder strin
 	return i, nil
 }
 
-func (i *InventoryV1_1) IsEqual(i2 interfaces.Inventory) bool {
+func (i *InventoryV1_1) IsEqual(i2 types.Inventory) bool {
 	i11_2, ok := i2.(*InventoryV1_1)
 	if !ok {
 		return false
@@ -40,5 +40,5 @@ func (i *InventoryV1_1) IsEqual(i2 interfaces.Inventory) bool {
 }
 
 var (
-	_ interfaces.Inventory = &InventoryV1_1{}
+	_ types.Inventory = &InventoryV1_1{}
 )

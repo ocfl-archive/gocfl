@@ -9,9 +9,9 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/interfaces"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -27,10 +27,10 @@ type NamesStruct struct {
 }
 
 type Object interface {
-	LoadInventory(folder string) (interfaces.Inventory, error)
-	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (interfaces.Inventory, error)
+	LoadInventory(folder string) (types.Inventory, error)
+	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (types.Inventory, error)
 	StoreInventory(version bool, objectRoot bool) error
-	GetInventory() interfaces.Inventory
+	GetInventory() types.Inventory
 	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManager) error
@@ -52,7 +52,7 @@ type Object interface {
 	GetFS() fs.FS
 	IsModified() bool
 	Stat(w io.Writer, statInfo []stat.StatInfo) error
-	Extract(fsys fs.FS, version *interfaces.VersionNumber, withManifest bool, area string) error
+	Extract(fsys fs.FS, version *types.VersionNumber, withManifest bool, area string) error
 	GetMetadata() (*Metadata, error)
 	GetAreaPath(area string) (string, error)
 	GetExtensionManager() ExtensionManager
@@ -196,9 +196,9 @@ func CheckObject(ctx context.Context, fsys fs.FS, extensionFactory *extension.Ex
 	return nil
 }
 
-func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *interfaces.VersionNumber, withManifest bool, area string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
+func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *types.VersionNumber, withManifest bool, area string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
 	if !version.IsValid() {
-		version = interfaces.NewVersionNumber().WithLatest()
+		version = types.NewVersionNumber().WithLatest()
 	}
 
 	logger.Debug().Msgf("Extracting object '%s' with version '%s'", path, version)
