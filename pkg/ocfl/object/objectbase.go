@@ -239,7 +239,7 @@ func (object *ObjectBase) GetFS() fs.FS {
 }
 
 func (object *ObjectBase) CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (types.Inventory, error) {
-	inventory := object.inventoryFactory.NewInventory(object.ctx, "")
+	inventory := object.inventoryFactory.NewInventory(object.ctx)
 	/*
 		inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
 		if err != nil {
@@ -281,7 +281,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (types.Inven
 		// if we don't know anything use the old stuff
 		ver = version.Version1_0
 	}
-	inventory := object.inventoryFactory.NewInventory(object.ctx, "")
+	inventory := object.inventoryFactory.NewInventory(object.ctx)
 	/*
 		inventory, err := inventory.NewInventory(object.ctx, folder, ver, object.logger)
 		if err != nil {
@@ -334,7 +334,7 @@ func (object *ObjectBase) LoadInventory(folder string) (types.Inventory, error) 
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		inventory := object.inventoryFactory.NewInventory(object.ctx, "")
+		inventory := object.inventoryFactory.NewInventory(object.ctx)
 		return inventory, nil
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)

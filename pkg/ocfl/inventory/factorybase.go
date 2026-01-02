@@ -22,21 +22,18 @@ type FactoryBase struct {
 	spec    types.InventorySpec
 }
 
-func (f *FactoryBase) NewInventory(ctx context.Context, contentDir string) types.Inventory {
-	if contentDir == "" {
-		contentDir = "content"
-	}
+func (f *FactoryBase) NewInventory(ctx context.Context) types.Inventory {
 	i := &InventoryBase{
 		ctx:     ctx,
 		factory: f,
 		//object:                 object,
 		version: f.version,
-		folder:  objectFolder,
+		//folder:  objectFolder,
 		//paddingLength: 0,
 		//fixityDigestAlgorithms: []checksum.DigestAlgorithm{},
 		Type:             f.spec,
 		Head:             types.NewVersionNumber(),
-		ContentDirectory: contentDir,
+		contentDirectory: "content",
 		Manifest:         f.NewManifest(),
 		Versions:         f.NewVersions(),
 		Fixity:           f.NewFixity(),

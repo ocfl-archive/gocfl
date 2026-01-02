@@ -1,16 +1,13 @@
 package inventory
 
 import (
-	"context"
 	"encoding/json"
 	"slices"
 
-	"emperror.dev/errors"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
+/*
 func _NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, logger zLogger.ZLogger) (types.Inventory, error) {
 	switch ver {
 	case version.Version1_1:
@@ -29,6 +26,8 @@ func _NewInventory(ctx context.Context, folder string, ver version.OCFLVersion, 
 		//		return nil, errors.Finalize(fmt.Sprintf("Inventory Version %s not supported", version))
 	}
 }
+
+*/
 
 func InventoryIsEqual(i1, i2 types.Inventory) bool {
 	data1, err := json.Marshal(i1)

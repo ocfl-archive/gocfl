@@ -11,5 +11,5 @@ type Factory interface {
 	NewUser() User
 	NewManifest() Manifest
 	NewFixity() Fixity
-	NewInventory(ctx context.Context, contentDir string) Inventory
+	NewInventory(ctx context.Context) Inventory
 }

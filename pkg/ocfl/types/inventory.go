@@ -11,6 +11,7 @@ type Inventory interface {
 	IsEqual(i2 Inventory) bool
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	GetID() string
+	WithContentDir(contentDir string) Inventory
 	GetContentDir() string
 	GetRealContentDir() string
 	GetHead() *VersionNumber
