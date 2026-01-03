@@ -15,7 +15,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"golang.org/x/exp/constraints"
@@ -48,7 +47,7 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectCleanFS(fsys fs.FS) (extension.Extension, error) {
+func NewDirectCleanFS(fsys fs.FS) (types.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -74,7 +73,7 @@ func NewDirectCleanFS(fsys fs.FS) (extension.Extension, error) {
 	return NewDirectClean(config)
 }
 
-func NewDirectClean(config *DirectCleanConfig) (extension.Extension, error) {
+func NewDirectClean(config *DirectCleanConfig) (types.Extension, error) {
 	if config.MaxPathnameLen == 0 {
 		config.MaxPathnameLen = 32000
 	}
@@ -106,7 +105,7 @@ func encodeUTFCode(s string) string {
 }
 
 type DirectCleanConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	MaxPathnameLen              int                      `json:"maxPathnameLen"`
 	MaxPathSegmentLen           int                      `json:"maxPathSegmentLen"`
 	ReplacementString           string                   `json:"replacementString"`
@@ -292,7 +291,7 @@ func (sl *DirectClean) build(fname string) (string, error) {
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &DirectClean{}
+	_ types.Extension                      = &DirectClean{}
 	_ storageroot.ExtensionStorageRootPath = &DirectClean{}
 	_ types.ExtensionObjectContentPath     = &DirectClean{}
 )

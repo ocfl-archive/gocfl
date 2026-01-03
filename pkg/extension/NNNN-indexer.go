@@ -111,7 +111,7 @@ func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmai
 }
 
 type IndexerConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	StorageType string
 	StorageName string
 	Actions     []string
@@ -373,7 +373,7 @@ func (sl *Indexer) StreamObject(object types.Object, reader io.Reader, stateFile
 }
 
 var (
-	_ extension.Extension = &Indexer{}
+	_ types.Extension = &Indexer{}
 	//	_ ocfl.ExtensionContentChange = &Indexer{}
 	_ types.ExtensionObjectChange = &Indexer{}
 	_ types.ExtensionMetadata     = &Indexer{}

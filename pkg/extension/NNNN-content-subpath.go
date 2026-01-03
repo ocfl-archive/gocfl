@@ -64,7 +64,7 @@ type ContentSubPathEntry struct {
 }
 
 type ContentSubPathConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	Paths map[string]ContentSubPathEntry `json:"subPath"`
 }
 type ContentSubPath struct {
@@ -209,7 +209,7 @@ func (sl *ContentSubPath) GetAreaPath(_ types.Object, area string) (string, erro
 
 // check interface satisfaction
 var (
-	_ extension.Extension              = &ContentSubPath{}
+	_ types.Extension                  = &ContentSubPath{}
 	_ types.ExtensionObjectContentPath = &ContentSubPath{}
 	_ types.ExtensionObjectChange      = &ContentSubPath{}
 	_ types.ExtensionObjectStatePath   = &ContentSubPath{}

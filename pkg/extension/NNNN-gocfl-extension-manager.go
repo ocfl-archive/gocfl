@@ -12,7 +12,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"golang.org/x/exp/slices"
@@ -22,8 +21,8 @@ const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
 func NewGOCFLExtensionManagerFS(fsys fs.FS) (*GOCFLExtensionManager, error) {
-	var config = &extension.ExtensionManagerConfig{
-		ExtensionConfig: &extension.ExtensionConfig{
+	var config = &types.ExtensionManagerConfig{
+		ExtensionConfig: &types.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
 		},
 		Sort:      map[string][]string{},
@@ -47,10 +46,10 @@ func NewGOCFLExtensionManagerFS(fsys fs.FS) (*GOCFLExtensionManager, error) {
 	return NewGOCFLExtensionManager(config)
 }
 
-func NewGOCFLExtensionManager(config *extension.ExtensionManagerConfig) (*GOCFLExtensionManager, error) {
+func NewGOCFLExtensionManager(config *types.ExtensionManagerConfig) (*GOCFLExtensionManager, error) {
 	m := &GOCFLExtensionManager{
 		ExtensionManagerConfig: config,
-		extensions:             []extension.Extension{},
+		extensions:             []types.Extension{},
 		storageRootPath:        []storageroot.ExtensionStorageRootPath{},
 		objectContentPath:      []types.ExtensionObjectContentPath{},
 		objectChange:           []types.ExtensionObjectChange{},
@@ -62,8 +61,8 @@ func NewGOCFLExtensionManager(config *extension.ExtensionManagerConfig) (*GOCFLE
 }
 
 type GOCFLExtensionManager struct {
-	*extension.ExtensionManagerConfig
-	extensions         []extension.Extension
+	*types.ExtensionManagerConfig
+	extensions         []types.Extension
 	storageRootPath    []storageroot.ExtensionStorageRootPath
 	objectContentPath  []types.ExtensionObjectContentPath
 	objectExternalPath []types.ExtensionObjectStatePath
@@ -76,7 +75,7 @@ type GOCFLExtensionManager struct {
 	stream             []types.ExtensionStream
 	newVersion         []types.ExtensionNewVersion
 	fsys               fs.FS
-	initial            extension.ExtensionInitial
+	initial            types.ExtensionInitial
 }
 
 func (manager *GOCFLExtensionManager) Terminate() error {
@@ -89,11 +88,11 @@ func (manager *GOCFLExtensionManager) Terminate() error {
 	return errors.Combine(errs...)
 }
 
-func (manager *GOCFLExtensionManager) SetInitial(initial extension.ExtensionInitial) {
+func (manager *GOCFLExtensionManager) SetInitial(initial types.ExtensionInitial) {
 	manager.initial = initial
 }
 
-func (manager *GOCFLExtensionManager) GetExtensions() []extension.Extension {
+func (manager *GOCFLExtensionManager) GetExtensions() []types.Extension {
 	return manager.extensions
 }
 
@@ -114,7 +113,7 @@ func (manager *GOCFLExtensionManager) GetConfigName(extName string) (any, error)
 	return nil, errors.Errorf("extension '%s' not active", extName)
 }
 
-func (manager *GOCFLExtensionManager) Add(ext extension.Extension) error {
+func (manager *GOCFLExtensionManager) Add(ext types.Extension) error {
 	// set extensionmanager config...
 	if ext.GetName() == GOCFLExtensionManagerName {
 		return errors.Errorf("cannot add extension '%s' to itself", GOCFLExtensionManagerName)
@@ -197,7 +196,7 @@ func (manager *GOCFLExtensionManager) GetFSName(extName string) (fs.FS, error) {
 	return nil, errors.Errorf("extension '%s' not active", extName)
 }
 
-func sortExtensions[E extension.Extension](list []E, sortName []string) {
+func sortExtensions[E types.Extension](list []E, sortName []string) {
 	sortFunc := func(aExt, bExt E) int {
 		aName := aExt.GetName()
 		bName := bExt.GetName()
@@ -215,7 +214,7 @@ func sortExtensions[E extension.Extension](list []E, sortName []string) {
 	slices.SortFunc(list, sortFunc)
 }
 
-func excludeExtensions[E extension.Extension](list []E, exclusionSort []string) []E {
+func excludeExtensions[E types.Extension](list []E, exclusionSort []string) []E {
 	sortFunc := func(aExt, bExt E) int {
 		aName := aExt.GetName()
 		bName := bExt.GetName()
@@ -254,7 +253,7 @@ func excludeExtensions[E extension.Extension](list []E, exclusionSort []string) 
 	return list
 }
 
-func organize[E extension.Extension](manager *GOCFLExtensionManager, list []E, name string) []E {
+func organize[E types.Extension](manager *GOCFLExtensionManager, list []E, name string) []E {
 	if len(list) == 0 {
 		return list
 	}
@@ -622,5 +621,5 @@ func (manager *GOCFLExtensionManager) StreamObject(obj types.Object, reader io.R
 
 // check interface satisfaction
 var (
-	_ extension.ExtensionManager = (*GOCFLExtensionManager)(nil)
+	_ types.ExtensionManagerCore = (*GOCFLExtensionManager)(nil)
 )

@@ -16,7 +16,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/docs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
@@ -85,7 +85,7 @@ func (osr *StorageRootBase) AddValidationWarning(errno validation.ValidationErro
 	return errors.WithStack(validation.AddValidationWarnings(osr.ctx, valError))
 }
 
-func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, extensionManager extension.ExtensionManager) error {
+func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, extensionManager types.ExtensionManagerCore) error {
 	var err error
 	osr.logger.Debug()
 
@@ -204,11 +204,11 @@ func (osr *StorageRootBase) GetVersion() version.OCFLVersion { return osr.versio
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
-func (osr *StorageRootBase) CreateExtension(fsys fs.FS) (extension.Extension, error) {
+func (osr *StorageRootBase) CreateExtension(fsys fs.FS) (types.Extension, error) {
 	return osr.extensionFactory.Create(fsys)
 }
 
-func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation validation.Validation) (extension.ExtensionManager, error) {
+func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation validation.Validation) (types.ExtensionManagerCore, error) {
 	exts, err := osr.extensionFactory.CreateExtensions(fsys, validation)
 	return exts, errors.WithStack(err)
 }
@@ -337,28 +337,30 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 	return folder, errors.WithStack(err)
 }
 
-func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager extension.ExtensionManager) (types.Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extension.ExtensionFactory, objectExtensionManager types.ExtensionManager) (types.Object, error) {
+	objectFactory := factory.NewFactory(ver, objectExtensionFactory, objectExtensionManager, osr.logger)
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fsys, folder)
 	}
 
-	object, err := object.NewObject(osr.ctx, subfs, ver, extensionFactory, manager, osr.logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot instantiate object")
+	obj := objectFactory.NewObject(osr.ctx).WithFS(subfs)
+	//object, err := object.NewObject(osr.ctx, subfs, ver, objectExtensionFactory, objectExtenstionManager, osr.logger)
+	if obj == nil {
+		return nil, errors.New("cannot instantiate object")
 	}
 
 	// create initial filesystem structure for new object
-	if err = object.Init(id, digest, fixity, manager); err != nil {
+	if err = obj.Init(id, digest, fixity, objectExtensionManager); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
 	}
 
-	if id != "" && object.GetID() != id {
-		return nil, fmt.Errorf("id mismatch. '%s' != '%s'", id, object.GetID())
+	if id != "" && obj.GetID() != id {
+		return nil, fmt.Errorf("id mismatch. '%s' != '%s'", id, obj.GetID())
 	}
 
-	return object, nil
+	return obj, nil
 }
 
 //

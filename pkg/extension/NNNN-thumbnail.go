@@ -19,7 +19,6 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -72,7 +71,7 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.Z
 }
 
 type ThumbnailConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	Compress        string `json:"compress"`
 	ShortFilename   bool   `json:"shortFilename"`
 	Ext             string `json:"ext"`
@@ -531,7 +530,7 @@ func (thumb *Thumbnail) GetMetadata(object types.Object) (map[string]any, error)
 }
 
 var (
-	_ extension.Extension         = &Thumbnail{}
+	_ types.Extension             = &Thumbnail{}
 	_ types.ExtensionObjectChange = &Thumbnail{}
 	_ types.ExtensionMetadata     = &Thumbnail{}
 )

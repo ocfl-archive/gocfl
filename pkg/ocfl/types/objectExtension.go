@@ -6,7 +6,6 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 const (
@@ -26,34 +25,34 @@ const (
 )
 
 type ExtensionObjectContentPath interface {
-	extension.Extension
+	Extension
 	BuildObjectManifestPath(object Object, originalPath string, area string) (string, error)
 }
 
 var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
 
 type ExtensionObjectExtractPath interface {
-	extension.Extension
+	Extension
 	BuildObjectExtractPath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionObjectStatePath interface {
-	extension.Extension
+	Extension
 	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionArea interface {
-	extension.Extension
+	Extension
 	GetAreaPath(object Object, area string) (string, error)
 }
 
 type ExtensionStream interface {
-	extension.Extension
+	Extension
 	StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error
 }
 
 type ExtensionContentChange interface {
-	extension.Extension
+	Extension
 	AddFileBefore(object Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error
 	UpdateFileBefore(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error
 	DeleteFileBefore(object Object, dest string, area string) error
@@ -63,28 +62,28 @@ type ExtensionContentChange interface {
 }
 
 type ExtensionObjectChange interface {
-	extension.Extension
+	Extension
 	UpdateObjectBefore(object Object) error
 	UpdateObjectAfter(object Object) error
 }
 
 type ExtensionFixityDigest interface {
-	extension.Extension
+	Extension
 	GetFixityDigests() []checksum.DigestAlgorithm
 }
 
 type ExtensionMetadata interface {
-	extension.Extension
+	Extension
 	GetMetadata(object Object) (map[string]any, error)
 }
 
 type ExtensionVersionDone interface {
-	extension.Extension
+	Extension
 	VersionDone(object Object) error
 }
 
 type ExtensionNewVersion interface {
-	extension.Extension
+	Extension
 	NeedNewVersion(object Object) (bool, error)
 	DoNewVersion(object Object) error
 }

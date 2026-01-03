@@ -16,7 +16,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventory2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"golang.org/x/exp/slices"
 )
@@ -70,7 +69,7 @@ type FileSystemLine struct {
 }
 
 type FilesystemConfig struct {
-	*extension.ExtensionConfig
+	*inventory2.ExtensionConfig
 	Folders     string `json:"folders"`
 	StorageType string `json:"storageType"`
 	StorageName string `json:"storageName"`
@@ -363,7 +362,7 @@ func (extFS *Filesystem) GetName() string {
 }
 
 var (
-	_ extension.Extension               = &Filesystem{}
+	_ inventory2.Extension              = &Filesystem{}
 	_ inventory2.ExtensionObjectChange  = &Filesystem{}
 	_ inventory2.ExtensionContentChange = &Filesystem{}
 	_ inventory2.ExtensionMetadata      = &Filesystem{}

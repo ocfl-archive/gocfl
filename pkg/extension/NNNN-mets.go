@@ -81,7 +81,7 @@ func NewMetsFS(fsys fs.FS, logger zLogger.ZLogger) (*Mets, error) {
 	}
 
 	var config = &MetsConfig{
-		ExtensionConfig:            &extension.ExtensionConfig{ExtensionName: METSName},
+		ExtensionConfig:            &types.ExtensionConfig{ExtensionName: METSName},
 		StorageType:                "area",
 		StorageName:                "metadata",
 		PrimaryDescriptiveMetadata: "metadata:info.json",
@@ -106,7 +106,7 @@ func NewMets(config *MetsConfig, logger zLogger.ZLogger) (*Mets, error) {
 }
 
 type MetsConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	StorageType                string `json:"storageType"`
 	StorageName                string `json:"storageName"`
 	PrimaryDescriptiveMetadata string `json:"primaryDescriptiveMetadata,omitempty"`

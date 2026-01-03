@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 )
 
 func TestHashAndIdNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html#encapsulation-directory
 	// Example 1
 	l, err := NewStorageLayoutHashAndIdNTuple(&StorageLayoutHashAndIdNTupleConfig{
-		ExtensionConfig: &extension.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
+		ExtensionConfig: &types.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestSHA256),
 		TupleSize:       3,
 		NumberOfTuples:  3,
@@ -48,7 +48,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html#encapsulation-directory
 	// Example 2
 	l, err = NewStorageLayoutHashAndIdNTuple(&StorageLayoutHashAndIdNTupleConfig{
-		ExtensionConfig: &extension.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
+		ExtensionConfig: &types.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestMD5),
 		TupleSize:       2,
 		NumberOfTuples:  15,
@@ -83,7 +83,7 @@ func TestHashAndIdNTuple(t *testing.T) {
 	// https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html#encapsulation-directory
 	// Example 3
 	l, err = NewStorageLayoutHashAndIdNTuple(&StorageLayoutHashAndIdNTupleConfig{
-		ExtensionConfig: &extension.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
+		ExtensionConfig: &types.ExtensionConfig{ExtensionName: "0003-hash-and-id-n-tuple-storage-layout"},
 		DigestAlgorithm: string(checksum.DigestSHA256),
 		TupleSize:       0,
 		NumberOfTuples:  0,

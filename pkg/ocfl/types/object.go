@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
@@ -19,12 +18,12 @@ type NamesStruct struct {
 type Object interface {
 	WithFS(fsys fs.FS) Object
 	LoadInventory(folder string) (Inventory, error)
-	CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
+	//CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() Inventory
 	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreExtensions() error
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManager) error
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager ExtensionManagerCore) error
 	Load() error
 	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
 	EndUpdate() error

@@ -1,4 +1,4 @@
-package extension
+package types
 
 import (
 	"io/fs"
@@ -13,7 +13,7 @@ type ExtensionInitial interface {
 	SetExtension(ext string)
 }
 
-type ExtensionManager interface {
+type ExtensionManagerCore interface {
 	Extension
 	GetConfig() any
 	GetExtensions() []Extension

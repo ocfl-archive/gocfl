@@ -14,11 +14,12 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
-func NewFixityBase(logger zLogger.ZLogger) *FixityBase {
+func NewFixityBase(allowed []checksum.DigestAlgorithm, logger zLogger.ZLogger) *FixityBase {
 	f := &FixityBase{
-		fixity: map[checksum.DigestAlgorithm]map[string][]string{},
-		err:    nil,
-		logger: logger,
+		fixity:  map[checksum.DigestAlgorithm]map[string][]string{},
+		err:     nil,
+		logger:  logger,
+		allowed: allowed,
 	}
 	return f
 }
@@ -28,6 +29,7 @@ type FixityBase struct {
 	err                    error
 	fixityDigestAlgorithms []checksum.DigestAlgorithm
 	logger                 zLogger.ZLogger
+	allowed                []checksum.DigestAlgorithm
 }
 
 func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {
@@ -52,6 +54,10 @@ func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {
 
 func (f *FixityBase) WithAlgorithms(algorithms ...checksum.DigestAlgorithm) types.Fixity {
 	for _, alg := range algorithms {
+		if !slices.Contains(f.allowed, alg) {
+			f.logger.Warn().Msgf("Fixity based algorithm %s is not allowed", alg)
+			continue
+		}
 		if _, ok := f.fixity[alg]; !ok {
 			f.fixity[alg] = map[string][]string{}
 		}

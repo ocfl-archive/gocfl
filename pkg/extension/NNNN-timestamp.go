@@ -56,7 +56,7 @@ func NewTimestamp(config *TimestampConfig, logger zLogger.ZLogger) (*Timestamp, 
 }
 
 type TimestampConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	Authority map[string]string `json:"Authority"` // https://freetsa.org/tsr
 	CertChain bool              `json:"CertChain"`
 }
@@ -216,6 +216,6 @@ func (sl *Timestamp) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension        = &Timestamp{}
+	_ types.Extension            = &Timestamp{}
 	_ types.ExtensionVersionDone = &Timestamp{}
 )

@@ -34,7 +34,7 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 // newObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory types.Factory, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, factory types.Factory, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager types.ExtensionManagerCore, logger zLogger.ZLogger) *ObjectBase {
 	ocfl := &ObjectBase{
 		ctx:              ctx,
 		factory:          factory,
@@ -479,7 +479,7 @@ func (object *ObjectBase) StoreExtensions() error {
 	return nil
 }
 
-func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager extension.ExtensionManager) error {
+func (object *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager types.ExtensionManagerCore) error {
 	object.logger.Debug().Msgf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(object.version)
@@ -1451,7 +1451,7 @@ func (object *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]
 	return result, nil
 }
 
-var objectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
+var ObjectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
 
 // helper functions
 

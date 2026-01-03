@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 )
 
 func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 	l := DirectClean{
 		DirectCleanConfig: &DirectCleanConfig{
-			ExtensionConfig:             &extension.ExtensionConfig{ExtensionName: DirectCleanName},
+			ExtensionConfig:             &types.ExtensionConfig{ExtensionName: DirectCleanName},
 			MaxPathnameLen:              32000,
 			MaxPathSegmentLen:           127,
 			WhitespaceReplacementString: " ",
@@ -120,7 +120,7 @@ func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {
 func TestFlatCleanDirectoryWithUTFEncode(t *testing.T) {
 	l := DirectClean{
 		DirectCleanConfig: &DirectCleanConfig{
-			ExtensionConfig:             &extension.ExtensionConfig{ExtensionName: DirectCleanName},
+			ExtensionConfig:             &types.ExtensionConfig{ExtensionName: DirectCleanName},
 			MaxPathnameLen:              32000,
 			MaxPathSegmentLen:           127,
 			WhitespaceReplacementString: " ",

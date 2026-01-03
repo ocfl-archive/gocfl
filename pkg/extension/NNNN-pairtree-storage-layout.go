@@ -7,7 +7,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
@@ -79,7 +78,7 @@ func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS, create bool) {
 }
 
 type StorageLayoutPairTreeConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	UriBase         string `json:"uriBase"`
 	StoreDir        string `json:"storeDir"`
 	ShortyLength    int    `json:"shortyLength"`
@@ -195,6 +194,6 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &StorageLayoutPairTree{}
+	_ types.Extension                      = &StorageLayoutPairTree{}
 	_ storageroot.ExtensionStorageRootPath = &StorageLayoutPairTree{}
 )

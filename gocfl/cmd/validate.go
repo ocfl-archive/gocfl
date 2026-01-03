@@ -9,7 +9,7 @@ import (
 
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -149,7 +149,7 @@ func validate(cmd *cobra.Command, args []string) {
 			logger.Error().Err(err).Msgf("cannot open filesystem for '%s'", objectPath)
 			return
 		}
-		obj, err := object.LoadObject(ctx, objFsys, extensionFactory, logger)
+		obj, err := functions.LoadObject(ctx, objFsys, extensionFactory, logger)
 		if err != nil {
 			logger.Error().Err(err).Msgf("cannot open object for '%s'", objectPath)
 			return

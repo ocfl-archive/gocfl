@@ -1,4 +1,4 @@
-package object
+package functions
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
@@ -26,7 +28,7 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (ver version.OCFLVersion, 
 		if file.IsDir() {
 			continue
 		}
-		matches := objectVersionRegexp.FindStringSubmatch(file.Name())
+		matches := object.ObjectVersionRegexp.FindStringSubmatch(file.Name())
 		if matches != nil {
 			if ver != "" {
 				return "", ocflerrors.ErrVersionMultiple
@@ -50,7 +52,7 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (ver version.OCFLVersion, 
 	return ver, nil
 }
 
-func NewObject(ctx context.Context, factory types.Factory, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extension.ExtensionManager, logger zLogger.ZLogger) (types.Object, error) {
+func NewObject(ctx context.Context, factory types.Factory, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager types.ExtensionManagerCore, logger zLogger.ZLogger) (types.Object, error) {
 	var err error
 	if ver == "" {
 		ver, err = GetObjectVersion(ctx, fsys)
@@ -62,7 +64,7 @@ func NewObject(ctx context.Context, factory types.Factory, fsys fs.FS, ver versi
 	return o, nil
 }
 
-func CreateObject(ctx context.Context, factory types.Factory, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager extension.ExtensionManager, fsys fs.FS, logger zLogger.ZLogger) (types.Object, error) {
+func CreateObject(ctx context.Context, factory types.Factory, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager types.ExtensionManagerCore, fsys fs.FS, logger zLogger.ZLogger) (types.Object, error) {
 	object, err := NewObject(ctx, factory, fsys, ver, extensionFactory, manager, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate object")
@@ -80,7 +82,7 @@ func CreateObject(ctx context.Context, factory types.Factory, id string, ver ver
 	return object, nil
 }
 
-func LoadObject(ctx context.Context, factory types.Factory, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (types.Object, error) {
+func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (types.Object, error) {
 	ver, err := util.GetVersion(ctx, fsys, "", "ocfl_object_")
 	if errors.Is(err, ocflerrors.ErrVersionNone) {
 		if err := validation.AddValidationError(ctx, version.Version1_0, validation.E003, "no version in fsys '%v'", fsys); err != nil {
@@ -103,7 +105,8 @@ func LoadObject(ctx context.Context, factory types.Factory, fsys fs.FS, extensio
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extension manager")
 	}
-	object, err := NewObject(ctx, factory, fsys, ver, extensionFactory, extensionManager, logger)
+	f := factory.NewFactory(ver, extensionFactory, extensionManager, logger)
+	object, err := NewObject(ctx, f, fsys, ver, extensionFactory, extensionManager, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot instantiate object")
 	}
@@ -121,7 +124,7 @@ func CheckObject(ctx context.Context, factory types.Factory, fsys fs.FS, extensi
 	if err != nil {
 		return errors.Wrapf(err, "cannot create validator for '%v'", fsys)
 	}
-	object, err := LoadObject(ctx, factory, fsys, extensionFactory, logger)
+	object, err := LoadObject(ctx, fsys, extensionFactory, logger)
 	if err != nil {
 		if err := validator.AddValidationError(validation.E001, "invalid fsys '%v': %v", fsys, err); err != nil {
 			return errors.Wrapf(err, "cannot add validation error %s", validation.E001)
@@ -147,7 +150,7 @@ func Extract(ctx context.Context, factory types.Factory, destFS, fsys fs.FS, pat
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs  '%v' / %s", fsys, path)
 	}
-	o, err = LoadObject(ctx, factory, objFsys, extensionFactory, logger)
+	o, err = LoadObject(ctx, objFsys, extensionFactory, logger)
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
@@ -162,7 +165,7 @@ func Extract(ctx context.Context, factory types.Factory, destFS, fsys fs.FS, pat
 func ExtractMeta(ctx context.Context, factory types.Factory, fsys fs.FS, path string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (*types.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
-	o, err := LoadObject(ctx, factory, objFsys, extensionFactory, logger)
+	o, err := LoadObject(ctx, objFsys, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}

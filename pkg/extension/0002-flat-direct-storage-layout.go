@@ -6,7 +6,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
@@ -44,7 +43,7 @@ func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*Storage
 }
 
 type StorageLayoutFlatDirectConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 }
 type StorageLayoutFlatDirect struct {
 	*StorageLayoutFlatDirectConfig
@@ -123,6 +122,6 @@ func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot types.Storag
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &StorageLayoutFlatDirect{}
+	_ types.Extension                      = &StorageLayoutFlatDirect{}
 	_ storageroot.ExtensionStorageRootPath = &StorageLayoutFlatDirect{}
 )

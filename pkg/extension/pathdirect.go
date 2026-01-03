@@ -6,7 +6,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 
@@ -16,7 +15,7 @@ import (
 
 const PathDirectName = "NNNN-direct-path-layout"
 
-func NewPathDirectFS(fsys fs.FS) (extension.Extension, error) {
+func NewPathDirectFS(fsys fs.FS) (types.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -122,7 +121,7 @@ func (sl *PathDirect) BuildObjectManifestPath(object types.Object, originalPath 
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &PathDirect{}
+	_ types.Extension                      = &PathDirect{}
 	_ storageroot.ExtensionStorageRootPath = &PathDirect{}
 	_ types.ExtensionObjectContentPath     = &PathDirect{}
 )

@@ -101,7 +101,7 @@ func NewMetaFile(config *MetaFileConfig, schema []byte) (*MetaFile, error) {
 }
 
 type MetaFileConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	StorageType   string `json:"storageType"`
 	StorageName   string `json:"storageName"`
 	MetaName      string `json:"name,omitempty"`
@@ -418,7 +418,7 @@ func (sl *MetaFile) GetMetadata(object types.Object) (map[string]any, error) {
 
 // check interface satisfaction
 var (
-	_ extension.Extension         = &MetaFile{}
+	_ types.Extension             = &MetaFile{}
 	_ types.ExtensionObjectChange = &MetaFile{}
 	_ types.ExtensionMetadata     = &MetaFile{}
 )

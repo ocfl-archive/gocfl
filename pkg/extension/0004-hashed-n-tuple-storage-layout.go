@@ -11,7 +11,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 )
@@ -60,7 +59,7 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 }
 
 type StorageLayoutHashedNTupleConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
@@ -160,6 +159,6 @@ func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &StorageLayoutHashedNTuple{}
+	_ types.Extension                      = &StorageLayoutHashedNTuple{}
 	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashedNTuple{}
 )

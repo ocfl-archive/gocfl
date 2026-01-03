@@ -1,9 +1,7 @@
 package types
 
-import "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-
 type ExtensionManager interface {
-	extension.ExtensionManager
+	ExtensionManagerCore
 	ExtensionObjectContentPath
 	ExtensionObjectStatePath
 	ExtensionContentChange

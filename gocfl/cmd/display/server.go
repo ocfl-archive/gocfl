@@ -28,7 +28,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
@@ -203,7 +203,7 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -275,7 +275,7 @@ func (s *Server) download(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -343,7 +343,7 @@ func (s *Server) detail(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -545,7 +545,7 @@ func (s *Server) manifest(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -644,7 +644,7 @@ func (s *Server) version(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -765,7 +765,7 @@ func (s *Server) loadObjectID(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -799,7 +799,7 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 	}
-	s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+	s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -919,7 +919,7 @@ func (s *Server) loadObjectBrowser(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -983,7 +983,7 @@ func (s *Server) report(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = object.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -1080,7 +1080,7 @@ func (s *Server) report(c *gin.Context) {
 	cfg, err := extManager.GetConfigName(extension.MetaFileName)
 	if err != nil {
 		cfg = &extension.MetaFileConfig{
-			ExtensionConfig: &extension2.ExtensionConfig{ExtensionName: extension.MetaFileName},
+			ExtensionConfig: &types.ExtensionConfig{ExtensionName: extension.MetaFileName},
 			StorageType:     "area",
 			StorageName:     "metadata",
 			MetaName:        "info.json",

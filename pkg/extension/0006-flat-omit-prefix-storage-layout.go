@@ -6,7 +6,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
@@ -45,7 +44,7 @@ func NewFlatOmitPrefixStorageLayout(config *FlatOmitPrefixStorageLayoutConfig) (
 }
 
 type FlatOmitPrefixStorageLayoutConfig struct {
-	*extension.ExtensionConfig
+	*types.ExtensionConfig
 	Delimiter string `json:"delimiter"`
 }
 type FlatOmitPrefixStorageLayout struct {
@@ -129,6 +128,6 @@ func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot types.St
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &FlatOmitPrefixStorageLayout{}
+	_ types.Extension                      = &FlatOmitPrefixStorageLayout{}
 	_ storageroot.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
 )

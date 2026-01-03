@@ -12,7 +12,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
@@ -176,7 +176,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := object.Extract(context.Background(), destFS, sr.GetFS(), oPath, types.NewVersionNumber().WithString(conf.Extract.Version), conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
+	if err := functions.Extract(context.Background(), destFS, sr.GetFS(), oPath, types.NewVersionNumber().WithString(conf.Extract.Version), conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		logger.Error().Err(err).Msg("cannot extract storage root")
 		return
