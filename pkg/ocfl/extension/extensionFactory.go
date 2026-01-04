@@ -7,17 +7,18 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	validation2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/version"
 )
 
-type creatorFunc func(fsys fs.FS) (types.Extension, error)
+type creatorFunc func(fsys fs.FS) (extensiontypes.Extension, error)
 
 type ExtensionFactory struct {
 	creators           map[string]creatorFunc
-	defaultStorageRoot []types.Extension
-	defaultObject      []types.Extension
+	defaultStorageRoot []extensiontypes.Extension
+	defaultObject      []extensiontypes.Extension
 	extensionParams    map[string]string
 	logger             zLogger.ZLogger
 }
@@ -35,15 +36,15 @@ func (f *ExtensionFactory) AddCreator(name string, creator creatorFunc) {
 	f.creators[name] = creator
 }
 
-func (f *ExtensionFactory) AddStorageRootDefaultExtension(ext types.Extension) {
+func (f *ExtensionFactory) AddStorageRootDefaultExtension(ext extensiontypes.Extension) {
 	f.defaultStorageRoot = append(f.defaultStorageRoot, ext)
 }
 
-func (f *ExtensionFactory) AddObjectDefaultExtension(ext types.Extension) {
+func (f *ExtensionFactory) AddObjectDefaultExtension(ext extensiontypes.Extension) {
 	f.defaultObject = append(f.defaultObject, ext)
 }
 
-func (f *ExtensionFactory) Create(fsys fs.FS) (types.Extension, error) {
+func (f *ExtensionFactory) Create(fsys fs.FS) (extensiontypes.Extension, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
@@ -51,7 +52,7 @@ func (f *ExtensionFactory) Create(fsys fs.FS) (types.Extension, error) {
 	return f.create(fsys, data)
 }
 
-func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (types.Extension, error) {
+func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (extensiontypes.Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -78,13 +79,13 @@ func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (types.Extension, err
 	return ext, nil
 }
 
-func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.Validation) (types.ExtensionManager, error) {
+func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.Validation) (object.ExtensionManager, error) {
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folder storageroot")
 	}
-	var result = []types.Extension{}
+	var result = []extensiontypes.Extension{}
 	for _, file := range files {
 		if !file.IsDir() {
 			continue
@@ -116,17 +117,17 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 			}
 			// we have the initial folder, but the extension is not initial. let's create the initial extension
 			if fName == "initial" && ext.GetName() != "initial" {
-				initialCreator, ok := f.creators[types.DefaultExtensionInitialName]
+				initialCreator, ok := f.creators[extensiontypes.DefaultExtensionInitialName]
 				if !ok {
-					return nil, errors.Errorf("no initial extension creator (%s) found", types.DefaultExtensionInitialName)
+					return nil, errors.Errorf("no initial extension creator (%s) found", extensiontypes.DefaultExtensionInitialName)
 				}
 				initialExt, err := initialCreator(nil)
 				if err != nil {
-					return nil, errors.Wrapf(err, "cannot create initial extension %s", types.DefaultExtensionInitialName)
+					return nil, errors.Wrapf(err, "cannot create initial extension %s", extensiontypes.DefaultExtensionInitialName)
 				}
-				initial, ok := initialExt.(types.ExtensionInitial)
+				initial, ok := initialExt.(extensiontypes.ExtensionInitial)
 				if !ok {
-					return nil, errors.Errorf("'%s' extension is not an initial extension", types.DefaultExtensionInitialName)
+					return nil, errors.Errorf("'%s' extension is not an initial extension", extensiontypes.DefaultExtensionInitialName)
 				}
 				initial.SetExtension(ext.GetName())
 				result = append(result, initial)
@@ -135,13 +136,13 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 		}
 	}
 	// find the initial extension and remove it from extension list
-	var initial types.ExtensionInitial
-	var manager types.ExtensionManager
-	var result2 = []types.Extension{}
+	var initial extensiontypes.ExtensionInitial
+	var manager object.ExtensionManager
+	var result2 = []extensiontypes.Extension{}
 	for _, ext := range result {
 		if ext.GetName() == "initial" {
 			var ok bool
-			initial, ok = ext.(types.ExtensionInitial)
+			initial, ok = ext.(extensiontypes.ExtensionInitial)
 			if !ok {
 				errs = append(errs, errors.Errorf("extension %s is not an initial extension", ext.GetName()))
 			}
@@ -152,13 +153,13 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 	result = result2
 
 	if initial != nil {
-		result2 = []types.Extension{}
+		result2 = []extensiontypes.Extension{}
 		extManagerName := initial.GetExtension()
 		for _, ext := range result {
 			// extension is the manager extension
 			if ext.GetName() == extManagerName {
 				var ok bool
-				manager, ok = ext.(types.ExtensionManager)
+				manager, ok = ext.(object.ExtensionManager)
 				if !ok {
 					errs = append(errs, errors.Errorf("extension %s is not a manager extension", ext.GetName()))
 					result2 = append(result2, ext)
@@ -177,30 +178,30 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 	if manager == nil {
 		// create initial extension if necessary
 		if initial == nil {
-			initialCreator, ok := f.creators[types.DefaultExtensionInitialName]
+			initialCreator, ok := f.creators[extensiontypes.DefaultExtensionInitialName]
 			if !ok {
-				return nil, errors.Errorf("no initial extension creator (%s) found", types.DefaultExtensionInitialName)
+				return nil, errors.Errorf("no initial extension creator (%s) found", extensiontypes.DefaultExtensionInitialName)
 			}
 			initialExt, err := initialCreator(nil)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create initial extension %s", types.DefaultExtensionInitialName)
+				return nil, errors.Wrapf(err, "cannot create initial extension %s", extensiontypes.DefaultExtensionInitialName)
 			}
-			initial, ok = initialExt.(types.ExtensionInitial)
+			initial, ok = initialExt.(extensiontypes.ExtensionInitial)
 			if !ok {
-				return nil, errors.Errorf("'%s' extension is not an initial extension", types.DefaultExtensionInitialName)
+				return nil, errors.Errorf("'%s' extension is not an initial extension", extensiontypes.DefaultExtensionInitialName)
 			}
-			initial.SetExtension(types.DefaultExtensionManagerName)
+			initial.SetExtension(extensiontypes.DefaultExtensionManagerName)
 		}
 		// create default extension manager
-		creator, ok := f.creators[types.DefaultExtensionManagerName]
+		creator, ok := f.creators[extensiontypes.DefaultExtensionManagerName]
 		if !ok {
-			return nil, errors.Errorf("no default extension manager (%s) found", types.DefaultExtensionManagerName)
+			return nil, errors.Errorf("no default extension manager (%s) found", extensiontypes.DefaultExtensionManagerName)
 		}
 		ext, err := creator(nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create default extension manager")
 		}
-		manager, ok = ext.(types.ExtensionManager)
+		manager, ok = ext.(object.ExtensionManager)
 		if !ok {
 			return nil, errors.Errorf("default extension manager is not a manager extension")
 		}
@@ -217,7 +218,7 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 	return manager, errors.Combine(errs...)
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, validation validation2.Validation) (types.ExtensionManagerCore, error) {
+func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, validation validation2.Validation) (extensiontypes.ExtensionManagerCore, error) {
 	manager, err := f.CreateExtensions(fsys, validation)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")

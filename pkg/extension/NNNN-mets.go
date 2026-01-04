@@ -22,7 +22,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -81,7 +83,7 @@ func NewMetsFS(fsys fs.FS, logger zLogger.ZLogger) (*Mets, error) {
 	}
 
 	var config = &MetsConfig{
-		ExtensionConfig:            &types.ExtensionConfig{ExtensionName: METSName},
+		ExtensionConfig:            &extensiontypes.ExtensionConfig{ExtensionName: METSName},
 		StorageType:                "area",
 		StorageName:                "metadata",
 		PrimaryDescriptiveMetadata: "metadata:info.json",
@@ -106,7 +108,7 @@ func NewMets(config *MetsConfig, logger zLogger.ZLogger) (*Mets, error) {
 }
 
 type MetsConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	StorageType                string `json:"storageType"`
 	StorageName                string `json:"storageName"`
 	PrimaryDescriptiveMetadata string `json:"primaryDescriptiveMetadata,omitempty"`
@@ -171,7 +173,7 @@ func (me *Mets) WriteConfig() error {
 	return nil
 }
 
-func (me *Mets) UpdateObjectBefore(object types.Object) error {
+func (me *Mets) UpdateObjectBefore(object object.Object) error {
 	return nil
 }
 
@@ -223,7 +225,7 @@ type metaFileBase struct {
 
 */
 
-func (me *Mets) UpdateObjectAfter(obj types.Object) error {
+func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 	inventory := obj.GetInventory()
 	metadata, err := obj.GetMetadata()
 	if err != nil {
@@ -262,7 +264,7 @@ func (me *Mets) UpdateObjectAfter(obj types.Object) error {
 			}
 		}
 	}
-	var metsNames, premisNames *types.NamesStruct
+	var metsNames, premisNames *object.NamesStruct
 	var internalRelativePath, externalRelativePath, internalRelativePathCurrentVersion string
 	switch strings.ToLower(me.StorageType) {
 	case "area":
@@ -291,13 +293,13 @@ func (me *Mets) UpdateObjectAfter(obj types.Object) error {
 		}
 	case "extension":
 		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetVersion()))), "/")
-		metsNames = &types.NamesStruct{
+		metsNames = &object.NamesStruct{
 			ExternalPaths: []string{me.MetsFile},
 			InternalPath:  metsName,
 			ManifestPath:  "",
 		}
 		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetVersion()))), "/")
-		premisNames = &types.NamesStruct{
+		premisNames = &object.NamesStruct{
 			ExternalPaths: []string{me.PremisFile},
 			InternalPath:  premisName,
 			ManifestPath:  "",
@@ -882,7 +884,7 @@ func (me *Mets) UpdateObjectAfter(obj types.Object) error {
 		default:
 			return errors.Errorf("invalid descriptive metadata '%s'", me.PrimaryDescriptiveMetadata)
 		}
-		var found *types.FileMetadata
+		var found *inventorytypes.FileMetadata
 		var foundChecksum string
 		for checksum, metaFile := range metadata.Files {
 			if ver, ok := metaFile.VersionName[head.String()]; ok {
@@ -1397,5 +1399,5 @@ func newMDSec(id, groupid, href, loctype, otherloctype, mimetype, created string
 
 // check interface satisfaction
 var (
-	_ types.ExtensionObjectChange = &Mets{}
+	_ object.ExtensionObjectChange = &Mets{}
 )

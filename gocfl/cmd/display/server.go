@@ -28,8 +28,10 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
 
@@ -45,16 +47,16 @@ type Server struct {
 	urlExt           *url.URL
 	accessLog        io.Writer
 	dataFS           fs.FS
-	storageRoot      types.StorageRoot
-	object           types.Object
-	metadata         *types.Metadata
+	storageRoot      inventory.StorageRoot
+	object           objecttypes.Object
+	metadata         *inventory.Metadata
 	templateFS       fs.FS
 	obfuscate        bool
 	objectFS         http.FileSystem
 	extensionFactory *extension2.ExtensionFactory
 }
 
-func NewServer(storageRoot types.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot inventory.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
@@ -1001,7 +1003,7 @@ func (s *Server) report(c *gin.Context) {
 	}
 
 	extManager := s.object.GetExtensionManager()
-	inventory := s.object.GetInventory()
+	inv := s.object.GetInventory()
 
 	type mimeCount struct {
 		SizeStr string
@@ -1080,7 +1082,7 @@ func (s *Server) report(c *gin.Context) {
 	cfg, err := extManager.GetConfigName(extension.MetaFileName)
 	if err != nil {
 		cfg = &extension.MetaFileConfig{
-			ExtensionConfig: &types.ExtensionConfig{ExtensionName: extension.MetaFileName},
+			ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: extension.MetaFileName},
 			StorageType:     "area",
 			StorageName:     "metadata",
 			MetaName:        "info.json",
@@ -1213,7 +1215,7 @@ func (s *Server) report(c *gin.Context) {
 	}
 	flattenTree(tree)
 
-	var files = map[string]*types.FileMetadata{}
+	var files = map[string]*inventory.FileMetadata{}
 	if full {
 		files = s.metadata.Files
 	}
@@ -1227,7 +1229,7 @@ func (s *Server) report(c *gin.Context) {
 	var params = map[string]any{
 		"objectpath":     objectpath,
 		"gocfl":          "gocfl",
-		"head":           inventory.GetHead(),
+		"head":           inv.GetHead(),
 		"id":             s.object.GetID(),
 		"versions":       s.metadata.Versions,
 		"differentFiles": len(s.metadata.Files),

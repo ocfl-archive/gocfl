@@ -7,7 +7,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
 	"io/fs"
@@ -29,7 +29,7 @@ func NewStorageRootV2_0(ctx context.Context, fsys fs.FS, extensionFactory *exten
 	return sr, nil
 }
 
-func (osr *StorageRootV2_0) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager types.ExtensionManagerCore) error {
+func (osr *StorageRootV2_0) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extensiontypes.ExtensionManagerCore) error {
 	/*
 		specFile := "ocfl_1.1.md"
 		spec, err := writefs.Create(osr.fsys, specFile)

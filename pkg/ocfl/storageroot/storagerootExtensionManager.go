@@ -1,10 +1,10 @@
 package storageroot
 
 import (
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 )
 
 type ExtensionManager interface {
-	types.ExtensionManagerCore
+	extensiontypes.ExtensionManagerCore
 	ExtensionStorageRootPath
 }

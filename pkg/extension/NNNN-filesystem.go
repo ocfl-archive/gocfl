@@ -16,7 +16,9 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	inventory2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
 
@@ -69,7 +71,7 @@ type FileSystemLine struct {
 }
 
 type FilesystemConfig struct {
-	*inventory2.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	Folders     string `json:"folders"`
 	StorageType string `json:"storageType"`
 	StorageName string `json:"storageName"`
@@ -97,19 +99,19 @@ func (extFS *Filesystem) GetConfig() any {
 	return extFS.FilesystemConfig
 }
 
-func (extFS *Filesystem) AddFileBefore(object inventory2.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (extFS *Filesystem) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileBefore(object inventory2.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (extFS *Filesystem) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) DeleteFileBefore(object inventory2.Object, dest string, area string) error {
+func (extFS *Filesystem) DeleteFileBefore(object object.Object, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) AddFileAfter(object inventory2.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
 	if isDir && extFS.Folders == "" {
 		return nil
 	}
@@ -128,7 +130,7 @@ func (extFS *Filesystem) AddFileAfter(object inventory2.Object, sourceFS fs.FS, 
 		manifest := inventory.GetManifest()
 		emptyFiles, err := manifest.GetFiles(emptyChecksum)
 		if err != nil {
-			if !errors.Is(err, inventory2.DigestNotFound) {
+			if !errors.Is(err, inventorytypes.DigestNotFound) {
 				return errors.Wrap(err, "cannot get files empty manifest")
 			}
 		}
@@ -205,26 +207,26 @@ func (extFS *Filesystem) AddFileAfter(object inventory2.Object, sourceFS fs.FS, 
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileAfter(object inventory2.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (extFS *Filesystem) UpdateFileAfter(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return errors.WithStack(
 		extFS.AddFileAfter(object, sourceFS, []string{source}, "", "", area, isDir),
 	)
 
 }
 
-func (extFS *Filesystem) DeleteFileAfter(object inventory2.Object, dest string, area string) error {
+func (extFS *Filesystem) DeleteFileAfter(object object.Object, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) NeedNewVersion(object inventory2.Object) (bool, error) {
+func (extFS *Filesystem) NeedNewVersion(object object.Object) (bool, error) {
 	return false, nil
 }
 
-func (extFS *Filesystem) DoNewVersion(object inventory2.Object) error {
+func (extFS *Filesystem) DoNewVersion(object object.Object) error {
 	return nil
 }
 
-func (extFS *Filesystem) GetMetadata(object inventory2.Object) (map[string]any, error) {
+func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]map[string][]*FileSystemLine{}
 
@@ -291,11 +293,11 @@ func (extFS *Filesystem) GetMetadata(object inventory2.Object) (map[string]any, 
 	return retResult, nil
 }
 
-func (extFS *Filesystem) UpdateObjectBefore(object inventory2.Object) error {
+func (extFS *Filesystem) UpdateObjectBefore(object object.Object) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateObjectAfter(object inventory2.Object) error {
+func (extFS *Filesystem) UpdateObjectAfter(object object.Object) error {
 	if extFS.writer == nil {
 		return nil
 	}
@@ -362,9 +364,9 @@ func (extFS *Filesystem) GetName() string {
 }
 
 var (
-	_ inventory2.Extension              = &Filesystem{}
-	_ inventory2.ExtensionObjectChange  = &Filesystem{}
-	_ inventory2.ExtensionContentChange = &Filesystem{}
-	_ inventory2.ExtensionMetadata      = &Filesystem{}
-	_ inventory2.ExtensionNewVersion    = &Filesystem{}
+	_ extensiontypes.Extension      = &Filesystem{}
+	_ object.ExtensionObjectChange  = &Filesystem{}
+	_ object.ExtensionContentChange = &Filesystem{}
+	_ object.ExtensionMetadata      = &Filesystem{}
+	_ object.ExtensionNewVersion    = &Filesystem{}
 )

@@ -5,7 +5,7 @@ import (
 
 	"testing"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 )
 
 func TestFlatOmitPrefixStorageLayout(t *testing.T) {
@@ -13,7 +13,7 @@ func TestFlatOmitPrefixStorageLayout(t *testing.T) {
 	// Example 1
 	l := FlatOmitPrefixStorageLayout{
 		FlatOmitPrefixStorageLayoutConfig: &FlatOmitPrefixStorageLayoutConfig{
-			ExtensionConfig: &types.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
+			ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
 			Delimiter:       ":",
 		},
 	}
@@ -44,7 +44,7 @@ func TestFlatOmitPrefixStorageLayout(t *testing.T) {
 	// Example 1
 	l = FlatOmitPrefixStorageLayout{
 		FlatOmitPrefixStorageLayoutConfig: &FlatOmitPrefixStorageLayoutConfig{
-			ExtensionConfig: &types.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
+			ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: "0006-flat-omit-prefix-storage-layout"},
 			Delimiter:       "edu/",
 		},
 	}

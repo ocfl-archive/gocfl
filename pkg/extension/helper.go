@@ -11,10 +11,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
-func ReadFile(object types.Object, name string, version *types.VersionNumber, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadFile(object objecttypes.Object, name string, version *inventorytypes.VersionNumber, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	var targetname string
 	switch storageType {
 	case "area":
@@ -42,7 +43,7 @@ func ReadFile(object types.Object, name string, version *types.VersionNumber, st
 	return fs.ReadFile(fsys, targetname)
 }
 
-func ReadJsonL(object types.Object, name string, version *types.VersionNumber, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadJsonL(object objecttypes.Object, name string, version *inventorytypes.VersionNumber, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
 	if fsys == nil {
 		return nil, errors.Errorf("[%s/%s] %s: fsys is nil", object.GetID(), version, name)
 	}
@@ -113,7 +114,7 @@ func ReadJsonL(object types.Object, name string, version *types.VersionNumber, c
 	return data, nil
 }
 
-func WriteJsonL(object types.Object, name string, brotliData []byte, compress, storageType, storageName string, fsys fs.FS) error {
+func WriteJsonL(object objecttypes.Object, name string, brotliData []byte, compress, storageType, storageName string, fsys fs.FS) error {
 	var bufReader = bytes.NewBuffer(brotliData)
 	var ext string
 	var reader io.Reader

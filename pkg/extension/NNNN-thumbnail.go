@@ -19,7 +19,9 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
@@ -71,7 +73,7 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.Z
 }
 
 type ThumbnailConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	Compress        string `json:"compress"`
 	ShortFilename   bool   `json:"shortFilename"`
 	Ext             string `json:"ext"`
@@ -182,7 +184,7 @@ func (thumb *Thumbnail) WriteConfig() error {
 	return nil
 }
 
-func (thumb *Thumbnail) storeThumbnail(object types.Object, head *types.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
+func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventorytypes.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
 	var targetName string
 	subfolder := thumb.StorageName
 	if thumb.StorageType == "area" {
@@ -233,7 +235,7 @@ func (thumb *Thumbnail) storeThumbnail(object types.Object, head *types.VersionN
 	}
 }
 
-func (thumb *Thumbnail) DoThumbnail(object types.Object, head *types.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
+func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventorytypes.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")
@@ -285,11 +287,11 @@ func (thumb *Thumbnail) DoThumbnail(object types.Object, head *types.VersionNumb
 	return targetFile, digest, errors.Wrap(err, "cannot store thumbnail")
 }
 
-func (thumb *Thumbnail) UpdateObjectBefore(types.Object) error {
+func (thumb *Thumbnail) UpdateObjectBefore(object.Object) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateObjectAfter(object types.Object) error {
+func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	thumb.buffer[head.String()] = &bytes.Buffer{}
@@ -420,7 +422,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object types.Object) error {
 	return nil
 }
 
-func (thumb *Thumbnail) GetMetadata(object types.Object) (map[string]any, error) {
+func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -530,7 +532,7 @@ func (thumb *Thumbnail) GetMetadata(object types.Object) (map[string]any, error)
 }
 
 var (
-	_ types.Extension             = &Thumbnail{}
-	_ types.ExtensionObjectChange = &Thumbnail{}
-	_ types.ExtensionMetadata     = &Thumbnail{}
+	_ extensiontypes.Extension     = &Thumbnail{}
+	_ object.ExtensionObjectChange = &Thumbnail{}
+	_ object.ExtensionMetadata     = &Thumbnail{}
 )

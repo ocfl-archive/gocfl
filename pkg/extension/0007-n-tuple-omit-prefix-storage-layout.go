@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"emperror.dev/errors"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
-
 	"io"
 	"io/fs"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 )
 
 const NTupleOmitPrefixStorageLayoutName = "0007-n-tuple-omit-prefix-storage-layout"
@@ -59,7 +60,7 @@ func NewNTupleOmitPrefixStorageLayout(config *NTupleOmitPrefixStorageLayoutConfi
 }
 
 type NTupleOmitPrefixStorageLayoutConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	Delimiter         string `json:"delimiter"`
 	TupleSize         int    `json:"tupleSize"`
 	NumberOfTuples    int    `json:"numberOfTuples"`
@@ -138,7 +139,7 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
+func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
 	/*
 	  1) Remove the prefix, which is everything to the left of the right-most instance of the delimiter, as well as the delimiter. If there is no delimiter, the whole id is used; if the delimiter is found at the end, an error is thrown.
 	*/
@@ -195,6 +196,6 @@ func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot types.
 
 // check interface satisfaction
 var (
-	_ types.Extension                      = &NTupleOmitPrefixStorageLayout{}
+	_ extensiontypes.Extension             = &NTupleOmitPrefixStorageLayout{}
 	_ storageroot.ExtensionStorageRootPath = &NTupleOmitPrefixStorageLayout{}
 )

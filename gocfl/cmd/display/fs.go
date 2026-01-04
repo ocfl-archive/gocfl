@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	inventory2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
 
@@ -25,7 +26,7 @@ const (
 	DataDir     = "data"
 )
 
-func NewObjectFS(obj types.Object) (*ObjectFS, error) {
+func NewObjectFS(obj objecttypes.Object) (*ObjectFS, error) {
 	/*
 		metadata, err := obj.GetMetadata()
 		if err != nil {
@@ -41,10 +42,10 @@ func NewObjectFS(obj types.Object) (*ObjectFS, error) {
 }
 
 type ObjectFS struct {
-	object types.Object
+	object objecttypes.Object
 	//	metadata  *ocfl.ObjectMetadata
-	inventory types.Inventory
-	manifest  types.Manifest
+	inventory inventory2.Inventory
+	manifest  inventory2.Manifest
 }
 
 func (o *ObjectFS) readDir(name string, num int) (files []fs.DirEntry, err error) {
@@ -87,7 +88,7 @@ func (o *ObjectFS) openState(name string) (fs.File, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = types.NewVersionNumber().WithString(parts[0])
+	var versionNumber = inventory2.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionStr = o.inventory.GetHead()
@@ -122,7 +123,7 @@ func (o *ObjectFS) statState(name string) (fs.FileInfo, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = types.NewVersionNumber().WithString(parts[0])
+	var versionNumber = inventory2.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionStr = o.inventory.GetHead()
@@ -169,7 +170,7 @@ func (o *ObjectFS) readDirState(name string, num int) (files []fs.DirEntry, err 
 	if len(parts) == 0 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = types.NewVersionNumber().WithString(parts[0])
+	var versionNumber = inventory2.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionNumber = o.inventory.GetHead()

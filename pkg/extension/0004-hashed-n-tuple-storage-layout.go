@@ -11,8 +11,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
@@ -59,7 +60,7 @@ func NewStorageLayoutHashedNTuple(config *StorageLayoutHashedNTupleConfig) (*Sto
 }
 
 type StorageLayoutHashedNTupleConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
@@ -115,7 +116,7 @@ func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
 		return "", errors.Wrapf(err, "cannot hash %s", id)
@@ -159,6 +160,6 @@ func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ types.Extension                      = &StorageLayoutHashedNTuple{}
+	_ extensiontypes.Extension             = &StorageLayoutHashedNTuple{}
 	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashedNTuple{}
 )

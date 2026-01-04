@@ -10,7 +10,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 )
 
 const InitialName = "initial"
@@ -29,10 +29,10 @@ func GetInitialParams() []*extension.ExtensionExternalParam {
 
 func NewInitialFS(fsys fs.FS) (*Initial, error) {
 	var config = &InitialConfig{
-		ExtensionConfig: &types.ExtensionConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: InitialName,
 		},
-		Extension: types.DefaultExtensionManagerName,
+		Extension: extensiontypes.DefaultExtensionManagerName,
 	}
 	if fsys != nil {
 		fp, err := fsys.Open("config.json")
@@ -67,7 +67,7 @@ type InitialEntry struct {
 }
 
 type InitialConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	Extension string `json:"extension"`
 }
 type Initial struct {
@@ -133,6 +133,6 @@ func (sl *Initial) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ types.Extension        = &Initial{}
-	_ types.ExtensionInitial = &Initial{}
+	_ extensiontypes.Extension        = &Initial{}
+	_ extensiontypes.ExtensionInitial = &Initial{}
 )

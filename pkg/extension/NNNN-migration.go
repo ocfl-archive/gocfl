@@ -15,7 +15,9 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -60,7 +62,7 @@ func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration
 }
 
 type MigrationConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	StorageType string
 	StorageName string
 	Compress    string
@@ -94,7 +96,7 @@ type MigrationFiles map[string]*MigrationTarget
 type Migration struct {
 	*MigrationConfig
 	fsys      fs.FS
-	lastHead  *types.VersionNumber
+	lastHead  *inventorytypes.VersionNumber
 	migration *migration.Migration
 	//buffer *bytes.Buffer
 	buffer         map[string]*bytes.Buffer
@@ -139,7 +141,7 @@ func (mi *Migration) WriteConfig() error {
 	return nil
 }
 
-func (mi *Migration) UpdateObjectBefore(types.Object) error {
+func (mi *Migration) UpdateObjectBefore(object.Object) error {
 	return nil
 }
 
@@ -152,7 +154,7 @@ func (mi *Migration) alreadyMigrated(cs string) bool {
 	return false
 }
 
-func (mi *Migration) UpdateObjectAfter(object types.Object) error {
+func (mi *Migration) UpdateObjectAfter(object object.Object) error {
 	inventory := object.GetInventory()
 	if inventory == nil {
 		return errors.Errorf("inventory is nil")
@@ -203,12 +205,12 @@ func (mi *Migration) UpdateObjectAfter(object types.Object) error {
 	return nil
 }
 
-func (mi *Migration) NeedNewVersion(types.Object) (bool, error) {
+func (mi *Migration) NeedNewVersion(object.Object) (bool, error) {
 	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
 // DoNewVersion todo: check for second migration step and do different naming
-func (mi *Migration) DoNewVersion(object types.Object) error {
+func (mi *Migration) DoNewVersion(object object.Object) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
@@ -410,7 +412,7 @@ func (mi *Migration) DoNewVersion(object types.Object) error {
 	return nil
 }
 
-func (mi *Migration) GetMetadata(object types.Object) (map[string]any, error) {
+func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
@@ -480,8 +482,8 @@ func (mi *Migration) GetMetadata(object types.Object) (map[string]any, error) {
 }
 
 var (
-	_ types.Extension             = &Migration{}
-	_ types.ExtensionObjectChange = &Migration{}
-	_ types.ExtensionMetadata     = &Migration{}
-	_ types.ExtensionNewVersion   = &Migration{}
+	_ extensiontypes.Extension     = &Migration{}
+	_ object.ExtensionObjectChange = &Migration{}
+	_ object.ExtensionMetadata     = &Migration{}
+	_ object.ExtensionNewVersion   = &Migration{}
 )

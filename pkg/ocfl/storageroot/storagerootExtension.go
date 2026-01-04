@@ -3,11 +3,12 @@ package storageroot
 import (
 	"io/fs"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 )
 
 type ExtensionStorageRootPath interface {
-	types.Extension
+	extensiontypes.Extension
 	WriteLayout(fsys fs.FS) error
-	BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error)
+	BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error)
 }

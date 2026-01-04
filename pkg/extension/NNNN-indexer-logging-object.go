@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 )
 
 const LoggingIndexerName = "NNNN-indexer-logging-object"
@@ -90,5 +90,5 @@ func (li *LoggingIndexer) WriteLog(logfile io.Writer) error {
 }
 
 var (
-	_ types.Extension = &LoggingIndexer{}
+	_ extensiontypes.Extension = &LoggingIndexer{}
 )

@@ -12,8 +12,10 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"golang.org/x/exp/slices"
 )
 
@@ -21,8 +23,8 @@ const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
 func NewGOCFLExtensionManagerFS(fsys fs.FS) (*GOCFLExtensionManager, error) {
-	var config = &types.ExtensionManagerConfig{
-		ExtensionConfig: &types.ExtensionConfig{
+	var config = &extensiontypes.ExtensionManagerConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
 		},
 		Sort:      map[string][]string{},
@@ -46,36 +48,36 @@ func NewGOCFLExtensionManagerFS(fsys fs.FS) (*GOCFLExtensionManager, error) {
 	return NewGOCFLExtensionManager(config)
 }
 
-func NewGOCFLExtensionManager(config *types.ExtensionManagerConfig) (*GOCFLExtensionManager, error) {
+func NewGOCFLExtensionManager(config *extensiontypes.ExtensionManagerConfig) (*GOCFLExtensionManager, error) {
 	m := &GOCFLExtensionManager{
 		ExtensionManagerConfig: config,
-		extensions:             []types.Extension{},
+		extensions:             []extensiontypes.Extension{},
 		storageRootPath:        []storageroot.ExtensionStorageRootPath{},
-		objectContentPath:      []types.ExtensionObjectContentPath{},
-		objectChange:           []types.ExtensionObjectChange{},
-		fixityDigest:           []types.ExtensionFixityDigest{},
-		metadata:               []types.ExtensionMetadata{},
-		area:                   []types.ExtensionArea{},
+		objectContentPath:      []object.ExtensionObjectContentPath{},
+		objectChange:           []object.ExtensionObjectChange{},
+		fixityDigest:           []object.ExtensionFixityDigest{},
+		metadata:               []object.ExtensionMetadata{},
+		area:                   []object.ExtensionArea{},
 	}
 	return m, nil
 }
 
 type GOCFLExtensionManager struct {
-	*types.ExtensionManagerConfig
-	extensions         []types.Extension
+	*extensiontypes.ExtensionManagerConfig
+	extensions         []extensiontypes.Extension
 	storageRootPath    []storageroot.ExtensionStorageRootPath
-	objectContentPath  []types.ExtensionObjectContentPath
-	objectExternalPath []types.ExtensionObjectStatePath
-	contentChange      []types.ExtensionContentChange
-	objectChange       []types.ExtensionObjectChange
-	fixityDigest       []types.ExtensionFixityDigest
-	objectExtractPath  []types.ExtensionObjectExtractPath
-	metadata           []types.ExtensionMetadata
-	area               []types.ExtensionArea
-	stream             []types.ExtensionStream
-	newVersion         []types.ExtensionNewVersion
+	objectContentPath  []object.ExtensionObjectContentPath
+	objectExternalPath []object.ExtensionObjectStatePath
+	contentChange      []object.ExtensionContentChange
+	objectChange       []object.ExtensionObjectChange
+	fixityDigest       []object.ExtensionFixityDigest
+	objectExtractPath  []object.ExtensionObjectExtractPath
+	metadata           []object.ExtensionMetadata
+	area               []object.ExtensionArea
+	stream             []object.ExtensionStream
+	newVersion         []object.ExtensionNewVersion
 	fsys               fs.FS
-	initial            types.ExtensionInitial
+	initial            extensiontypes.ExtensionInitial
 }
 
 func (manager *GOCFLExtensionManager) Terminate() error {
@@ -88,11 +90,11 @@ func (manager *GOCFLExtensionManager) Terminate() error {
 	return errors.Combine(errs...)
 }
 
-func (manager *GOCFLExtensionManager) SetInitial(initial types.ExtensionInitial) {
+func (manager *GOCFLExtensionManager) SetInitial(initial extensiontypes.ExtensionInitial) {
 	manager.initial = initial
 }
 
-func (manager *GOCFLExtensionManager) GetExtensions() []types.Extension {
+func (manager *GOCFLExtensionManager) GetExtensions() []extensiontypes.Extension {
 	return manager.extensions
 }
 
@@ -113,7 +115,7 @@ func (manager *GOCFLExtensionManager) GetConfigName(extName string) (any, error)
 	return nil, errors.Errorf("extension '%s' not active", extName)
 }
 
-func (manager *GOCFLExtensionManager) Add(ext types.Extension) error {
+func (manager *GOCFLExtensionManager) Add(ext extensiontypes.Extension) error {
 	// set extensionmanager config...
 	if ext.GetName() == GOCFLExtensionManagerName {
 		return errors.Errorf("cannot add extension '%s' to itself", GOCFLExtensionManagerName)
@@ -123,34 +125,34 @@ func (manager *GOCFLExtensionManager) Add(ext types.Extension) error {
 	if srp, ok := ext.(storageroot.ExtensionStorageRootPath); ok {
 		manager.storageRootPath = append(manager.storageRootPath, srp)
 	}
-	if ocp, ok := ext.(types.ExtensionObjectContentPath); ok {
+	if ocp, ok := ext.(object.ExtensionObjectContentPath); ok {
 		manager.objectContentPath = append(manager.objectContentPath, ocp)
 	}
-	if occ, ok := ext.(types.ExtensionContentChange); ok {
+	if occ, ok := ext.(object.ExtensionContentChange); ok {
 		manager.contentChange = append(manager.contentChange, occ)
 	}
-	if occ, ok := ext.(types.ExtensionObjectChange); ok {
+	if occ, ok := ext.(object.ExtensionObjectChange); ok {
 		manager.objectChange = append(manager.objectChange, occ)
 	}
-	if occ, ok := ext.(types.ExtensionFixityDigest); ok {
+	if occ, ok := ext.(object.ExtensionFixityDigest); ok {
 		manager.fixityDigest = append(manager.fixityDigest, occ)
 	}
-	if occ, ok := ext.(types.ExtensionObjectStatePath); ok {
+	if occ, ok := ext.(object.ExtensionObjectStatePath); ok {
 		manager.objectExternalPath = append(manager.objectExternalPath, occ)
 	}
-	if occ, ok := ext.(types.ExtensionObjectExtractPath); ok {
+	if occ, ok := ext.(object.ExtensionObjectExtractPath); ok {
 		manager.objectExtractPath = append(manager.objectExtractPath, occ)
 	}
-	if meta, ok := ext.(types.ExtensionMetadata); ok {
+	if meta, ok := ext.(object.ExtensionMetadata); ok {
 		manager.metadata = append(manager.metadata, meta)
 	}
-	if area, ok := ext.(types.ExtensionArea); ok {
+	if area, ok := ext.(object.ExtensionArea); ok {
 		manager.area = append(manager.area, area)
 	}
-	if stream, ok := ext.(types.ExtensionStream); ok {
+	if stream, ok := ext.(object.ExtensionStream); ok {
 		manager.stream = append(manager.stream, stream)
 	}
-	if newversion, ok := ext.(types.ExtensionNewVersion); ok {
+	if newversion, ok := ext.(object.ExtensionNewVersion); ok {
 		manager.newVersion = append(manager.newVersion, newversion)
 	}
 	return nil
@@ -196,7 +198,7 @@ func (manager *GOCFLExtensionManager) GetFSName(extName string) (fs.FS, error) {
 	return nil, errors.Errorf("extension '%s' not active", extName)
 }
 
-func sortExtensions[E types.Extension](list []E, sortName []string) {
+func sortExtensions[E extensiontypes.Extension](list []E, sortName []string) {
 	sortFunc := func(aExt, bExt E) int {
 		aName := aExt.GetName()
 		bName := bExt.GetName()
@@ -214,7 +216,7 @@ func sortExtensions[E types.Extension](list []E, sortName []string) {
 	slices.SortFunc(list, sortFunc)
 }
 
-func excludeExtensions[E types.Extension](list []E, exclusionSort []string) []E {
+func excludeExtensions[E extensiontypes.Extension](list []E, exclusionSort []string) []E {
 	sortFunc := func(aExt, bExt E) int {
 		aName := aExt.GetName()
 		bName := bExt.GetName()
@@ -253,7 +255,7 @@ func excludeExtensions[E types.Extension](list []E, exclusionSort []string) []E 
 	return list
 }
 
-func organize[E types.Extension](manager *GOCFLExtensionManager, list []E, name string) []E {
+func organize[E extensiontypes.Extension](manager *GOCFLExtensionManager, list []E, name string) []E {
 	if len(list) == 0 {
 		return list
 	}
@@ -269,17 +271,17 @@ func organize[E types.Extension](manager *GOCFLExtensionManager, list []E, name 
 }
 
 func (manager *GOCFLExtensionManager) Finalize() {
-	manager.storageRootPath = organize(manager, manager.storageRootPath, types.ExtensionStorageRootPathName)
-	manager.objectContentPath = organize(manager, manager.objectContentPath, types.ExtensionObjectContentPathName)
-	manager.objectExtractPath = organize(manager, manager.objectExtractPath, types.ExtensionObjectExtractPathName)
-	manager.objectExternalPath = organize(manager, manager.objectExternalPath, types.ExtensionObjectExternalPathName)
-	manager.contentChange = organize(manager, manager.contentChange, types.ExtensionContentChangeName)
-	manager.objectChange = organize(manager, manager.objectChange, types.ExtensionObjectChangeName)
-	manager.fixityDigest = organize(manager, manager.fixityDigest, types.ExtensionFixityDigestName)
-	manager.metadata = organize(manager, manager.metadata, types.ExtensionMetadataName)
-	manager.area = organize(manager, manager.area, types.ExtensionAreaName)
-	manager.stream = organize(manager, manager.stream, types.ExtensionStreamName)
-	manager.newVersion = organize(manager, manager.newVersion, types.ExtensionNewVersionName)
+	manager.storageRootPath = organize(manager, manager.storageRootPath, object.ExtensionStorageRootPathName)
+	manager.objectContentPath = organize(manager, manager.objectContentPath, object.ExtensionObjectContentPathName)
+	manager.objectExtractPath = organize(manager, manager.objectExtractPath, object.ExtensionObjectExtractPathName)
+	manager.objectExternalPath = organize(manager, manager.objectExternalPath, object.ExtensionObjectExternalPathName)
+	manager.contentChange = organize(manager, manager.contentChange, object.ExtensionContentChangeName)
+	manager.objectChange = organize(manager, manager.objectChange, object.ExtensionObjectChangeName)
+	manager.fixityDigest = organize(manager, manager.fixityDigest, object.ExtensionFixityDigestName)
+	manager.metadata = organize(manager, manager.metadata, object.ExtensionMetadataName)
+	manager.area = organize(manager, manager.area, object.ExtensionAreaName)
+	manager.stream = organize(manager, manager.stream, object.ExtensionStreamName)
+	manager.newVersion = organize(manager, manager.newVersion, object.ExtensionNewVersionName)
 }
 
 // Extension
@@ -320,7 +322,7 @@ func (manager *GOCFLExtensionManager) StoreRootLayout(fsys fs.FS) error {
 	}
 	return nil
 }
-func (manager *GOCFLExtensionManager) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
 	var errs = []error{}
 	for _, srp := range manager.storageRootPath {
 		p, err := srp.BuildStorageRootPath(storageRoot, id)
@@ -370,7 +372,7 @@ func (manager *GOCFLExtensionManager) SetParams(params map[string]string) error 
 }
 
 // ObjectContentPath
-func (manager *GOCFLExtensionManager) BuildObjectManifestPath(object types.Object, originalPath string, area string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
 		p, err := ocp.BuildObjectManifestPath(object, originalPath, area)
@@ -387,7 +389,7 @@ func (manager *GOCFLExtensionManager) BuildObjectManifestPath(object types.Objec
 }
 
 // ObjectExternalPath
-func (manager *GOCFLExtensionManager) BuildObjectStatePath(object types.Object, originalPath string, area string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildObjectStatePath(object object.Object, originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectExternalPath {
 		p, err := ocp.BuildObjectStatePath(object, originalPath, area)
@@ -404,7 +406,7 @@ func (manager *GOCFLExtensionManager) BuildObjectStatePath(object types.Object, 
 }
 
 // ContentChange
-func (manager *GOCFLExtensionManager) AddFileBefore(object types.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileBefore(object, sourceFS, source, dest, area, isDir); err != nil {
@@ -414,7 +416,7 @@ func (manager *GOCFLExtensionManager) AddFileBefore(object types.Object, sourceF
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) UpdateFileBefore(object types.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest, area, isDir); err != nil {
@@ -424,7 +426,7 @@ func (manager *GOCFLExtensionManager) UpdateFileBefore(object types.Object, sour
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) DeleteFileBefore(object types.Object, dest string, area string) error {
+func (manager *GOCFLExtensionManager) DeleteFileBefore(object object.Object, dest string, area string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.DeleteFileBefore(object, dest, area); err != nil {
@@ -434,7 +436,7 @@ func (manager *GOCFLExtensionManager) DeleteFileBefore(object types.Object, dest
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) AddFileAfter(object types.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest, area, isDir); err != nil {
@@ -444,7 +446,7 @@ func (manager *GOCFLExtensionManager) AddFileAfter(object types.Object, sourceFS
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) UpdateFileAfter(object types.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) UpdateFileAfter(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest, area, isDir); err != nil {
@@ -454,7 +456,7 @@ func (manager *GOCFLExtensionManager) UpdateFileAfter(object types.Object, sourc
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) DeleteFileAfter(object types.Object, dest string, area string) error {
+func (manager *GOCFLExtensionManager) DeleteFileAfter(object object.Object, dest string, area string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.DeleteFileAfter(object, dest, area); err != nil {
@@ -466,7 +468,7 @@ func (manager *GOCFLExtensionManager) DeleteFileAfter(object types.Object, dest 
 }
 
 // ObjectChange
-func (manager *GOCFLExtensionManager) UpdateObjectBefore(object types.Object) error {
+func (manager *GOCFLExtensionManager) UpdateObjectBefore(object object.Object) error {
 	var errs = []error{}
 	for _, ocp := range manager.objectChange {
 		if err := ocp.UpdateObjectBefore(object); err != nil {
@@ -476,7 +478,7 @@ func (manager *GOCFLExtensionManager) UpdateObjectBefore(object types.Object) er
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) UpdateObjectAfter(object types.Object) error {
+func (manager *GOCFLExtensionManager) UpdateObjectAfter(object object.Object) error {
 	var errs = []error{}
 	for _, ocp := range manager.objectChange {
 		if err := ocp.UpdateObjectAfter(object); err != nil {
@@ -498,7 +500,7 @@ func (manager *GOCFLExtensionManager) GetFixityDigests() []checksum.DigestAlgori
 	return digests
 }
 
-func (manager *GOCFLExtensionManager) BuildObjectExtractPath(object types.Object, originalPath string, area string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildObjectExtractPath(object object.Object, originalPath string, area string) (string, error) {
 	var err error
 	for _, ext := range manager.objectExtractPath {
 		originalPath, err = ext.BuildObjectExtractPath(object, originalPath, area)
@@ -509,7 +511,7 @@ func (manager *GOCFLExtensionManager) BuildObjectExtractPath(object types.Object
 	return originalPath, nil
 }
 
-func (manager *GOCFLExtensionManager) GetMetadata(object types.Object) (map[string]any, error) {
+func (manager *GOCFLExtensionManager) GetMetadata(object object.Object) (map[string]any, error) {
 	var metaResult = map[string]map[string]any{}
 	for _, ext := range manager.metadata {
 		meta, err := ext.GetMetadata(object)
@@ -531,7 +533,7 @@ func (manager *GOCFLExtensionManager) GetMetadata(object types.Object) (map[stri
 	return result, nil
 }
 
-func (manager *GOCFLExtensionManager) GetAreaPath(object types.Object, area string) (string, error) {
+func (manager *GOCFLExtensionManager) GetAreaPath(object object.Object, area string) (string, error) {
 	var errs = []error{}
 	for _, ext := range manager.area {
 		path, err := ext.GetAreaPath(object, area)
@@ -547,7 +549,7 @@ func (manager *GOCFLExtensionManager) GetAreaPath(object types.Object, area stri
 }
 
 // NewVersion
-func (manager *GOCFLExtensionManager) NeedNewVersion(object types.Object) (bool, error) {
+func (manager *GOCFLExtensionManager) NeedNewVersion(object object.Object) (bool, error) {
 	for _, ext := range manager.newVersion {
 		need, err := ext.NeedNewVersion(object)
 		if err != nil {
@@ -560,7 +562,7 @@ func (manager *GOCFLExtensionManager) NeedNewVersion(object types.Object) (bool,
 	return false, nil
 }
 
-func (manager *GOCFLExtensionManager) DoNewVersion(object types.Object) error {
+func (manager *GOCFLExtensionManager) DoNewVersion(object object.Object) error {
 	for _, ext := range manager.newVersion {
 		if err := ext.DoNewVersion(object); err != nil {
 			return errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
@@ -570,7 +572,7 @@ func (manager *GOCFLExtensionManager) DoNewVersion(object types.Object) error {
 }
 
 // Stream
-func (manager *GOCFLExtensionManager) StreamObject(obj types.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (manager *GOCFLExtensionManager) StreamObject(obj object.Object, reader io.Reader, stateFiles []string, dest string) error {
 	if len(manager.stream) == 0 {
 		_, _ = io.Copy(io.Discard, reader)
 		return nil
@@ -582,7 +584,7 @@ func (manager *GOCFLExtensionManager) StreamObject(obj types.Object, reader io.R
 		wg.Add(1)
 		pr, pw := io.Pipe()
 		writer = append(writer, iou.NewWriteIgnoreCloser(pw))
-		go func(r io.Reader, ext types.ExtensionStream) {
+		go func(r io.Reader, ext object.ExtensionStream) {
 			defer wg.Done()
 			if err := ext.StreamObject(obj, r, stateFiles, dest); err != nil {
 				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", ext.GetName(), obj.GetID())
@@ -621,5 +623,5 @@ func (manager *GOCFLExtensionManager) StreamObject(obj types.Object, reader io.R
 
 // check interface satisfaction
 var (
-	_ types.ExtensionManagerCore = (*GOCFLExtensionManager)(nil)
+	_ extensiontypes.ExtensionManagerCore = (*GOCFLExtensionManager)(nil)
 )

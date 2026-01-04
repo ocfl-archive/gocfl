@@ -21,9 +21,11 @@ import (
 	defaultextensions_storageroot "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/storageroot"
 	ocflextension "github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
@@ -59,83 +61,83 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	}
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.InitialName)
-	extensionFactory.AddCreator(ocflextension.InitialName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.InitialName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewInitialFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.GOCFLExtensionManagerName)
-	extensionFactory.AddCreator(ocflextension.GOCFLExtensionManagerName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.GOCFLExtensionManagerName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		// return ocfl.NewInitialDummyFS(fsys)
 		return ocflextension.NewGOCFLExtensionManagerFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.DigestAlgorithmsName)
-	extensionFactory.AddCreator(ocflextension.DigestAlgorithmsName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.DigestAlgorithmsName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewDigestAlgorithmsFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.StorageLayoutFlatDirectName)
-	extensionFactory.AddCreator(ocflextension.StorageLayoutFlatDirectName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.StorageLayoutFlatDirectName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewStorageLayoutFlatDirectFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.StorageLayoutHashAndIdNTupleName)
-	extensionFactory.AddCreator(ocflextension.StorageLayoutHashAndIdNTupleName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.StorageLayoutHashAndIdNTupleName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewStorageLayoutHashAndIdNTupleFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.StorageLayoutHashedNTupleName)
-	extensionFactory.AddCreator(ocflextension.StorageLayoutHashedNTupleName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.StorageLayoutHashedNTupleName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewStorageLayoutHashedNTupleFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.FlatOmitPrefixStorageLayoutName)
-	extensionFactory.AddCreator(ocflextension.FlatOmitPrefixStorageLayoutName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.FlatOmitPrefixStorageLayoutName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewFlatOmitPrefixStorageLayoutFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.NTupleOmitPrefixStorageLayoutName)
-	extensionFactory.AddCreator(ocflextension.NTupleOmitPrefixStorageLayoutName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.NTupleOmitPrefixStorageLayoutName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewNTupleOmitPrefixStorageLayoutFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.DirectCleanName)
-	extensionFactory.AddCreator(ocflextension.DirectCleanName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.DirectCleanName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewDirectCleanFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.LegacyDirectCleanName)
-	extensionFactory.AddCreator(ocflextension.LegacyDirectCleanName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.LegacyDirectCleanName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewLegacyDirectCleanFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.PathDirectName)
-	extensionFactory.AddCreator(ocflextension.PathDirectName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.PathDirectName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewPathDirectFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.StorageLayoutPairTreeName)
-	extensionFactory.AddCreator(ocflextension.StorageLayoutPairTreeName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.StorageLayoutPairTreeName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewStorageLayoutPairTreeFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.ContentSubPathName)
-	extensionFactory.AddCreator(ocflextension.ContentSubPathName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.ContentSubPathName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewContentSubPathFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.MetaFileName)
-	extensionFactory.AddCreator(ocflextension.MetaFileName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.MetaFileName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewMetaFileFS(fsys)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.TimestampName)
-	extensionFactory.AddCreator(ocflextension.TimestampName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.TimestampName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewTimestampFS(fsys, logger)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.IndexerName)
-	extensionFactory.AddCreator(ocflextension.IndexerName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.IndexerName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		ext, err := ocflextension.NewIndexerFS(fsys, indexerAddr, indexerActions, indexerLocalCache, logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create new indexer from filesystem")
@@ -144,22 +146,22 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.MigrationName)
-	extensionFactory.AddCreator(ocflextension.MigrationName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.MigrationName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewMigrationFS(fsys, migration, logger)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.ThumbnailName)
-	extensionFactory.AddCreator(ocflextension.ThumbnailName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.ThumbnailName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewThumbnailFS(fsys, thumbnail, logger)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.FilesystemName)
-	extensionFactory.AddCreator(ocflextension.FilesystemName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.FilesystemName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewFilesystemFS(fsys, logger)
 	})
 
 	logger.Debug().Msgf("adding creator for extension %s", ocflextension.METSName)
-	extensionFactory.AddCreator(ocflextension.METSName, func(fsys fs.FS) (types.Extension, error) {
+	extensionFactory.AddCreator(ocflextension.METSName, func(fsys fs.FS) (extensiontypes.Extension, error) {
 		return ocflextension.NewMetsFS(fsys, logger)
 	})
 
@@ -190,7 +192,7 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions types.ExtensionManager, err error) {
+func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -218,7 +220,7 @@ func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storage
 		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
 	}
-	return _storageRootExtensions.(storageroot.ExtensionManager), _objectExtensions.(types.ExtensionManager), nil
+	return _storageRootExtensions.(storageroot.ExtensionManager), _objectExtensions.(object.ExtensionManager), nil
 }
 
 func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *config.AESConfig, s3Config *config.S3Config, noCompression, readOnly bool, logger zLogger.ZLogger) (*writefs.Factory, error) {
@@ -320,7 +322,7 @@ func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	return nil
 }
 
-func LoadObjectByID(sr types.StorageRoot, extensionFactory *extension.ExtensionFactory, id string, logger zLogger.ZLogger) (types.Object, error) {
+func LoadObjectByID(sr inventorytypes.StorageRoot, extensionFactory *extension.ExtensionFactory, id string, logger zLogger.ZLogger) (object.Object, error) {
 	folder, err := sr.IdToFolder(id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
@@ -338,10 +340,10 @@ func LoadObjectByID(sr types.StorageRoot, extensionFactory *extension.ExtensionF
 
 func addObjectByPath(
 	ctx context.Context,
-	sr types.StorageRoot,
+	sr inventorytypes.StorageRoot,
 	fixity []checksum.DigestAlgorithm,
 	extensionFactory *extension.ExtensionFactory,
-	extensionManager types.ExtensionManager,
+	extensionManager object.ExtensionManager,
 	checkDuplicates bool,
 	id, userName, userAddress, message string,
 	sourceFS fs.FS, area string,
@@ -352,7 +354,7 @@ func addObjectByPath(
 	if fixity == nil {
 		fixity = []checksum.DigestAlgorithm{}
 	}
-	var o types.Object
+	var o object.Object
 	exists, err := sr.ObjectExists(flagObjectID)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot check for existence of %s", id)

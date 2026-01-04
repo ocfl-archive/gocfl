@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"emperror.dev/errors"
-	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/types"
-
 	"hash"
 	"io"
 	"io/fs"
 	"strings"
+
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 )
 
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
@@ -60,7 +61,7 @@ func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig)
 }
 
 type StorageLayoutHashAndIdNTupleConfig struct {
-	*types.ExtensionConfig
+	*extensiontypes.ExtensionConfig
 	DigestAlgorithm string `json:"digestAlgorithm"`
 	TupleSize       int    `json:"tupleSize"`
 	NumberOfTuples  int    `json:"numberOfTuples"`
@@ -138,7 +139,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot types.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot inventory.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
@@ -183,6 +184,6 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ types.Extension                      = &StorageLayoutHashAndIdNTuple{}
+	_ extensiontypes.Extension             = &StorageLayoutHashAndIdNTuple{}
 	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
 )
