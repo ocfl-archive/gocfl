@@ -52,35 +52,23 @@ func GetObjectVersion(ctx context.Context, ofs fs.FS) (ver version.OCFLVersion, 
 	return ver, nil
 }
 
-func NewObject(ctx context.Context, factory types.Factory, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager types.ExtensionManagerCore, logger zLogger.ZLogger) (types.Object, error) {
-	var err error
-	if ver == "" {
-		ver, err = GetObjectVersion(ctx, fsys)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot get version of object")
-		}
-	}
-	o := factory.NewObject(ctx)
-	return o, nil
-}
-
 func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager types.ExtensionManager, fsys fs.FS, logger zLogger.ZLogger) (types.Object, error) {
 	f := factory.NewFactory(ver, extensionFactory, manager, logger)
-	object, err := NewObject(ctx, f, fsys, ver, extensionFactory, manager, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot instantiate object")
+	obj := f.NewObject(ctx).WithFS(fsys)
+	if obj == nil {
+		return nil, errors.New("cannot instantiate object")
 	}
 
 	// create initial filesystem structure for new object
-	if err = object.Init(id, digest, fixity, manager); err != nil {
+	if err := obj.Init(id, digest, fixity, manager); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
 	}
 
-	if id != "" && object.GetID() != id {
-		return nil, fmt.Errorf("id mismatch. '%s' != '%s'", id, object.GetID())
+	if id != "" && obj.GetID() != id {
+		return nil, fmt.Errorf("id mismatch. '%s' != '%s'", id, obj.GetID())
 	}
 
-	return object, nil
+	return obj, nil
 }
 
 func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (types.Object, error) {
@@ -107,16 +95,16 @@ func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extension.Ext
 		return nil, errors.Wrap(err, "cannot create extension manager")
 	}
 	f := factory.NewFactory(ver, extensionFactory, extensionManager, logger)
-	object, err := NewObject(ctx, f, fsys, ver, extensionFactory, extensionManager, logger)
+	obj := f.NewObject(ctx).WithFS(fsys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot instantiate object")
 	}
 	// load the object
-	if err := object.Load(); err != nil {
+	if err := obj.Load(); err != nil {
 		return nil, errors.Wrapf(err, "cannot load object from fsys '%v'", fsys)
 	}
 
-	return object, nil
+	return obj, nil
 }
 
 func CheckObject(ctx context.Context, factory types.Factory, fsys fs.FS, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
