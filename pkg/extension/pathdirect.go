@@ -9,10 +9,10 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const PathDirectName = "NNNN-direct-path-layout"
@@ -114,7 +114,7 @@ func (sl *PathDirect) WriteConfig() error {
 	return nil
 }
 
-func (sl *PathDirect) BuildStorageRootPath(storageRoot inventory.StorageRoot, id string) (string, error) {
+func (sl *PathDirect) BuildStorageRootPath(storageRoot storagerootimpl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {

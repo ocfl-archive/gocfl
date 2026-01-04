@@ -3,8 +3,8 @@ package storageroot
 import (
 	"io/fs"
 
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 type ExtensionStorageRootPath interface {

@@ -20,8 +20,8 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	object2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -37,7 +37,7 @@ import (
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
 // newObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager extensiontypes.ExtensionManagerCore, logger zLogger.ZLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager extensiontypes.ExtensionManagerCore, logger zLogger.ZLogger) *ObjectBase {
 	ocfl := &ObjectBase{
 		extensionFactory: extensionFactory,
 		extensionManager: extensionManager.(object2.ExtensionManager),
@@ -60,7 +60,7 @@ func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVer
 
 type ObjectBase struct {
 	//	storageRoot        storageroot.StorageRoot
-	extensionFactory *extension.ExtensionFactory
+	extensionFactory *extensionimpl.ExtensionFactory
 	extensionManager object2.ExtensionManager
 	ctx              context.Context
 	fsys             fs.FS

@@ -15,7 +15,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"

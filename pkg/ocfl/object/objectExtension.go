@@ -6,7 +6,7 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 const (
@@ -26,34 +26,34 @@ const (
 )
 
 type ExtensionObjectContentPath interface {
-	extensiontypes.Extension
+	extension.Extension
 	BuildObjectManifestPath(object Object, originalPath string, area string) (string, error)
 }
 
 var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
 
 type ExtensionObjectExtractPath interface {
-	extensiontypes.Extension
+	extension.Extension
 	BuildObjectExtractPath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionObjectStatePath interface {
-	extensiontypes.Extension
+	extension.Extension
 	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
 }
 
 type ExtensionArea interface {
-	extensiontypes.Extension
+	extension.Extension
 	GetAreaPath(object Object, area string) (string, error)
 }
 
 type ExtensionStream interface {
-	extensiontypes.Extension
+	extension.Extension
 	StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error
 }
 
 type ExtensionContentChange interface {
-	extensiontypes.Extension
+	extension.Extension
 	AddFileBefore(object Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error
 	UpdateFileBefore(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error
 	DeleteFileBefore(object Object, dest string, area string) error
@@ -63,28 +63,28 @@ type ExtensionContentChange interface {
 }
 
 type ExtensionObjectChange interface {
-	extensiontypes.Extension
+	extension.Extension
 	UpdateObjectBefore(object Object) error
 	UpdateObjectAfter(object Object) error
 }
 
 type ExtensionFixityDigest interface {
-	extensiontypes.Extension
+	extension.Extension
 	GetFixityDigests() []checksum.DigestAlgorithm
 }
 
 type ExtensionMetadata interface {
-	extensiontypes.Extension
+	extension.Extension
 	GetMetadata(object Object) (map[string]any, error)
 }
 
 type ExtensionVersionDone interface {
-	extensiontypes.Extension
+	extension.Extension
 	VersionDone(object Object) error
 }
 
 type ExtensionNewVersion interface {
-	extensiontypes.Extension
+	extension.Extension
 	NeedNewVersion(object Object) (bool, error)
 	DoNewVersion(object Object) error
 }

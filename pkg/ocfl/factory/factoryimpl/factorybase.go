@@ -5,7 +5,7 @@ import (
 
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory/inventoryimpl"
@@ -14,7 +14,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extension.ExtensionFactory, extensionManager object.ExtensionManager, logger zLogger.ZLogger) factorytypes.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, extensionManager object.ExtensionManager, logger zLogger.ZLogger) factorytypes.Factory {
 	return &FactoryBase{
 		logger:           logger,
 		version:          version,
@@ -28,7 +28,7 @@ type FactoryBase struct {
 	logger           zLogger.ZLogger
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
-	extensionFactory *extension.ExtensionFactory
+	extensionFactory *extensionimpl.ExtensionFactory
 	extensionManager object.ExtensionManager
 }
 

@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"emperror.dev/errors"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 const LoggingIndexerName = "NNNN-indexer-logging-object"

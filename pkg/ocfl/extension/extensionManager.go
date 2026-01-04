@@ -1,4 +1,4 @@
-package extensiontypes
+package extension
 
 import (
 	"io/fs"

@@ -8,7 +8,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
 // fallback for object with unregigered naming

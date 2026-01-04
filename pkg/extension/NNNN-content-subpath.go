@@ -12,16 +12,16 @@ import (
 	"emperror.dev/errors"
 	"github.com/atsushinee/go-markdown-generator/doc"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
 const ContentSubPathName = "NNNN-content-subpath"
 const ContentSubPathDescription = "prepend a path inside the version content"
 
-func GetContentSubPathParams() []*extension.ExtensionExternalParam {
-	return []*extension.ExtensionExternalParam{
+func GetContentSubPathParams() []*extensionimpl.ExtensionExternalParam {
+	return []*extensionimpl.ExtensionExternalParam{
 		{
 			ExtensionName: ContentSubPathName,
 			Functions:     []string{"extract"},

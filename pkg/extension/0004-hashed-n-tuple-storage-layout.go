@@ -11,9 +11,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"

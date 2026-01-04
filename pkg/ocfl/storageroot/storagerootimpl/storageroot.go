@@ -1,4 +1,4 @@
-package inventory
+package storagerootimpl
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -24,13 +24,13 @@ type StorageRoot interface {
 	//LoadObjectByFolder(folder string) (object.Object, error)
 	//LoadObjectByID(id string) (object.Object, error)
 	//CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) (object.Object, error)
-	CreateExtension(fsys fs.FS) (extensiontypes.Extension, error)
-	CreateExtensions(fsys fs.FS, validation validation.Validation) (extensiontypes.ExtensionManagerCore, error)
+	CreateExtension(fsys fs.FS) (extension.Extension, error)
+	CreateExtensions(fsys fs.FS, validation validation.Validation) (extension.Extension, error)
 	Check() error
 	IdToFolder(id string) (folder string, err error)
 	//CheckObjectByFolder(objectFolder string) error
 	//CheckObjectByID(objectID string) error
-	Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extensiontypes.ExtensionManagerCore) error
+	Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
 	Load() error
 	IsModified() bool
 	SetModified()

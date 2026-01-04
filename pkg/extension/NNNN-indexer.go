@@ -18,8 +18,8 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
@@ -36,8 +36,8 @@ type indexerLine struct {
 var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext", "xml"}
 var compress = []string{"brotli", "gzip", "none"}
 
-func GetIndexerParams() []*extension.ExtensionExternalParam {
-	return []*extension.ExtensionExternalParam{
+func GetIndexerParams() []*extensionimpl.ExtensionExternalParam {
+	return []*extensionimpl.ExtensionExternalParam{
 		{
 			ExtensionName: IndexerName,
 			Param:         "addr",

@@ -20,12 +20,12 @@ import (
 	defaultextensions_object "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/storageroot"
 	ocflextension "github.com/ocfl-archive/gocfl/v2/pkg/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
@@ -53,9 +53,9 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger zLogger.ZLogger) (*extension.ExtensionFactory, error) {
+func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger zLogger.ZLogger) (*extensionimpl.ExtensionFactory, error) {
 	logger.Debug().Msgf("initializing ExtensionFactory")
-	extensionFactory, err := extension.NewExtensionFactory(extensionParams, logger)
+	extensionFactory, err := extensionimpl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate extension factory")
 	}
@@ -168,8 +168,8 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 	return extensionFactory, nil
 }
 
-func GetExtensionParams() []*extension.ExtensionExternalParam {
-	var result = []*extension.ExtensionExternalParam{}
+func GetExtensionParams() []*extensionimpl.ExtensionExternalParam {
+	var result = []*extensionimpl.ExtensionExternalParam{}
 
 	result = append(result, ocflextension.GetIndexerParams()...)
 	result = append(result, ocflextension.GetMetaFileParams()...)
@@ -192,7 +192,7 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *extension.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
+func initDefaultExtensions(extensionFactory *extensionimpl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -322,7 +322,7 @@ func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	return nil
 }
 
-func LoadObjectByID(sr inventorytypes.StorageRoot, extensionFactory *extension.ExtensionFactory, id string, logger zLogger.ZLogger) (object.Object, error) {
+func LoadObjectByID(sr inventorytypes.StorageRoot, extensionFactory *extensionimpl.ExtensionFactory, id string, logger zLogger.ZLogger) (object.Object, error) {
 	folder, err := sr.IdToFolder(id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
@@ -342,7 +342,7 @@ func addObjectByPath(
 	ctx context.Context,
 	sr inventorytypes.StorageRoot,
 	fixity []checksum.DigestAlgorithm,
-	extensionFactory *extension.ExtensionFactory,
+	extensionFactory *extensionimpl.ExtensionFactory,
 	extensionManager object.ExtensionManager,
 	checkDuplicates bool,
 	id, userName, userAddress, message string,

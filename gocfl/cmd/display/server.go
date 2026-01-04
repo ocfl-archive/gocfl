@@ -27,11 +27,12 @@ import (
 	iou "github.com/je4/utils/v2/pkg/io"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
-	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
 
@@ -47,7 +48,7 @@ type Server struct {
 	urlExt           *url.URL
 	accessLog        io.Writer
 	dataFS           fs.FS
-	storageRoot      inventory.StorageRoot
+	storageRoot      storagerootimpl.StorageRoot
 	object           objecttypes.Object
 	metadata         *inventory.Metadata
 	templateFS       fs.FS
@@ -56,7 +57,7 @@ type Server struct {
 	extensionFactory *extension2.ExtensionFactory
 }
 
-func NewServer(storageRoot inventory.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot storagerootimpl.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)

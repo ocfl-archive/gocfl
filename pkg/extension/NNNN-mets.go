@@ -21,8 +21,8 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/data/specs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/version"
@@ -65,8 +65,8 @@ var metsMDTypes = []string{
 	"OTHER",
 }
 
-func GetMetsParams() []*extension.ExtensionExternalParam {
-	return []*extension.ExtensionExternalParam{
+func GetMetsParams() []*extensionimpl.ExtensionExternalParam {
+	return []*extensionimpl.ExtensionExternalParam{
 		{
 			ExtensionName: METSName,
 			Functions:     []string{"add", "update", "create"},

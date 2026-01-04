@@ -2,7 +2,7 @@ package object
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -25,7 +25,7 @@ type Object interface {
 	GetInventory() inventory.Inventory
 	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreExtensions() error
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extensiontypes.ExtensionManagerCore) error
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
 	Load() error
 	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
 	EndUpdate() error

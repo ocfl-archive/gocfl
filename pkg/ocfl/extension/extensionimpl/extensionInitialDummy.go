@@ -1,4 +1,4 @@
-package extension
+package extensionimpl
 
 import (
 	"encoding/json"
@@ -7,10 +7,10 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 )
 
-func NewInitialDummyFS(fsys fs.FS) (extensiontypes.Extension, error) {
+func NewInitialDummyFS(fsys fs.FS) (extension.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -20,14 +20,14 @@ func NewInitialDummyFS(fsys fs.FS) (extensiontypes.Extension, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
-	var config = &extensiontypes.ExtensionManagerConfig{}
+	var config = &extension.ExtensionManagerConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
 	return NewInitialDummy(config)
 }
 
-func NewInitialDummy(config *extensiontypes.ExtensionManagerConfig) (*InitialDummy, error) {
+func NewInitialDummy(config *extension.ExtensionManagerConfig) (*InitialDummy, error) {
 	sl := &InitialDummy{ExtensionManagerConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
@@ -36,7 +36,7 @@ func NewInitialDummy(config *extensiontypes.ExtensionManagerConfig) (*InitialDum
 }
 
 type InitialDummy struct {
-	*extensiontypes.ExtensionManagerConfig
+	*extension.ExtensionManagerConfig
 }
 
 func (dummy *InitialDummy) Terminate() error {
@@ -78,5 +78,5 @@ func (dummy *InitialDummy) SetFS(fsys fs.FS, create bool) {
 }
 
 var (
-	_ extensiontypes.Extension = &InitialDummy{}
+	_ extension.Extension = &InitialDummy{}
 )

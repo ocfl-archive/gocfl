@@ -16,16 +16,16 @@ import (
 	"github.com/digitorus/timestamp"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
 const TimestampName = "NNNN-timestamp"
 const TimestampDescription = "signs ocfl versions"
 
-func GetTimestampParams() []*extension.ExtensionExternalParam {
-	return []*extension.ExtensionExternalParam{}
+func GetTimestampParams() []*extensionimpl.ExtensionExternalParam {
+	return []*extensionimpl.ExtensionExternalParam{}
 }
 
 func NewTimestampFS(fsys fs.FS, logger zLogger.ZLogger) (*Timestamp, error) {

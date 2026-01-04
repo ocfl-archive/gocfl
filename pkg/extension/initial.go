@@ -9,15 +9,15 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 )
 
 const InitialName = "initial"
 const InitialDescription = "initial extension defines the name of the extension manager"
 
-func GetInitialParams() []*extension.ExtensionExternalParam {
-	return []*extension.ExtensionExternalParam{
+func GetInitialParams() []*extensionimpl.ExtensionExternalParam {
+	return []*extensionimpl.ExtensionExternalParam{
 		{
 			ExtensionName: InitialName,
 			Functions:     []string{"add"},
@@ -29,10 +29,10 @@ func GetInitialParams() []*extension.ExtensionExternalParam {
 
 func NewInitialFS(fsys fs.FS) (*Initial, error) {
 	var config = &InitialConfig{
-		ExtensionConfig: &extensiontypes.ExtensionConfig{
+		ExtensionConfig: &extension2.ExtensionConfig{
 			ExtensionName: InitialName,
 		},
-		Extension: extensiontypes.DefaultExtensionManagerName,
+		Extension: extension2.DefaultExtensionManagerName,
 	}
 	if fsys != nil {
 		fp, err := fsys.Open("config.json")
@@ -67,7 +67,7 @@ type InitialEntry struct {
 }
 
 type InitialConfig struct {
-	*extensiontypes.ExtensionConfig
+	*extension2.ExtensionConfig
 	Extension string `json:"extension"`
 }
 type Initial struct {
@@ -133,6 +133,6 @@ func (sl *Initial) WriteConfig() error {
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension        = &Initial{}
-	_ extensiontypes.ExtensionInitial = &Initial{}
+	_ extension2.Extension        = &Initial{}
+	_ extension2.ExtensionInitial = &Initial{}
 )

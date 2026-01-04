@@ -16,7 +16,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/docs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/types"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
@@ -30,7 +30,7 @@ import (
 type StorageRootBase struct {
 	ctx              context.Context
 	fsys             fs.FS
-	extensionFactory *extension.ExtensionFactory
+	extensionFactory *extensionimpl.ExtensionFactory
 	extensionManager ExtensionManager
 	changed          bool
 	logger           zLogger.ZLogger
@@ -42,7 +42,7 @@ type StorageRootBase struct {
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extension.ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootBase, error) {
+func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootBase, error) {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:              ctx,
@@ -86,7 +86,7 @@ func (osr *StorageRootBase) AddValidationWarning(errno validation.ValidationErro
 	return errors.WithStack(validation.AddValidationWarnings(osr.ctx, valError))
 }
 
-func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, extensionManager extensiontypes.ExtensionManagerCore) error {
+func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error {
 	var err error
 	osr.logger.Debug()
 
@@ -205,11 +205,11 @@ func (osr *StorageRootBase) GetVersion() version.OCFLVersion { return osr.versio
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
-func (osr *StorageRootBase) CreateExtension(fsys fs.FS) (extensiontypes.Extension, error) {
+func (osr *StorageRootBase) CreateExtension(fsys fs.FS) (extension.Extension, error) {
 	return osr.extensionFactory.Create(fsys)
 }
 
-func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation validation.Validation) (extensiontypes.ExtensionManagerCore, error) {
+func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation validation.Validation) (extension.Extension, error) {
 	exts, err := osr.extensionFactory.CreateExtensions(fsys, validation)
 	return exts, errors.WithStack(err)
 }
@@ -338,7 +338,7 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 	return folder, errors.WithStack(err)
 }
 
-func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extension.ExtensionFactory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extensionimpl.ExtensionFactory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
 	objectFactory := factoryimpl.NewFactory(ver, objectExtensionFactory, objectExtensionManager, osr.logger)
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
