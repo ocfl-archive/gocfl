@@ -64,8 +64,9 @@ func NewObject(ctx context.Context, factory types.Factory, fsys fs.FS, ver versi
 	return o, nil
 }
 
-func CreateObject(ctx context.Context, factory types.Factory, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager types.ExtensionManagerCore, fsys fs.FS, logger zLogger.ZLogger) (types.Object, error) {
-	object, err := NewObject(ctx, factory, fsys, ver, extensionFactory, manager, logger)
+func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extension.ExtensionFactory, manager types.ExtensionManager, fsys fs.FS, logger zLogger.ZLogger) (types.Object, error) {
+	f := factory.NewFactory(ver, extensionFactory, manager, logger)
+	object, err := NewObject(ctx, f, fsys, ver, extensionFactory, manager, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate object")
 	}
@@ -138,7 +139,7 @@ func CheckObject(ctx context.Context, factory types.Factory, fsys fs.FS, extensi
 	return nil
 }
 
-func Extract(ctx context.Context, factory types.Factory, destFS, fsys fs.FS, path string, version *types.VersionNumber, withManifest bool, area string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
+func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *types.VersionNumber, withManifest bool, area string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) error {
 	if !version.IsValid() {
 		version = types.NewVersionNumber().WithLatest()
 	}
@@ -162,7 +163,7 @@ func Extract(ctx context.Context, factory types.Factory, destFS, fsys fs.FS, pat
 	return nil
 }
 
-func ExtractMeta(ctx context.Context, factory types.Factory, fsys fs.FS, path string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (*types.Metadata, error) {
+func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extension.ExtensionFactory, logger zLogger.ZLogger) (*types.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
 	o, err := LoadObject(ctx, objFsys, extensionFactory, logger)
