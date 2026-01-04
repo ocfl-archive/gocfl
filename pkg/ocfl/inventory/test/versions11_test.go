@@ -1,23 +1,29 @@
-package inventoryimpl
+package test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory/inventoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/rs/zerolog"
 )
 
 func Test_VersionsJSONMarshal(t *testing.T) {
-	versions := ocfl.f11.NewVersions()
-	version := ocfl.f11.NewVersion().WithMessage("test version")
-	versions.SetVersion(inventorytypes.NewVersionNumber().WithString("v1"), version)
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	versions := f.NewVersions(context.Background())
+	version := f.NewVersion(context.Background()).WithMessage("test version")
+	versions.SetVersion(inventory.NewVersionNumber().WithString("v1"), version)
 	bytes, err := json.Marshal(versions)
 	if err != nil {
 		t.Fatalf("Failed to marshal versions: %s", err)
 	}
-	versions2 := ocfl.f11.NewVersions()
+	versions2 := f.NewVersions(context.Background())
 	if err := json.Unmarshal(bytes, versions2); err != nil {
 		t.Fatalf("Failed to unmarshal versions: %s", err)
 	}
@@ -27,6 +33,8 @@ func Test_VersionsJSONMarshal(t *testing.T) {
 }
 
 func Test_VersionsJSONUnmarshal(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var jsonData = []byte(`
 {
 	"v1": {
@@ -40,11 +48,11 @@ func Test_VersionsJSONUnmarshal(t *testing.T) {
 	}
 }
 `)
-	versions := ocfl.f11.NewVersions()
+	versions := f.NewVersions(context.Background())
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
-	version := versions.GetVersion(inventorytypes.NewVersionNumber().WithString("v1"))
+	version := versions.GetVersion(inventory.NewVersionNumber().WithString("v1"))
 	if version == nil {
 		t.Error("version v1 not found")
 	}
@@ -54,6 +62,8 @@ func Test_VersionsJSONUnmarshal(t *testing.T) {
 }
 
 func Test_VersionsInvalidJSON(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var jsonData = []byte(`
 {
 	"v1": {
@@ -64,7 +74,7 @@ func Test_VersionsInvalidJSON(t *testing.T) {
 	}
 }
 `)
-	versions := ocfl.f11.NewVersions()
+	versions := f.NewVersions(context.Background())
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
@@ -74,10 +84,12 @@ func Test_VersionsInvalidJSON(t *testing.T) {
 }
 
 func Test_VersionsCheck(t *testing.T) {
-	val := NewDummyValidation()
-	versions := ocfl.f11.NewVersions()
-	version := ocfl.f11.NewVersion().WithMessage("test")
-	versions.SetVersion(inventorytypes.NewVersionNumber().WithString("v1"), version)
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	val := inventoryimpl.NewDummyValidation()
+	versions := f.NewVersions(context.Background())
+	version := f.NewVersion(context.Background()).WithMessage("test")
+	versions.SetVersion(inventory.NewVersionNumber().WithString("v1"), version)
 
 	if err := versions.Check(val, []string{}); err != nil {
 		t.Fatalf("check error: %v", err)

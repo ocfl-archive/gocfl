@@ -1,19 +1,24 @@
-package inventoryimpl
+package test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/rs/zerolog"
 )
 
 func exampleVersion(stateFileCnt int, t *testing.T) inventorytypes.Version {
-	var user = ocfl.f11.NewUser().WithName("Test User").WithAddress("test@example.com")
-	var state = ocfl.f11.NewState()
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var user = f.NewUser(context.Background()).WithName("Test User").WithAddress("test@example.com")
+	var state = f.NewState(context.Background())
 	for i := 0; i < stateFileCnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
 		if err != nil {
@@ -23,7 +28,7 @@ func exampleVersion(stateFileCnt int, t *testing.T) inventorytypes.Version {
 			t.Fatalf("File %d has not modified state", i)
 		}
 	}
-	var version = ocfl.f11.NewVersion().
+	var version = f.NewVersion(context.Background()).
 		WithState(state).
 		WithMessage("Test version message").
 		WithUser(user).
@@ -32,6 +37,8 @@ func exampleVersion(stateFileCnt int, t *testing.T) inventorytypes.Version {
 }
 
 func Test_VersionJSONMarshal(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var cnt = 3
 	var version = exampleVersion(cnt, t)
 
@@ -40,7 +47,7 @@ func Test_VersionJSONMarshal(t *testing.T) {
 		t.Fatalf("Error marshalling version: %v", err)
 	}
 
-	version2 := ocfl.f11.NewVersion()
+	version2 := f.NewVersion(context.Background())
 	if err := json.Unmarshal(bytes, version2); err != nil {
 		t.Fatalf("Error unmarshalling version: %v", err)
 	}
@@ -51,6 +58,8 @@ func Test_VersionJSONMarshal(t *testing.T) {
 }
 
 func Test_VersionJSONUnmarshal(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var bytes = []byte(`{
   "created": "2024-01-15T10:30:00Z",
   "message": "Initial commit",
@@ -63,7 +72,7 @@ func Test_VersionJSONUnmarshal(t *testing.T) {
     "digest002": ["file002"]
   }
 }`)
-	var version = ocfl.f11.NewVersion()
+	var version = f.NewVersion(context.Background())
 	if err := json.Unmarshal(bytes, version); err != nil {
 		t.Fatalf("Error unmarshalling version: %v", err)
 	}
@@ -87,6 +96,8 @@ func Test_VersionJSONUnmarshal(t *testing.T) {
 }
 
 func Test_VersionJSONUnmarshalError(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var bytes = []byte(`{
   "created": "invalid-date",
   "message": "Test message",
@@ -94,7 +105,7 @@ func Test_VersionJSONUnmarshalError(t *testing.T) {
     "digest001": "invalid-not-array"
   }
 }`)
-	var version = ocfl.f11.NewVersion()
+	var version = f.NewVersion(context.Background())
 	if err := json.Unmarshal(bytes, version); err != nil {
 		t.Errorf("Error unmarshalling version: %v", err)
 	}
@@ -121,7 +132,9 @@ func Test_VersionState(t *testing.T) {
 }
 
 func Test_VersionMessage(t *testing.T) {
-	var version = ocfl.f11.NewVersion().WithMessage("Test message")
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var version = f.NewVersion(context.Background()).WithMessage("Test message")
 
 	message := version.GetMessage()
 	if message != "Test message" {
@@ -130,8 +143,10 @@ func Test_VersionMessage(t *testing.T) {
 }
 
 func Test_VersionCreated(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	now := time.Now().UTC().Truncate(time.Second)
-	var version = ocfl.f11.NewVersion().WithCreated(now)
+	var version = f.NewVersion(context.Background()).WithCreated(now)
 
 	created := version.GetCreated()
 	if !created.Equal(now) {

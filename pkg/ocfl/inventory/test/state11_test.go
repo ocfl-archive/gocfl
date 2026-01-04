@@ -1,18 +1,23 @@
-package inventoryimpl
+package test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
 	"testing"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/rs/zerolog"
 )
 
 func exampleState(cnt int, t *testing.T) inventorytypes.State {
-	var state = ocfl.f11.NewState()
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var state = f.NewState(context.Background())
 	for i := 0; i < cnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
 		if err != nil {
@@ -33,6 +38,8 @@ func exampleState(cnt int, t *testing.T) inventorytypes.State {
 }
 
 func Test_StateJSONMarshal(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var cnt = 4
 	var state = exampleState(cnt, t)
 	var num int
@@ -51,7 +58,7 @@ func Test_StateJSONMarshal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error marshalling state: %v", err)
 	}
-	state2 := ocfl.f11.NewState()
+	state2 := f.NewState(context.Background())
 	if err := json.Unmarshal(bytes, state2); err != nil {
 		t.Fatalf("Error unmarshalling state: %v", err)
 	}
@@ -61,13 +68,15 @@ func Test_StateJSONMarshal(t *testing.T) {
 }
 
 func Test_StateJSONUnmarshal(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var bytes = []byte(`{
   "digest000" : [ "file000", "file000x" ],
   "digest001" : [ "file001", "file001x" ],
   "digest002" : [ "file002", "file002x" ],
   "digest003" : [ "file003", "file003x" ]
 }`)
-	var state = ocfl.f11.NewState()
+	var state = f.NewState(context.Background())
 	if err := json.Unmarshal(bytes, state); err != nil {
 		t.Fatalf("Error unmarshalling state: %v", err)
 	}
@@ -86,13 +95,15 @@ func Test_StateJSONUnmarshal(t *testing.T) {
 }
 
 func Test_StateJSONUnmarshalError(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
 	var bytes = []byte(`{
   "digest000" : [ "file000", "file000x" ],
   "digest001" : [ "file001", "file001x" ],
   "digest002" : [ "file002", "file002x" ],
   "digest003" : "file003"
 }`)
-	var state = ocfl.f11.NewState()
+	var state = f.NewState(context.Background())
 	if err := json.Unmarshal(bytes, state); err != nil {
 		t.Errorf("Error unmarshalling state: %v", err)
 	}
