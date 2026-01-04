@@ -19,13 +19,13 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/data/specs"
+	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -499,7 +499,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 						XMLName:          xml.Name{},
 						CompositionLevel: nil,
 						Fixity: []*premis.FixityComplexType{
-							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+version.Version),
+							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+info.Version),
 						},
 						Size:   int64(extIndexer.Size),
 						Format: []*premis.FormatComplexType{},
@@ -566,7 +566,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 					}
 					for digest, checksum := range metaFile.Checksums {
 						objectCharacter.Fixity = append(objectCharacter.Fixity,
-							premis.NewFixityComplexType(string(digest), checksum, "gocfl "+version.Version),
+							premis.NewFixityComplexType(string(digest), checksum, "gocfl "+info.Version),
 						)
 					}
 					if extIndexer != nil {
@@ -1056,7 +1056,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 						AgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 					}},
 				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", version.Version), "", "", ""),
+					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", info.Version), "", "", ""),
 				},
 			},
 		},
@@ -1255,7 +1255,7 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 						Note: []*mets.Note{
 							&mets.Note{
 								XMLName: xml.Name{},
-								Value:   fmt.Sprintf("Version %s", version.Version),
+								Value:   fmt.Sprintf("Build %s", info.Version),
 							},
 						},
 					},

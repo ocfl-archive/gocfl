@@ -7,10 +7,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	validation2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/version"
 )
 
 type creatorFunc func(fsys fs.FS) (extension.Extension, error)
@@ -100,7 +100,8 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
 			if validation != nil {
-				validation.AddValidationWarning(validation2.W000, "extension %s not supported by gocfl %s", file.Name(), version.Version)
+
+				validation.AddValidationWarning(validation2.W000, "extension %s not supported by gocfl %s", file.Name(), info.Version)
 			}
 		} else {
 			if !ext.IsRegistered() {

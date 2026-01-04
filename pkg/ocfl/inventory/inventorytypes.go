@@ -14,7 +14,7 @@ const (
 	InventorySpec1_1 InventorySpec = "https://ocfl.io/1.1/spec/#inventory"
 )
 
-// return true if Specification s1 < s2
+// SpecIsLessOrEqual return true if Specification s1 <= s2
 func SpecIsLessOrEqual(s1, s2 InventorySpec) bool {
 	//return s1 == InventorySpec1_0 && s2 == InventorySpec1_1
 	return s1 <= s2

@@ -10,10 +10,10 @@ import (
 	configutil "github.com/je4/utils/v2/pkg/config"
 	archiveerror "github.com/ocfl-archive/error/pkg/error"
 	"github.com/ocfl-archive/gocfl/v2/config"
+	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	version2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -111,8 +111,9 @@ var rootCmd = &cobra.Command{
 source code is available at: https://github.com/ocfl-archive/gocfl
 
 by Jürgen Enge (University Library Basel, juergen@info-age.net)`,
-	Version: fmt.Sprintf("%s '%s' (%s)", version.Version, version.ShortCommit(), version.Date),
+	Version: info.Version,
 	Run: func(cmd *cobra.Command, args []string) {
+		//cmd.Version = info.Version
 		_ = cmd.Help()
 	},
 }
