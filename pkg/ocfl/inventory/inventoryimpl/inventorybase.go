@@ -3,6 +3,7 @@ package inventoryimpl
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -59,6 +60,24 @@ type InventoryBase struct {
 	Versions         inventory.Versions       `json:"versions,omitempty"`
 	Fixity           inventory.Fixity         `json:"fixity,omitempty"`
 	logger           zLogger.ZLogger
+}
+
+func (i *InventoryBase) Bytes() (inventoryBytes []byte, checksumString string, err error) {
+	inventoryBytes, err = json.MarshalIndent(i, "", "   ")
+	if err != nil {
+		return nil, "", errors.Wrap(err, "cannot marshal inventory")
+	}
+	h, err := checksum.GetHash(i.GetDigestAlgorithm())
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "invalid digest algorithm '%s'", string(i.GetDigestAlgorithm()))
+	}
+	if _, err := h.Write(inventoryBytes); err != nil {
+		return nil, "", errors.Wrapf(err, "cannot create checksum of manifest")
+	}
+	checksumBytes := h.Sum(nil)
+	checksumString = fmt.Sprintf("%x", checksumBytes)
+	return
+
 }
 
 func (i *InventoryBase) WithVersions(versions inventory.Versions) inventory.Inventory {

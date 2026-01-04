@@ -292,13 +292,13 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 			return errors.Wrapf(err, "cannot build names for %s", premisName)
 		}
 	case "extension":
-		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetVersion()))), "/")
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetOCFLVersion()))), "/")
 		metsNames = &object.NamesStruct{
 			ExternalPaths: []string{me.MetsFile},
 			InternalPath:  metsName,
 			ManifestPath:  "",
 		}
-		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetVersion()))), "/")
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetOCFLVersion()))), "/")
 		premisNames = &object.NamesStruct{
 			ExternalPaths: []string{me.PremisFile},
 			InternalPath:  premisName,
@@ -1344,8 +1344,8 @@ func (me *Mets) UpdateObjectAfter(obj object.Object) error {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
 		}
 	case "extension":
-		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetVersion()))), "/")
-		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetVersion()))), "/")
+		metsName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.MetsFile, obj.GetOCFLVersion()))), "/")
+		premisName := strings.TrimLeft(filepath.ToSlash(filepath.Join(me.StorageName, fmt.Sprintf(me.PremisFile, obj.GetOCFLVersion()))), "/")
 		if _, err := writefs.WriteFile(me.fsys, metsName, metsBytes); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", me.fsys, metsName)
 		}

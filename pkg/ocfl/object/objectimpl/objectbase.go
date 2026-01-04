@@ -261,7 +261,7 @@ func (object *ObjectBase) CreateInventory(id string, digestAlg checksum.DigestAl
 		WithFixity(fixity)
 
 	/*
-		inventory, err := inventory.NewInventory(object.ctx, "new", object.GetVersion(), object.logger)
+		inventory, err := inventory.NewInventory(object.ctx, "new", object.GetOCFLVersion(), object.logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create empty inventory")
 		}
@@ -326,23 +326,6 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (inventory.I
 	}
 
 	return inventory, inventory.Finalize(false)
-}
-
-func (object *ObjectBase) GetInventoryContent() (inventory []byte, checksumString string, err error) {
-	inventory, err = json.MarshalIndent(object.i, "", "   ")
-	if err != nil {
-		return nil, "", errors.Wrap(err, "cannot marshal inventory")
-	}
-	h, err := checksum.GetHash(object.i.GetDigestAlgorithm())
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "invalid digest algorithm '%s'", string(object.i.GetDigestAlgorithm()))
-	}
-	if _, err := h.Write(inventory); err != nil {
-		return nil, "", errors.Wrapf(err, "cannot create checksum of manifest")
-	}
-	checksumBytes := h.Sum(nil)
-	checksumString = fmt.Sprintf("%x", checksumBytes)
-	return inventory, checksumString, nil
 }
 
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
@@ -1094,7 +1077,7 @@ func (object *ObjectBase) GetID() string {
 	return object.i.GetID()
 }
 
-func (object *ObjectBase) GetVersion() version.OCFLVersion {
+func (object *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 	return object.version
 }
 
@@ -1354,7 +1337,7 @@ func (object *ObjectBase) checkFilesAndVersions() error {
 func (object *ObjectBase) Check() error {
 	// https://ocfl.io/1.0/spec/#object-structure
 	//object.fs
-	object.logger.Info().Msgf("object '%s' with object version '%s' found", object.GetID(), object.GetVersion())
+	object.logger.Info().Msgf("object '%s' with object version '%s' found", object.GetID(), object.GetOCFLVersion())
 	// check folders
 
 	// check for allowed files and directories

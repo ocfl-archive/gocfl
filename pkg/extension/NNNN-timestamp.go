@@ -68,7 +68,7 @@ type Timestamp struct {
 }
 
 func (sl *Timestamp) trustedTimestamp(object object.Object) error {
-	_, checksumString, err := object.GetInventoryContent()
+	_, checksumString, err := object.GetInventory().Bytes()
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
 	}

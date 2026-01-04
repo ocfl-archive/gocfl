@@ -20,6 +20,7 @@ type Inventory interface {
 	GetHead() *VersionNumber
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
+	Bytes() (inventory []byte, checksumString string, err error)
 
 	//	DeleteFile(stateFilename string) error
 	//	RenameFile(stateSource, stateDest string) error

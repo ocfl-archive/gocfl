@@ -22,7 +22,6 @@ type Object interface {
 	//CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() inventory.Inventory
-	GetInventoryContent() (inventory []byte, checksumString string, err error)
 	StoreExtensions() error
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
 	Load() error
@@ -37,7 +36,7 @@ type Object interface {
 	DeleteFile(virtualFilename string, digest string) error
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
 	GetID() string
-	GetVersion() version.OCFLVersion
+	GetOCFLVersion() version.OCFLVersion
 	Check() error
 	Close() error
 	GetFS() fs.FS
