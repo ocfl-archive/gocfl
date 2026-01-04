@@ -7,7 +7,7 @@ import (
 
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
@@ -35,7 +35,7 @@ type StorageRoot interface {
 	IsModified() bool
 	SetModified()
 	GetVersion() version.OCFLVersion
-	Stat(w io.Writer, path string, id string, statInfo []stat.StatInfo) error
+	Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 	//Extract(fsys fs.FS, path, id, version string, withManifest bool, area string) error
 	//ExtractMeta(path, id string) (*object.StorageRootMetadata, error)
 }

@@ -25,7 +25,6 @@ import (
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	object2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -185,7 +184,7 @@ func (object *ObjectBase) GetMetadata() (*inventory.Metadata, error) {
 	return result, nil
 }
 
-func (object *ObjectBase) Stat(w io.Writer, statInfo []stat.StatInfo) error {
+func (object *ObjectBase) Stat(w io.Writer, statInfo []object2.StatInfo) error {
 	fmt.Fprintf(w, "[%s] Path: %s\n", object.GetID(), object.GetDigestAlgorithm())
 	i := object.GetInventory()
 	fmt.Fprintf(w, "[%s] Head: %s\n", object.GetID(), i.GetHead())
@@ -206,17 +205,17 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 		uniqueFileCount++
 	}
 	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", object.GetID(), cnt, uniqueFileCount)
-	if slices.Contains(statInfo, stat.StatObjectVersions) || len(statInfo) == 0 {
+	if slices.Contains(statInfo, object2.StatObjectVersions) || len(statInfo) == 0 {
 		for vString, ver := range i.GetVersions().Iterate() {
 			fmt.Fprintf(w, "[%s] Version %s\n", object.GetID(), vString)
 			fmt.Fprintf(w, "[%s]     User: %s (%s)\n", object.GetID(), ver.GetUser().GetName(), ver.GetUser().GetAddress())
 			fmt.Fprintf(w, "[%s]     Created: %s\n", object.GetID(), ver.GetCreated().String())
 			fmt.Fprintf(w, "[%s]     Message: %s\n", object.GetID(), ver.GetMessage())
-			if slices.Contains(statInfo, stat.StatObjectVersionState) || len(statInfo) == 0 {
+			if slices.Contains(statInfo, object2.StatObjectVersionState) || len(statInfo) == 0 {
 				for cs, sList := range ver.GetState().Iterate() {
 					for _, s := range sList {
 						fmt.Fprintf(w, "[%s]        %s\n", object.GetID(), s)
-						if slices.Contains(statInfo, stat.StatObjectManifest) || len(statInfo) == 0 {
+						if slices.Contains(statInfo, object2.StatObjectManifest) || len(statInfo) == 0 {
 							ms, err := manifest.GetFiles(cs)
 							if err != nil {
 								if errors.Is(err, inventory.DigestNotFound) {
@@ -233,7 +232,7 @@ func (object *ObjectBase) Stat(w io.Writer, statInfo []stat.StatInfo) error {
 			}
 		}
 	}
-	if slices.Contains(statInfo, stat.StatObjectExtensionConfigs) || len(statInfo) == 0 {
+	if slices.Contains(statInfo, object2.StatObjectExtensionConfigs) || len(statInfo) == 0 {
 		data, err := json.MarshalIndent(object.extensionManager.GetConfig(), "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")

@@ -13,7 +13,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -39,7 +39,7 @@ func initStat() {
 	statCmd.Flags().StringP("object-id", "i", "", "object id to show statistics for")
 
 	infos := []string{}
-	for info, _ := range stat.StatInfoString {
+	for info, _ := range object.StatInfoString {
 		infos = append(infos, info)
 	}
 	statCmd.Flags().String("stat-info", "", fmt.Sprintf("comma separated list of info fields to show [%s]", strings.Join(infos, ",")))
@@ -114,11 +114,11 @@ func doStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	statInfo := []stat.StatInfo{}
+	statInfo := []object.StatInfo{}
 	for _, statInfoString := range conf.Stat.Info {
 		statInfoString = strings.ToLower(strings.TrimSpace(statInfoString))
 		var found bool
-		for str, info := range stat.StatInfoString {
+		for str, info := range object.StatInfoString {
 			if strings.ToLower(str) == statInfoString {
 				found = true
 				statInfo = append(statInfo, info)

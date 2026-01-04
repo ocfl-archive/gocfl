@@ -11,7 +11,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
@@ -89,7 +89,7 @@ func (sl *NTupleOmitPrefixStorageLayout) IsRegistered() bool {
 	return true
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []stat.StatInfo) error {
+func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []object.StatInfo) error {
 	return nil
 }
 

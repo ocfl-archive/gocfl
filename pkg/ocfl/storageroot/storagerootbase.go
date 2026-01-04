@@ -20,7 +20,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -441,14 +440,14 @@ func (osr *StorageRootBase) CheckObjects() error {
 
 */
 
-func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo []stat.StatInfo) error {
+func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error {
 	if _, err := fmt.Fprintf(w, "Storage Root\n"); err != nil {
 		return errors.Wrap(err, "cannot write to writer")
 	}
 	if _, err := fmt.Fprintf(w, "OCFL Version: %s\n", osr.GetVersion()); err != nil {
 		return errors.Wrap(err, "cannot write to writer")
 	}
-	if slices.Contains(statInfo, stat.StatExtensionConfigs) || len(statInfo) == 0 {
+	if slices.Contains(statInfo, object.StatExtensionConfigs) || len(statInfo) == 0 {
 		data, err := json.MarshalIndent(osr.extensionManager.GetConfig(), "", "  ")
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")

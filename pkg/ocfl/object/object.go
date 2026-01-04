@@ -4,7 +4,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/stat"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
 	"io"
@@ -43,7 +42,7 @@ type Object interface {
 	Close() error
 	GetFS() fs.FS
 	IsModified() bool
-	Stat(w io.Writer, statInfo []stat.StatInfo) error
+	Stat(w io.Writer, statInfo []StatInfo) error
 	Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error
 	GetMetadata() (*inventory.Metadata, error)
 	GetAreaPath(area string) (string, error)

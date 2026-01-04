@@ -1,4 +1,4 @@
-package stat
+package object
 
 type StatInfo int64
 
