@@ -358,7 +358,7 @@
         {{- $thumb := (index $file.Extension "NNNN-thumbnail") }}
         {{- $indexer := (index $file.Extension "NNNN-indexer") }}
         {{- $filesystem := (index $file.Extension "NNNN-filesystem") }}
-        {{- $extNames := (index $file.VersionName $data.head) }}
+        {{- $extNames := (index $file.VersionName $data.head.String) }}
         {{- $hasThumb := and (and $thumb (not $thumb.Error)) (eq $thumb.SourceDigest $cs) }}
         {{- $isThumb := and (and $thumb (not $thumb.Error)) (eq $thumb.ThumbDigest $cs) }}
         {{- if eq (len $extNames) 0 }}
