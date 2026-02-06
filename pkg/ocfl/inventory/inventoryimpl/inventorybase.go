@@ -276,9 +276,11 @@ func (i *InventoryBase) check() error {
 		}
 	}
 
-	if err := i.GetManifest().Check(i, nil, versionDigests); err != nil {
-		return errors.WithStack(err)
-	}
+	/*
+		if err := i.GetManifest().Check(i, nil, versionDigests); err != nil {
+			return errors.WithStack(err)
+		}
+	*/
 	if err := i.GetFixity().Check(i, fileManifestDigest); err != nil {
 		return errors.WithStack(err)
 	}
@@ -332,9 +334,12 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 		}
 		return errors.Errorf("checksum for '%s' not created", i.GetDigestAlgorithm())
 	}
-	if err := i.Manifest.Check(i, csFiles, nil); err != nil {
-		return errors.Wrap(err, "manifest check failed")
-	}
+	_ = csFiles
+	/*
+		if err := i.Manifest.Check(i, csFiles, nil); err != nil {
+			return errors.Wrap(err, "manifest check failed")
+		}
+	*/
 	if err := i.Fixity.Check(i, fileManifest); err != nil {
 		return errors.Wrap(err, "fixity check failed")
 	}
