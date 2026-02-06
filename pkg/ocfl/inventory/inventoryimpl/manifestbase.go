@@ -80,12 +80,12 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 		for digest, files := range manifest.Iterate() {
 			csFilenames, ok := csFiles[strings.ToLower(digest)]
 			if !ok {
-				val.AddValidationError(validation.E092, "digest '%manifest' for file(manifest) %v not found in content", digest, files)
+				val.AddValidationError(validation.E092, "digest '%s' for file(s) %v not found in content", digest, files)
 				continue
 			}
 			for _, file := range files {
 				if !slices.Contains(csFilenames, file) {
-					val.AddValidationError(validation.E092, "invalid digest for file '%manifest'", file)
+					val.AddValidationError(validation.E092, "invalid digest for file '%s'", file)
 				}
 			}
 		}
@@ -95,20 +95,20 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 	for digest, paths := range manifest.Iterate() {
 		//		digest = strings.ToLower(digest)
 		if slices.Contains(digests, digest) {
-			val.AddValidationError(validation.E096, "manifest digest '%manifest' is duplicate", digest)
+			val.AddValidationError(validation.E096, "manifest digest '%s' is duplicate", digest)
 		} else {
 			digests = util.SliceInsertSorted(digests, digest)
 			//digests = append(digests, digest)
 			if _, found := slices.BinarySearch(versionDigests, digest); !found {
 				//if !slices.Contains(versionDigests, digest) {
-				val.AddValidationError(validation.E107, "digest '%manifest' does not appear in any version", digest)
+				val.AddValidationError(validation.E107, "digest '%s' does not appear in any version", digest)
 			}
 		}
 		for _, path := range paths {
 			//allPaths = sliceInsertSorted(allPaths, path)
 			allPaths = append(allPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
-				val.AddValidationError(validation.E100, "invalid path '%manifest' in manifest", path)
+				val.AddValidationError(validation.E100, "invalid path '%s' in manifest", path)
 			}
 			if path == "" {
 				val.AddValidationError(validation.E099, "empty path in manifest")
@@ -120,7 +120,7 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 			elements := strings.Split(path2, "/")
 			for _, element := range elements {
 				if slices.Contains([]string{"", ".", ".."}, element) {
-					val.AddValidationError(validation.E099, "invalid path '%manifest' in manifest", path)
+					val.AddValidationError(validation.E099, "invalid path '%s' in manifest", path)
 				}
 			}
 
@@ -209,7 +209,7 @@ func (manifest *ManifestBase) Iterate() func(yield func(digest string, internal 
 func (manifest *ManifestBase) GetFiles(digest string) ([]string, error) {
 	files, ok := manifest.manifest[digest]
 	if !ok {
-		return nil, errors.Wrapf(inventory.DigestNotFound, "digest %manifest", digest)
+		return nil, errors.Wrapf(inventory.DigestNotFound, "digest %s", digest)
 	}
 	return files, nil
 }
@@ -217,7 +217,7 @@ func (manifest *ManifestBase) GetFiles(digest string) ([]string, error) {
 func (manifest *ManifestBase) UnmarshalJSON(data []byte) error {
 	manifest.manifest = map[string][]string{}
 	if err := json.Unmarshal(data, &manifest.manifest); err != nil {
-		manifest.err = errors.Wrapf(err, "cannot unmarshal state %manifest", string(data))
+		manifest.err = errors.Wrapf(err, "cannot unmarshal state %s", string(data))
 		return nil
 	}
 	return nil
