@@ -1443,7 +1443,7 @@ var ObjectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$"
 // helper functions
 
 func (object *ObjectBase) getVersionInventories() (map[string]inventory.Inventory, error) {
-	if object.versionInventories != nil {
+	if len(object.versionInventories) > 0 {
 		return object.versionInventories, nil
 	}
 
