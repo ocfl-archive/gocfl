@@ -165,7 +165,10 @@ func (manifest *ManifestBase) Equals(manifest2 inventory.Manifest) bool {
 	if !ok {
 		return false
 	}
-	if manifest.err.Error() != manifest2.Err().Error() {
+	if (manifest.Err() == nil && manifest2.Err() != nil) || (manifest.Err() != nil && manifest2.Err() == nil) {
+		return false
+	}
+	if (manifest.Err() != nil && manifest2.Err() != nil) && manifest.Err().Error() != manifest2.Err().Error() {
 		return false
 	}
 	if len(manifest.manifest) != len(manifest2B.manifest) {
