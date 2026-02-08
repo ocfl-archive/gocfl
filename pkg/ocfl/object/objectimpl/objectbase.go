@@ -35,14 +35,16 @@ import (
 
 //var objectConformanceDeclaration = fmt.Sprintf("0=ocfl_object_%s", VERSION)
 
-// newObjectBase creates an empty ObjectBase structure
+// todo: check WithWriteable() and repair incorrect use...
+
+// NewObjectBase creates an empty ObjectBase structure
 func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager extensiontypes.ExtensionManagerCore, logger zLogger.ZLogger) *ObjectBase {
 	ocfl := &ObjectBase{
 		extensionFactory: extensionFactory,
 		extensionManager: extensionManager.(object2.ExtensionManager),
 		ctx:              ctx,
 		fsys:             nil,
-		i:                factory.NewInventory(ctx),
+		i:                factory.NewInventory(ctx).WithWriteable(),
 		//versionFolders:     []string{},
 		versionInventories: map[string]inventory.Inventory{},
 		changed:            false,
@@ -303,7 +305,7 @@ func (object *ObjectBase) loadInventory(data []byte, folder string) (inventory.I
 		// if we don't know anything use the old stuff
 		ver = version.Version1_0
 	}
-	inventory := object.factory.NewInventory(object.ctx)
+	inventory := object.factory.NewInventory(object.ctx).WithWriteable()
 	/*
 		inventory, err := inventory.NewInventory(object.ctx, folder, ver, object.logger)
 		if err != nil {
@@ -339,7 +341,7 @@ func (object *ObjectBase) LoadInventory(folder string) (inventory.Inventory, err
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 			return nil, err
 		}
-		inventory := object.factory.NewInventory(object.ctx)
+		inventory := object.factory.NewInventory(object.ctx).WithWriteable()
 		return inventory, nil
 	}
 	inventory, err := object.loadInventory(inventoryBytes, folder)
@@ -675,6 +677,9 @@ func (object *ObjectBase) EndArea() error {
 func (object *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error {
 	object.logger.Debug().Msgf("walking '%v'", fsys)
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
+		if info.Name() == "." {
+			return nil
+		}
 		path = filepath.ToSlash(path)
 		if err := object.AddFile(fsys, versionFS, path, checkDuplicate, area, false, info.IsDir()); err != nil {
 			return errors.Wrapf(err, "cannot add file '%s'", path)
