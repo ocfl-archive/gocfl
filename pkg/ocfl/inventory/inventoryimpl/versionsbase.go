@@ -57,7 +57,7 @@ func (v *versionsBase) NewVersion(head *inventory.VersionNumber, msg, UserName, 
 		if paddingLength := head.GetPaddingLength(); paddingLength > 0 {
 			newVersionNumber = inventory.NewVersionNumber().WithString(fmt.Sprintf("v0%0*d", paddingLength, head.Int()+1))
 		} else {
-			newVersionNumber = inventory.NewVersionNumber().WithString(fmt.Sprintf("%d", head.Int()+1))
+			newVersionNumber = inventory.NewVersionNumber().WithString(fmt.Sprintf("v%d", head.Int()+1))
 		}
 	} else {
 		newVersionNumber = inventory.NewVersionNumber().WithString("v1")
