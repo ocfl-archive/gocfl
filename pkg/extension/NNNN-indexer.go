@@ -276,15 +276,23 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 			path2digest[name] = checksum
 		}
 	}
-	for v := range inventory.GetVersions().GetVersionNumbers() {
+	for v, ver := range inventory.GetVersions().Iterate() {
+		//for v := range inventory.GetVersions().GetVersionNumbers() {
+		if ver.InCreation() {
+			continue
+		}
 		var data []byte
-		if buf, ok := sl.buffer[v.String()]; ok && buf.Len() > 0 {
-			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
-			// need a new reader on the buffer
-			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
-			data, err = io.ReadAll(reader)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+		if buf, ok := sl.buffer[v.String()]; ok {
+			if buf.Len() > 0 {
+				//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
+				// need a new reader on the buffer
+				reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
+				data, err = io.ReadAll(reader)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+				}
+			} else {
+				data = nil
 			}
 		} else {
 			data, err = ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
@@ -293,20 +301,22 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 			}
 		}
 
-		reader := bytes.NewReader(data)
-		r := bufio.NewScanner(reader)
-		r.Buffer(make([]byte, 128*1024), 16*1024*1024)
-		r.Split(bufio.ScanLines)
-		for r.Scan() {
-			line := r.Text()
-			var meta = indexerLine{}
-			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
+		if data != nil {
+			reader := bytes.NewReader(data)
+			r := bufio.NewScanner(reader)
+			r.Buffer(make([]byte, 128*1024), 16*1024*1024)
+			r.Split(bufio.ScanLines)
+			for r.Scan() {
+				line := r.Text()
+				var meta = indexerLine{}
+				if err := json.Unmarshal([]byte(line), &meta); err != nil {
+					return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
+				}
+				result[path2digest[meta.Path]] = meta.Indexer
 			}
-			result[path2digest[meta.Path]] = meta.Indexer
-		}
-		if err := r.Err(); err != nil {
-			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
+			if err := r.Err(); err != nil {
+				return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
+			}
 		}
 	}
 	return result, nil
