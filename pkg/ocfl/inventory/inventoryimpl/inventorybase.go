@@ -55,7 +55,7 @@ type InventoryBase struct {
 	Type             inventory.InventorySpec  `json:"type"`
 	DigestAlgorithm  checksum.DigestAlgorithm `json:"digestAlgorithm"`
 	Head             *inventory.VersionNumber `json:"head"` // caveat: only for json marshalling
-	ContentDirectory string                   `json:"ContentDirectory,omitempty"`
+	ContentDirectory string                   `json:"contentDirectory,omitempty"`
 	Manifest         inventory.Manifest       `json:"manifest,omitempty"`
 	Versions         inventory.Versions       `json:"versions,omitempty"`
 	Fixity           inventory.Fixity         `json:"fixity,omitempty"`
