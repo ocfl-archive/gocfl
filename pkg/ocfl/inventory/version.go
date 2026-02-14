@@ -25,4 +25,5 @@ type Version interface {
 	Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error
 	Err() error
 	FileChecksum(path string) string
+	InCreation() bool
 }

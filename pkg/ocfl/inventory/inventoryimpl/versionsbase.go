@@ -51,6 +51,7 @@ type versionsBase struct {
 	ctx     context.Context
 }
 
+// todo: remove head parameter
 func (v *versionsBase) NewVersion(head *inventory.VersionNumber, msg, UserName, UserAddress string) error {
 	var newVersionNumber *inventory.VersionNumber
 	if head.IsValid() {
@@ -105,11 +106,15 @@ func (v *versionsBase) AddFile(stateFilename string, digest string) (bool, error
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
 	}
-	modified, err := latestVersion.AddFile(stateFilename, digest)
+	modified, err := latestVersion.DeleteFile(stateFilename)
 	if err != nil {
-		return false, errors.WithStack(err)
+		return false, errors.Wrapf(err, "Failed to delete file %s", stateFilename)
 	}
-	return modified, nil
+	modified2, err := latestVersion.AddFile(stateFilename, digest)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to add file %s [%s]", stateFilename, digest)
+	}
+	return modified || modified2, nil
 }
 
 func (v *versionsBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {

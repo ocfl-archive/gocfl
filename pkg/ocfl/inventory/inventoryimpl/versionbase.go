@@ -22,13 +22,18 @@ func NewVersionBase(ctx context.Context, factory inventory.Factory, logger zLogg
 }
 
 type versionBase struct {
-	version *inventory.VersionNumber
-	Created *inventory.OCFLTime   `json:"created"`
-	Message *inventory.OCFLString `json:"message"`
-	State   inventory.State       `json:"state"`
-	User    inventory.User        `json:"user"`
-	logger  zLogger.ZLogger
-	ctx     context.Context
+	version    *inventory.VersionNumber
+	Created    *inventory.OCFLTime   `json:"created"`
+	Message    *inventory.OCFLString `json:"message"`
+	State      inventory.State       `json:"state"`
+	User       inventory.User        `json:"user"`
+	logger     zLogger.ZLogger
+	ctx        context.Context
+	inCreation bool
+}
+
+func (v *versionBase) InCreation() bool {
+	return v.inCreation
 }
 
 func (v *versionBase) GetVersionNumber() *inventory.VersionNumber {
@@ -170,6 +175,7 @@ func (v *versionBase) Finalize(val validation.Validation, factory inventory.Fact
 	if v.State == nil {
 		v.State = NewStateBase()
 	}
+	v.inCreation = inCreation
 	return nil
 }
 

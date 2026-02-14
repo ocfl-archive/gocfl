@@ -244,6 +244,7 @@ func (s *stateBase) MarshalJSON() ([]byte, error) {
 }
 
 func (s *stateBase) DeleteFile(stateFilename string) (bool, error) {
+	// todo: optimize (reverse cache?)
 	var newState = map[string][]string{}
 	modified := false
 	for cs, paths := range s.Iterate() {
