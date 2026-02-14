@@ -18,8 +18,8 @@ func NewUserBase() *userBase {
 }
 
 type userBase struct {
-	Address *inventory.OCFLString
-	Name    *inventory.OCFLString
+	Address *inventory.OCFLString `json:"address"`
+	Name    *inventory.OCFLString `json:"name"`
 }
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
