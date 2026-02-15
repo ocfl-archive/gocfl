@@ -2,8 +2,8 @@ package object
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 
 	"io"
@@ -23,14 +23,14 @@ type Object interface {
 	StoreInventory(version bool, objectRoot bool) error
 	GetInventory() inventory.Inventory
 	StoreExtensions() error
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	Load() error
-	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
+	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (util.StreamFS, error)
 	EndUpdate() error
 	BeginArea(area string)
 	EndArea() error
-	AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error
-	AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
+	AddFolder(fsys fs.FS, versionFS util.StreamFS, checkDuplicate bool, area string) error
+	AddFile(fsys fs.FS, versionFS util.StreamFS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) (string, error)
 	DeleteFile(virtualFilename string, digest string) error

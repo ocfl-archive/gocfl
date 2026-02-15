@@ -14,6 +14,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -261,13 +262,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 	}()
 
+	fact := factoryimpl.NewFactory(version.OCFLVersion(conf.Init.OCFLVersion), extensionFactory, logger)
+
 	ctx := validation.NewContextValidation(context.TODO())
 	storageRoot, err := storageroot.CreateStorageRoot(
 		ctx,
 		destFS,
-		version.OCFLVersion(conf.Init.OCFLVersion),
-		extensionFactory,
-		storageRootExtensionManager,
+		fact,
 		conf.Init.Digest,
 		logger,
 	)

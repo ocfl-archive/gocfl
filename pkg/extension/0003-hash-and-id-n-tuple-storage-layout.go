@@ -14,7 +14,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
@@ -139,7 +138,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot storagerootimpl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {

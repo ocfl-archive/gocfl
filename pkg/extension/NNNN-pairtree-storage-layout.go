@@ -15,7 +15,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutPairTreeName = "NNNN-pairtree-storage-layout"
@@ -141,7 +140,7 @@ func (sl *StorageLayoutPairTree) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutPairTree) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	id = sl.idEncode(id)
 	dirparts := []string{}
 	numParts := int(math.Ceil(float64(len(id)) / float64(sl.ShortyLength)))
