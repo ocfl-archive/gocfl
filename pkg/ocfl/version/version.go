@@ -9,3 +9,5 @@ func (v OCFLVersion) String() string {
 const Version1_1 OCFLVersion = "1.1"
 const Version1_0 OCFLVersion = "1.0"
 const Version2_0 OCFLVersion = "2.0"
+
+const Default = Version1_1
