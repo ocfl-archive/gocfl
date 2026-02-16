@@ -91,39 +91,35 @@ func (s *stateBase) EchoDelete(existing []string, pathPrefix string) (bool, erro
 }
 
 func (s *stateBase) CopyFile(stateFilename, digest string) (bool, error) {
-	var modified bool
 	if _, ok := s.State[digest]; !ok {
 		return false, errors.Errorf("digest %s not found", digest)
 	}
-	if !slices.Contains(s.State[digest], stateFilename) {
-		s.State[digest] = append(s.State[digest], stateFilename)
-		modified = true
-	}
-	return modified, nil
+	return s.AddFile(stateFilename, digest)
 }
 
 func (s *stateBase) RenameFile(oldStateFilename, newStateFilename string) (bool, error) {
-	var newState = map[string][]string{}
-	modified := false
-	for cs, paths := range s.Iterate() {
-		var newPaths = make([]string, 0, len(paths))
-		for _, path := range paths {
-			if path == oldStateFilename {
-				newPaths = append(newPaths, newStateFilename)
-				modified = true
-			} else {
-				newPaths = append(newPaths, path)
-			}
-		}
-		if len(newPaths) > 0 {
-			newState[cs] = newPaths
+	if oldStateFilename == newStateFilename {
+		return false, nil
+	}
+	// find digest of old file
+	var oldDigest string
+	for d, ps := range s.State {
+		if slices.Contains(ps, oldStateFilename) {
+			oldDigest = d
+			break
 		}
 	}
-	if modified {
-		s.State = newState
+	if oldDigest == "" {
+		return false, nil
 	}
-	return modified, nil
 
+	// remove old file
+	if _, err := s.DeleteFile(oldStateFilename); err != nil {
+		return false, errors.Wrapf(err, "failed to delete old file %s", oldStateFilename)
+	}
+
+	// add new file with old digest
+	return s.AddFile(newStateFilename, oldDigest)
 }
 
 func (s *stateBase) FileChecksum(path string) string {

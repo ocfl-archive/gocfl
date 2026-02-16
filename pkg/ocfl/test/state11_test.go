@@ -171,3 +171,88 @@ func Test_StateRename(t *testing.T) {
 		t.Error("file000y not in digest000")
 	}
 }
+
+func Test_StateUniqueness(t *testing.T) {
+	var logger = zerolog.New(zerolog.NewConsoleWriter())
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
+	var state = f.NewState(context.Background())
+
+	// Hinzufügen einer Datei
+	modified, err := state.AddFile("file1", "digest1")
+	if err != nil || !modified {
+		t.Fatalf("AddFile failed: %v, %v", err, modified)
+	}
+
+	// Hinzufügen derselben Datei mit demselben Digest (sollte keine Änderung bewirken)
+	modified, err = state.AddFile("file1", "digest1")
+	if err != nil {
+		t.Fatalf("AddFile failed: %v", err)
+	}
+	if modified {
+		t.Error("AddFile with same digest should not be modified")
+	}
+
+	// Hinzufügen derselben Datei mit einem anderen Digest (sollte verschoben werden)
+	modified, err = state.AddFile("file1", "digest2")
+	if err != nil {
+		t.Fatalf("AddFile failed: %v", err)
+	}
+	if !modified {
+		t.Error("AddFile with different digest should be modified")
+	}
+
+	// Prüfen, ob file1 nur noch bei digest2 ist
+	d1Files, _ := state.GetFiles("digest1")
+	if slices.Contains(d1Files, "file1") {
+		t.Error("file1 should have been removed from digest1")
+	}
+	d2Files, _ := state.GetFiles("digest2")
+	if !slices.Contains(d2Files, "file1") {
+		t.Error("file1 should be in digest2")
+	}
+
+	// Test für CopyFile (falls vorhanden) - sicherstellen, dass Eindeutigkeit gewahrt bleibt
+	modified, err = state.CopyFile("file1", "digest3")
+	// Laut Implementierung in statebase.go gibt CopyFile einen Fehler zurück, wenn der Digest nicht existiert.
+	// Aber hier geht es um die Eindeutigkeit des Dateinamens.
+
+	// Zuerst einen gültigen digest3 erstellen
+	_, _ = state.AddFile("file2", "digest3")
+
+	modified, err = state.CopyFile("file1", "digest3")
+	if err != nil {
+		t.Fatalf("CopyFile failed: %v", err)
+	}
+	// Aktuell löscht CopyFile den alten Dateinamen NICHT.
+
+	// Test für RenameFile auf existierenden Namen
+	_, _ = state.AddFile("file3", "digest4")
+	modified, err = state.RenameFile("file1", "file3")
+	if err != nil {
+		t.Fatalf("RenameFile failed: %v", err)
+	}
+	// Aktuell löscht RenameFile den Zielnamen NICHT, es fügt ihn einfach hinzu.
+
+	// Verifizieren, dass file3 nur einmal vorkommt
+	count := 0
+	for _, paths := range state.Iterate() {
+		for _, p := range paths {
+			if p == "file3" {
+				count++
+			}
+		}
+	}
+	if count > 1 {
+		t.Errorf("file3 occurs %d times in state", count)
+	}
+
+	// Test für Löschen
+	modified, err = state.DeleteFile("file3")
+	if err != nil || !modified {
+		t.Fatalf("DeleteFile failed: %v, %v", err, modified)
+	}
+	modified, err = state.DeleteFile("file3")
+	if err != nil || modified {
+		t.Errorf("DeleteFile for non-existing file should not be modified: %v, %v", err, modified)
+	}
+}
