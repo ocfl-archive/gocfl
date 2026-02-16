@@ -20,6 +20,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
@@ -37,13 +38,13 @@ import (
 // todo: check WithWriteable() and repair incorrect use...
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) *ObjectBase {
-	ocfl := &ObjectBase{
+func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager extensiontypes.ExtensionManagerCore, logger zLogger.ZLogger) *ObjectBase {
+	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
-		//extensionManager: extensionManager.(object.ExtensionManager),
-		ctx:  ctx,
-		fsys: nil,
-		i:    factory.NewInventory(ctx).WithWriteable(),
+		extensionManager: extensionManager.(object.ExtensionManager),
+		ctx:              ctx,
+		fsys:             nil,
+		i:                factory.NewInventory(ctx).WithWriteable(),
 		//versionFolders:     []string{},
 		versionInventories: map[string]inventory.Inventory{},
 		changed:            false,
@@ -55,7 +56,7 @@ func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVer
 		area:               "",
 		factory:            factory,
 	}
-	return ocfl
+	return objectBase
 }
 
 type ObjectBase struct {
@@ -83,14 +84,6 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 func (objectBase *ObjectBase) WithFS(fsys fs.FS) object.Object {
 	objectBase.fsys = fsys
-	extFS, err := fs.Sub(fsys, "extensions")
-	if err != nil {
-		panic(err)
-	}
-	objectBase.extensionManager, err = objectBase.extensionFactory.CreateExtensions(extFS, objectBase)
-	if err != nil {
-		panic(err)
-	}
 	return objectBase
 }
 
@@ -270,7 +263,7 @@ func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.Dige
 		WithFixity(fixity)
 
 	/*
-		inventory, err := inventory.NewInventory(objectBase.ctx, "new", object.GetOCFLVersion(), objectBase.logger)
+		inventory, err := inventory.NewInventory(objectBase.ctx, "new", objectBase.GetOCFLVersion(), objectBase.logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot create empty inventory")
 		}
@@ -482,10 +475,12 @@ func (objectBase *ObjectBase) StoreExtensions() error {
 	return nil
 }
 
-func (objectBase *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
+func (objectBase *ObjectBase) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionManager extensiontypes.ExtensionManagerCore) error {
 	objectBase.logger.Debug().Msgf("%s", id)
 	objectConformanceDeclaration := "ocfl_object_" + string(objectBase.version)
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
+
+	objectBase.extensionManager = extensionManager.(object.ExtensionManager)
 
 	// first check whether object is not empty
 	fp, err := objectBase.fsys.Open(objectConformanceDeclarationFile)
@@ -594,7 +589,7 @@ func (objectBase *ObjectBase) Close() error {
 	return nil
 }
 
-func (objectBase *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (util.StreamFS, error) {
+func (objectBase *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error) {
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	objectBase.echo = echo
 
@@ -611,7 +606,7 @@ func (objectBase *ObjectBase) StartUpdate(sourceFS fs.FS, msg string, UserName s
 	if err := objectBase.extensionManager.UpdateObjectBefore(objectBase); err != nil {
 		return nil, errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
-	var versionFS util.StreamFS
+	var versionFS fs.FS
 	return versionFS, nil
 }
 
@@ -679,7 +674,7 @@ func (objectBase *ObjectBase) EndArea() error {
 	return nil
 }
 
-func (objectBase *ObjectBase) AddFolder(fsys fs.FS, versionFS util.StreamFS, checkDuplicate bool, area string) error {
+func (objectBase *ObjectBase) AddFolder(fsys fs.FS, versionFS fs.FS, checkDuplicate bool, area string) error {
 	objectBase.logger.Debug().Msgf("walking '%v'", fsys)
 	if err := fs.WalkDir(fsys, ".", func(path string, info fs.DirEntry, err error) error {
 		if info.Name() == "." {
@@ -697,7 +692,7 @@ func (objectBase *ObjectBase) AddFolder(fsys fs.FS, versionFS util.StreamFS, che
 	return nil
 }
 
-func (objectBase *ObjectBase) addReader(r io.ReadCloser, versionFS util.StreamFS, names *object.NamesStruct, noExtensionHook bool) (string, error) {
+func (objectBase *ObjectBase) addReader(r io.ReadCloser, versionFS fs.FS, names *object.NamesStruct, noExtensionHook bool) (string, error) {
 
 	digestAlgorithms := []checksum.DigestAlgorithm{}
 	for alg := range objectBase.i.GetFixity().GetDigestAlgorithms() {
@@ -917,7 +912,7 @@ func (objectBase *ObjectBase) AddData(data []byte, path string, checkDuplicate b
 	return nil
 }
 
-func (objectBase *ObjectBase) AddFile(fsys fs.FS, versionFS util.StreamFS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
+func (objectBase *ObjectBase) AddFile(fsys fs.FS, versionFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
 	objectBase.logger.Info().Msgf("adding file %s:%s", area, path)
 
 	ver := objectBase.i.GetVersions().GetVersion(objectBase.i.GetHead())
@@ -1489,7 +1484,7 @@ func (objectBase *ObjectBase) getVersionInventories() (map[string]inventory.Inve
 
 /*
 func (objectBase *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
-	versionInventories, err := object.getVersionInventories()
+	versionInventories, err := objectBase.getVersionInventories()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get version inventories")
 	}
