@@ -1,155 +1,30 @@
 package test
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"reflect"
-	"testing"
-	"time"
-
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/rs/zerolog"
+	"testing"
 )
 
-func exampleVersion(stateFileCnt int, t *testing.T) inventorytypes.Version {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
-	var user = f.NewUser(context.Background()).WithName("Test User").WithAddress("test@example.com")
-	var state = f.NewState(context.Background())
-	for i := 0; i < stateFileCnt; i++ {
-		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
-		if err != nil {
-			t.Fatalf("Error adding file %d: %v", i, err)
-		}
-		if !modified {
-			t.Fatalf("File %d has not modified state", i)
-		}
-	}
-	var version = f.NewVersion(context.Background()).
-		WithState(state).
-		WithMessage("Test version message").
-		WithUser(user).
-		WithCreated(time.Now().UTC().Truncate(time.Second))
-	return version
+func Test_VersionJSONMarshal11(t *testing.T) {
+	genericVersionJSONMarshal(version.Version1_1, t)
 }
 
-func Test_VersionJSONMarshal(t *testing.T) {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
-	var cnt = 3
-	var version = exampleVersion(cnt, t)
-
-	bytes, err := json.Marshal(version)
-	if err != nil {
-		t.Fatalf("Error marshalling version: %v", err)
-	}
-
-	version2 := f.NewVersion(context.Background())
-	if err := json.Unmarshal(bytes, version2); err != nil {
-		t.Fatalf("Error unmarshalling version: %v", err)
-	}
-
-	if !reflect.DeepEqual(version, version2) {
-		t.Errorf("versions are not equal. Expected %v, got %v", version, version2)
-	}
+func Test_VersionJSONUnmarshal11(t *testing.T) {
+	genericVersionJSONUnmarshal(version.Version1_1, t)
 }
 
-func Test_VersionJSONUnmarshal(t *testing.T) {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
-	var bytes = []byte(`{
-  "created": "2024-01-15T10:30:00Z",
-  "message": "Initial commit",
-  "user": {
-    "name": "John Doe",
-    "address": "john@example.com"
-  },
-  "state": {
-    "digest001": ["file001"],
-    "digest002": ["file002"]
-  }
-}`)
-	var version = f.NewVersion(context.Background())
-	if err := json.Unmarshal(bytes, version); err != nil {
-		t.Fatalf("Error unmarshalling version: %v", err)
-	}
-
-	created := version.GetCreated()
-	expectedTime, _ := time.Parse(time.RFC3339, "2024-01-15T10:30:00Z")
-	if !created.Equal(expectedTime) {
-		t.Errorf("Created time mismatch. Expected %v, got %v", expectedTime, created)
-	}
-
-	message := version.GetMessage()
-	if message != "Initial commit" {
-		t.Errorf("Message mismatch. Expected 'Initial commit', got '%s'", message)
-	}
-
-	user := version.GetUser()
-	name := user.GetName()
-	if name != "John Doe" {
-		t.Errorf("User name mismatch. Expected 'John Doe', got '%s'", name)
-	}
+func Test_VersionJSONUnmarshalError11(t *testing.T) {
+	genericVersionJSONUnmarshalError(version.Version1_1, t)
 }
 
-func Test_VersionJSONUnmarshalError(t *testing.T) {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
-	var bytes = []byte(`{
-  "created": "invalid-date",
-  "message": "Test message",
-  "state": {
-    "digest001": "invalid-not-array"
-  }
-}`)
-	var version = f.NewVersion(context.Background())
-	if err := json.Unmarshal(bytes, version); err != nil {
-		t.Errorf("Error unmarshalling version: %v", err)
-	}
-	if version.Err() == nil {
-		t.Error("version.Err() should have returned an error")
-	}
+func Test_VersionState11(t *testing.T) {
+	genericVersionState(version.Version1_1, t)
 }
 
-func Test_VersionState(t *testing.T) {
-	var version = exampleVersion(2, t)
-
-	state := version.GetState()
-	if state == nil {
-		t.Fatalf("Version.GetState() should not have returned a nil state")
-	}
-
-	var num int
-	for range state.Iterate() {
-		num++
-	}
-	if num != 2 {
-		t.Errorf("Number of files in state does not match. Expected 2, got %d", num)
-	}
+func Test_VersionMessage11(t *testing.T) {
+	genericVersionMessage(version.Version1_1, t)
 }
 
-func Test_VersionMessage(t *testing.T) {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
-	var version = f.NewVersion(context.Background()).WithMessage("Test message")
-
-	message := version.GetMessage()
-	if message != "Test message" {
-		t.Errorf("Message mismatch. Expected 'Test message', got '%s'", message)
-	}
-}
-
-func Test_VersionCreated(t *testing.T) {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
-	now := time.Now().UTC().Truncate(time.Second)
-	var version = f.NewVersion(context.Background()).WithCreated(now)
-
-	created := version.GetCreated()
-	if !created.Equal(now) {
-		t.Errorf("Created time mismatch. Expected %v, got %v", now, created)
-	}
+func Test_VersionCreated11(t *testing.T) {
+	genericVersionCreated(version.Version1_1, t)
 }
