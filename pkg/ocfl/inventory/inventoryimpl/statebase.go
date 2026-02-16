@@ -31,6 +31,29 @@ func (s *stateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) inventory
 	return s
 }
 
+func (s *stateBase) DeleteFile(stateFilename string) (bool, error) {
+	// todo: optimize (reverse cache?)
+	var newState = map[string][]string{}
+	modified := false
+	for cs, paths := range s.Iterate() {
+		var newPaths = make([]string, 0, len(paths))
+		for _, path := range paths {
+			if path == stateFilename {
+				modified = true
+				continue
+			}
+			newPaths = append(newPaths, path)
+		}
+		if len(newPaths) > 0 {
+			newState[cs] = newPaths
+		}
+	}
+	if modified {
+		s.State = newState
+	}
+	return modified, nil
+}
+
 func (s *stateBase) AddFile(stateFilename string, digest string) (bool, error) {
 	digest = strings.ToLower(digest)
 	if s.State[digest] == nil {
@@ -39,6 +62,10 @@ func (s *stateBase) AddFile(stateFilename string, digest string) (bool, error) {
 	if slices.Contains(s.State[digest], stateFilename) {
 		return false, nil
 	}
+	if _, err := s.DeleteFile(stateFilename); err != nil {
+		return false, errors.Wrapf(err, "failed to delete file %s", stateFilename)
+	}
+
 	s.State[digest] = append(s.State[digest], stateFilename)
 	return true, nil
 }
@@ -241,29 +268,6 @@ func (s *stateBase) UnmarshalJSON(data []byte) error {
 
 func (s *stateBase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.State)
-}
-
-func (s *stateBase) DeleteFile(stateFilename string) (bool, error) {
-	// todo: optimize (reverse cache?)
-	var newState = map[string][]string{}
-	modified := false
-	for cs, paths := range s.Iterate() {
-		var newPaths = make([]string, 0, len(paths))
-		for _, path := range paths {
-			if path == stateFilename {
-				modified = true
-				continue
-			}
-			newPaths = append(newPaths, path)
-		}
-		if len(newPaths) > 0 {
-			newState[cs] = newPaths
-		}
-	}
-	if modified {
-		s.State = newState
-	}
-	return modified, nil
 }
 
 var _ inventory.State = (*stateBase)(nil)

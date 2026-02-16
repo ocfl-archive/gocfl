@@ -106,15 +106,11 @@ func (v *versionsBase) AddFile(stateFilename string, digest string) (bool, error
 	if latestVersion == nil {
 		return false, errors.Errorf("version %s not found", latestVersionString)
 	}
-	modified, err := latestVersion.DeleteFile(stateFilename)
-	if err != nil {
-		return false, errors.Wrapf(err, "Failed to delete file %s", stateFilename)
-	}
-	modified2, err := latestVersion.AddFile(stateFilename, digest)
+	modified, err := latestVersion.AddFile(stateFilename, digest)
 	if err != nil {
 		return false, errors.Wrapf(err, "Failed to add file %s [%s]", stateFilename, digest)
 	}
-	return modified || modified2, nil
+	return modified, nil
 }
 
 func (v *versionsBase) EchoDelete(existing []string, pathPrefix string) (bool, error) {

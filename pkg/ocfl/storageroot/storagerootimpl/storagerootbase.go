@@ -68,7 +68,7 @@ func (osr *StorageRootBase) GetFS() fs.FS {
 	return osr.fsys
 }
 func (osr *StorageRootBase) String() string {
-	return fmt.Sprintf("StorageRootBase: %v", osr.fsys)
+	return fmt.Sprintf("StorageRoot: %v", osr.fsys)
 }
 
 func (osr *StorageRootBase) IsModified() bool {
