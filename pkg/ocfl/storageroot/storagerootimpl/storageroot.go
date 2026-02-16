@@ -1,4 +1,4 @@
-package storageroot
+package storagerootimpl
 
 import (
 	"fmt"
@@ -14,7 +14,6 @@ import (
 
 type StorageRoot interface {
 	fmt.Stringer
-	WithFS(fsys fs.FS) StorageRoot
 	GetFS() fs.FS
 	GetDigest() checksum.DigestAlgorithm
 	SetDigest(digest checksum.DigestAlgorithm)
@@ -31,7 +30,7 @@ type StorageRoot interface {
 	IdToFolder(id string) (folder string, err error)
 	//CheckObjectByFolder(objectFolder string) error
 	//CheckObjectByID(objectID string) error
-	Init(digest checksum.DigestAlgorithm) error
+	Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
 	Load() error
 	IsModified() bool
 	SetModified()

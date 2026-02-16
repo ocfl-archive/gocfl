@@ -12,6 +12,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
@@ -116,7 +117,7 @@ func (sl *StorageLayoutFlatDirect) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot storagerootimpl.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 

@@ -15,6 +15,7 @@ import (
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"golang.org/x/exp/slices"
 )
 
@@ -321,7 +322,7 @@ func (manager *GOCFLExtensionManager) StoreRootLayout(fsys fs.FS) error {
 	}
 	return nil
 }
-func (manager *GOCFLExtensionManager) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
 	var errs = []error{}
 	for _, srp := range manager.storageRootPath {
 		p, err := srp.BuildStorageRootPath(storageRoot, id)

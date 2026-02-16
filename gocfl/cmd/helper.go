@@ -25,6 +25,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
@@ -321,7 +322,7 @@ func showStatus(ctx context.Context, logger zLogger.ZLogger) error {
 	return nil
 }
 
-func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.ExtensionFactory, id string, logger zLogger.ZLogger) (object.Object, error) {
+func LoadObjectByID(sr inventorytypes.StorageRoot, extensionFactory *extensionimpl.ExtensionFactory, id string, logger zLogger.ZLogger) (object.Object, error) {
 	folder, err := sr.IdToFolder(id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
@@ -339,7 +340,7 @@ func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.
 
 func addObjectByPath(
 	ctx context.Context,
-	sr storageroot.StorageRoot,
+	sr inventorytypes.StorageRoot,
 	fixity []checksum.DigestAlgorithm,
 	extensionFactory *extensionimpl.ExtensionFactory,
 	extensionManager object.ExtensionManager,

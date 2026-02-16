@@ -26,54 +26,54 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	ocflextension "github.com/ocfl-archive/gocfl/v2/pkg/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/extension"
+	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 )
 
 type Server struct {
-	service        string
-	host, port     string
-	name, password string
-	srv            *http.Server
-	linkTokenExp   time.Duration
-	jwtKey         string
-	jwtAlg         []string
-	log            zLogger.ZLogger
-	urlExt         *url.URL
-	accessLog      io.Writer
-	dataFS         fs.FS
-	storageRoot    storageroot.StorageRoot
-	object         objecttypes.Object
-	metadata       *inventory.Metadata
-	templateFS     fs.FS
-	obfuscate      bool
-	objectFS       http.FileSystem
-	factory        factory.Factory
+	service          string
+	host, port       string
+	name, password   string
+	srv              *http.Server
+	linkTokenExp     time.Duration
+	jwtKey           string
+	jwtAlg           []string
+	log              zLogger.ZLogger
+	urlExt           *url.URL
+	accessLog        io.Writer
+	dataFS           fs.FS
+	storageRoot      storagerootimpl.StorageRoot
+	object           objecttypes.Object
+	metadata         *inventory.Metadata
+	templateFS       fs.FS
+	obfuscate        bool
+	objectFS         http.FileSystem
+	extensionFactory *extension2.ExtensionFactory
 }
 
-func NewServer(storageRoot storageroot.StorageRoot, fact factory.Factory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
+func NewServer(storageRoot storagerootimpl.StorageRoot, extensionFactory *extension2.ExtensionFactory, service, addr string, urlExt *url.URL, dataFS fs.FS, templateFS fs.FS, log zLogger.ZLogger, accessLog io.Writer) (*Server, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, emperror.Wrapf(err, "cannot split address %s", addr)
 	}
 
 	srv := &Server{
-		factory:     fact,
-		service:     service,
-		host:        host,
-		port:        port,
-		urlExt:      urlExt,
-		dataFS:      dataFS,
-		templateFS:  templateFS,
-		log:         log,
-		accessLog:   accessLog,
-		storageRoot: storageRoot,
+		extensionFactory: extensionFactory,
+		service:          service,
+		host:             host,
+		port:             port,
+		urlExt:           urlExt,
+		dataFS:           dataFS,
+		templateFS:       templateFS,
+		log:              log,
+		accessLog:        accessLog,
+		storageRoot:      storageRoot,
 	}
 
 	return srv, nil
@@ -206,7 +206,7 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -278,7 +278,7 @@ func (s *Server) download(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -346,7 +346,7 @@ func (s *Server) detail(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -381,8 +381,8 @@ func (s *Server) detail(c *gin.Context) {
 		Fixity          map[checksum.DigestAlgorithm]string `json:"fixity"`
 		Indexer         *indexer.ResultV2                   `json:"indexer"`
 		IndexerJSON     string
-		Migration       *ocflextension.MigrationResult
-		Thumbnail       *ocflextension.ThumbnailResult
+		Migration       *extension.MigrationResult
+		Thumbnail       *extension.ThumbnailResult
 	}
 
 	status := &detailStatus{
@@ -393,10 +393,10 @@ func (s *Server) detail(c *gin.Context) {
 		Fixity:          file.Checksums,
 	}
 
-	extFilesystemAny, _ := file.Extension[ocflextension.FilesystemName]
-	var extFilesystem map[string][]*ocflextension.FileSystemLine
+	extFilesystemAny, _ := file.Extension[extension.FilesystemName]
+	var extFilesystem map[string][]*extension.FileSystemLine
 	if extFilesystemAny != nil {
-		extFilesystem, _ = extFilesystemAny.(map[string][]*ocflextension.FileSystemLine)
+		extFilesystem, _ = extFilesystemAny.(map[string][]*extension.FileSystemLine)
 	}
 
 	for ver, names := range file.VersionName {
@@ -427,7 +427,7 @@ func (s *Server) detail(c *gin.Context) {
 		}
 	}
 
-	extIndexerAny, _ := file.Extension[ocflextension.IndexerName]
+	extIndexerAny, _ := file.Extension[extension.IndexerName]
 	var extIndexer *indexer.ResultV2
 	if extIndexerAny != nil {
 		extIndexer, _ = extIndexerAny.(*indexer.ResultV2)
@@ -444,21 +444,21 @@ func (s *Server) detail(c *gin.Context) {
 		status.IndexerJSON = string(iData)
 	}
 
-	extMigrationAny, _ := file.Extension[ocflextension.MigrationName]
-	var extMigration *ocflextension.MigrationResult
+	extMigrationAny, _ := file.Extension[extension.MigrationName]
+	var extMigration *extension.MigrationResult
 	if extMigrationAny != nil {
-		extMigration, _ = extMigrationAny.(*ocflextension.MigrationResult)
+		extMigration, _ = extMigrationAny.(*extension.MigrationResult)
 	}
 	if extMigration != nil {
 		status.Migration = extMigration
 	}
 
-	extThumbnailAny, _ := file.Extension[ocflextension.ThumbnailName]
+	extThumbnailAny, _ := file.Extension[extension.ThumbnailName]
 	if extThumbnailAny != nil {
-		if extThumbnail, ok := extThumbnailAny.(ocflextension.ThumbnailResult); ok {
+		if extThumbnail, ok := extThumbnailAny.(extension.ThumbnailResult); ok {
 			status.Thumbnail = &extThumbnail
 		} else {
-			if extThumbnail, ok := extThumbnailAny.(*ocflextension.ThumbnailResult); ok {
+			if extThumbnail, ok := extThumbnailAny.(*extension.ThumbnailResult); ok {
 				status.Thumbnail = extThumbnail
 			}
 		}
@@ -548,7 +548,7 @@ func (s *Server) manifest(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -571,12 +571,12 @@ func (s *Server) manifest(c *gin.Context) {
 	var filenames = []string{}
 
 	for checksum, file := range s.metadata.Files {
-		extMigrationAny, _ := file.Extension[ocflextension.MigrationName]
-		var extMigration *ocflextension.MigrationResult
+		extMigrationAny, _ := file.Extension[extension.MigrationName]
+		var extMigration *extension.MigrationResult
 		if extMigrationAny != nil {
-			extMigration = extMigrationAny.(*ocflextension.MigrationResult)
+			extMigration = extMigrationAny.(*extension.MigrationResult)
 		}
-		extIndexerAny, _ := file.Extension[ocflextension.IndexerName]
+		extIndexerAny, _ := file.Extension[extension.IndexerName]
 		var extIndexer *indexer.ResultV2
 		if extIndexerAny != nil {
 			extIndexer, _ = extIndexerAny.(*indexer.ResultV2)
@@ -647,7 +647,7 @@ func (s *Server) version(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -674,20 +674,20 @@ func (s *Server) version(c *gin.Context) {
 	var filenames = []string{}
 
 	for checksum, file := range s.metadata.Files {
-		extMigrationAny, _ := file.Extension[ocflextension.MigrationName]
-		var extMigration *ocflextension.MigrationResult
+		extMigrationAny, _ := file.Extension[extension.MigrationName]
+		var extMigration *extension.MigrationResult
 		if extMigrationAny != nil {
-			extMigration = extMigrationAny.(*ocflextension.MigrationResult)
+			extMigration = extMigrationAny.(*extension.MigrationResult)
 		}
-		extIndexerAny, _ := file.Extension[ocflextension.IndexerName]
+		extIndexerAny, _ := file.Extension[extension.IndexerName]
 		var extIndexer *indexer.ResultV2
 		if extIndexerAny != nil {
 			extIndexer, _ = extIndexerAny.(*indexer.ResultV2)
 		}
-		extFilesystemAny, _ := file.Extension[ocflextension.FilesystemName]
-		var extFilesystem map[string][]*ocflextension.FileSystemLine
+		extFilesystemAny, _ := file.Extension[extension.FilesystemName]
+		var extFilesystem map[string][]*extension.FileSystemLine
 		if extFilesystemAny != nil {
-			extFilesystem, _ = extFilesystemAny.(map[string][]*ocflextension.FileSystemLine)
+			extFilesystem, _ = extFilesystemAny.(map[string][]*extension.FileSystemLine)
 		}
 		extFilesystemVersion, _ := extFilesystem[iop.Version]
 		if vNames, ok := file.VersionName[iop.Version]; ok {
@@ -768,7 +768,7 @@ func (s *Server) loadObjectID(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -802,7 +802,7 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 	}
-	s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+	s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -829,8 +829,8 @@ func (s *Server) displayObject(c *gin.Context) {
 	var pronoms = make(map[string]int)
 	for _, v := range s.metadata.Files {
 		numFiles += len(v.InternalName)
-		_fs, _ := v.Extension[ocflextension.FilesystemName]
-		_idx, _ := v.Extension[ocflextension.IndexerName]
+		_fs, _ := v.Extension[extension.FilesystemName]
+		_idx, _ := v.Extension[extension.IndexerName]
 		var fs map[string]any
 		var idx *indexer.ResultV2
 		var ok bool
@@ -922,7 +922,7 @@ func (s *Server) loadObjectBrowser(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -986,7 +986,7 @@ func (s *Server) report(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot create subfs for %v / %s", s.storageRoot.GetFS(), folder)})
 		}
-		s.object, err = functions.LoadObject(context.Background(), fsys, s.factory, s.log)
+		s.object, err = functions.LoadObject(context.Background(), fsys, s.extensionFactory, s.log)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -1019,8 +1019,8 @@ func (s *Server) report(c *gin.Context) {
 	var videoSecs uint
 	for _, v := range s.metadata.Files {
 		numFiles += len(v.InternalName)
-		_fs, _ := v.Extension[ocflextension.FilesystemName]
-		_idx, _ := v.Extension[ocflextension.IndexerName]
+		_fs, _ := v.Extension[extension.FilesystemName]
+		_idx, _ := v.Extension[extension.IndexerName]
 		var fs map[string]any
 		var idx *indexer.ResultV2
 		var ok bool
@@ -1080,10 +1080,10 @@ func (s *Server) report(c *gin.Context) {
 		objectpath = fsStringer.String()
 	}
 
-	cfg, err := extManager.GetConfigName(ocflextension.MetaFileName)
+	cfg, err := extManager.GetConfigName(extension.MetaFileName)
 	if err != nil {
-		cfg = &ocflextension.MetaFileConfig{
-			ExtensionConfig: &extension.ExtensionConfig{ExtensionName: ocflextension.MetaFileName},
+		cfg = &extension.MetaFileConfig{
+			ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: extension.MetaFileName},
 			StorageType:     "area",
 			StorageName:     "metadata",
 			MetaName:        "info.json",
@@ -1091,7 +1091,7 @@ func (s *Server) report(c *gin.Context) {
 		}
 	}
 
-	metafileCfg, ok := cfg.(*ocflextension.MetaFileConfig)
+	metafileCfg, ok := cfg.(*extension.MetaFileConfig)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Errorf("invalid config format %v", cfg)})
 		return
@@ -1099,7 +1099,7 @@ func (s *Server) report(c *gin.Context) {
 
 	var infoBytes []byte
 	if metafileCfg.StorageType == "extension" {
-		fsys, err := extManager.GetFSName(ocflextension.MetaFileName)
+		fsys, err := extManager.GetFSName(extension.MetaFileName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -1222,7 +1222,7 @@ func (s *Server) report(c *gin.Context) {
 	}
 	var filesNoData int64
 	for _, file := range s.metadata.Files {
-		if file.Extension[ocflextension.IndexerName] == nil && file.Extension[ocflextension.FilesystemName] == nil {
+		if file.Extension[extension.IndexerName] == nil && file.Extension[extension.FilesystemName] == nil {
 			filesNoData++
 		}
 	}

@@ -11,17 +11,16 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory/inventoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object/objectimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) factorytypes.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, extensionManager object.ExtensionManager, logger zLogger.ZLogger) factorytypes.Factory {
 	return &FactoryBase{
 		logger:           logger,
 		version:          version,
 		spec:             spec,
 		extensionFactory: extensionFactory,
+		extensionManager: extensionManager,
 	}
 }
 
@@ -30,14 +29,11 @@ type FactoryBase struct {
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
 	extensionFactory *extensionimpl.ExtensionFactory
-}
-
-func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {
-	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
+	extensionManager object.ExtensionManager
 }
 
 func (f *FactoryBase) NewObject(ctx context.Context) object.Object {
-	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.logger)
+	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.extensionManager, f.logger)
 }
 
 func (f *FactoryBase) NewInventory(ctx context.Context) inventory.Inventory {
@@ -46,7 +42,7 @@ func (f *FactoryBase) NewInventory(ctx context.Context) inventory.Inventory {
 
 func (f *FactoryBase) NewFixity(context.Context) inventory.Fixity {
 	return inventoryimpl.NewFixityBase(
-		[]checksum.DigestAlgorithm{checksum.DigestSHA256, checksum.DigestSHA512},
+		append(f.extensionManager.GetFixityDigests(), checksum.DigestSHA256, checksum.DigestSHA512),
 		f.logger,
 	)
 }
