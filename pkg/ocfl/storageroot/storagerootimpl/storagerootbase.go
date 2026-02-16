@@ -50,7 +50,6 @@ type StorageRootBase struct {
 	fsys             fs.FS
 	extensionFactory *extensionimpl.ExtensionFactory
 	extensionManager ExtensionManager
-	changed          bool
 	logger           zLogger.ZLogger
 	version          version.OCFLVersion
 	digest           checksum.DigestAlgorithm
@@ -211,46 +210,6 @@ func (osr *StorageRootBase) SetDigest(digest checksum.DigestAlgorithm) {
 func (osr *StorageRootBase) GetVersion() version.OCFLVersion { return osr.version }
 
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
-
-func (osr *StorageRootBase) CreateExtension(fsys fs.FS) (extension.Extension, error) {
-	return osr.extensionFactory.Create(fsys)
-}
-
-func (osr *StorageRootBase) CreateExtensions(fsys fs.FS, validation validation.Validation) (extension.Extension, error) {
-	exts, err := osr.extensionFactory.CreateExtensions(fsys, validation)
-	return exts, errors.WithStack(err)
-}
-
-func (osr *StorageRootBase) StoreExtensionConfig(name string, config any) error {
-	extConfig := fmt.Sprintf("extensions/%s/config.json", name)
-	cfgJson, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return errors.Wrapf(err, "cannot marshal extension %s config [%v]", name, config)
-	}
-	w, err := writefs.Create(osr.fsys, extConfig)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create file %s", extConfig)
-	}
-	if _, err := w.Write(cfgJson); err != nil {
-		return errors.Wrapf(err, "cannot write file %s - %s", extConfig, string(cfgJson))
-	}
-	return nil
-}
-
-func (osr *StorageRootBase) GetFiles() ([]string, error) {
-	dirs, err := fs.ReadDir(osr.fsys, "")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read folders of storage root")
-	}
-	var result = []string{}
-	for _, dir := range dirs {
-		if dir.IsDir() {
-			continue
-		}
-		result = append(result, dir.Name())
-	}
-	return result, nil
-}
 
 func (osr *StorageRootBase) GetFolders() ([]string, error) {
 	dirs, err := fs.ReadDir(osr.fsys, "")
