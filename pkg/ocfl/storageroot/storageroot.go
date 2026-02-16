@@ -14,6 +14,7 @@ import (
 
 type StorageRoot interface {
 	fmt.Stringer
+	WithFS(fsys fs.FS) StorageRoot
 	GetFS() fs.FS
 	GetDigest() checksum.DigestAlgorithm
 	SetDigest(digest checksum.DigestAlgorithm)

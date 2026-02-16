@@ -16,7 +16,6 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/data/displaydata"
 	"github.com/ocfl-archive/gocfl/v2/gocfl/cmd/display"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/rs/zerolog"
@@ -151,7 +150,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 	if !writefs.HasContent(destFS) {
 
 	}
-	storageRoot, err := storagerootimpl.LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	storageRoot, err := LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot load storage root")
 		return

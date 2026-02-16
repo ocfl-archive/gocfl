@@ -17,14 +17,33 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/docs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"golang.org/x/exp/slices"
 )
+
+// NewOCFL creates an empty OCFL structure
+func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) *StorageRootBase {
+	var err error
+	ocfl := &StorageRootBase{
+		ctx:     ctx,
+		factory: fact,
+		//fsys:             fsys,
+		extensionFactory: extensionFactory,
+		version:          defaultVersion,
+		//extensionManager: extensionManager,
+		logger: logger,
+	}
+	if err != nil {
+		return nil
+	}
+	return ocfl
+}
 
 type StorageRootBase struct {
 	ctx              context.Context
@@ -36,27 +55,15 @@ type StorageRootBase struct {
 	version          version.OCFLVersion
 	digest           checksum.DigestAlgorithm
 	modified         bool
+	factory          factory.Factory
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 
-// NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fsys fs.FS, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager ExtensionManager, logger zLogger.ZLogger) (*StorageRootBase, error) {
-	var err error
-	ocfl := &StorageRootBase{
-		ctx:              ctx,
-		fsys:             fsys,
-		extensionFactory: extensionFactory,
-		version:          defaultVersion,
-		extensionManager: extensionManager,
-		logger:           logger,
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot instantiate extension manager")
-	}
-	return ocfl, nil
+func (osr *StorageRootBase) WithFS(fsys fs.FS) storageroot.StorageRoot {
+	osr.fsys = fsys
+	return osr
 }
-
 func (osr *StorageRootBase) GetFS() fs.FS {
 	return osr.fsys
 }
@@ -91,6 +98,7 @@ func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.Digest
 
 	osr.version = ver
 	osr.digest = digest
+	osr.extensionManager = manager.(ExtensionManager)
 
 	entities, err := fs.ReadDir(osr.fsys, ".")
 	if err != nil {
@@ -338,14 +346,13 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 }
 
 func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extensionimpl.ExtensionFactory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
-	objectFactory := factoryimpl.NewFactory(ver, objectExtensionFactory, osr.logger)
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.fsys, folder)
 	}
 
-	obj := objectFactory.NewObject(osr.ctx).WithFS(subfs)
+	obj := osr.factory.NewObject(osr.ctx).WithFS(subfs)
 	//object, err := object.NewObject(osr.ctx, subfs, ver, objectExtensionFactory, objectExtenstionManager, osr.logger)
 	if obj == nil {
 		return nil, errors.New("cannot instantiate object")
@@ -396,7 +403,7 @@ func (osr *StorageRootBase) CheckDirectory() (err error) {
 			continue
 		} else {
 			// check for version file
-			if matches := OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
+			if matches := version.OCFLVersionRegexp.FindStringSubmatch(file.Name()); matches != nil {
 				// more than one version file is confusing...
 				if ver != "" {
 					if err := osr.AddValidationError(validation.E076, "additional version file '%s' in storage root", file.Name()); err != nil {

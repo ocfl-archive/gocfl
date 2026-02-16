@@ -6,15 +6,17 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory/inventoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object/objectimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) factorytypes.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) factory.Factory {
 	return &FactoryBase{
 		logger:           logger,
 		version:          version,
@@ -28,6 +30,27 @@ type FactoryBase struct {
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
 	extensionFactory *extensionimpl.ExtensionFactory
+}
+
+func (f *FactoryBase) Copy() factory.Factory {
+	return &FactoryBase{
+		logger:           f.logger,
+		version:          f.version,
+		spec:             f.spec,
+		extensionFactory: f.extensionFactory,
+	}
+}
+
+func (f *FactoryBase) SetVersion(version.OCFLVersion) {
+	f.logger.Panic().Msgf("cannot change version of fixed version factory")
+}
+
+func (f *FactoryBase) GetVersion() version.OCFLVersion {
+	return f.version
+}
+
+func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {
+	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
 }
 
 func (f *FactoryBase) NewObject(ctx context.Context) object.Object {
@@ -64,4 +87,4 @@ func (f *FactoryBase) NewState(context.Context) inventory.State {
 	return inventoryimpl.NewStateBase()
 }
 
-var _ factorytypes.Factory = (*FactoryBase)(nil)
+var _ factory.Factory = (*FactoryBase)(nil)
