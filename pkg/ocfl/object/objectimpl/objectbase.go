@@ -38,13 +38,13 @@ import (
 // todo: check WithWriteable() and repair incorrect use...
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager extensiontypes.ExtensionManagerCore, logger zLogger.ZLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) *ObjectBase {
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
-		extensionManager: extensionManager.(object.ExtensionManager),
-		ctx:              ctx,
-		fsys:             nil,
-		i:                factory.NewInventory(ctx).WithWriteable(),
+		//extensionManager: extensionManager.(object.ExtensionManager),
+		ctx:  ctx,
+		fsys: nil,
+		i:    factory.NewInventory(ctx).WithWriteable(),
 		//versionFolders:     []string{},
 		versionInventories: map[string]inventory.Inventory{},
 		changed:            false,

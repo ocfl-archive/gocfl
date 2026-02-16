@@ -117,12 +117,12 @@ func (sl *StorageLayoutFlatDirect) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot storagerootimpl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &StorageLayoutFlatDirect{}
-	_ storageroot.ExtensionStorageRootPath = &StorageLayoutFlatDirect{}
+	_ extension.Extension                      = &StorageLayoutFlatDirect{}
+	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutFlatDirect{}
 )

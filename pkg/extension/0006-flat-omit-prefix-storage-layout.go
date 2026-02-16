@@ -13,7 +13,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
@@ -119,7 +119,7 @@ func (sl *FlatOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
+func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	last := strings.LastIndex(id, sl.Delimiter)
 	if last < 0 {
 		return id, nil
@@ -129,6 +129,6 @@ func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot inventor
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension             = &FlatOmitPrefixStorageLayout{}
-	_ storageroot.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
+	_ extensiontypes.Extension                 = &FlatOmitPrefixStorageLayout{}
+	_ storagerootimpl.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
 )

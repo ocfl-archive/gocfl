@@ -16,7 +16,7 @@ import (
 
 func exampleVersion(stateFileCnt int, t *testing.T) inventorytypes.Version {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var user = f.NewUser(context.Background()).WithName("Test User").WithAddress("test@example.com")
 	var state = f.NewState(context.Background())
 	for i := 0; i < stateFileCnt; i++ {
@@ -38,7 +38,7 @@ func exampleVersion(stateFileCnt int, t *testing.T) inventorytypes.Version {
 
 func Test_VersionJSONMarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var cnt = 3
 	var version = exampleVersion(cnt, t)
 
@@ -59,7 +59,7 @@ func Test_VersionJSONMarshal(t *testing.T) {
 
 func Test_VersionJSONUnmarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var bytes = []byte(`{
   "created": "2024-01-15T10:30:00Z",
   "message": "Initial commit",
@@ -97,7 +97,7 @@ func Test_VersionJSONUnmarshal(t *testing.T) {
 
 func Test_VersionJSONUnmarshalError(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var bytes = []byte(`{
   "created": "invalid-date",
   "message": "Test message",
@@ -133,7 +133,7 @@ func Test_VersionState(t *testing.T) {
 
 func Test_VersionMessage(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var version = f.NewVersion(context.Background()).WithMessage("Test message")
 
 	message := version.GetMessage()
@@ -144,7 +144,7 @@ func Test_VersionMessage(t *testing.T) {
 
 func Test_VersionCreated(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	now := time.Now().UTC().Truncate(time.Second)
 	var version = f.NewVersion(context.Background()).WithCreated(now)
 

@@ -15,7 +15,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
@@ -271,7 +271,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := storageroot.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
+	storageRoot, err := storagerootimpl.LoadStorageRoot(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		doNotClose = true
 		logger.Fatal().Err(err).Msg("cannot open storage root")

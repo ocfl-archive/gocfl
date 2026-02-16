@@ -1,4 +1,4 @@
-package storageroot
+package storagerootimpl
 
 import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"

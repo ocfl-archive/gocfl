@@ -14,13 +14,12 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, extensionManager object.ExtensionManager, logger zLogger.ZLogger) factorytypes.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) factorytypes.Factory {
 	return &FactoryBase{
 		logger:           logger,
 		version:          version,
 		spec:             spec,
 		extensionFactory: extensionFactory,
-		extensionManager: extensionManager,
 	}
 }
 
@@ -29,20 +28,19 @@ type FactoryBase struct {
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
 	extensionFactory *extensionimpl.ExtensionFactory
-	extensionManager object.ExtensionManager
 }
 
 func (f *FactoryBase) NewObject(ctx context.Context) object.Object {
-	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.extensionManager, f.logger)
+	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.logger)
 }
 
 func (f *FactoryBase) NewInventory(ctx context.Context) inventory.Inventory {
 	return inventoryimpl.NewInventoryBase(ctx, f, f.version, f.spec, f.logger)
 }
 
-func (f *FactoryBase) NewFixity(context.Context) inventory.Fixity {
+func (f *FactoryBase) NewFixity(ctx context.Context) inventory.Fixity {
 	return inventoryimpl.NewFixityBase(
-		append(f.extensionManager.GetFixityDigests(), checksum.DigestSHA256, checksum.DigestSHA512),
+		[]checksum.DigestAlgorithm{checksum.DigestSHA256, checksum.DigestSHA512},
 		f.logger,
 	)
 }

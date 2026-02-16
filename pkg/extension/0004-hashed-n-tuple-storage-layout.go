@@ -13,7 +13,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
@@ -116,7 +116,7 @@ func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
 	return nil
 }
 
-func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot inventorytypes.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
 		return "", errors.Wrapf(err, "cannot hash %s", id)
@@ -160,6 +160,6 @@ func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension             = &StorageLayoutHashedNTuple{}
-	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashedNTuple{}
+	_ extensiontypes.Extension                 = &StorageLayoutHashedNTuple{}
+	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutHashedNTuple{}
 )

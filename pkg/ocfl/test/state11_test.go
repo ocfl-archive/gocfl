@@ -16,7 +16,7 @@ import (
 
 func exampleState(cnt int, t *testing.T) inventorytypes.State {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var state = f.NewState(context.Background())
 	for i := 0; i < cnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
@@ -39,7 +39,7 @@ func exampleState(cnt int, t *testing.T) inventorytypes.State {
 
 func Test_StateJSONMarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var cnt = 4
 	var state = exampleState(cnt, t)
 	var num int
@@ -69,7 +69,7 @@ func Test_StateJSONMarshal(t *testing.T) {
 
 func Test_StateJSONUnmarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var bytes = []byte(`{
   "digest000" : [ "file000", "file000x" ],
   "digest001" : [ "file001", "file001x" ],
@@ -96,7 +96,7 @@ func Test_StateJSONUnmarshal(t *testing.T) {
 
 func Test_StateJSONUnmarshalError(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var bytes = []byte(`{
   "digest000" : [ "file000", "file000x" ],
   "digest001" : [ "file001", "file001x" ],

@@ -139,7 +139,7 @@ func escape(str string) string {
 	return string(result)
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot storagerootimpl.StorageRoot, id string) (string, error) {
+func (sl *StorageLayoutHashAndIdNTuple) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	path := escape(id)
 	sl.hash.Reset()
 	if _, err := sl.hash.Write([]byte(id)); err != nil {
@@ -184,6 +184,6 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension                  = &StorageLayoutHashAndIdNTuple{}
-	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
+	_ extension.Extension                      = &StorageLayoutHashAndIdNTuple{}
+	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
 )

@@ -1,4 +1,4 @@
-package storageroot
+package storagerootimpl
 
 import (
 	"context"
@@ -338,7 +338,7 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 }
 
 func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extensionimpl.ExtensionFactory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
-	objectFactory := factoryimpl.NewFactory(ver, objectExtensionFactory, objectExtensionManager, osr.logger)
+	objectFactory := factoryimpl.NewFactory(ver, objectExtensionFactory, osr.logger)
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
 	if err != nil {

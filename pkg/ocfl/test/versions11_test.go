@@ -15,7 +15,7 @@ import (
 
 func Test_VersionsJSONMarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	versions := f.NewVersions(context.Background())
 	version := f.NewVersion(context.Background()).WithMessage("test version")
 	versions.SetVersion(inventory.NewVersionNumber().WithString("v1"), version)
@@ -34,7 +34,7 @@ func Test_VersionsJSONMarshal(t *testing.T) {
 
 func Test_VersionsJSONUnmarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var jsonData = []byte(`
 {
 	"v1": {
@@ -63,7 +63,7 @@ func Test_VersionsJSONUnmarshal(t *testing.T) {
 
 func Test_VersionsInvalidJSON(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var jsonData = []byte(`
 {
 	"v1": {
@@ -85,7 +85,7 @@ func Test_VersionsInvalidJSON(t *testing.T) {
 
 func Test_VersionsCheck(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	val := inventoryimpl.NewDummyValidation()
 	versions := f.NewVersions(context.Background())
 	version := f.NewVersion(context.Background()).WithMessage("test")

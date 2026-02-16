@@ -14,7 +14,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -262,7 +262,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}()
 
 	ctx := validation.NewContextValidation(context.TODO())
-	storageRoot, err := storageroot.CreateStorageRoot(
+	storageRoot, err := storagerootimpl.CreateStorageRoot(
 		ctx,
 		destFS,
 		version.OCFLVersion(conf.Init.OCFLVersion),

@@ -1,4 +1,4 @@
-package storagerootimpl
+package storageroot
 
 import (
 	"fmt"

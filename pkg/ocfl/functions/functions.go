@@ -20,7 +20,7 @@ import (
 )
 
 func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extensionimpl.ExtensionFactory, manager object.ExtensionManager, fsys fs.FS, logger zLogger.ZLogger) (object.Object, error) {
-	f := factoryimpl.NewFactory(ver, extensionFactory, manager, logger)
+	f := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithFS(fsys)
 	if obj == nil {
 		return nil, errors.New("cannot instantiate object")
@@ -45,23 +45,7 @@ func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl
 			return nil, errors.Wrapf(err, "cannot add validation error %s", validation.E003)
 		}
 	}
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot get version in '%v'", fsys)
-	}
-	extFSys, err := writefs.Sub(fsys, "extensions")
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create subfs of '%v' for '%s'", fsys, "extensions")
-	}
-	validator, err := validation.NewValidator(ctx, ver, fmt.Sprintf("fsys: %v", fsys), logger)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create validator for '%v'", fsys)
-	}
-	extensionManager, err := extensionFactory.CreateExtensions(extFSys, validator)
-	//	extensionManager.SetFS(extFSys)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create extension manager")
-	}
-	f := factoryimpl.NewFactory(ver, extensionFactory, extensionManager, logger)
+	f := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithFS(fsys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot instantiate object")

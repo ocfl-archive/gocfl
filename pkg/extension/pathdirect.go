@@ -114,7 +114,7 @@ func (sl *PathDirect) WriteConfig() error {
 	return nil
 }
 
-func (sl *PathDirect) BuildStorageRootPath(storageRoot storagerootimpl.StorageRoot, id string) (string, error) {
+func (sl *PathDirect) BuildStorageRootPath(storageRoot storageroot.StorageRoot, id string) (string, error) {
 	return id, nil
 }
 func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
@@ -123,7 +123,7 @@ func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension             = &PathDirect{}
-	_ storageroot.ExtensionStorageRootPath = &PathDirect{}
-	_ object.ExtensionObjectContentPath    = &PathDirect{}
+	_ extensiontypes.Extension                 = &PathDirect{}
+	_ storagerootimpl.ExtensionStorageRootPath = &PathDirect{}
+	_ object.ExtensionObjectContentPath        = &PathDirect{}
 )

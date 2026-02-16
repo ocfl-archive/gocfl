@@ -16,7 +16,7 @@ import (
 
 func Test_UserJSONMarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	user := f.NewUser(context.Background()).WithName("Alice").WithAddress("mailto:alice@example.org")
 	bytes, err := json.Marshal(user)
 	if err != nil {
@@ -33,7 +33,7 @@ func Test_UserJSONMarshal(t *testing.T) {
 
 func Test_UserJSONUnmarshal(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var jsonData = []byte(`
 {
 	"address": "mailto:alice@example.org",
@@ -56,7 +56,7 @@ func Test_UserJSONUnmarshal(t *testing.T) {
 
 func Test_UserInvalidJSON(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 	var jsonData = []byte(`
 {
 	"address": 42,
@@ -74,7 +74,7 @@ func Test_UserInvalidJSON(t *testing.T) {
 
 func Test_UserInvalidAddressCheck(t *testing.T) {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	var f = factoryimpl.NewFactory(version.Version1_1, nil, nil, &logger)
+	var f = factoryimpl.NewFactory(version.Version1_1, nil, &logger)
 
 	val := inventoryimpl.NewDummyValidation()
 	user := f.NewUser(context.Background()).WithAddress("xxx")
