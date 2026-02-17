@@ -1443,8 +1443,6 @@ func (objectBase *ObjectBase) createContentManifest() (map[checksum.DigestAlgori
 	return result, nil
 }
 
-var ObjectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
-
 // helper functions
 
 func (objectBase *ObjectBase) getVersionInventories() (map[string]inventory.Inventory, error) {

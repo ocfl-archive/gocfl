@@ -23,7 +23,8 @@ var ValidVersions = []OCFLVersion{
 
 const Default = Version1_1
 
-var OCFLVersionNamasteRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
+var OCFLStorageRootVersionNamasteRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
+var ObjectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
 
 func ValidVersion(ver OCFLVersion) bool {
 	return slices.Contains(ValidVersions, ver)
