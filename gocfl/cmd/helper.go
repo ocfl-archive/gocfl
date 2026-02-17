@@ -28,7 +28,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -197,7 +196,7 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *extensionimpl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storagerootimpl.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
+func initDefaultExtensions(extensionFactory *extensionimpl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger zLogger.ZLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -225,7 +224,7 @@ func initDefaultExtensions(extensionFactory *extensionimpl.ExtensionFactory, sto
 		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
 	}
-	return _storageRootExtensions.(storagerootimpl.ExtensionManager), _objectExtensions.(object.ExtensionManager), nil
+	return _storageRootExtensions.(storageroot.ExtensionManager), _objectExtensions.(object.ExtensionManager), nil
 }
 
 func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *config.AESConfig, s3Config *config.S3Config, noCompression, readOnly bool, logger zLogger.ZLogger) (*writefs.Factory, error) {
@@ -417,7 +416,7 @@ func addObjectByPath(
 	return o.IsModified(), nil
 }
 
-func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager storagerootimpl.ExtensionManager, digest checksum.DigestAlgorithm, logger zLogger.ZLogger) (storageroot.StorageRoot, error) {
+func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger zLogger.ZLogger) (storageroot.StorageRoot, error) {
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	storageRoot := fact.NewStorageRoot(ctx).WithFS(fsys)
 

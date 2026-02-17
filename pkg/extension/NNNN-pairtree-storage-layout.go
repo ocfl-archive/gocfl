@@ -15,7 +15,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutPairTreeName = "NNNN-pairtree-storage-layout"
@@ -195,6 +194,6 @@ func (sl *StorageLayoutPairTree) idEncode(str string) string {
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension                 = &StorageLayoutPairTree{}
-	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutPairTree{}
+	_ extensiontypes.Extension             = &StorageLayoutPairTree{}
+	_ storageroot.ExtensionStorageRootPath = &StorageLayoutPairTree{}
 )

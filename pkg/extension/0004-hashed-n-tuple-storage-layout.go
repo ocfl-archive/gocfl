@@ -13,7 +13,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
@@ -160,6 +159,6 @@ func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension                 = &StorageLayoutHashedNTuple{}
-	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutHashedNTuple{}
+	_ extensiontypes.Extension             = &StorageLayoutHashedNTuple{}
+	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashedNTuple{}
 )

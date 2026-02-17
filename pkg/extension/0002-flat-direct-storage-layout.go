@@ -12,7 +12,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
@@ -123,6 +122,6 @@ func (sl *StorageLayoutFlatDirect) BuildStorageRootPath(storageRoot storageroot.
 
 // check interface satisfaction
 var (
-	_ extension.Extension                      = &StorageLayoutFlatDirect{}
-	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutFlatDirect{}
+	_ extension.Extension                  = &StorageLayoutFlatDirect{}
+	_ storageroot.ExtensionStorageRootPath = &StorageLayoutFlatDirect{}
 )

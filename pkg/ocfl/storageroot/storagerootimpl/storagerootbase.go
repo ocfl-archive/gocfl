@@ -49,7 +49,7 @@ type StorageRootBase struct {
 	ctx              context.Context
 	fsys             fs.FS
 	extensionFactory *extensionimpl.ExtensionFactory
-	extensionManager ExtensionManager
+	extensionManager storageroot.ExtensionManager
 	logger           zLogger.ZLogger
 	version          version.OCFLVersion
 	digest           checksum.DigestAlgorithm
@@ -97,7 +97,7 @@ func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.Digest
 
 	osr.version = ver
 	osr.digest = digest
-	osr.extensionManager = manager.(ExtensionManager)
+	osr.extensionManager = manager.(storageroot.ExtensionManager)
 
 	entities, err := fs.ReadDir(osr.fsys, ".")
 	if err != nil {
@@ -195,7 +195,7 @@ func (osr *StorageRootBase) Load() error {
 	if err != nil {
 		return errors.Wrap(err, "cannot create extension manager")
 	}
-	osr.extensionManager = extensionManager.(ExtensionManager)
+	osr.extensionManager = extensionManager.(storageroot.ExtensionManager)
 	return nil
 }
 

@@ -15,7 +15,6 @@ import (
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"golang.org/x/exp/slices"
 )
 
@@ -52,7 +51,7 @@ func NewGOCFLExtensionManager(config *extension2.ExtensionManagerConfig) (*GOCFL
 	m := &GOCFLExtensionManager{
 		ExtensionManagerConfig: config,
 		extensions:             []extension2.Extension{},
-		storageRootPath:        []storagerootimpl.ExtensionStorageRootPath{},
+		storageRootPath:        []storageroot.ExtensionStorageRootPath{},
 		objectContentPath:      []object.ExtensionObjectContentPath{},
 		objectChange:           []object.ExtensionObjectChange{},
 		fixityDigest:           []object.ExtensionFixityDigest{},
@@ -65,7 +64,7 @@ func NewGOCFLExtensionManager(config *extension2.ExtensionManagerConfig) (*GOCFL
 type GOCFLExtensionManager struct {
 	*extension2.ExtensionManagerConfig
 	extensions         []extension2.Extension
-	storageRootPath    []storagerootimpl.ExtensionStorageRootPath
+	storageRootPath    []storageroot.ExtensionStorageRootPath
 	objectContentPath  []object.ExtensionObjectContentPath
 	objectExternalPath []object.ExtensionObjectStatePath
 	contentChange      []object.ExtensionContentChange
@@ -122,7 +121,7 @@ func (manager *GOCFLExtensionManager) Add(ext extension2.Extension) error {
 	}
 	manager.extensions = append(manager.extensions, ext)
 
-	if srp, ok := ext.(storagerootimpl.ExtensionStorageRootPath); ok {
+	if srp, ok := ext.(storageroot.ExtensionStorageRootPath); ok {
 		manager.storageRootPath = append(manager.storageRootPath, srp)
 	}
 	if ocp, ok := ext.(object.ExtensionObjectContentPath); ok {

@@ -12,7 +12,6 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const PathDirectName = "NNNN-direct-path-layout"
@@ -123,7 +122,7 @@ func (sl *PathDirect) BuildObjectManifestPath(object object.Object, originalPath
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension                 = &PathDirect{}
-	_ storagerootimpl.ExtensionStorageRootPath = &PathDirect{}
-	_ object.ExtensionObjectContentPath        = &PathDirect{}
+	_ extensiontypes.Extension             = &PathDirect{}
+	_ storageroot.ExtensionStorageRootPath = &PathDirect{}
+	_ object.ExtensionObjectContentPath    = &PathDirect{}
 )

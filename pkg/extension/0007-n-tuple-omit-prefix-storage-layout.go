@@ -13,7 +13,6 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const NTupleOmitPrefixStorageLayoutName = "0007-n-tuple-omit-prefix-storage-layout"
@@ -196,6 +195,6 @@ func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storag
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension                 = &NTupleOmitPrefixStorageLayout{}
-	_ storagerootimpl.ExtensionStorageRootPath = &NTupleOmitPrefixStorageLayout{}
+	_ extensiontypes.Extension             = &NTupleOmitPrefixStorageLayout{}
+	_ storageroot.ExtensionStorageRootPath = &NTupleOmitPrefixStorageLayout{}
 )

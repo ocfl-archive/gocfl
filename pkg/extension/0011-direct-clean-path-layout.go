@@ -18,7 +18,6 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"golang.org/x/exp/constraints"
 )
 
@@ -293,7 +292,7 @@ func (sl *DirectClean) build(fname string) (string, error) {
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension                 = &DirectClean{}
-	_ storagerootimpl.ExtensionStorageRootPath = &DirectClean{}
-	_ object.ExtensionObjectContentPath        = &DirectClean{}
+	_ extensiontypes.Extension             = &DirectClean{}
+	_ storageroot.ExtensionStorageRootPath = &DirectClean{}
+	_ object.ExtensionObjectContentPath    = &DirectClean{}
 )

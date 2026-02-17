@@ -13,7 +13,6 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
@@ -129,6 +128,6 @@ func (sl *FlatOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storager
 
 // check interface satisfaction
 var (
-	_ extensiontypes.Extension                 = &FlatOmitPrefixStorageLayout{}
-	_ storagerootimpl.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
+	_ extensiontypes.Extension             = &FlatOmitPrefixStorageLayout{}
+	_ storageroot.ExtensionStorageRootPath = &FlatOmitPrefixStorageLayout{}
 )

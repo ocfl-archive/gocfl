@@ -14,7 +14,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 )
 
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
@@ -184,6 +183,6 @@ func (sl *StorageLayoutHashAndIdNTuple) WriteLayout(fsys fs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension                      = &StorageLayoutHashAndIdNTuple{}
-	_ storagerootimpl.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
+	_ extension.Extension                  = &StorageLayoutHashAndIdNTuple{}
+	_ storageroot.ExtensionStorageRootPath = &StorageLayoutHashAndIdNTuple{}
 )
