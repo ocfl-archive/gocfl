@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"golang.org/x/exp/slices"
 )
 
@@ -31,7 +31,7 @@ func (v versionValue) GetVersion(version uint) (*inventory.VersionNumber, bool) 
 	return nil, false
 }
 
-func NewVersionsBase(ctx context.Context, factory inventory.Factory, logger zLogger.ZLogger) inventory.Versions {
+func NewVersionsBase(ctx context.Context, factory inventory.Factory, logger ocfllogger.OCFLLogger) inventory.Versions {
 	return &versionsBase{
 		ctx:         ctx,
 		versions:    map[int]inventory.Version{},
@@ -47,7 +47,7 @@ type versionsBase struct {
 	err         error
 	//paddingLength int
 	factory inventory.Factory
-	logger  zLogger.ZLogger
+	logger  ocfllogger.OCFLLogger
 	ctx     context.Context
 }
 

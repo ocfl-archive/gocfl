@@ -12,11 +12,11 @@ import (
 
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -130,7 +130,9 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger zLogger.ZLogger = &l2
+	ctx := validation.NewContextValidation(context.TODO())
+
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil)
 
 	doInitConf(cmd)
 	doAddConf(cmd)
@@ -140,7 +142,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.ZLogger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot init indexer")
 	}
@@ -260,7 +262,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	ctx := validation.NewContextValidation(context.TODO())
 	storageRoot, err := CreateStorageRoot(
 		ctx,
 		destFS,

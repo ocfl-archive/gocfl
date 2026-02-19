@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/data/specs"
 	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
@@ -26,6 +25,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -76,7 +76,7 @@ func GetMetsParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewMetsFS(fsys fs.FS, logger zLogger.ZLogger) (*Mets, error) {
+func NewMetsFS(fsys fs.FS, logger ocfllogger.OCFLLogger) (*Mets, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -96,7 +96,7 @@ func NewMetsFS(fsys fs.FS, logger zLogger.ZLogger) (*Mets, error) {
 
 	return NewMets(config, logger)
 }
-func NewMets(config *MetsConfig, logger zLogger.ZLogger) (*Mets, error) {
+func NewMets(config *MetsConfig, logger ocfllogger.OCFLLogger) (*Mets, error) {
 	me := &Mets{
 		MetsConfig: config,
 		logger:     logger,
@@ -118,7 +118,7 @@ type MetsConfig struct {
 type Mets struct {
 	*MetsConfig
 	fsys   fs.FS
-	logger zLogger.ZLogger
+	logger ocfllogger.OCFLLogger
 	//	descriptiveMetadata     string
 	//	descriptiveMetadataType string
 }

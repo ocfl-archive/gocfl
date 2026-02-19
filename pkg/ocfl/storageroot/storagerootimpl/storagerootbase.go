@@ -13,7 +13,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/errorDetails"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/docs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
@@ -24,11 +23,12 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"golang.org/x/exp/slices"
 )
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) *StorageRootBase {
+func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) *StorageRootBase {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:     ctx,
@@ -50,7 +50,7 @@ type StorageRootBase struct {
 	fsys             fs.FS
 	extensionFactory *extensionimpl.ExtensionFactory
 	extensionManager storageroot.ExtensionManager
-	logger           zLogger.ZLogger
+	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
 	digest           checksum.DigestAlgorithm
 	modified         bool

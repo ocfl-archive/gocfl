@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewVersionBase(ctx context.Context, factory inventory.Factory, logger zLogger.ZLogger) inventory.Version {
+func NewVersionBase(ctx context.Context, factory inventory.Factory, logger ocfllogger.OCFLLogger) inventory.Version {
 	return &versionBase{
 		ctx:     ctx,
 		Created: inventory.NewOCFLTime(time.Now()),
@@ -27,7 +27,7 @@ type versionBase struct {
 	Message    *inventory.OCFLString `json:"message"`
 	State      inventory.State       `json:"state"`
 	User       inventory.User        `json:"user"`
-	logger     zLogger.ZLogger
+	logger     ocfllogger.OCFLLogger
 	ctx        context.Context
 	inCreation bool
 }

@@ -1,13 +1,13 @@
 package factoryimpl
 
 import (
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewFactory(ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) factorytypes.Factory {
+func NewFactory(ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) factorytypes.Factory {
 	switch ver {
 	case version.Version1_0:
 		return NewFactory10(extensionFactory, logger)

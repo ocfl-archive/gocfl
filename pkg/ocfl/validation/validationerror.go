@@ -221,6 +221,9 @@ func AddValidationWarnings(ctx context.Context, vWarns ...*ValidationError) erro
 }
 
 func (ve *ValidationError) AppendDescription(format string, a ...any) *ValidationError {
+	if format == "" {
+		return ve
+	}
 	return &ValidationError{
 		Code:         ve.Code,
 		Description:  ve.Description,
@@ -230,6 +233,9 @@ func (ve *ValidationError) AppendDescription(format string, a ...any) *Validatio
 }
 
 func (ve *ValidationError) AppendContext(format string, a ...any) *ValidationError {
+	if format == "" {
+		return ve
+	}
 	return &ValidationError{
 		Code:         ve.Code,
 		Description:  ve.Description,
@@ -260,10 +266,10 @@ func GetValidationError(version version.OCFLVersion, errno ValidationErrorCode) 
 	var errlist map[ValidationErrorCode]*ValidationError
 	var mapping map[ValidationErrorCode]ValidationErrorCode
 	switch version {
-	case "1.1":
+	default:
 		errlist = OCFLValidationError1_1
 		mapping = OCFLValidationErrorMapping1_1
-	default:
+	case "1.0":
 		//case "1.0":
 		errlist = OCFLValidationError1_0
 		mapping = OCFLValidationErrorMapping1_0
@@ -279,12 +285,12 @@ func GetValidationError(version version.OCFLVersion, errno ValidationErrorCode) 
 					Description: fmt.Sprintf("unknown warning %s", errno),
 					Ref:         "",
 				}
-			} else {
-				return &ValidationError{
-					Code:        E000,
-					Description: fmt.Sprintf("unknown error %s", errno),
-					Ref:         "",
-				}
+			}
+
+			return &ValidationError{
+				Code:        E000,
+				Description: fmt.Sprintf("unknown error %s", errno),
+				Ref:         "",
 			}
 		}
 		errno = errnomap

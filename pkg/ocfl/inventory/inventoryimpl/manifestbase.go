@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewManifestBase(logger zLogger.ZLogger) *ManifestBase {
+func NewManifestBase(logger ocfllogger.OCFLLogger) *ManifestBase {
 	return &ManifestBase{
 		manifest: map[string][]string{},
 		logger:   logger,
@@ -24,7 +24,7 @@ func NewManifestBase(logger zLogger.ZLogger) *ManifestBase {
 type ManifestBase struct {
 	manifest map[string][]string
 	err      error
-	logger   zLogger.ZLogger
+	logger   ocfllogger.OCFLLogger
 }
 
 func (manifest *ManifestBase) GetFilesFlat() iter.Seq[string] {

@@ -6,11 +6,11 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	validation2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 type creatorFunc func(fsys fs.FS) (extension.Extension, error)
@@ -20,10 +20,10 @@ type ExtensionFactory struct {
 	defaultStorageRoot []extension.Extension
 	defaultObject      []extension.Extension
 	extensionParams    map[string]string
-	logger             zLogger.ZLogger
+	logger             ocfllogger.OCFLLogger
 }
 
-func NewExtensionFactory(params map[string]string, logger zLogger.ZLogger) (*ExtensionFactory, error) {
+func NewExtensionFactory(params map[string]string, logger ocfllogger.OCFLLogger) (*ExtensionFactory, error) {
 	m := &ExtensionFactory{
 		creators:        map[string]creatorFunc{},
 		extensionParams: params,

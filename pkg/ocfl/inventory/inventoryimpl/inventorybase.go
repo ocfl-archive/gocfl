@@ -11,15 +11,15 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/uri"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"golang.org/x/exp/slices"
 )
 
-func NewInventoryBase(ctx context.Context, f factorytypes.Factory, version version.OCFLVersion, spec inventory.InventorySpec, logger zLogger.ZLogger) *InventoryBase {
+func NewInventoryBase(ctx context.Context, f factorytypes.Factory, version version.OCFLVersion, spec inventory.InventorySpec, logger ocfllogger.OCFLLogger) *InventoryBase {
 	i := &InventoryBase{
 		ctx:     ctx,
 		factory: f,
@@ -59,7 +59,11 @@ type InventoryBase struct {
 	Manifest         inventory.Manifest       `json:"manifest,omitempty"`
 	Versions         inventory.Versions       `json:"versions,omitempty"`
 	Fixity           inventory.Fixity         `json:"fixity,omitempty"`
-	logger           zLogger.ZLogger
+	logger           ocfllogger.OCFLLogger
+}
+
+func (i *InventoryBase) GetOCFLVersion() version.OCFLVersion {
+	return i.version
 }
 
 func (i *InventoryBase) Bytes() (inventoryBytes []byte, checksumString string, err error) {

@@ -2,8 +2,10 @@ package thumbnail
 
 import (
 	"context"
+
 	"emperror.dev/errors"
-	"github.com/je4/utils/v2/pkg/zLogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+
 	"io/fs"
 	"os/exec"
 	"path/filepath"
@@ -31,7 +33,7 @@ type Function struct {
 	mime    []*regexp.Regexp
 }
 
-func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger zLogger.ZLogger) error {
+func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger ocfllogger.OCFLLogger) error {
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	args := []string{}

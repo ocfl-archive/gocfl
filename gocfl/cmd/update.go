@@ -137,7 +137,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger zLogger.ZLogger = &l2
+	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
 
 	doUpdateConf(cmd)
 

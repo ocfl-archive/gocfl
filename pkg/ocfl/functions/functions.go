@@ -19,7 +19,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extensionimpl.ExtensionFactory, manager object.ExtensionManager, fsys fs.FS, logger zLogger.ZLogger) (object.Object, error) {
+func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extensionimpl.ExtensionFactory, manager object.ExtensionManager, fsys fs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	f := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithFS(fsys)
 	if obj == nil {
@@ -38,7 +38,7 @@ func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, diges
 	return obj, nil
 }
 
-func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) (object.Object, error) {
+func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	ver, err := util.GetVersion(ctx, fsys, "", "ocfl_object_")
 	if errors.Is(err, ocflerrors.ErrVersionNone) {
 		if err := validation.AddValidationError(ctx, version.Version1_0, validation.E003, "no version in fsys '%v'", fsys); err != nil {
@@ -58,7 +58,7 @@ func LoadObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl
 	return obj, nil
 }
 
-func CheckObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) error {
+func CheckObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) error {
 	fmt.Printf("object folder '%v'\n", fsys)
 	validator, err := validation.NewValidator(ctx, version.Version1_0, fmt.Sprintf("%v", fsys), logger)
 	if err != nil {
@@ -78,7 +78,7 @@ func CheckObject(ctx context.Context, fsys fs.FS, extensionFactory *extensionimp
 	return nil
 }
 
-func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) error {
+func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) error {
 	if !version.IsValid() {
 		version = inventory.NewVersionNumber().WithLatest()
 	}
@@ -102,7 +102,7 @@ func Extract(ctx context.Context, destFS, fsys fs.FS, path string, version *inve
 	return nil
 }
 
-func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) (*inventory.Metadata, error) {
+func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) (*inventory.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
 	o, err := LoadObject(ctx, objFsys, extensionFactory, logger)

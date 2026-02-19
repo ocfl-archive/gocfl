@@ -18,7 +18,6 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
@@ -28,6 +27,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"golang.org/x/exp/slices"
 )
 
@@ -38,13 +38,13 @@ import (
 // todo: check WithWriteable() and repair incorrect use...
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger zLogger.ZLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) *ObjectBase {
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
 		//extensionManager: extensionManager.(object.ExtensionManager),
-		ctx:  ctx,
-		fsys: nil,
-		i:    factory.NewInventory(ctx).WithWriteable(),
+		ctx: ctx,
+		//		fsys: nil,
+		i: factory.NewInventory(ctx).WithWriteable(),
 		//versionFolders:     []string{},
 		versionInventories: map[string]inventory.Inventory{},
 		changed:            false,
@@ -64,12 +64,12 @@ type ObjectBase struct {
 	extensionFactory *extensionimpl.ExtensionFactory
 	extensionManager object.ExtensionManager
 	ctx              context.Context
-	fsys             fs.FS
-	i                inventory.Inventory
+	//fsys             fs.FS
+	i inventory.Inventory
 	//versionFolders     []string
 	versionInventories map[string]inventory.Inventory
 	changed            bool
-	logger             zLogger.ZLogger
+	logger             ocfllogger.OCFLLogger
 	version            version.OCFLVersion
 	digest             checksum.DigestAlgorithm
 	echo               bool
@@ -82,10 +82,13 @@ var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
 
 //var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
 
+/*
 func (objectBase *ObjectBase) WithFS(fsys fs.FS) object.Object {
 	objectBase.fsys = fsys
 	return objectBase
 }
+
+*/
 
 func (objectBase *ObjectBase) GetExtensionManager() object.ExtensionManager {
 	return objectBase.extensionManager
@@ -94,14 +97,14 @@ func (objectBase *ObjectBase) GetExtensionManager() object.ExtensionManager {
 func (objectBase *ObjectBase) IsModified() bool { return objectBase.i.IsModified() }
 
 func (objectBase *ObjectBase) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
-	valError := validation.GetValidationError(objectBase.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", objectBase.fsys, objectBase.GetID())
+	valError := validation.GetValidationError(objectBase.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", objectBase.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	objectBase.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
 	return errors.WithStack(validation.AddValidationErrors(objectBase.ctx, valError))
 }
 
 func (objectBase *ObjectBase) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
-	valError := validation.GetValidationError(objectBase.version, errno).AppendDescription(format, a...).AppendContext("object '%v' - '%s'", objectBase.fsys, objectBase.GetID())
+	valError := validation.GetValidationError(objectBase.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", objectBase.GetID())
 	_, file, line, _ := runtime.Caller(1)
 	objectBase.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
 	return errors.WithStack(validation.AddValidationWarnings(objectBase.ctx, valError))
@@ -251,9 +254,11 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 	return nil
 }
 
+/*
 func (objectBase *ObjectBase) GetFS() fs.FS {
 	return objectBase.fsys
 }
+*/
 
 func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.DigestAlgorithm, fixityAlgs []checksum.DigestAlgorithm) (inventory.Inventory, error) {
 	fixity := objectBase.factory.NewFixity(objectBase.ctx).WithAlgorithms(fixityAlgs...)
@@ -278,111 +283,6 @@ func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.Dige
 }
 func (objectBase *ObjectBase) GetInventory() inventory.Inventory {
 	return objectBase.i
-}
-
-func (objectBase *ObjectBase) loadInventory(data []byte, folder string) (inventory.Inventory, error) {
-	anyMap := map[string]any{}
-	if err := json.Unmarshal(data, &anyMap); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
-	}
-	var ver version.OCFLVersion
-	t, ok := anyMap["type"]
-	if !ok {
-		return nil, errors.New("no type in inventory")
-	}
-	sStr, ok := t.(string)
-	if !ok {
-		return nil, errors.Errorf("type not a string in inventory - '%v'", t)
-	}
-	switch sStr {
-	case "https://ocfl.io/1.1/spec/#inventory":
-		ver = version.Version1_1
-	case "https://ocfl.io/1.0/spec/#inventory":
-		ver = version.Version1_0
-	case "https://ocfl.io/2.0/spec/#inventory":
-		ver = version.Version2_0
-	default:
-		// if we don't know anything use the old stuff
-		ver = version.Version1_0
-	}
-	inventory := objectBase.factory.NewInventory(objectBase.ctx).WithWriteable()
-	/*
-		inventory, err := inventory.NewInventory(objectBase.ctx, folder, ver, objectBase.logger)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create empty inventory")
-		}
-	*/
-	if err := json.Unmarshal(data, inventory); err != nil {
-		// now lets try it again
-		jsonMap := map[string]any{}
-		// check for json format error
-		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			validation.AddValidationErrors(objectBase.ctx, validation.GetValidationError(ver, validation.E033).AppendDescription("json syntax error: %v", err2).AppendContext("object '%v'", objectBase.fsys))
-			validation.AddValidationErrors(objectBase.ctx, validation.GetValidationError(ver, validation.E034).AppendDescription("json syntax error: %v", err2).AppendContext("object '%v'", objectBase.fsys))
-		} else {
-			if _, ok := jsonMap["head"].(string); !ok {
-				validation.AddValidationErrors(objectBase.ctx, validation.GetValidationError(ver, validation.E040).AppendDescription("head is not of string type: %v", jsonMap["head"]).AppendContext("object '%v'", objectBase.fsys))
-			}
-		}
-		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
-	}
-
-	return inventory, inventory.Finalize(false)
-}
-
-var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
-
-// loadInventory loads inventory from existing Object
-func (objectBase *ObjectBase) LoadInventory(folder string) (inventory.Inventory, error) {
-	// load inventory file
-	filename := filepath.ToSlash(filepath.Join(folder, "inventory.json"))
-	inventoryBytes, err := fs.ReadFile(objectBase.fsys, filename)
-	if err != nil {
-		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			return nil, err
-		}
-		inventory := objectBase.factory.NewInventory(objectBase.ctx).WithWriteable()
-		return inventory, nil
-	}
-	inventory, err := objectBase.loadInventory(inventoryBytes, folder)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot initiate inventory object")
-	}
-	digest := inventory.GetDigestAlgorithm()
-
-	// check digest for inventory
-	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
-	sidecarBytes, err := fs.ReadFile(objectBase.fsys, sidecarPath)
-	if err != nil {
-		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			objectBase.AddValidationError(validation.E058, "sidecar '%v/%s' does not exist", objectBase.fsys, sidecarPath)
-		} else {
-			objectBase.AddValidationError(validation.E060, "cannot read sidecar '%v/%s': %v", objectBase.fsys, sidecarPath, err.Error())
-		}
-		//		objectBase.AddValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
-	} else {
-		digestString := strings.TrimSpace(string(sidecarBytes))
-		//if !strings.HasSuffix(digestString, " inventory.json") {
-		matches := inventorySideCarFormat.FindStringSubmatch(digestString)
-		if /* matches == nil || */ len(matches) == 0 {
-			objectBase.AddValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", objectBase.fsys, sidecarPath)
-		} else {
-			//digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
-			digestString = matches[1]
-			h, err := checksum.GetHash(digest)
-			if err != nil {
-				return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
-			}
-			h.Reset()
-			h.Write(inventoryBytes)
-			sumBytes := h.Sum(nil)
-			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
-			if digestString != inventoryDigestString {
-				objectBase.AddValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
-			}
-		}
-	}
-	return inventory, inventory.Finalize(false)
 }
 
 func (objectBase *ObjectBase) StoreInventory(version bool, objectRoot bool) error {

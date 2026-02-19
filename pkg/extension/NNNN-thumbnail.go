@@ -18,10 +18,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
@@ -36,7 +36,7 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
-func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger zLogger.ZLogger) (*Thumbnail, error) {
+func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger ocfllogger.OCFLLogger) (*Thumbnail, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
@@ -108,11 +108,10 @@ type ThumbnailMap map[string]*ThumbnailTarget
 // map checksum to thumbnail
 type ThumbnailFiles map[string]*ThumbnailTarget
 
-func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLogger.ZLogger) (*Thumbnail, error) {
-	_logger := logger.With().Str("extension", ThumbnailName).Logger()
+func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger ocfllogger.OCFLLogger) (*Thumbnail, error) {
 	sl := &Thumbnail{
 		ThumbnailConfig: config,
-		logger:          &_logger,
+		logger:          logger.With("extension", ThumbnailName),
 		thumbnail:       mig,
 		buffer:          map[string]*bytes.Buffer{},
 		counter:         map[string]int64{},
@@ -131,7 +130,7 @@ func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger zLog
 
 type Thumbnail struct {
 	*ThumbnailConfig
-	logger      zLogger.ZLogger
+	logger      ocfllogger.OCFLLogger
 	fsys        fs.FS
 	lastHead    string
 	thumbnail   *thumbnail.Thumbnail

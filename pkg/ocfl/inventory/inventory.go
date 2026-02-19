@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
 type StateFileCallback func(internal []string, external []string, digest string) error
@@ -21,6 +22,7 @@ type Inventory interface {
 	GetSpec() InventorySpec
 	CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 	Bytes() (inventory []byte, checksumString string, err error)
+	GetOCFLVersion() version.OCFLVersion
 
 	//	DeleteFile(stateFilename string) error
 	//	RenameFile(stateSource, stateDest string) error

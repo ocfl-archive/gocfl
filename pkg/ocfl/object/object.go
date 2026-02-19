@@ -25,30 +25,37 @@ type VersionWriter interface {
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
 }
 
-type Object interface {
-	VersionWriter
-	WithFS(fsys fs.FS) Object
-	GetFS() fs.FS
-
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
+type Loader interface {
 	Load() error
-
-	GetID() string
-	GetOCFLVersion() version.OCFLVersion
-	Close() error
-	IsModified() bool
-
 	LoadInventory(folder string) (inventory.Inventory, error)
-	//CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
-	StoreInventory(version bool, objectRoot bool) error
-	GetInventory() inventory.Inventory
+}
 
+type Writer interface {
+	StoreInventory(version bool, objectRoot bool) error
 	StoreExtensions() error
 	StartUpdate(sourceFS fs.FS, msg string, UserName string, UserAddress string, echo bool) (fs.FS, error)
 	EndUpdate() error
-
 	BeginArea(area string)
 	EndArea() error
+}
+
+type Object interface {
+	VersionWriter
+	Loader
+	Writer
+	//WithFS(fsys fs.FS) Object
+	//GetFS() fs.FS
+
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
+	Close() error
+
+	GetID() string
+	GetOCFLVersion() version.OCFLVersion
+	IsModified() bool
+
+	//CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
+	GetInventory() inventory.Inventory
+
 	GetAreaPath(area string) (string, error)
 
 	Check() error

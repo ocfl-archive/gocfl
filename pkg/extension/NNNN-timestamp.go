@@ -15,10 +15,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/digitorus/timestamp"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 const TimestampName = "NNNN-timestamp"
@@ -28,7 +28,7 @@ func GetTimestampParams() []*extensionimpl.ExtensionExternalParam {
 	return []*extensionimpl.ExtensionExternalParam{}
 }
 
-func NewTimestampFS(fsys fs.FS, logger zLogger.ZLogger) (*Timestamp, error) {
+func NewTimestampFS(fsys fs.FS, logger ocfllogger.OCFLLogger) (*Timestamp, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -45,7 +45,7 @@ func NewTimestampFS(fsys fs.FS, logger zLogger.ZLogger) (*Timestamp, error) {
 	}
 	return NewTimestamp(config, logger)
 }
-func NewTimestamp(config *TimestampConfig, logger zLogger.ZLogger) (*Timestamp, error) {
+func NewTimestamp(config *TimestampConfig, logger ocfllogger.OCFLLogger) (*Timestamp, error) {
 	sl := &Timestamp{
 		TimestampConfig: config,
 		logger:          logger,
@@ -64,7 +64,7 @@ type TimestampConfig struct {
 type Timestamp struct {
 	*TimestampConfig
 	fsys   fs.FS
-	logger zLogger.ZLogger
+	logger ocfllogger.OCFLLogger
 }
 
 func (sl *Timestamp) trustedTimestamp(object object.Object) error {
