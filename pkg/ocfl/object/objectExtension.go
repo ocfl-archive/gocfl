@@ -7,6 +7,7 @@ import (
 
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const (
@@ -86,5 +87,5 @@ type ExtensionVersionDone interface {
 type ExtensionNewVersion interface {
 	extension.Extension
 	NeedNewVersion(object Object) (bool, error)
-	DoNewVersion(object Object) error
+	DoNewVersion(object Object, fsys streamfs.FS) error
 }

@@ -40,7 +40,7 @@ type Writer interface {
 }
 
 type Object interface {
-	//VersionWriter
+	VersionWriter
 	Loader
 	Writer
 	//WithFS(fsys fs.FS) Object

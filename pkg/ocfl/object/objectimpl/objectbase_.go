@@ -423,7 +423,7 @@ func (objectBase *ObjectBase) EndUpdate() error {
 		if _, err := objectBase.StartUpdate(nil, "automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false); err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
-		if err := objectBase.extensionManager.DoNewVersion(objectBase); err != nil {
+		if err := objectBase.extensionManager.DoNewVersion(objectBase, nil); err != nil {
 			return errors.Wrapf(err, "cannot execute ext.DoNewVersion()")
 		}
 		/*
