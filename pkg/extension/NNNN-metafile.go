@@ -21,6 +21,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
@@ -174,7 +175,7 @@ func (sl *MetaFile) SetFS(fsys fs.FS, create bool) {
 
 func (sl *MetaFile) GetName() string { return MetaFileName }
 
-func (sl *MetaFile) WriteConfig() error {
+func (sl *MetaFile) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

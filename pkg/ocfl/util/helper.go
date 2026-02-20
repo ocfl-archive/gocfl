@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"emperror.dev/emperror"
@@ -164,7 +166,7 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
-func GetVersion(ctx context.Context, fsys fs.FS, folder, prefix string) (ver version.OCFLVersion, err error) {
+func GetVersion(fsys fs.FS, folder, prefix string) (ver version.OCFLVersion, err error) {
 	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)
 	if err != nil {
@@ -203,7 +205,7 @@ func GetVersion(ctx context.Context, fsys fs.FS, folder, prefix string) (ver ver
 }
 
 func validVersion(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, folder, prefix string) bool {
-	v, _ := GetVersion(ctx, fsys, folder, prefix)
+	v, _ := GetVersion(fsys, folder, prefix)
 	return v == ver
 }
 

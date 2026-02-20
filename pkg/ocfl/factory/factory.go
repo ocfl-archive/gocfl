@@ -12,6 +12,6 @@ type Factory interface {
 	object.Factory
 	storageroot.Factory
 	GetVersion() version.OCFLVersion
-	SetVersion(version.OCFLVersion)
+	SetVersion(version.OCFLVersion) error
 	Copy() Factory
 }

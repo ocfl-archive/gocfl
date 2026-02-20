@@ -18,6 +18,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/constraints"
 )
 
@@ -157,7 +158,7 @@ func (sl *DirectClean) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *DirectClean) WriteConfig() error {
+func (sl *DirectClean) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

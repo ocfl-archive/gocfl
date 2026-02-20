@@ -19,6 +19,7 @@ import (
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/slices"
 )
 
@@ -337,7 +338,7 @@ func (extFS *Filesystem) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (extFS *Filesystem) WriteConfig() error {
+func (extFS *Filesystem) WriteConfig(streamfs.FS) error {
 	if extFS.fsys == nil {
 		return errors.New("no filesystem set")
 	}

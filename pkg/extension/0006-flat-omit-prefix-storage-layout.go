@@ -13,6 +13,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
@@ -81,7 +82,7 @@ func (sl *FlatOmitPrefixStorageLayout) SetParams(params map[string]string) error
 }
 
 func (sl *FlatOmitPrefixStorageLayout) GetName() string { return FlatOmitPrefixStorageLayoutName }
-func (sl *FlatOmitPrefixStorageLayout) WriteConfig() error {
+func (sl *FlatOmitPrefixStorageLayout) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

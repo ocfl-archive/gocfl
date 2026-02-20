@@ -1,10 +1,12 @@
 package factoryimpl
 
 import (
-	"github.com/je4/utils/v2/pkg/zLogger"
+	"fmt"
+
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 func NewDynamicFactory(ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) factory.Factory {
@@ -21,11 +23,15 @@ type dynamicFactory struct {
 	logger           ocfllogger.OCFLLogger
 }
 
-func (f *dynamicFactory) SetVersion(ver version.OCFLVersion) {
+func (f *dynamicFactory) SetVersion(ver version.OCFLVersion) error {
+	if !version.ValidVersion(ver) {
+		return fmt.Errorf("invalid version: %s", ver)
+	}
 	if f.Factory.GetVersion() == ver {
-		return
+		return nil
 	}
 	f.Factory = NewFactory(ver, f.extensionFactory, f.logger)
+	return nil
 }
 
 func (f *dynamicFactory) Copy() factory.Factory {

@@ -27,7 +27,7 @@ type VersionWriter interface {
 
 type Loader interface {
 	Load() error
-	LoadInventory(folder string) (inventory.Inventory, error)
+	//LoadInventory(folder string) (inventory.Inventory, error)
 }
 
 type Writer interface {
@@ -40,7 +40,7 @@ type Writer interface {
 }
 
 type Object interface {
-	VersionWriter
+	//VersionWriter
 	Loader
 	Writer
 	//WithFS(fsys fs.FS) Object

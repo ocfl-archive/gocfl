@@ -7,6 +7,8 @@ import (
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
 const DefaultExtensionInitialName = "initial"
 
+type CreatorFunc func() Extension
+
 type ExtensionInitial interface {
 	Extension
 	GetExtension() string

@@ -14,6 +14,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) factory.Factory {
@@ -41,8 +42,9 @@ func (f *FactoryBase) Copy() factory.Factory {
 	}
 }
 
-func (f *FactoryBase) SetVersion(version.OCFLVersion) {
+func (f *FactoryBase) SetVersion(version.OCFLVersion) error {
 	f.logger.Panic().Msgf("cannot change version of fixed version factory")
+	return nil
 }
 
 func (f *FactoryBase) GetVersion() version.OCFLVersion {

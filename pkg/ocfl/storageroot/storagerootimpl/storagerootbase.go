@@ -145,7 +145,7 @@ func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.Digest
 	subfs, err := writefs.SubFSCreate(osr.fsys, "extensions")
 	if err == nil {
 		osr.extensionManager.SetFS(subfs, true)
-		if err := osr.extensionManager.WriteConfig(); err != nil {
+		if err := osr.extensionManager.WriteConfig(nil); err != nil {
 			return errors.Wrap(err, "cannot store extension configs")
 		}
 	}
@@ -160,7 +160,7 @@ func (osr *StorageRootBase) Load() error {
 	var err error
 	osr.logger.Debug()
 
-	osr.version, err = util.GetVersion(osr.ctx, osr.fsys, ".", "ocfl_")
+	osr.version, err = util.GetVersion(osr.fsys, ".", "ocfl_")
 	if err != nil {
 		switch err {
 		case ocflerrors.ErrVersionNone:
@@ -191,7 +191,7 @@ func (osr *StorageRootBase) Load() error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for extensions", osr.fsys)
 	}
-	extensionManager, err := osr.extensionFactory.CreateExtensions(extFSys, osr)
+	extensionManager, err := osr.extensionFactory.LoadExtensionManager(extFSys)
 	if err != nil {
 		return errors.Wrap(err, "cannot create extension manager")
 	}

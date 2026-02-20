@@ -13,6 +13,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
@@ -98,7 +99,7 @@ func (sl *StorageLayoutHashedNTuple) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *StorageLayoutHashedNTuple) WriteConfig() error {
+func (sl *StorageLayoutHashedNTuple) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

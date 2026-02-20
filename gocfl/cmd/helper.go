@@ -196,12 +196,12 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(extensionFactory *extensionimpl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger ocfllogger.OCFLLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
+func initDefaultExtensions(ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger ocfllogger.OCFLLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
 	} else {
-		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder, true, logger.ZLogger)
+		dStorageRootExtDirFS, err = osfsrw.NewFS(storageRootExtensionsFolder, true, logger.Logger())
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot create filesystem for storage root extensions folder %v", storageRootExtensionsFolder)
 		}
@@ -209,17 +209,17 @@ func initDefaultExtensions(extensionFactory *extensionimpl.ExtensionFactory, sto
 	if objectExtensionsFolder == "" {
 		dObjectExtDirFS = defaultextensions_object.DefaultObjectExtensionFS
 	} else {
-		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder, true, logger.ZLogger)
+		dObjectExtDirFS, err = osfsrw.NewFS(objectExtensionsFolder, true, logger.Logger())
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "cannot create filesystem for object extensions folder %v", objectExtensionsFolder)
 		}
 	}
-	_storageRootExtensions, err := extensionFactory.LoadExtensions(dStorageRootExtDirFS, nil)
+	_storageRootExtensions, err := extensionFactory.LoadExtensions(dStorageRootExtDirFS, ver)
 	if err != nil {
 		err = errors.Wrapf(err, "cannot load extension folder %v", dStorageRootExtDirFS)
 		return
 	}
-	_objectExtensions, err := extensionFactory.LoadExtensions(dObjectExtDirFS, nil)
+	_objectExtensions, err := extensionFactory.LoadExtensions(dObjectExtDirFS, ver)
 	if err != nil {
 		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
@@ -244,7 +244,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 	}
 
 	if readOnly {
-		if err := fsFactory.Register(zipfs.NewCreateFSFunc(logger.ZLogger), "\\.zip$", writefs.HighFS); err != nil {
+		if err := fsFactory.Register(zipfs.NewCreateFSFunc(logger.Logger), "\\.zip$", writefs.HighFS); err != nil {
 			return nil, errors.Wrap(err, "cannot register zipfs")
 		}
 	} else {
@@ -260,16 +260,16 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 			}
 			registry.RegisterKMSClient(client)
 
-			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(noCompression, zipDigests, string(aesConfig.KeepassEntry), logger.ZLogger), "\\.zip$", writefs.HighFS); err != nil {
+			if err := fsFactory.Register(zipfsrw.NewCreateFSEncryptedChecksumFunc(noCompression, zipDigests, string(aesConfig.KeepassEntry), logger.Logger), "\\.zip$", writefs.HighFS); err != nil {
 				return nil, errors.Wrap(err, "cannot register FSEncryptedChecksum")
 			}
 		} else {
-			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(noCompression, zipDigests, logger.ZLogger), "\\.zip$", writefs.HighFS); err != nil {
+			if err := fsFactory.Register(zipfsrw.NewCreateFSChecksumFunc(noCompression, zipDigests, logger.Logger), "\\.zip$", writefs.HighFS); err != nil {
 				return nil, errors.Wrap(err, "cannot register FSChecksum")
 			}
 		}
 	}
-	if err := fsFactory.Register(osfsrw.NewCreateFSFunc(logger.ZLogger), "", writefs.LowFS); err != nil {
+	if err := fsFactory.Register(osfsrw.NewCreateFSFunc(logger.Logger), "", writefs.LowFS); err != nil {
 		return nil, errors.Wrap(err, "cannot register osfs")
 	}
 	if s3Config.Endpoint != "" {
@@ -288,7 +288,7 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 				nil,
 				"",
 				"",
-				logger.ZLogger,
+				logger.Logger,
 			),
 			s3fsrw.ARNRegexStr,
 			writefs.MediumFS,
@@ -428,7 +428,7 @@ func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion,
 }
 
 func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	ver, err := util.GetVersion(ctx, fsys, ".", "ocfl_")
+	ver, err := util.GetVersion(fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
 	}
@@ -453,7 +453,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensio
 }
 
 func LoadStorageRootRO(ctx context.Context, fact factory.Factory, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	ver, err := util.GetVersion(ctx, fsys, ".", "ocfl_")
+	ver, err := util.GetVersion(fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
 	}

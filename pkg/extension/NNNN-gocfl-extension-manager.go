@@ -15,6 +15,7 @@ import (
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/slices"
 )
 
@@ -290,9 +291,9 @@ func (manager *GOCFLExtensionManager) IsRegistered() bool {
 func (manager *GOCFLExtensionManager) GetName() string {
 	return GOCFLExtensionManagerName
 }
-func (manager *GOCFLExtensionManager) WriteConfig() error {
+func (manager *GOCFLExtensionManager) WriteConfig(streamfs.FS) error {
 	for _, ext := range append(manager.extensions, manager.initial) {
-		if err := ext.WriteConfig(); err != nil {
+		if err := ext.WriteConfig(nil); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
 	}

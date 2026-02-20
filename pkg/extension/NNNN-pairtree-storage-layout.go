@@ -15,6 +15,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutPairTreeName = "NNNN-pairtree-storage-layout"
@@ -123,7 +124,7 @@ func (sl *StorageLayoutPairTree) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) WriteConfig() error {
+func (sl *StorageLayoutPairTree) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

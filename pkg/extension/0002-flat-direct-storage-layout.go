@@ -12,6 +12,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
@@ -79,7 +80,7 @@ func (sl *StorageLayoutFlatDirect) SetParams(params map[string]string) error {
 }
 
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
-func (sl *StorageLayoutFlatDirect) WriteConfig() error {
+func (sl *StorageLayoutFlatDirect) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const DigestAlgorithmsName = "0001-digest-algorithms"
@@ -91,7 +92,7 @@ func (sl *DigestAlgorithms) SetParams(params map[string]string) error {
 }
 
 func (sl *DigestAlgorithms) GetName() string { return DigestAlgorithmsName }
-func (sl *DigestAlgorithms) WriteConfig() error {
+func (sl *DigestAlgorithms) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

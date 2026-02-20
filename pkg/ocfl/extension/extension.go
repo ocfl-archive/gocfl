@@ -1,6 +1,10 @@
 package extension
 
-import "io/fs"
+import (
+	"io/fs"
+
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
+)
 
 type ExtensionConfig struct {
 	ExtensionName string `json:"extensionName"`
@@ -8,10 +12,11 @@ type ExtensionConfig struct {
 
 type Extension interface {
 	GetName() string
-	SetFS(fsys fs.FS, create bool)
-	GetFS() fs.FS
+	Load(fsys fs.FS) error
+	//SetFS(fsys fs.FS, create bool)
+	//GetFS() fs.FS
 	SetParams(params map[string]string) error
-	WriteConfig() error
+	WriteConfig(fsys streamfs.FS) error
 	//GetConfigString() string
 	GetConfig() any
 	IsRegistered() bool

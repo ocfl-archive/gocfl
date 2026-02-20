@@ -17,9 +17,20 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extensionimpl.ExtensionFactory, manager object.ExtensionManager, fsys fs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
+func CreateObject(
+	ctx context.Context,
+	id string,
+	ver version.OCFLVersion,
+	digest checksum.DigestAlgorithm,
+	fixity []checksum.DigestAlgorithm,
+	extensionFactory *extensionimpl.ExtensionFactory,
+	manager object.ExtensionManager,
+	fsys fs.FS,
+	logger ocfllogger.OCFLLogger,
+) (object.Object, error) {
 	f := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithFS(fsys)
 	if obj == nil {

@@ -13,6 +13,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const NTupleOmitPrefixStorageLayoutName = "0007-n-tuple-omit-prefix-storage-layout"
@@ -101,7 +102,7 @@ func (sl *NTupleOmitPrefixStorageLayout) SetParams(params map[string]string) err
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) GetName() string { return NTupleOmitPrefixStorageLayoutName }
-func (sl *NTupleOmitPrefixStorageLayout) WriteConfig() error {
+func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

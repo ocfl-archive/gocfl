@@ -18,6 +18,7 @@ import (
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -130,7 +131,7 @@ func (mi *Migration) SetParams(map[string]string) error {
 	return nil
 }
 
-func (mi *Migration) WriteConfig() error {
+func (mi *Migration) WriteConfig(streamfs.FS) error {
 	if mi.fsys == nil {
 		return errors.New("no filesystem set")
 	}

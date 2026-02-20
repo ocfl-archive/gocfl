@@ -21,6 +21,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
 )
@@ -205,7 +206,7 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 	return result, resp.StatusCode, nil
 }
 
-func (sl *Indexer) WriteConfig() error {
+func (sl *Indexer) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

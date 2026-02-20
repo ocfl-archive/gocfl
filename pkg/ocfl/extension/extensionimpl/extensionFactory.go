@@ -5,18 +5,16 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	validation2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-type creatorFunc func(fsys fs.FS) (extension.Extension, error)
-
 type ExtensionFactory struct {
-	creators           map[string]creatorFunc
+	creators           map[string]extension.CreatorFunc
 	defaultStorageRoot []extension.Extension
 	defaultObject      []extension.Extension
 	extensionParams    map[string]string
@@ -25,14 +23,14 @@ type ExtensionFactory struct {
 
 func NewExtensionFactory(params map[string]string, logger ocfllogger.OCFLLogger) (*ExtensionFactory, error) {
 	m := &ExtensionFactory{
-		creators:        map[string]creatorFunc{},
+		creators:        map[string]extension.CreatorFunc{},
 		extensionParams: params,
 		logger:          logger,
 	}
 	return m, nil
 }
 
-func (f *ExtensionFactory) AddCreator(name string, creator creatorFunc) {
+func (f *ExtensionFactory) AddCreator(name string, creator extension.CreatorFunc) {
 	f.creators[name] = creator
 }
 
@@ -44,15 +42,15 @@ func (f *ExtensionFactory) AddObjectDefaultExtension(ext extension.Extension) {
 	f.defaultObject = append(f.defaultObject, ext)
 }
 
-func (f *ExtensionFactory) Create(fsys fs.FS) (extension.Extension, error) {
+func (f *ExtensionFactory) LoadExtensionFile(fsys fs.FS) (extension.Extension, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
 	}
-	return f.create(fsys, data)
+	return f.LoadExtensionData(fsys, data)
 }
 
-func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (extension.Extension, error) {
+func (f *ExtensionFactory) LoadExtensionData(fsys fs.FS, data []byte) (extension.Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -79,11 +77,11 @@ func (f *ExtensionFactory) create(fsys fs.FS, data []byte) (extension.Extension,
 	return ext, nil
 }
 
-func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.Validation) (object.ExtensionManager, error) {
+func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (extension.ExtensionManagerCore, error) {
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read folder storageroot")
+		return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
 	}
 	var result = []extension.Extension{}
 	for _, file := range files {
@@ -91,30 +89,23 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 			continue
 		}
 		fName := file.Name()
-		sub, err := writefs.Sub(fsys, fName)
+		sub, err := fs.Sub(fsys, fName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
 		}
 
-		ext, err := f.Create(sub)
+		ext, err := f.LoadExtensionFile(sub)
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
-			if validation != nil {
-
-				validation.AddValidationWarning(validation2.W000, "extension %s not supported by gocfl %s", file.Name(), info.Version)
-			}
+			f.logger.ValidationError(ver, validation.W000, "extension %s not supported by gocfl %s", file.Name(), info.Version)
 		} else {
 			if !ext.IsRegistered() {
-				if validation != nil {
-					validation.AddValidationWarning(validation2.W013, "extension '%s' is not registered", ext.GetName())
-				}
+				f.logger.ValidationError(ver, validation.W013, "extension %s is not registered", ext.GetName())
 			}
 			// warning if extension name is different from folder name and extension name is not 'initial'
 			// todo: initial should follow the same rule
 			if fName != ext.GetName() && fName != "initial" {
-				if validation != nil {
-					validation.AddValidationWarning(validation2.W013, "extension '%s' has a different name than the folder", ext.GetName())
-				}
+				f.logger.ValidationError(ver, validation.W013, "extension %s has a different name than the folder", ext.GetName())
 			}
 			// we have the initial folder, but the extension is not initial. let's create the initial extension
 			if fName == "initial" && ext.GetName() != "initial" {
@@ -215,12 +206,12 @@ func (f *ExtensionFactory) CreateExtensions(fsys fs.FS, validation validation2.V
 	// do final steps
 	manager.Finalize()
 	manager.SetInitial(initial)
-	manager.SetFS(fsys, false)
+	//manager.SetFS(fsys, false)
 	return manager, errors.Combine(errs...)
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, validation validation2.Validation) (extension.Extension, error) {
-	manager, err := f.CreateExtensions(fsys, validation)
+func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, ver version.OCFLVersion) (extension.Extension, error) {
+	manager, err := f.LoadExtensionManager(fsys, ver)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")
 	}

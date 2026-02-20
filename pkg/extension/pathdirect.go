@@ -12,6 +12,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const PathDirectName = "NNNN-direct-path-layout"
@@ -96,7 +97,7 @@ func (sl *PathDirect) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *PathDirect) WriteConfig() error {
+func (sl *PathDirect) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

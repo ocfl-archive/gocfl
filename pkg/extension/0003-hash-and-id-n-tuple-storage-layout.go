@@ -14,6 +14,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
@@ -100,7 +101,7 @@ func (sl *StorageLayoutHashAndIdNTuple) SetParams(params map[string]string) erro
 	return nil
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) WriteConfig() error {
+func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

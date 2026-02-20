@@ -19,6 +19,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const TimestampName = "NNNN-timestamp"
@@ -197,7 +198,7 @@ func (sl *Timestamp) SetParams(params map[string]string) error {
 
 func (sl *Timestamp) GetName() string { return TimestampName }
 
-func (sl *Timestamp) WriteConfig() error {
+func (sl *Timestamp) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

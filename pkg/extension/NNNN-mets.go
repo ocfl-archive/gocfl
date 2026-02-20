@@ -26,6 +26,7 @@ import (
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -155,7 +156,7 @@ func (me *Mets) SetFS(fsys fs.FS, create bool) {
 
 func (me *Mets) GetName() string { return METSName }
 
-func (me *Mets) WriteConfig() error {
+func (me *Mets) WriteConfig(streamfs.FS) error {
 	if me.fsys == nil {
 		return errors.New("no filesystem set")
 	}

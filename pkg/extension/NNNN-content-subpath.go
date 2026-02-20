@@ -15,6 +15,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const ContentSubPathName = "NNNN-content-subpath"
@@ -109,7 +110,7 @@ func (sl *ContentSubPath) SetParams(params map[string]string) error {
 
 func (sl *ContentSubPath) GetName() string { return ContentSubPathName }
 
-func (sl *ContentSubPath) WriteConfig() error {
+func (sl *ContentSubPath) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}

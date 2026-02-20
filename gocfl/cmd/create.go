@@ -142,7 +142,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.ZLogger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.Logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot init indexer")
 	}

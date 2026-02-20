@@ -9,6 +9,7 @@ import (
 
 	"emperror.dev/errors"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const LoggingIndexerName = "NNNN-indexer-logging-object"
@@ -50,7 +51,7 @@ func (li *LoggingIndexer) SetParams(params map[string]string) error {
 	panic("implement me")
 }
 
-func (li *LoggingIndexer) WriteConfig() error {
+func (li *LoggingIndexer) WriteConfig(streamfs.FS) error {
 	//TODO implement me
 	panic("implement me")
 }

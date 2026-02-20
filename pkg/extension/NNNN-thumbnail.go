@@ -22,6 +22,7 @@ import (
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
@@ -166,7 +167,7 @@ func (thumb *Thumbnail) SetParams(map[string]string) error {
 	return nil
 }
 
-func (thumb *Thumbnail) WriteConfig() error {
+func (thumb *Thumbnail) WriteConfig(streamfs.FS) error {
 	if thumb.fsys == nil {
 		return errors.New("no filesystem set")
 	}

@@ -29,15 +29,15 @@ require (
 	github.com/tink-crypto/tink-go/v2 v2.6.0
 	gitlab.switch.ch/ub-unibas/go-ublogger/v2 v2.0.1
 	go.ub.unibas.ch/cloud/certloader/v2 v2.0.24
-	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/image v0.36.0
-	gopkg.in/gographics/imagick.v3 v3.7.2
+	gopkg.in/gographics/imagick.v3 v3.7.3
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
@@ -110,14 +110,14 @@ require (
 	github.com/telkomdev/go-stash v1.0.6 // indirect
 	github.com/tinylib/msgp v1.6.3 // indirect
 	github.com/tobischo/argon2 v0.1.0 // indirect
-	github.com/tobischo/gokeepasslib/v3 v3.6.1 // indirect
+	github.com/tobischo/gokeepasslib/v3 v3.6.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
-	go.step.sm/crypto v0.76.0 // indirect
+	go.step.sm/crypto v0.76.2 // indirect
 	go.ub.unibas.ch/cloud/minivaultclient v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect

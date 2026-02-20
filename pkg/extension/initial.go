@@ -11,6 +11,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const InitialName = "initial"
@@ -75,6 +76,23 @@ type Initial struct {
 	fsys fs.FS
 }
 
+func (sl *Initial) Load(fsys fs.FS) error {
+	fp, err := fsys.Open("config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer fp.Close()
+	data, err := io.ReadAll(fp)
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+
+	if err := json.Unmarshal(data, sl.InitialConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal InitialConfig '%s'", string(data))
+	}
+	return nil
+}
+
 func (sl *Initial) Terminate() error {
 	return nil
 }
@@ -113,7 +131,7 @@ func (sl *Initial) SetParams(params map[string]string) error {
 
 func (sl *Initial) GetName() string { return InitialName }
 
-func (sl *Initial) WriteConfig() error {
+func (sl *Initial) WriteConfig(streamfs.FS) error {
 	if sl.fsys == nil {
 		return errors.New("no filesystem set")
 	}
