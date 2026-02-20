@@ -29,30 +29,14 @@ func GetTimestampParams() []*extensionimpl.ExtensionExternalParam {
 	return []*extensionimpl.ExtensionExternalParam{}
 }
 
-func NewTimestampFS(fsys fs.FS, logger ocfllogger.OCFLLogger) (*Timestamp, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewTimestamp(logger ocfllogger.OCFLLogger) (*Timestamp, error) {
+	config := &TimestampConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: TimestampName},
+		Authority:       map[string]string{},
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &TimestampConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal TimestampConfig '%s'", string(data))
-	}
-	return NewTimestamp(config, logger)
-}
-func NewTimestamp(config *TimestampConfig, logger ocfllogger.OCFLLogger) (*Timestamp, error) {
 	sl := &Timestamp{
 		TimestampConfig: config,
-		logger:          logger,
-	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+		logger:          logger.With("extension", TimestampName),
 	}
 	return sl, nil
 }
@@ -66,6 +50,17 @@ type Timestamp struct {
 	*TimestampConfig
 	fsys   fs.FS
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *Timestamp) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.TimestampConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal TimestampConfig '%s'", string(data))
+	}
+	return nil
 }
 
 func (sl *Timestamp) trustedTimestamp(object object.Object) error {

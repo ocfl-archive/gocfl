@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash"
-	"io"
 	"io/fs"
 	"path/filepath"
 	"regexp"
@@ -18,6 +17,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/constraints"
 )
@@ -49,56 +49,23 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectCleanFS(fsys fs.FS) (extensiontypes.Extension, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewDirectClean(logger ocfllogger.OCFLLogger) (extensiontypes.Extension, error) {
+	config := &DirectCleanConfig{
+		ExtensionConfig:             &extensiontypes.ExtensionConfig{ExtensionName: DirectCleanName},
+		MaxPathnameLen:              32000,
+		MaxPathSegmentLen:           127,
+		FallbackDigestAlgorithm:     checksum.DigestSHA512,
+		FallbackFolder:              "fallback",
+		NumberOfFallbackTuples:      0,
+		FallbackTupleSize:           0,
+		ReplacementString:           "",
+		WhitespaceReplacementString: "",
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-	var config = &DirectCleanConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	// compatibility with old config
-	if config.MaxFilenameLen > 0 && config.MaxPathnameLen == 0 {
-		config.MaxPathnameLen = config.MaxFilenameLen
-		config.MaxFilenameLen = 0
-	}
-	if config.FallbackSubFolders > 0 && config.NumberOfFallbackTuples == 0 {
-		config.NumberOfFallbackTuples = config.FallbackSubFolders
-		config.FallbackSubFolders = 0
-	}
-	return NewDirectClean(config)
-}
-
-func NewDirectClean(config *DirectCleanConfig) (extensiontypes.Extension, error) {
-	if config.MaxPathnameLen == 0 {
-		config.MaxPathnameLen = 32000
-	}
-	if config.MaxPathSegmentLen == 0 {
-		config.MaxPathSegmentLen = 127
-	}
-	if config.FallbackDigestAlgorithm == "" {
-		config.FallbackDigestAlgorithm = checksum.DigestSHA512
-	}
-	if config.FallbackFolder == "" {
-		config.FallbackFolder = "fallback"
-	}
-
-	sl := &DirectClean{DirectCleanConfig: config}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.Errorf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName())
-	}
-
+	sl := &DirectClean{DirectCleanConfig: config, logger: logger.With("extension", DirectCleanName)}
 	var err error
 	if sl.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
 		return nil, errors.Wrapf(err, "hash %s not supported", config.FallbackDigestAlgorithm)
 	}
-
 	return sl, nil
 }
 
@@ -128,6 +95,44 @@ type DirectClean struct {
 	fsys      fs.FS
 	hash      hash.Hash  `json:"-"`
 	hashMutex sync.Mutex `json:"-"`
+	logger    ocfllogger.OCFLLogger
+}
+
+func (sl *DirectClean) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.DirectCleanConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	// compatibility with old config
+	if sl.MaxFilenameLen > 0 && sl.MaxPathnameLen == 0 {
+		sl.MaxPathnameLen = sl.MaxFilenameLen
+		sl.MaxFilenameLen = 0
+	}
+	if sl.FallbackSubFolders > 0 && sl.NumberOfFallbackTuples == 0 {
+		sl.NumberOfFallbackTuples = sl.FallbackSubFolders
+		sl.FallbackSubFolders = 0
+	}
+	// defaults
+	if sl.MaxPathnameLen == 0 {
+		sl.MaxPathnameLen = 32000
+	}
+	if sl.MaxPathSegmentLen == 0 {
+		sl.MaxPathSegmentLen = 127
+	}
+	if sl.FallbackDigestAlgorithm == "" {
+		sl.FallbackDigestAlgorithm = checksum.DigestSHA512
+	}
+	if sl.FallbackFolder == "" {
+		sl.FallbackFolder = "fallback"
+	}
+	// prepare hash
+	if sl.hash, err = checksum.GetHash(sl.FallbackDigestAlgorithm); err != nil {
+		return errors.Wrapf(err, "hash %s not supported", sl.FallbackDigestAlgorithm)
+	}
+	return nil
 }
 
 func (sl *DirectClean) Terminate() error {

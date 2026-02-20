@@ -2,7 +2,6 @@ package extension
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"io"
 	"io/fs"
@@ -13,6 +12,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -34,29 +34,41 @@ func reverse(s string) string {
 	return string(rns)
 }
 
-func NewNTupleOmitPrefixStorageLayoutFS(fsys fs.FS) (*NTupleOmitPrefixStorageLayout, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewNTupleOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) (*NTupleOmitPrefixStorageLayout, error) {
+	config := &NTupleOmitPrefixStorageLayoutConfig{
+		ExtensionConfig:   &extensiontypes.ExtensionConfig{ExtensionName: NTupleOmitPrefixStorageLayoutName},
+		Delimiter:         ":",
+		TupleSize:         0,
+		NumberOfTuples:    0,
+		ZeroPadding:       "",
+		ReverseObjectRoot: false,
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &NTupleOmitPrefixStorageLayoutConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	return NewNTupleOmitPrefixStorageLayout(config)
-}
-func NewNTupleOmitPrefixStorageLayout(config *NTupleOmitPrefixStorageLayoutConfig) (*NTupleOmitPrefixStorageLayout, error) {
-	sl := &NTupleOmitPrefixStorageLayout{NTupleOmitPrefixStorageLayoutConfig: config}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
+	sl := &NTupleOmitPrefixStorageLayout{NTupleOmitPrefixStorageLayoutConfig: config, logger: logger.With("extension", NTupleOmitPrefixStorageLayoutName)}
 	return sl, nil
+}
+
+func (sl *NTupleOmitPrefixStorageLayout) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.NTupleOmitPrefixStorageLayoutConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal NTupleOmitPrefixStorageLayoutConfig '%s'", string(data))
+	}
+	if sl.Delimiter == "" {
+		sl.Delimiter = ":"
+	}
+	if sl.NumberOfTuples > 32 {
+		sl.NumberOfTuples = 32
+	}
+	if sl.TupleSize > 32 {
+		sl.TupleSize = 32
+	}
+	if sl.TupleSize == 0 || sl.NumberOfTuples == 0 {
+		sl.NumberOfTuples = 0
+		sl.TupleSize = 0
+	}
+	return nil
 }
 
 type NTupleOmitPrefixStorageLayoutConfig struct {
@@ -70,7 +82,8 @@ type NTupleOmitPrefixStorageLayoutConfig struct {
 
 type NTupleOmitPrefixStorageLayout struct {
 	*NTupleOmitPrefixStorageLayoutConfig
-	fsys fs.FS
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) Terminate() error {

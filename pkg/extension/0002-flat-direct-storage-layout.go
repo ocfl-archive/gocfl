@@ -2,9 +2,8 @@ package extension
 
 import (
 	"encoding/json"
-	"fmt"
-
 	"io"
+
 	"io/fs"
 
 	"emperror.dev/errors"
@@ -12,33 +11,22 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
 const StorageLayoutFlatDirectDescription = "one to one mapping without changes"
 
-func NewStorageLayoutFlatDirectFS(fsys fs.FS) (*StorageLayoutFlatDirect, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewStorageLayoutFlatDirect(logger ocfllogger.OCFLLogger) (*StorageLayoutFlatDirect, error) {
+	var config = &StorageLayoutFlatDirectConfig{
+		ExtensionConfig: &extension.ExtensionConfig{
+			ExtensionName: StorageLayoutFlatDirectName,
+		},
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &StorageLayoutFlatDirectConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	return NewStorageLayoutFlatDirect(config)
-}
-func NewStorageLayoutFlatDirect(config *StorageLayoutFlatDirectConfig) (*StorageLayoutFlatDirect, error) {
-	sl := &StorageLayoutFlatDirect{StorageLayoutFlatDirectConfig: config}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	sl := &StorageLayoutFlatDirect{
+		StorageLayoutFlatDirectConfig: config,
+		logger:                        logger.With("extension", StorageLayoutFlatDirectName),
 	}
 	return sl, nil
 }
@@ -48,7 +36,20 @@ type StorageLayoutFlatDirectConfig struct {
 }
 type StorageLayoutFlatDirect struct {
 	*StorageLayoutFlatDirectConfig
-	fsys fs.FS
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
+}
+
+func (sl *StorageLayoutFlatDirect) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+
+	if err := json.Unmarshal(data, sl.StorageLayoutFlatDirectConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal StorageLayoutFlatDirectConfig '%s'", string(data))
+	}
+	return nil
 }
 
 func (sl *StorageLayoutFlatDirect) Terminate() error {

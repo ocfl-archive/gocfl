@@ -2,7 +2,6 @@ package extension
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"io"
 	"io/fs"
@@ -13,35 +12,34 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
 const FlatOmitPrefixStorageLayoutDescription = "removes prefix after last occurrence of delimiter"
 
-func NewFlatOmitPrefixStorageLayoutFS(fsys fs.FS) (*FlatOmitPrefixStorageLayout, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewFlatOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) (*FlatOmitPrefixStorageLayout, error) {
+	config := &FlatOmitPrefixStorageLayoutConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FlatOmitPrefixStorageLayoutName},
+		Delimiter:       ":",
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &FlatOmitPrefixStorageLayoutConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	return NewFlatOmitPrefixStorageLayout(config)
-}
-func NewFlatOmitPrefixStorageLayout(config *FlatOmitPrefixStorageLayoutConfig) (*FlatOmitPrefixStorageLayout, error) {
 	sl := &FlatOmitPrefixStorageLayout{FlatOmitPrefixStorageLayoutConfig: config}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
 	return sl, nil
+}
+
+func (sl *FlatOmitPrefixStorageLayout) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.FlatOmitPrefixStorageLayoutConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal FlatOmitPrefixStorageLayoutConfig '%s'", string(data))
+	}
+	if sl.Delimiter == "" {
+		sl.Delimiter = ":"
+	}
+	return nil
 }
 
 type FlatOmitPrefixStorageLayoutConfig struct {

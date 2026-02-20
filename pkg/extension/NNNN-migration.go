@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -28,34 +27,19 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigrationFS(fsys fs.FS, migration *migration.Migration, logger ocfllogger.OCFLLogger) (*Migration, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
+func NewMigration(logger ocfllogger.OCFLLogger, mig *migration.Migration) (*Migration, error) {
+	config := &MigrationConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: MigrationName},
 	}
-
-	var config = &MigrationConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	ext, err := NewMigration(config, migration)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
-	}
-	return ext, nil
-}
-func NewMigration(config *MigrationConfig, mig *migration.Migration) (*Migration, error) {
 	sl := &Migration{
 		MigrationConfig: config,
 		migration:       mig,
 		buffer:          map[string]*bytes.Buffer{},
 		migrationFiles:  map[string]*migration.Function{},
 		migratedFiles:   map[string]map[string]string{},
+		logger:          logger.With("extension", MigrationName),
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
 	if mig != nil {
 		sl.sourceFS = mig.SourceFS
 	}
@@ -107,6 +91,18 @@ type Migration struct {
 	sourceFS       fs.FS
 	currentHead    string
 	done           bool
+	logger         ocfllogger.OCFLLogger
+}
+
+func (mi *Migration) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, mi.MigrationConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal MigrationConfig '%s'", string(data))
+	}
+	return nil
 }
 
 func (mi *Migration) Terminate() error {
@@ -211,7 +207,7 @@ func (mi *Migration) NeedNewVersion(object.Object) (bool, error) {
 }
 
 // DoNewVersion todo: check for second migration step and do different naming
-func (mi *Migration) DoNewVersion(object object.Object) error {
+func (mi *Migration) DoNewVersion(object object.Object, fsys streamfs.FS) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true

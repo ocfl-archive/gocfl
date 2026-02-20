@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -26,31 +25,20 @@ import (
 const FilesystemName = "NNNN-filesystem"
 const FilesystemDescription = "preserves filesytem metadata"
 
-func NewFilesystemFS(fsys fs.FS, logger ocfllogger.OCFLLogger) (*Filesystem, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
+func NewFilesystem(logger ocfllogger.OCFLLogger) (*Filesystem, error) {
+	config := &FilesystemConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FilesystemName},
+		Folders:         "",
+		StorageType:     "",
+		StorageName:     "",
+		Compress:        "none",
 	}
-
-	var config = &FilesystemConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	ext, err := NewFilesystem(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
-	}
-	return ext, nil
-}
-func NewFilesystem(config *FilesystemConfig) (*Filesystem, error) {
 	sl := &Filesystem{
 		FilesystemConfig: config,
 		buffer:           map[string]*bytes.Buffer{},
 	}
-	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
+	// sl.writer = brotli.NewWriter(sl.buffer)
+	sl.logger = logger.With("extension", FilesystemName)
 	return sl, nil
 }
 
@@ -86,6 +74,21 @@ type Filesystem struct {
 	currentHead string
 	buffer      map[string]*bytes.Buffer
 	writer      *brotli.Writer
+	logger      ocfllogger.OCFLLogger
+}
+
+func (extFS *Filesystem) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, extFS.FilesystemConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal FilesystemConfig '%s'", string(data))
+	}
+	if extFS.Compress == "" {
+		extFS.Compress = "none"
+	}
+	return nil
 }
 
 func (extFS *Filesystem) Terminate() error {
@@ -223,7 +226,7 @@ func (extFS *Filesystem) NeedNewVersion(object object.Object) (bool, error) {
 	return false, nil
 }
 
-func (extFS *Filesystem) DoNewVersion(object object.Object) error {
+func (extFS *Filesystem) DoNewVersion(object object.Object, fsys streamfs.FS) error {
 	return nil
 }
 

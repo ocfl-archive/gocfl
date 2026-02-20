@@ -37,13 +37,9 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
-func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger ocfllogger.OCFLLogger) (*Thumbnail, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &ThumbnailConfig{
+func NewThumbnail(logger ocfllogger.OCFLLogger, mig *thumbnail.Thumbnail) (*Thumbnail, error) {
+	config := &ThumbnailConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ThumbnailName},
 		StorageType:     "extension",
 		StorageName:     "data",
 		Ext:             "png",
@@ -52,25 +48,20 @@ func NewThumbnailFS(fsys fs.FS, thumbnail *thumbnail.Thumbnail, logger ocfllogge
 		Compress:        "gzip",
 		SingleDirectory: false,
 	}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	sl := &Thumbnail{
+		ThumbnailConfig: config,
+		logger:          logger.With("extension", ThumbnailName),
+		thumbnail:       mig,
+		buffer:          map[string]*bytes.Buffer{},
+		counter:         map[string]int64{},
+		streamInfo:      map[string]map[string]*ThumbnailResult{},
+		streamImg:       map[string]map[string]image.Image{},
 	}
-	if config.Ext == "" {
-		config.Ext = "png"
-	} else {
-		config.Ext = strings.ToLower(config.Ext)
+	//	sl.writer = brotli.NewWriter(sl.buffer)
+	if mig != nil {
+		sl.sourceFS = mig.SourceFS
 	}
-	if config.Width == 0 {
-		config.Width = 256
-	}
-	if config.Height == 0 {
-		config.Height = 256
-	}
-	ext, err := NewThumbnail(config, thumbnail, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new thumbnail")
-	}
-	return ext, nil
+	return sl, nil
 }
 
 type ThumbnailConfig struct {
@@ -106,29 +97,6 @@ type ThumbnailResult struct {
 // map pronom to thumbnail
 type ThumbnailMap map[string]*ThumbnailTarget
 
-// map checksum to thumbnail
-type ThumbnailFiles map[string]*ThumbnailTarget
-
-func NewThumbnail(config *ThumbnailConfig, mig *thumbnail.Thumbnail, logger ocfllogger.OCFLLogger) (*Thumbnail, error) {
-	sl := &Thumbnail{
-		ThumbnailConfig: config,
-		logger:          logger.With("extension", ThumbnailName),
-		thumbnail:       mig,
-		buffer:          map[string]*bytes.Buffer{},
-		counter:         map[string]int64{},
-		streamInfo:      map[string]map[string]*ThumbnailResult{},
-		streamImg:       map[string]map[string]image.Image{},
-	}
-	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-	if mig != nil {
-		sl.sourceFS = mig.SourceFS
-	}
-	return sl, nil
-}
-
 type Thumbnail struct {
 	*ThumbnailConfig
 	logger      ocfllogger.OCFLLogger
@@ -143,6 +111,28 @@ type Thumbnail struct {
 	counter     map[string]int64
 	streamInfo  map[string]map[string]*ThumbnailResult
 	streamImg   map[string]map[string]image.Image
+}
+
+func (thumb *Thumbnail) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, thumb.ThumbnailConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal ThumbnailConfig '%s'", string(data))
+	}
+	if thumb.Ext == "" {
+		thumb.Ext = "png"
+	} else {
+		thumb.Ext = strings.ToLower(thumb.Ext)
+	}
+	if thumb.Width == 0 {
+		thumb.Width = 256
+	}
+	if thumb.Height == 0 {
+		thumb.Height = 256
+	}
+	return nil
 }
 
 func (thumb *Thumbnail) Terminate() error {

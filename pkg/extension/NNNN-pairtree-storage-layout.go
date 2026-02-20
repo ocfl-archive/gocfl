@@ -15,6 +15,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -34,8 +35,23 @@ var convert = map[rune]rune{
 
 type StorageLayoutPairTree struct {
 	*StorageLayoutPairTreeConfig
-	hash hash.Hash
-	fsys fs.FS
+	hash   hash.Hash
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
+}
+
+func (sl *StorageLayoutPairTree) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.StorageLayoutPairTreeConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal StorageLayoutPairTreeConfig '%s'", string(data))
+	}
+	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(sl.DigestAlgorithm)); err != nil {
+		return errors.Wrapf(err, "hash'%s'not found", sl.DigestAlgorithm)
+	}
+	return nil
 }
 
 func (sl *StorageLayoutPairTree) Terminate() error {
@@ -86,33 +102,16 @@ type StorageLayoutPairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewStorageLayoutPairTreeFS(fsys fs.FS) (*StorageLayoutPairTree, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewStorageLayoutPairTree(logger ocfllogger.OCFLLogger) (*StorageLayoutPairTree, error) {
+	config := &StorageLayoutPairTreeConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutPairTreeName},
+		ShortyLength:    2,
+		DigestAlgorithm: string(checksum.DigestSHA512),
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
+	sl := &StorageLayoutPairTree{
+		StorageLayoutPairTreeConfig: config,
+		logger:                      logger.With("extension", StorageLayoutPairTreeName),
 	}
-	var config = &StorageLayoutPairTreeConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	return NewStorageLayoutPairTree(config)
-}
-
-func NewStorageLayoutPairTree(config *StorageLayoutPairTreeConfig) (*StorageLayoutPairTree, error) {
-	sl := &StorageLayoutPairTree{StorageLayoutPairTreeConfig: config}
-	var err error
-	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil, errors.Wrapf(err, "hash'%s'not found", config.DigestAlgorithm)
-	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-
 	return sl, nil
 }
 

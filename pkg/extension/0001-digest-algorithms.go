@@ -2,9 +2,7 @@ package extension
 
 import (
 	"encoding/json"
-	"fmt"
 
-	"io"
 	"io/fs"
 
 	"emperror.dev/errors"
@@ -12,6 +10,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -29,28 +28,15 @@ var algorithms = []checksum.DigestAlgorithm{
 	checksum.DigestSHA1,
 }
 
-func NewDigestAlgorithmsFS(fsys fs.FS) (*DigestAlgorithms, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewDigestAlgorithms(logger ocfllogger.OCFLLogger) (*DigestAlgorithms, error) {
+	var config = &DigestAlgorithmsConfig{
+		ExtensionConfig: &extension.ExtensionConfig{
+			ExtensionName: DigestAlgorithmsName,
+		},
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &DigestAlgorithmsConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	return NewDigestAlgorithms(config)
-}
-
-func NewDigestAlgorithms(config *DigestAlgorithmsConfig) (*DigestAlgorithms, error) {
-	sl := &DigestAlgorithms{DigestAlgorithmsConfig: config}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+	sl := &DigestAlgorithms{
+		DigestAlgorithmsConfig: config,
+		logger:                 logger.With("extension", DigestAlgorithmsName),
 	}
 	return sl, nil
 }
@@ -60,7 +46,20 @@ type DigestAlgorithmsConfig struct {
 }
 type DigestAlgorithms struct {
 	*DigestAlgorithmsConfig
-	fsys fs.FS
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
+}
+
+func (sl *DigestAlgorithms) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+
+	if err := json.Unmarshal(data, sl.DigestAlgorithmsConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal DigestAlgorithmsConfig '%s'", string(data))
+	}
+	return nil
 }
 
 func (sl *DigestAlgorithms) Terminate() error {

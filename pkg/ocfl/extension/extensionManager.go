@@ -22,7 +22,7 @@ type ExtensionManagerCore interface {
 	Add(ext Extension) error
 	Finalize()
 	GetConfigName(extName string) (any, error)
-	GetFSName(extName string) (fs.FS, error)
+	//GetFSName(extName string) (fs.FS, error)
 	StoreRootLayout(fsys fs.FS) error
 	SetInitial(initial ExtensionInitial)
 }

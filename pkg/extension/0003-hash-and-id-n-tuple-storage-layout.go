@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"hash"
-	"io"
 	"io/fs"
 	"strings"
 
@@ -14,50 +13,52 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
 const StorageLayoutHashAndIdNTupleDescription = "Hashed Truncated N-tuple Trees with Object ID Encapsulating Directory for OCFL Storage Hierarchies"
 
-func NewStorageLayoutHashAndIdNTupleFS(fsys fs.FS) (*StorageLayoutHashAndIdNTuple, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewStorageLayoutHashAndIdNTuple(logger ocfllogger.OCFLLogger) (*StorageLayoutHashAndIdNTuple, error) {
+	config := &StorageLayoutHashAndIdNTupleConfig{
+		ExtensionConfig: &extension.ExtensionConfig{ExtensionName: StorageLayoutHashAndIdNTupleName},
+		DigestAlgorithm: string(checksum.DigestSHA512),
+		TupleSize:       0,
+		NumberOfTuples:  0,
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-	var config = &StorageLayoutHashAndIdNTupleConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	return NewStorageLayoutHashAndIdNTuple(config)
-}
-
-func NewStorageLayoutHashAndIdNTuple(config *StorageLayoutHashAndIdNTupleConfig) (*StorageLayoutHashAndIdNTuple, error) {
+	sl := &StorageLayoutHashAndIdNTuple{StorageLayoutHashAndIdNTupleConfig: config, logger: logger.With("extension", StorageLayoutHashAndIdNTupleName)}
 	var err error
-	if config.NumberOfTuples > 32 {
-		config.NumberOfTuples = 32
-	}
-	if config.TupleSize > 32 {
-		config.TupleSize = 32
-	}
-	if config.TupleSize == 0 || config.NumberOfTuples == 0 {
-		config.NumberOfTuples = 0
-		config.TupleSize = 0
-	}
-	sl := &StorageLayoutHashAndIdNTuple{StorageLayoutHashAndIdNTupleConfig: config}
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil, errors.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
 	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
-	}
-
 	return sl, nil
+}
+
+func (sl *StorageLayoutHashAndIdNTuple) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.StorageLayoutHashAndIdNTupleConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal StorageLayoutHashAndIdNTupleConfig '%s'", string(data))
+	}
+	if sl.NumberOfTuples > 32 {
+		sl.NumberOfTuples = 32
+	}
+	if sl.TupleSize > 32 {
+		sl.TupleSize = 32
+	}
+	if sl.TupleSize == 0 || sl.NumberOfTuples == 0 {
+		sl.NumberOfTuples = 0
+		sl.TupleSize = 0
+	}
+	if h, err2 := checksum.GetHash(checksum.DigestAlgorithm(sl.DigestAlgorithm)); err2 != nil {
+		return errors.Wrapf(err2, "invalid hash %s", sl.DigestAlgorithm)
+	} else {
+		sl.hash = h
+	}
+	return nil
 }
 
 type StorageLayoutHashAndIdNTupleConfig struct {
@@ -69,8 +70,9 @@ type StorageLayoutHashAndIdNTupleConfig struct {
 
 type StorageLayoutHashAndIdNTuple struct {
 	*StorageLayoutHashAndIdNTupleConfig
-	hash hash.Hash
-	fsys fs.FS
+	hash   hash.Hash
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) Terminate() error {

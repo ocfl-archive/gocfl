@@ -21,6 +21,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
@@ -49,56 +50,17 @@ func GetMetaFileParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewMetaFileFS(fsys fs.FS) (*MetaFile, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
+func NewMetaFile(logger ocfllogger.OCFLLogger, schema []byte) (*MetaFile, error) {
+	var config = &MetaFileConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{
+			ExtensionName: MetaFileName,
+		},
 	}
-
-	var config = &MetaFileConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-
-	if config.MetaName == "config.json" {
-		return nil, errors.Errorf("config.json is not allowed for field name in %v/%s", fsys, "config.json")
-	}
-	if config.MetaSchema == "config.json" {
-		return nil, errors.Errorf("config.json is not allowed for field schema in %v/%s", fsys, "config.json")
-	}
-	var schema []byte
-	if config.MetaSchema != "" {
-		schema, err = fs.ReadFile(fsys, config.MetaSchema)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot read metadata schema %v/%s", fsys, config.MetaSchema)
-		}
-	} else {
-		resp, err := http.Get(config.MetaSchemaUrl)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot load metadata schema %s", config.MetaSchemaUrl)
-		}
-		schema, err = io.ReadAll(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			return nil, errors.Errorf("error loading metadata schema %s - [%v]%s - %s", resp.StatusCode, resp.Status, schema)
-		}
-		config.MetaSchema = "schema.json"
-	}
-
-	return NewMetaFile(config, schema)
-}
-func NewMetaFile(config *MetaFileConfig, schema []byte) (*MetaFile, error) {
-	var err error
 	sl := &MetaFile{
 		MetaFileConfig: config,
 		schema:         schema,
 		info:           map[string][]byte{},
-	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
-	}
-	sl.compiledSchema, err = jsonschema.CompileString(sl.MetaSchemaUrl, string(sl.schema))
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot compile schema")
+		logger:         logger.With("extension", MetaFileName),
 	}
 	return sl, nil
 }
@@ -119,6 +81,41 @@ type MetaFile struct {
 	compiledSchema *jsonschema.Schema
 	stored         bool
 	info           map[string][]byte
+	logger         ocfllogger.OCFLLogger
+}
+
+func (sl *MetaFile) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+
+	if err := json.Unmarshal(data, sl.MetaFileConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal MetaFileConfig '%s'", string(data))
+	}
+
+	if sl.MetaSchema != "" {
+		sl.schema, err = fs.ReadFile(fsys, sl.MetaSchema)
+		if err != nil {
+			return errors.Wrapf(err, "cannot read metadata schema %v/%s", fsys, sl.MetaSchema)
+		}
+	} else {
+		resp, err := http.Get(sl.MetaSchemaUrl)
+		if err != nil {
+			return errors.Wrapf(err, "cannot load metadata schema %s", sl.MetaSchemaUrl)
+		}
+		sl.schema, err = io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return errors.Errorf("error loading metadata schema %s - [%v]%s - %s", resp.StatusCode, resp.Status, sl.schema)
+		}
+		sl.MetaSchema = "schema.json"
+	}
+	sl.compiledSchema, err = jsonschema.CompileString(sl.MetaSchemaUrl, string(sl.schema))
+	if err != nil {
+		return errors.Wrapf(err, "cannot compile schema")
+	}
+
+	return nil
 }
 
 func (sl *MetaFile) Terminate() error {

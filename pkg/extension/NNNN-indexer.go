@@ -48,66 +48,25 @@ func GetIndexerParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewIndexerFS(fsys fs.FS, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger ocfllogger.OCFLLogger) (*Indexer, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewIndexer(logger ocfllogger.OCFLLogger, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool) (*Indexer, error) {
+	var config = &IndexerConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{
+			ExtensionName: IndexerName,
+		},
+		Actions:  []string{},
+		Compress: "none",
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &IndexerConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	ext, err := NewIndexer(config, urlString, indexerActions, localCache, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create new indexer")
-	}
-	return ext, nil
-}
-func NewIndexer(config *IndexerConfig, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool, logger ocfllogger.OCFLLogger) (*Indexer, error) {
-	var err error
-
-	if config.Actions == nil {
-		config.Actions = []string{}
-	}
-	as := []string{}
-	for _, a := range config.Actions {
-		a = strings.ToLower(a)
-		if !slices.Contains(actions, a) {
-			return nil, errors.Errorf("invalid action '%s' in config file", a)
-		}
-		as = append(as, a)
-	}
-	config.Actions = as
-
-	if config.Compress == "" {
-		config.Compress = "none"
-	}
-	c := strings.ToLower(config.Compress)
-	if !slices.Contains(compress, c) {
-		return nil, errors.Errorf("invalid compression '%s' in config file", c)
-	}
-	config.Compress = c
-
 	sl := &Indexer{
 		IndexerConfig:  config,
 		buffer:         map[string]*bytes.Buffer{},
 		active:         true,
 		indexerActions: indexerActions,
 		localCache:     localCache,
-		logger:         logger,
+		logger:         logger.With("extension", IndexerName),
 	}
-	//	sl.writer = brotli.NewWriter(sl.buffer)
+	var err error
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
 		return nil, errors.Wrapf(err, "cannot parse url '%s'", urlString)
-	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
 	}
 	return sl, nil
 }
@@ -130,6 +89,39 @@ type Indexer struct {
 	currentHead    string
 	localCache     bool
 	logger         ocfllogger.OCFLLogger
+}
+
+func (sl *Indexer) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.IndexerConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal IndexerConfig '%s'", string(data))
+	}
+	// Normalize and validate actions
+	if sl.IndexerConfig.Actions == nil {
+		sl.IndexerConfig.Actions = []string{}
+	}
+	as := make([]string, 0, len(sl.IndexerConfig.Actions))
+	for _, a := range sl.IndexerConfig.Actions {
+		a = strings.ToLower(a)
+		if !slices.Contains(actions, a) {
+			return errors.Errorf("invalid action '%s' in config file", a)
+		}
+		as = append(as, a)
+	}
+	sl.IndexerConfig.Actions = as
+	// Normalize and validate compression
+	if sl.IndexerConfig.Compress == "" {
+		sl.IndexerConfig.Compress = "none"
+	}
+	c := strings.ToLower(sl.IndexerConfig.Compress)
+	if !slices.Contains(compress, c) {
+		return errors.Errorf("invalid compression '%s' in config file", c)
+	}
+	sl.IndexerConfig.Compress = c
+	return nil
 }
 
 func (sl *Indexer) Terminate() error {

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -33,29 +33,14 @@ func GetContentSubPathParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewContentSubPathFS(fsys fs.FS) (*ContentSubPath, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewContentSubPath(logger ocfllogger.OCFLLogger) (*ContentSubPath, error) {
+	var config = &ContentSubPathConfig{
+		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ContentSubPathName},
+		Paths:           map[string]ContentSubPathEntry{},
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &ContentSubPathConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal ContentSubPathConfig '%s'", string(data))
-	}
-	return NewContentSubPath(config)
-}
-func NewContentSubPath(config *ContentSubPathConfig) (*ContentSubPath, error) {
 	sl := &ContentSubPath{
 		ContentSubPathConfig: config,
-	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+		logger:               logger.With("extension", ContentSubPathName),
 	}
 	return sl, nil
 }
@@ -71,8 +56,23 @@ type ContentSubPathConfig struct {
 }
 type ContentSubPath struct {
 	*ContentSubPathConfig
-	fsys fs.FS
-	area string
+	fsys   fs.FS
+	area   string
+	logger ocfllogger.OCFLLogger
+}
+
+func (sl *ContentSubPath) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.ContentSubPathConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal ContentSubPathConfig '%s'", string(data))
+	}
+	if sl.Paths == nil {
+		sl.Paths = map[string]ContentSubPathEntry{}
+	}
+	return nil
 }
 
 func (sl *ContentSubPath) Terminate() error {

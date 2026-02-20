@@ -1,14 +1,12 @@
 package extension
 
 import (
-	"fmt"
-
 	"io"
 	"io/fs"
 	"net/url"
 
-	"emperror.dev/errors"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -21,6 +19,12 @@ type LoggingIndexerConfig struct {
 type LoggingIndexer struct {
 	*LoggingIndexerConfig
 	metadata map[string]any
+	logger   ocfllogger.OCFLLogger
+}
+
+func (sl *LoggingIndexer) Load(fsys fs.FS) error {
+	// no config file currently defined; placeholder to satisfy interface
+	return nil
 }
 
 func (sl *LoggingIndexer) Terminate() error {
@@ -56,11 +60,9 @@ func (li *LoggingIndexer) WriteConfig(streamfs.FS) error {
 	panic("implement me")
 }
 
-func NewLoggingIndexer(config *LoggingIndexerConfig) (*LoggingIndexer, error) {
-	li := &LoggingIndexer{LoggingIndexerConfig: config, metadata: map[string]any{}}
-	if config.ExtensionName != li.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, li.GetName()))
-	}
+func NewLoggingIndexer(logger ocfllogger.OCFLLogger) (*LoggingIndexer, error) {
+	config := &LoggingIndexerConfig{Config: &Config{ExtensionName: LoggingIndexerName}}
+	li := &LoggingIndexer{LoggingIndexerConfig: config, metadata: map[string]any{}, logger: logger.With("extension", LoggingIndexerName)}
 	return li, nil
 }
 

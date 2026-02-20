@@ -15,6 +15,7 @@ import (
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/slices"
 )
@@ -22,7 +23,7 @@ import (
 const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
-func NewGOCFLExtensionManagerFS(fsys fs.FS) (*GOCFLExtensionManager, error) {
+func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) (*GOCFLExtensionManager, error) {
 	var config = &extension2.ExtensionManagerConfig{
 		ExtensionConfig: &extension2.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
@@ -30,25 +31,6 @@ func NewGOCFLExtensionManagerFS(fsys fs.FS) (*GOCFLExtensionManager, error) {
 		Sort:      map[string][]string{},
 		Exclusion: map[string][][]string{},
 	}
-	if fsys != nil {
-		fp, err := fsys.Open("config.json")
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot open config.json")
-		}
-		defer fp.Close()
-		data, err := io.ReadAll(fp)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot read config.json")
-		}
-		if err := json.Unmarshal(data, config); err != nil {
-			return nil, errors.Wrapf(err, "cannot unmarshal ContentSubPathConfig '%s'", string(data))
-		}
-	}
-
-	return NewGOCFLExtensionManager(config)
-}
-
-func NewGOCFLExtensionManager(config *extension2.ExtensionManagerConfig) (*GOCFLExtensionManager, error) {
 	m := &GOCFLExtensionManager{
 		ExtensionManagerConfig: config,
 		extensions:             []extension2.Extension{},
@@ -58,6 +40,7 @@ func NewGOCFLExtensionManager(config *extension2.ExtensionManagerConfig) (*GOCFL
 		fixityDigest:           []object.ExtensionFixityDigest{},
 		metadata:               []object.ExtensionMetadata{},
 		area:                   []object.ExtensionArea{},
+		logger:                 logger.With("extension", GOCFLExtensionManagerName),
 	}
 	return m, nil
 }
@@ -78,6 +61,19 @@ type GOCFLExtensionManager struct {
 	newVersion         []object.ExtensionNewVersion
 	fsys               fs.FS
 	initial            extension2.ExtensionInitial
+	logger             ocfllogger.OCFLLogger
+}
+
+func (manager *GOCFLExtensionManager) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+
+	if err := json.Unmarshal(data, manager.ExtensionManagerConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal ExtensionManagerConfig '%s'", string(data))
+	}
+	return nil
 }
 
 func (manager *GOCFLExtensionManager) Terminate() error {
@@ -158,6 +154,7 @@ func (manager *GOCFLExtensionManager) Add(ext extension2.Extension) error {
 	return nil
 }
 
+/*
 func (manager *GOCFLExtensionManager) SetFS(fsys fs.FS, create bool) {
 	if fsys == nil {
 		return
@@ -197,6 +194,8 @@ func (manager *GOCFLExtensionManager) GetFSName(extName string) (fs.FS, error) {
 	}
 	return nil, errors.Errorf("extension '%s' not active", extName)
 }
+
+*/
 
 func sortExtensions[E extension2.Extension](list []E, sortName []string) {
 	sortFunc := func(aExt, bExt E) int {
@@ -562,9 +561,9 @@ func (manager *GOCFLExtensionManager) NeedNewVersion(object object.Object) (bool
 	return false, nil
 }
 
-func (manager *GOCFLExtensionManager) DoNewVersion(object object.Object) error {
+func (manager *GOCFLExtensionManager) DoNewVersion(object object.Object, fsys streamfs.FS) error {
 	for _, ext := range manager.newVersion {
-		if err := ext.DoNewVersion(object); err != nil {
+		if err := ext.DoNewVersion(object, nil); err != nil {
 			return errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
 		}
 	}

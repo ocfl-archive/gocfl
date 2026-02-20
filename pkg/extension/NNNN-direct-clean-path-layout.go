@@ -9,6 +9,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 // fallback for object with unregigered naming
@@ -16,58 +17,13 @@ import (
 const LegacyDirectCleanName = "NNNN-direct-clean-path-layout"
 const LegacyDirectCleanDescription = "Maps OCFL object identifiers to storage paths or as an object extension that maps logical paths to content paths. This is done by replacing or removing \"dangerous characters\" from names"
 
-func NewLegacyDirectCleanFS(fsys fs.FS) (extensiontypes.Extension, error) {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open config.json")
+func NewLegacyDirectClean(logger ocfllogger.OCFLLogger) (extensiontypes.Extension, error) {
+	config := &LegacyDirectCleanConfig{
+		DirectCleanConfig: &DirectCleanConfig{
+			ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: LegacyDirectCleanName},
+		},
 	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-	var config = &LegacyDirectCleanConfig{
-		DirectCleanConfig: &DirectCleanConfig{},
-	}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-	// compatibility with old config
-	if config.MaxFilenameLen > 0 && config.MaxPathnameLen == 0 {
-		config.MaxPathnameLen = config.MaxFilenameLen
-		config.MaxFilenameLen = 0
-	}
-	if config.FallbackSubFolders > 0 && config.NumberOfFallbackTuples == 0 {
-		config.NumberOfFallbackTuples = config.FallbackSubFolders
-		config.FallbackSubFolders = 0
-	}
-	return NewLegacyDirectClean(config)
-}
-
-func NewLegacyDirectClean(config *LegacyDirectCleanConfig) (extensiontypes.Extension, error) {
-	if config.MaxPathnameLen == 0 {
-		config.MaxPathnameLen = 32000
-	}
-	if config.MaxPathSegmentLen == 0 {
-		config.MaxPathSegmentLen = 127
-	}
-	if config.FallbackDigestAlgorithm == "" {
-		config.FallbackDigestAlgorithm = checksum.DigestSHA512
-	}
-	if config.FallbackFolder == "" {
-		config.FallbackFolder = "fallback"
-	}
-
-	sl := &LegacyDirectClean{DirectClean: &DirectClean{DirectCleanConfig: config.DirectCleanConfig}}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.Errorf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName())
-	}
-
-	var err error
-	if sl.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
-		return nil, errors.Wrapf(err, "hash %s not supported", config.FallbackDigestAlgorithm)
-	}
-
+	sl := &LegacyDirectClean{DirectClean: &DirectClean{DirectCleanConfig: config.DirectCleanConfig, logger: logger.With("extension", LegacyDirectCleanName)}}
 	return sl, nil
 }
 
@@ -77,6 +33,43 @@ type LegacyDirectCleanConfig struct {
 
 type LegacyDirectClean struct {
 	*DirectClean
+}
+
+func (sl *LegacyDirectClean) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, sl.DirectCleanConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal LegacyDirectCleanConfig '%s'", string(data))
+	}
+	// compatibility with old config
+	if sl.MaxFilenameLen > 0 && sl.MaxPathnameLen == 0 {
+		sl.MaxPathnameLen = sl.MaxFilenameLen
+		sl.MaxFilenameLen = 0
+	}
+	if sl.FallbackSubFolders > 0 && sl.NumberOfFallbackTuples == 0 {
+		sl.NumberOfFallbackTuples = sl.FallbackSubFolders
+		sl.FallbackSubFolders = 0
+	}
+	// defaults
+	if sl.MaxPathnameLen == 0 {
+		sl.MaxPathnameLen = 32000
+	}
+	if sl.MaxPathSegmentLen == 0 {
+		sl.MaxPathSegmentLen = 127
+	}
+	if sl.FallbackDigestAlgorithm == "" {
+		sl.FallbackDigestAlgorithm = checksum.DigestSHA512
+	}
+	if sl.FallbackFolder == "" {
+		sl.FallbackFolder = "fallback"
+	}
+	// prepare hash
+	if sl.hash, err = checksum.GetHash(sl.FallbackDigestAlgorithm); err != nil {
+		return errors.Wrapf(err, "hash %s not supported", sl.FallbackDigestAlgorithm)
+	}
+	return nil
 }
 
 func (sl *LegacyDirectClean) IsRegistered() bool {

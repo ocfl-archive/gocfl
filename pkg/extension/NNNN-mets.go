@@ -77,13 +77,8 @@ func GetMetsParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewMetsFS(fsys fs.FS, logger ocfllogger.OCFLLogger) (*Mets, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
-	}
-
-	var config = &MetsConfig{
+func NewMets(logger ocfllogger.OCFLLogger) (*Mets, error) {
+	config := &MetsConfig{
 		ExtensionConfig:            &extensiontypes.ExtensionConfig{ExtensionName: METSName},
 		StorageType:                "area",
 		StorageName:                "metadata",
@@ -91,19 +86,9 @@ func NewMetsFS(fsys fs.FS, logger ocfllogger.OCFLLogger) (*Mets, error) {
 		MetsFile:                   "mets.xml",
 		PremisFile:                 "premis.xml",
 	}
-	if err := json.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
-	}
-
-	return NewMets(config, logger)
-}
-func NewMets(config *MetsConfig, logger ocfllogger.OCFLLogger) (*Mets, error) {
 	me := &Mets{
 		MetsConfig: config,
-		logger:     logger,
-	}
-	if config.ExtensionName != me.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, me.GetName()))
+		logger:     logger.With("extension", METSName),
 	}
 	return me, nil
 }
@@ -125,6 +110,17 @@ type Mets struct {
 }
 
 func (me *Mets) Terminate() error {
+	return nil
+}
+
+func (me *Mets) Load(fsys fs.FS) error {
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot read config.json")
+	}
+	if err := json.Unmarshal(data, me.MetsConfig); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal MetsConfig '%s'", string(data))
+	}
 	return nil
 }
 

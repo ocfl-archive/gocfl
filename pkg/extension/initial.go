@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"io"
 	"io/fs"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -28,36 +28,16 @@ func GetInitialParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewInitialFS(fsys fs.FS) (*Initial, error) {
+func NewInitial(logger ocfllogger.OCFLLogger) (*Initial, error) {
 	var config = &InitialConfig{
-		ExtensionConfig: &extension2.ExtensionConfig{
+		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: InitialName,
 		},
-		Extension: extension2.DefaultExtensionManagerName,
+		Extension: extension.DefaultExtensionManagerName,
 	}
-	if fsys != nil {
-		fp, err := fsys.Open("config.json")
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot open config.json")
-		}
-		defer fp.Close()
-		data, err := io.ReadAll(fp)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot read config.json")
-		}
-
-		if err := json.Unmarshal(data, config); err != nil {
-			return nil, errors.Wrapf(err, "cannot unmarshal InitialConfig '%s'", string(data))
-		}
-	}
-	return NewInitial(config)
-}
-func NewInitial(config *InitialConfig) (*Initial, error) {
 	sl := &Initial{
 		InitialConfig: config,
-	}
-	if config.ExtensionName != sl.GetName() {
-		return nil, errors.New(fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()))
+		logger:        logger.With("extension", InitialName),
 	}
 	return sl, nil
 }
@@ -68,21 +48,17 @@ type InitialEntry struct {
 }
 
 type InitialConfig struct {
-	*extension2.ExtensionConfig
+	*extension.ExtensionConfig
 	Extension string `json:"extension"`
 }
 type Initial struct {
 	*InitialConfig
-	fsys fs.FS
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
 }
 
 func (sl *Initial) Load(fsys fs.FS) error {
-	fp, err := fsys.Open("config.json")
-	if err != nil {
-		return errors.Wrap(err, "cannot open config.json")
-	}
-	defer fp.Close()
-	data, err := io.ReadAll(fp)
+	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot read config.json")
 	}
@@ -131,11 +107,8 @@ func (sl *Initial) SetParams(params map[string]string) error {
 
 func (sl *Initial) GetName() string { return InitialName }
 
-func (sl *Initial) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *Initial) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -151,6 +124,6 @@ func (sl *Initial) WriteConfig(streamfs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extension2.Extension        = &Initial{}
-	_ extension2.ExtensionInitial = &Initial{}
+	_ extension.Extension        = &Initial{}
+	_ extension.ExtensionInitial = &Initial{}
 )
