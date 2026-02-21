@@ -53,7 +53,6 @@ type InitialConfig struct {
 }
 type Initial struct {
 	*InitialConfig
-	fsys   fs.FS
 	logger ocfllogger.OCFLLogger
 }
 
@@ -81,20 +80,12 @@ func (sl *Initial) GetExtension() string {
 	return sl.InitialConfig.Extension
 }
 
-func (sl *Initial) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *Initial) GetConfig() any {
 	return sl.InitialConfig
 }
 
 func (sl *Initial) IsRegistered() bool {
 	return true
-}
-
-func (sl *Initial) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
 }
 
 func (sl *Initial) SetParams(params map[string]string) error {

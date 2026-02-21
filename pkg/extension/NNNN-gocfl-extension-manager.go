@@ -290,15 +290,23 @@ func (manager *GOCFLExtensionManager) IsRegistered() bool {
 func (manager *GOCFLExtensionManager) GetName() string {
 	return GOCFLExtensionManagerName
 }
-func (manager *GOCFLExtensionManager) WriteConfig(streamfs.FS) error {
+func (manager *GOCFLExtensionManager) WriteConfig(fsys streamfs.FS) error {
 	for _, ext := range append(manager.extensions, manager.initial) {
-		if err := ext.WriteConfig(nil); err != nil {
+		subFS, err := streamfs.Sub(fsys, ext.GetName())
+		if err != nil {
+			return errors.Wrapf(err, "cannot create sub filesystem for %v/%s", fsys, ext.GetName())
+		}
+		if err := ext.WriteConfig(subFS); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
 	}
 
 	if len(manager.Exclusion) != 0 || len(manager.Sort) != 0 {
-		configWriter, err := writefs.Create(manager.fsys, "config.json")
+		subFS, err := streamfs.Sub(fsys, manager.GetName())
+		if err != nil {
+			return errors.Wrapf(err, "cannot create sub filesystem for %v/%s", fsys, manager.GetName())
+		}
+		configWriter, err := writefs.Create(subFS, "config.json")
 		if err != nil {
 			return errors.Wrap(err, "cannot open config.json")
 		}
