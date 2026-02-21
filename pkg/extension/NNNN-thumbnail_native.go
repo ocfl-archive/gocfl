@@ -22,7 +22,7 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-func (thumb *Thumbnail) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (thumb *Thumbnail) StreamObject(object object.VersionWriter, reader io.Reader, stateFiles []string, dest string) error {
 	if len(stateFiles) == 0 {
 		return errors.Errorf("no state files for object '%s'", object.GetID())
 	}

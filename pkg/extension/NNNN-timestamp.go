@@ -48,7 +48,7 @@ type TimestampConfig struct {
 }
 type Timestamp struct {
 	*TimestampConfig
-	fsys   fs.FS
+	fsys   streamfs.FS
 	logger ocfllogger.OCFLLogger
 }
 
@@ -171,10 +171,6 @@ func (sl *Timestamp) GetMetadata(object object.Object) (map[string]any, error) {
 	return map[string]any{"TimestampAuthority": sl.Authority}, nil
 }
 
-func (sl *Timestamp) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *Timestamp) GetConfig() any {
 	return sl.TimestampConfig
 }
@@ -184,7 +180,9 @@ func (sl *Timestamp) IsRegistered() bool {
 }
 
 func (sl *Timestamp) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
+	if sfs, ok := fsys.(streamfs.FS); ok {
+		sl.fsys = sfs
+	}
 }
 
 func (sl *Timestamp) SetParams(params map[string]string) error {
@@ -193,11 +191,8 @@ func (sl *Timestamp) SetParams(params map[string]string) error {
 
 func (sl *Timestamp) GetName() string { return TimestampName }
 
-func (sl *Timestamp) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *Timestamp) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

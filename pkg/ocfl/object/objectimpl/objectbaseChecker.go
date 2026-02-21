@@ -1,0 +1,284 @@
+package objectimpl
+
+import (
+	"io/fs"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strings"
+
+	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+)
+
+type objectBaseChecker struct {
+	object.Object
+	fsys   fs.FS
+	logger ocfllogger.OCFLLogger
+}
+
+func (obj *objectBaseChecker) Check() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
+
+func (obj *objectBaseChecker) checkVersionFolder(version string) error {
+	versionEntries, err := fs.ReadDir(obj.fsys, version)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read version folder '%s'", version)
+	}
+	for _, ve := range versionEntries {
+		if !ve.IsDir() {
+			if !allowedFilesRegexp.MatchString(ve.Name()) {
+				obj.logger.ValidationError(obj.GetInventory().GetOCFLVersion(), validation.E015, "found extra file '%s' in version directory '%s'", ve.Name(), version)
+			}
+		}
+	}
+	return nil
+}
+
+func (obj *objectBaseChecker) checkFilesAndVersions() error {
+	inv := obj.GetInventory()
+	ocflVersion := inv.GetOCFLVersion()
+	// create list of version content directories
+	versionContents := map[string]string{}
+	versionStrings := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
+
+	// sort in ascending order
+	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+		if a.Less(b) {
+			return -1
+		}
+
+		if a.Equal(b) {
+			return 0
+		}
+
+		return 1
+	})
+
+	for _, ver := range versionStrings {
+		versionContents[ver.String()] = inv.GetContentDir()
+	}
+
+	// load object content files
+	objectContentFiles := map[string][]string{}
+	objectContentFilesFlat := []string{}
+	objectFilesFlat := []string{}
+	for ver, cont := range versionContents {
+		// load all object version content files
+		versionContent := ver + "/" + cont
+		//inventoryFile := ver + "/inventory.json"
+		if _, ok := objectContentFiles[ver]; !ok {
+			objectContentFiles[ver] = []string{}
+		}
+		fs.WalkDir(
+			obj.fsys,
+			ver,
+			func(path string, d fs.DirEntry, err error) error {
+				path = filepath.ToSlash(path)
+				if d.IsDir() {
+					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+inv.GetContentDir(), path) {
+						obj.logger.ValidationError(ocflVersion, validation.W002, "extra dir '%s' in version '%s'", path, ver)
+					}
+				} else {
+					objectFilesFlat = append(objectFilesFlat, path)
+					if strings.HasPrefix(path, versionContent) {
+						objectContentFiles[ver] = append(objectContentFiles[ver], path)
+						objectContentFilesFlat = append(objectContentFilesFlat, path)
+					} else {
+						/*
+							if !strings.HasPrefix(path, inventoryFile) {
+								objectBase.AddValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
+							}
+						*/
+					}
+				}
+				return nil
+			},
+		)
+		if len(objectContentFiles[ver]) == 0 {
+			fi, err := fs.Stat(obj.fsys, versionContent)
+			if err != nil {
+				if !errors.Is(errors.Cause(err), fs.ErrNotExist) {
+					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
+				}
+			} else {
+				if fi.IsDir() {
+					obj.logger.ValidationError(ocflVersion, validation.W003, "empty content folder '%s'", versionContent)
+				}
+			}
+		}
+	}
+	// load all inventories
+	versionInventories, err := obj.getVersionInventories()
+	if err != nil {
+		return errors.Wrap(err, "cannot get version inventories")
+	}
+
+	csDigestFiles, err := obj.createContentManifest()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := inv.CheckFiles(csDigestFiles); err != nil {
+		return errors.Wrap(err, "cannot check file digests for object root")
+	}
+
+	contentDir := ""
+	if len(versionStrings) > 0 {
+		contentDir = versionInventories[versionStrings[0].String()].GetRealContentDir()
+	}
+	for _, ver := range versionStrings {
+		inv := versionInventories[ver.String()]
+		if inv == nil {
+			continue
+		}
+		if contentDir != inv.GetRealContentDir() {
+			obj.logger.ValidationError(ocflVersion, validation.E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", inv.GetRealContentDir(), ver, contentDir, versionStrings[0])
+		}
+		if err := inv.CheckFiles(csDigestFiles); err != nil {
+			return errors.Wrapf(err, "cannot check file digests for version '%s'", ver)
+		}
+		digestAlg := inv.GetDigestAlgorithm()
+		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
+		allowedDirs := []string{inv.GetContentDir()}
+		versionEntries, err := fs.ReadDir(obj.fsys, ver.String())
+		if err != nil {
+			obj.logger.ValidationError(ocflVersion, validation.E010, "cannot read version folder '%s'", ver)
+			continue
+			//			return errors.Wrapf(err, "cannot read dir '%s'", ver)
+		}
+		for _, entry := range versionEntries {
+			if entry.IsDir() {
+				if !slices.Contains(allowedDirs, entry.Name()) {
+					obj.logger.ValidationError(ocflVersion, validation.W002, "extra dir '%s' in version directory '%s'", entry.Name(), ver)
+				}
+			} else {
+				if !slices.Contains(allowedFiles, entry.Name()) {
+					obj.logger.ValidationError(ocflVersion, validation.E015, "extra file '%s' in version directory '%s'", entry.Name(), ver)
+				}
+			}
+		}
+	}
+
+	for key := 0; key < len(versionStrings)-1; key++ {
+		v1 := versionStrings[key]
+		vi1, ok := versionInventories[v1.String()]
+		if !ok {
+			obj.logger.ValidationError(ocflVersion, validation.W010, "no inventory for version '%s'", versionStrings[key])
+			continue
+			// return errors.Errorf("no inventory for version '%s'", versionStrings[key])
+		}
+		v2 := versionStrings[key+1]
+		vi2, ok := versionInventories[v2.String()]
+		if !ok {
+			obj.logger.ValidationError(ocflVersion, validation.W000, "no inventory for version '%s'", versionStrings[key+1])
+			continue
+		}
+		if !inventory.SpecIsLessOrEqual(vi1.GetSpec(), vi2.GetSpec()) {
+			obj.logger.ValidationError(ocflVersion, validation.E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", v1, vi1.GetSpec(), v2, vi2.GetSpec())
+		}
+	}
+
+	if len(versionStrings) > 0 {
+		lastVersion := versionStrings[len(versionStrings)-1]
+		if lastInv, ok := versionInventories[lastVersion.String()]; ok {
+			if !lastInv.Equals(obj.GetInventory()) {
+				obj.logger.ValidationError(ocflVersion, validation.E064, "root inventory not equal to inventory version '%s'", lastVersion)
+			}
+		}
+	}
+
+	id := inv.GetID()
+	digestAlg := inv.GetDigestAlgorithm()
+	versions := inv.GetVersions()
+	for ver, verInventory := range versionInventories {
+		// check for id consistency
+		if id != verInventory.GetID() {
+			obj.logger.ValidationError(ocflVersion, validation.E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", id, ver, verInventory.GetID())
+		}
+		if verInventory.GetHead().IsValid() && verInventory.GetHead().String() != ver {
+			obj.logger.ValidationError(ocflVersion, validation.E040, "wrong head '%s' in manifest for version '%s'", verInventory.GetHead(), ver)
+		}
+
+		if verInventory.GetDigestAlgorithm() != digestAlg {
+			obj.logger.ValidationError(ocflVersion, validation.W000, "different digest algorithm '%s' in version '%s'", verInventory.GetDigestAlgorithm(), ver)
+		}
+
+		for versionNumber, vVersion := range verInventory.GetVersions().Iterate() {
+			testV := versions.GetVersion(versionNumber)
+			if testV == nil {
+				obj.logger.ValidationError(ocflVersion, validation.E066, "version '%s' in version folder '%s' not in object root manifest", vVersion, versionNumber)
+			}
+			if !testV.Equals(vVersion) {
+				obj.logger.ValidationError(ocflVersion, validation.E066, "version '%s' in version folder '%s' not equal to version in object root manifest", vVersion, versionNumber)
+			}
+		}
+	}
+
+	//
+	// all files in any manifest must belong to a physical file #E092
+	//
+	for inventoryVersion, inventory := range versionInventories {
+		for manifestFile := range inventory.GetManifest().GetFilesFlat() {
+			if !slices.Contains(objectFilesFlat, manifestFile) {
+				obj.logger.ValidationError(ocflVersion, validation.E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
+			}
+		}
+	}
+
+	for manifestFile := range inv.GetManifest().GetFilesFlat() {
+		if !slices.Contains(objectFilesFlat, manifestFile) {
+			obj.logger.ValidationError(ocflVersion, validation.E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
+		}
+	}
+
+	//
+	// all object content files must belong to manifest
+	//
+
+	latestVersion := inventory.NewVersionNumber()
+
+	for objectContentVersion, objectContentVersionFiles := range objectContentFiles {
+		objectContentVersionNumber := inventory.NewVersionNumber().WithString(objectContentVersion)
+		if !latestVersion.IsValid() {
+			latestVersion = objectContentVersionNumber
+		}
+		if latestVersion.Less(objectContentVersionNumber) {
+			latestVersion = objectContentVersionNumber
+		}
+		// check version inventories
+		for inventoryVersion, versionInventory := range versionInventories {
+			inventoryVersionNumber := inventory.NewVersionNumber().WithString(inventoryVersion)
+			if objectContentVersionNumber.Less(inventoryVersionNumber) {
+				versionManifestFiles := ocfl.SeqToSlice(versionInventory.GetManifest().GetFilesFlat())
+				for _, objectContentVersionFile := range objectContentVersionFiles {
+					// check all inventories which are less in version
+					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
+						obj.logger.ValidationError(ocflVersion, validation.E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, inventoryVersion)
+					}
+				}
+			}
+		}
+		rootVersion := inv.GetHead()
+		if objectContentVersionNumber.Less(rootVersion) {
+			rootManifestFiles := ocfl.SeqToSlice(obj.GetInventory().GetManifest().GetFilesFlat())
+			for _, objectContentVersionFile := range objectContentVersionFiles {
+				// check all inventories which are less in version
+				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
+					obj.logger.ValidationError(ocflVersion, validation.E023, "file '%s' not in manifest version '%s'", objectContentVersionFile, rootVersion)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+var _ object.Checker = (*objectBaseChecker)(nil)

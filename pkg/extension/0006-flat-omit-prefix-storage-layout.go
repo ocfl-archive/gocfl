@@ -48,15 +48,10 @@ type FlatOmitPrefixStorageLayoutConfig struct {
 }
 type FlatOmitPrefixStorageLayout struct {
 	*FlatOmitPrefixStorageLayoutConfig
-	fsys fs.FS
 }
 
 func (sl *FlatOmitPrefixStorageLayout) Terminate() error {
 	return nil
-}
-
-func (sl *FlatOmitPrefixStorageLayout) GetFS() fs.FS {
-	return sl.fsys
 }
 
 func (sl *FlatOmitPrefixStorageLayout) GetConfig() any {
@@ -71,20 +66,13 @@ func (sl *FlatOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []object.StatI
 	return nil
 }
 
-func (sl *FlatOmitPrefixStorageLayout) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
-}
-
 func (sl *FlatOmitPrefixStorageLayout) SetParams(params map[string]string) error {
 	return nil
 }
 
 func (sl *FlatOmitPrefixStorageLayout) GetName() string { return FlatOmitPrefixStorageLayoutName }
-func (sl *FlatOmitPrefixStorageLayout) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *FlatOmitPrefixStorageLayout) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

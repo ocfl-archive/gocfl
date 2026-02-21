@@ -50,7 +50,7 @@ type ExtensionArea interface {
 
 type ExtensionStream interface {
 	extension.Extension
-	StreamObject(object Object, reader io.Reader, stateFiles []string, dest string) error
+	StreamObject(object VersionWriter, reader io.Reader, stateFiles []string, dest string) error
 }
 
 type ExtensionContentChange interface {
@@ -65,8 +65,8 @@ type ExtensionContentChange interface {
 
 type ExtensionObjectChange interface {
 	extension.Extension
-	UpdateObjectBefore(object Object) error
-	UpdateObjectAfter(object Object) error
+	UpdateObjectBefore(object VersionWriter) error
+	UpdateObjectAfter(object VersionWriter) error
 }
 
 type ExtensionFixityDigest interface {
@@ -87,5 +87,5 @@ type ExtensionVersionDone interface {
 type ExtensionNewVersion interface {
 	extension.Extension
 	NeedNewVersion(object Object) (bool, error)
-	DoNewVersion(object Object, fsys streamfs.FS) error
+	DoNewVersion(object VersionWriter) error
 }

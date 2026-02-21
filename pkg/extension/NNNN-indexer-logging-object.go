@@ -31,11 +31,6 @@ func (sl *LoggingIndexer) Terminate() error {
 	return nil
 }
 
-func (sl *LoggingIndexer) GetFS() fs.FS {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (sl *LoggingIndexer) GetConfig() any {
 	//TODO implement me
 	panic("implement me")
@@ -43,11 +38,6 @@ func (sl *LoggingIndexer) GetConfig() any {
 
 func (sl *LoggingIndexer) IsRegistered() bool {
 	return false
-}
-
-func (li *LoggingIndexer) SetFS(fsys fs.FS, create bool) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (li *LoggingIndexer) SetParams(params map[string]string) error {

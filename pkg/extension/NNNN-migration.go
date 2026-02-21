@@ -80,7 +80,7 @@ type MigrationFiles map[string]*MigrationTarget
 
 type Migration struct {
 	*MigrationConfig
-	fsys      fs.FS
+	fsys      streamfs.FS
 	lastHead  *inventorytypes.VersionNumber
 	migration *migration.Migration
 	//buffer *bytes.Buffer
@@ -121,24 +121,25 @@ func (mi *Migration) IsRegistered() bool { return false }
 
 func (mi *Migration) GetName() string { return MigrationName }
 
-func (mi *Migration) SetFS(fsys fs.FS, create bool) { mi.fsys = fsys }
+func (mi *Migration) SetFS(fsys fs.FS, create bool) {
+	if sfs, ok := fsys.(streamfs.FS); ok {
+		mi.fsys = sfs
+	}
+}
 
 func (mi *Migration) SetParams(map[string]string) error {
 	return nil
 }
 
-func (mi *Migration) WriteConfig(streamfs.FS) error {
-	if mi.fsys == nil {
-		return errors.New("no filesystem set")
-	}
+func (mi *Migration) WriteConfig(fsys streamfs.FS) error {
 	jsonData, _ := json.MarshalIndent(mi.MigrationConfig, "", "  ")
-	if _, err := writefs.WriteFile(mi.fsys, "config.json", jsonData); err != nil {
+	if _, err := writefs.WriteFile(fsys, "config.json", jsonData); err != nil {
 		return errors.Wrap(err, "cannot write config.json")
 	}
 	return nil
 }
 
-func (mi *Migration) UpdateObjectBefore(object.Object) error {
+func (mi *Migration) UpdateObjectBefore(object.VersionWriter) error {
 	return nil
 }
 
@@ -151,7 +152,7 @@ func (mi *Migration) alreadyMigrated(cs string) bool {
 	return false
 }
 
-func (mi *Migration) UpdateObjectAfter(object object.Object) error {
+func (mi *Migration) UpdateObjectAfter(object object.VersionWriter) error {
 	inventory := object.GetInventory()
 	if inventory == nil {
 		return errors.Errorf("inventory is nil")
@@ -207,7 +208,7 @@ func (mi *Migration) NeedNewVersion(object.Object) (bool, error) {
 }
 
 // DoNewVersion todo: check for second migration step and do different naming
-func (mi *Migration) DoNewVersion(object object.Object, fsys streamfs.FS) error {
+func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
@@ -283,14 +284,9 @@ func (mi *Migration) DoNewVersion(object object.Object, fsys streamfs.FS) error 
 
 		var file io.ReadCloser
 		var ext string
-		fsys := object.GetFS()
-		if fsys != nil {
-			file, err = fsys.Open(manifestFiles[0])
-			if err != nil {
-				file = nil
-			}
-			ext = filepath.Ext(manifestFiles[0])
-		}
+		// no direct object filesystem available here; fall back to sourceFS branch
+		file = nil
+		ext = ""
 		if file == nil {
 			if mi.sourceFS != nil {
 				stateFiles, err := inv.GetVersions().GetVersion(inv.GetHead()).GetState().GetFiles(cs)
@@ -396,13 +392,13 @@ func (mi *Migration) DoNewVersion(object object.Object, fsys streamfs.FS) error 
 		return nil
 	}
 	if err := WriteJsonL(
+		mi.fsys,
 		object,
 		"migration",
 		buffer.Bytes(),
 		mi.MigrationConfig.Compress,
 		mi.StorageType,
 		mi.StorageName,
-		mi.fsys,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
@@ -432,7 +428,7 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName, mi.fsys)
+			data, err = ReadJsonL(mi.fsys, object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

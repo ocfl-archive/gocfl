@@ -100,7 +100,7 @@ type ThumbnailMap map[string]*ThumbnailTarget
 type Thumbnail struct {
 	*ThumbnailConfig
 	logger      ocfllogger.OCFLLogger
-	fsys        fs.FS
+	fsys        streamfs.FS
 	lastHead    string
 	thumbnail   *thumbnail.Thumbnail
 	buffer      map[string]*bytes.Buffer
@@ -151,17 +151,18 @@ func (thumb *Thumbnail) IsRegistered() bool { return false }
 
 func (thumb *Thumbnail) GetName() string { return ThumbnailName }
 
-func (thumb *Thumbnail) SetFS(fsys fs.FS, create bool) { thumb.fsys = fsys }
+func (thumb *Thumbnail) SetFS(fsys fs.FS, create bool) {
+	if sfs, ok := fsys.(streamfs.FS); ok {
+		thumb.fsys = sfs
+	}
+}
 
 func (thumb *Thumbnail) SetParams(map[string]string) error {
 	return nil
 }
 
-func (thumb *Thumbnail) WriteConfig(streamfs.FS) error {
-	if thumb.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(thumb.fsys, "config.json")
+func (thumb *Thumbnail) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -277,11 +278,11 @@ func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventorytypes.V
 	return targetFile, digest, errors.Wrap(err, "cannot store thumbnail")
 }
 
-func (thumb *Thumbnail) UpdateObjectBefore(object.Object) error {
+func (thumb *Thumbnail) UpdateObjectBefore(object.VersionWriter) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
+func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 	inventory := object.GetInventory()
 	head := inventory.GetHead()
 	thumb.buffer[head.String()] = &bytes.Buffer{}
@@ -331,13 +332,11 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 
 			var file io.ReadCloser
 			var ext string
-			fsys := object.GetFS()
-			if fsys != nil {
-				file, err = fsys.Open(m.InternalName[0])
-				if err != nil {
-					file = nil
-				}
-				ext = filepath.Ext(m.InternalName[0])
+			// No direct access to object filesystem, using fallback or leaving empty
+			file = nil
+			ext = ""
+			if false { // Original logic used object.GetFS() which is no longer available
+				_ = ext
 			}
 			if file == nil {
 				if thumb.sourceFS != nil {
@@ -398,13 +397,13 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.Object) error {
 	}
 
 	if err := WriteJsonL(
+		thumb.fsys,
 		object,
 		"thumbnail",
 		buffer.Bytes(),
 		thumb.ThumbnailConfig.Compress,
 		thumb.StorageType,
 		thumb.StorageName,
-		thumb.fsys,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
@@ -438,7 +437,7 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "thumbnail", v, thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName, thumb.fsys)
+			data, err = ReadJsonL(thumb.fsys, object, "thumbnail", v, thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

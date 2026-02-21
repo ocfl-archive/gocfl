@@ -69,7 +69,6 @@ type FilesystemConfig struct {
 
 type Filesystem struct {
 	*FilesystemConfig
-	fsys        fs.FS
 	lastHead    string
 	currentHead string
 	buffer      map[string]*bytes.Buffer
@@ -93,10 +92,6 @@ func (extFS *Filesystem) Load(fsys fs.FS) error {
 
 func (extFS *Filesystem) Terminate() error {
 	return nil
-}
-
-func (extFS *Filesystem) GetFS() fs.FS {
-	return extFS.fsys
 }
 
 func (extFS *Filesystem) GetConfig() any {
@@ -226,7 +221,7 @@ func (extFS *Filesystem) NeedNewVersion(object object.Object) (bool, error) {
 	return false, nil
 }
 
-func (extFS *Filesystem) DoNewVersion(object object.Object, fsys streamfs.FS) error {
+func (extFS *Filesystem) DoNewVersion(object object.VersionWriter) error {
 	return nil
 }
 
@@ -253,7 +248,7 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName, extFS.fsys)
+			data, err = ReadJsonL(nil, object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
@@ -297,11 +292,11 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 	return retResult, nil
 }
 
-func (extFS *Filesystem) UpdateObjectBefore(object object.Object) error {
+func (extFS *Filesystem) UpdateObjectBefore(object object.VersionWriter) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateObjectAfter(object object.Object) error {
+func (extFS *Filesystem) UpdateObjectAfter(object object.VersionWriter) error {
 	if extFS.writer == nil {
 		return nil
 	}
@@ -320,32 +315,25 @@ func (extFS *Filesystem) UpdateObjectAfter(object object.Object) error {
 		return nil
 	}
 	if err := WriteJsonL(
+		nil,
 		object,
 		"filesystem",
 		buffer.Bytes(),
 		extFS.FilesystemConfig.Compress,
 		extFS.StorageType,
 		extFS.StorageName,
-		extFS.fsys,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
 	return nil
 }
 
-func (extFS *Filesystem) SetFS(fsys fs.FS, create bool) {
-	extFS.fsys = fsys
-}
-
 func (extFS *Filesystem) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (extFS *Filesystem) WriteConfig(streamfs.FS) error {
-	if extFS.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(extFS.fsys, "config.json")
+func (extFS *Filesystem) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

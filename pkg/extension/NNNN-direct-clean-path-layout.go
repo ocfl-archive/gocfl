@@ -2,14 +2,13 @@ package extension
 
 import (
 	"encoding/json"
-
-	"io"
 	"io/fs"
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 // fallback for object with unregigered naming
@@ -17,10 +16,10 @@ import (
 const LegacyDirectCleanName = "NNNN-direct-clean-path-layout"
 const LegacyDirectCleanDescription = "Maps OCFL object identifiers to storage paths or as an object extension that maps logical paths to content paths. This is done by replacing or removing \"dangerous characters\" from names"
 
-func NewLegacyDirectClean(logger ocfllogger.OCFLLogger) (extensiontypes.Extension, error) {
+func NewLegacyDirectClean(logger ocfllogger.OCFLLogger) (extension.Extension, error) {
 	config := &LegacyDirectCleanConfig{
 		DirectCleanConfig: &DirectCleanConfig{
-			ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: LegacyDirectCleanName},
+			ExtensionConfig: &extension.ExtensionConfig{ExtensionName: LegacyDirectCleanName},
 		},
 	}
 	sl := &LegacyDirectClean{DirectClean: &DirectClean{DirectCleanConfig: config.DirectCleanConfig, logger: logger.With("extension", LegacyDirectCleanName)}}
@@ -76,3 +75,25 @@ func (sl *LegacyDirectClean) IsRegistered() bool {
 	return false
 }
 func (sl *LegacyDirectClean) GetName() string { return LegacyDirectCleanName }
+
+func (sl *LegacyDirectClean) SetParams(params map[string]string) error {
+	return nil
+}
+
+func (sl *LegacyDirectClean) Terminate() error {
+	return nil
+}
+
+func (sl *LegacyDirectClean) GetConfig() any {
+	return sl.DirectCleanConfig
+}
+
+func (sl *LegacyDirectClean) WriteConfig(fsys streamfs.FS) error {
+	return nil
+}
+
+func (sl *LegacyDirectClean) GetFS() fs.FS {
+	return nil
+}
+
+func (sl *LegacyDirectClean) SetFS(fsys fs.FS, create bool) {}

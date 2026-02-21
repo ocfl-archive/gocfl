@@ -82,16 +82,11 @@ type NTupleOmitPrefixStorageLayoutConfig struct {
 
 type NTupleOmitPrefixStorageLayout struct {
 	*NTupleOmitPrefixStorageLayoutConfig
-	fsys   fs.FS
 	logger ocfllogger.OCFLLogger
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) Terminate() error {
 	return nil
-}
-
-func (sl *NTupleOmitPrefixStorageLayout) GetFS() fs.FS {
-	return sl.fsys
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) GetConfig() any {
@@ -106,20 +101,13 @@ func (sl *NTupleOmitPrefixStorageLayout) Stat(w io.Writer, statInfo []object.Sta
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
-}
-
 func (sl *NTupleOmitPrefixStorageLayout) SetParams(params map[string]string) error {
 	return nil
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) GetName() string { return NTupleOmitPrefixStorageLayoutName }
-func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

@@ -59,7 +59,6 @@ type GOCFLExtensionManager struct {
 	area               []object.ExtensionArea
 	stream             []object.ExtensionStream
 	newVersion         []object.ExtensionNewVersion
-	fsys               fs.FS
 	initial            extension2.ExtensionInitial
 	logger             ocfllogger.OCFLLogger
 }
@@ -92,10 +91,6 @@ func (manager *GOCFLExtensionManager) SetInitial(initial extension2.ExtensionIni
 
 func (manager *GOCFLExtensionManager) GetExtensions() []extension2.Extension {
 	return manager.extensions
-}
-
-func (manager *GOCFLExtensionManager) GetFS() fs.FS {
-	return manager.fsys
 }
 
 func (manager *GOCFLExtensionManager) GetConfig() any {
@@ -154,48 +149,9 @@ func (manager *GOCFLExtensionManager) Add(ext extension2.Extension) error {
 	return nil
 }
 
-/*
-func (manager *GOCFLExtensionManager) SetFS(fsys fs.FS, create bool) {
-	if fsys == nil {
-		return
-	}
-	for _, ext := range append(manager.extensions, manager.initial) {
-		if ext == nil {
-			continue
-		}
-		extFS, err := writefs.Sub(fsys, ext.GetName())
-		if err != nil {
-			if create && errors.Is(err, fs.ErrNotExist) {
-				extFS, err = writefs.SubFSCreate(fsys, ext.GetName())
-			}
-			if err != nil {
-				panic(err)
-			}
-		}
-		ext.SetFS(extFS, create)
-	}
-	var err error
-	manager.fsys, err = writefs.Sub(fsys, manager.GetName())
-	if err != nil {
-		if create && errors.Is(err, fs.ErrNotExist) {
-			manager.fsys, err = writefs.SubFSCreate(fsys, manager.GetName())
-		}
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
 func (manager *GOCFLExtensionManager) GetFSName(extName string) (fs.FS, error) {
-	for _, ext := range manager.extensions {
-		if ext.GetName() == extName {
-			return ext.GetFS(), nil
-		}
-	}
 	return nil, errors.Errorf("extension '%s' not active", extName)
 }
-
-*/
 
 func sortExtensions[E extension2.Extension](list []E, sortName []string) {
 	sortFunc := func(aExt, bExt E) int {
@@ -475,7 +431,7 @@ func (manager *GOCFLExtensionManager) DeleteFileAfter(object object.Object, dest
 }
 
 // ObjectChange
-func (manager *GOCFLExtensionManager) UpdateObjectBefore(object object.Object) error {
+func (manager *GOCFLExtensionManager) UpdateObjectBefore(object object.VersionWriter) error {
 	var errs = []error{}
 	for _, ocp := range manager.objectChange {
 		if err := ocp.UpdateObjectBefore(object); err != nil {
@@ -485,7 +441,7 @@ func (manager *GOCFLExtensionManager) UpdateObjectBefore(object object.Object) e
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) UpdateObjectAfter(object object.Object) error {
+func (manager *GOCFLExtensionManager) UpdateObjectAfter(object object.VersionWriter) error {
 	var errs = []error{}
 	for _, ocp := range manager.objectChange {
 		if err := ocp.UpdateObjectAfter(object); err != nil {
@@ -569,9 +525,9 @@ func (manager *GOCFLExtensionManager) NeedNewVersion(object object.Object) (bool
 	return false, nil
 }
 
-func (manager *GOCFLExtensionManager) DoNewVersion(object object.Object, fsys streamfs.FS) error {
+func (manager *GOCFLExtensionManager) DoNewVersion(versionWriter object.VersionWriter) error {
 	for _, ext := range manager.newVersion {
-		if err := ext.DoNewVersion(object, nil); err != nil {
+		if err := ext.DoNewVersion(versionWriter); err != nil {
 			return errors.Wrapf(err, "cannot call NeedNewVersion() from extension '%s'", ext.GetName())
 		}
 	}
@@ -579,7 +535,7 @@ func (manager *GOCFLExtensionManager) DoNewVersion(object object.Object, fsys st
 }
 
 // Stream
-func (manager *GOCFLExtensionManager) StreamObject(obj object.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (manager *GOCFLExtensionManager) StreamObject(versionWriter object.VersionWriter, reader io.Reader, stateFiles []string, dest string) error {
 	if len(manager.stream) == 0 {
 		_, _ = io.Copy(io.Discard, reader)
 		return nil
@@ -593,8 +549,8 @@ func (manager *GOCFLExtensionManager) StreamObject(obj object.Object, reader io.
 		writer = append(writer, iou.NewWriteIgnoreCloser(pw))
 		go func(r io.Reader, ext object.ExtensionStream) {
 			defer wg.Done()
-			if err := ext.StreamObject(obj, r, stateFiles, dest); err != nil {
-				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", ext.GetName(), obj.GetID())
+			if err := ext.StreamObject(versionWriter, r, stateFiles, dest); err != nil {
+				extErrors <- errors.Wrapf(err, "cannot call StreamObject() from extension '%s' for object '%s'", ext.GetName(), versionWriter.GetID())
 			}
 			// discard remaining data
 			_, _ = io.Copy(io.Discard, r)

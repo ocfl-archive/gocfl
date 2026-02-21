@@ -13,9 +13,10 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
-func ReadFile(object objecttypes.Object, name string, version *inventorytypes.VersionNumber, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadFile(fsys fs.FS, object objecttypes.Object, name string, version *inventorytypes.VersionNumber, storageType, storageName string) ([]byte, error) {
 	var targetname string
 	switch storageType {
 	case "area":
@@ -25,7 +26,6 @@ func ReadFile(object objecttypes.Object, name string, version *inventorytypes.Ve
 		}
 		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s", path, name), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
-		fsys = object.GetFS()
 	case "path":
 		path, err := object.GetAreaPath("content")
 		if err != nil {
@@ -33,7 +33,6 @@ func ReadFile(object objecttypes.Object, name string, version *inventorytypes.Ve
 		}
 		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s/%s", path, storageName, name), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
-		fsys = object.GetFS()
 	case "extension":
 		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s", storageName, name), "/")
 	default:
@@ -43,7 +42,7 @@ func ReadFile(object objecttypes.Object, name string, version *inventorytypes.Ve
 	return fs.ReadFile(fsys, targetname)
 }
 
-func ReadJsonL(object objecttypes.Object, name string, version *inventorytypes.VersionNumber, compress, storageType, storageName string, fsys fs.FS) ([]byte, error) {
+func ReadJsonL(fsys fs.FS, object objecttypes.Object, name string, version *inventorytypes.VersionNumber, compress, storageType, storageName string) ([]byte, error) {
 	if fsys == nil {
 		return nil, errors.Errorf("[%s/%s] %s: fsys is nil", object.GetID(), version, name)
 	}
@@ -66,7 +65,6 @@ func ReadJsonL(object objecttypes.Object, name string, version *inventorytypes.V
 		}
 		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
-		fsys = object.GetFS()
 	case "path":
 		path, err := object.GetAreaPath("content")
 		if err != nil {
@@ -74,7 +72,6 @@ func ReadJsonL(object objecttypes.Object, name string, version *inventorytypes.V
 		}
 		targetname = object.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s/%s_%s.jsonl%s", path, storageName, name, version, ext), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", v, sl.IndexerConfig.StorageName, v, ext)
-		fsys = object.GetFS()
 	case "extension":
 		targetname = strings.TrimLeft(fmt.Sprintf("%s/%s_%s.jsonl%s", storageName, name, version, ext), "/")
 	default:
@@ -114,7 +111,7 @@ func ReadJsonL(object objecttypes.Object, name string, version *inventorytypes.V
 	return data, nil
 }
 
-func WriteJsonL(object objecttypes.Object, name string, brotliData []byte, compress, storageType, storageName string, fsys fs.FS) error {
+func WriteJsonL(fsys streamfs.FS, object objecttypes.Object, name string, brotliData []byte, compress, storageType, storageName string) error {
 	var bufReader = bytes.NewBuffer(brotliData)
 	var ext string
 	var reader io.Reader

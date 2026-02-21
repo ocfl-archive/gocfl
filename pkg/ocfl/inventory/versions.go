@@ -25,5 +25,5 @@ type Versions interface {
 	FileExists(path, digest string) (bool, error)
 	Delete(versionNumber *VersionNumber) (bool, error)
 	Err() error
-	NewVersion(head *VersionNumber, msg string, UserName string, UserAddress string) error
+	NewVersion(msg string, UserName string, UserAddress string) error
 }

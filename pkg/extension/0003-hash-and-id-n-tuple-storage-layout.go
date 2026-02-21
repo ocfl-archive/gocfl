@@ -71,16 +71,11 @@ type StorageLayoutHashAndIdNTupleConfig struct {
 type StorageLayoutHashAndIdNTuple struct {
 	*StorageLayoutHashAndIdNTupleConfig
 	hash   hash.Hash
-	fsys   fs.FS
 	logger ocfllogger.OCFLLogger
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) Terminate() error {
 	return nil
-}
-
-func (sl *StorageLayoutHashAndIdNTuple) GetFS() fs.FS {
-	return sl.fsys
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) GetConfig() any {
@@ -95,19 +90,12 @@ func (sl *StorageLayoutHashAndIdNTuple) GetName() string {
 	return StorageLayoutHashAndIdNTupleName
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
-}
-
 func (sl *StorageLayoutHashAndIdNTuple) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *StorageLayoutHashAndIdNTuple) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

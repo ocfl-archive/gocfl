@@ -80,7 +80,6 @@ type IndexerConfig struct {
 }
 type Indexer struct {
 	*IndexerConfig
-	fsys           fs.FS
 	indexerURL     *url.URL
 	buffer         map[string]*bytes.Buffer
 	writer         *brotli.Writer
@@ -88,6 +87,7 @@ type Indexer struct {
 	indexerActions *ironmaiden.ActionDispatcher
 	currentHead    string
 	localCache     bool
+	fsys           streamfs.FS
 	logger         ocfllogger.OCFLLogger
 }
 
@@ -128,10 +128,6 @@ func (sl *Indexer) Terminate() error {
 	return nil
 }
 
-func (sl *Indexer) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *Indexer) GetConfig() any {
 	return sl.IndexerConfig
 }
@@ -140,7 +136,15 @@ func (sl *Indexer) IsRegistered() bool { return false }
 
 func (sl *Indexer) GetName() string { return IndexerName }
 
-func (sl *Indexer) SetFS(fsys fs.FS, create bool) { sl.fsys = fsys }
+func (sl *Indexer) SetFS(fsys fs.FS, create bool) {
+	if sfs, ok := fsys.(streamfs.FS); ok {
+		sl.fsys = sfs
+	}
+}
+
+func (sl *Indexer) GetFS() fs.FS {
+	return sl.fsys
+}
 
 func (sl *Indexer) SetParams(params map[string]string) error {
 	var err error
@@ -198,11 +202,8 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 	return result, resp.StatusCode, nil
 }
 
-func (sl *Indexer) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *Indexer) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -215,11 +216,11 @@ func (sl *Indexer) WriteConfig(streamfs.FS) error {
 	return nil
 }
 
-func (sl *Indexer) UpdateObjectBefore(object object.Object) error {
+func (sl *Indexer) UpdateObjectBefore(object object.VersionWriter) error {
 	return nil
 }
 
-func (sl *Indexer) UpdateObjectAfter(object object.Object) error {
+func (sl *Indexer) UpdateObjectAfter(object object.VersionWriter) error {
 	if sl.indexerActions == nil {
 		return errors.New("Please enable indexer in config file")
 	}
@@ -244,13 +245,13 @@ func (sl *Indexer) UpdateObjectAfter(object object.Object) error {
 		return nil
 	}
 	if err := WriteJsonL(
+		sl.fsys,
 		object,
 		"indexer",
 		buffer.Bytes(),
 		sl.IndexerConfig.Compress,
 		sl.StorageType,
 		sl.StorageName,
-		sl.fsys,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
@@ -288,7 +289,7 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 				data = nil
 			}
 		} else {
-			data, err = ReadJsonL(object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName, sl.fsys)
+			data, err = ReadJsonL(sl.fsys, object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
 			}
@@ -315,7 +316,7 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 	return result, nil
 }
 
-func (sl *Indexer) StreamObject(object object.Object, reader io.Reader, stateFiles []string, dest string) error {
+func (sl *Indexer) StreamObject(object object.VersionWriter, reader io.Reader, stateFiles []string, dest string) error {
 	if !sl.active {
 		return nil
 	}

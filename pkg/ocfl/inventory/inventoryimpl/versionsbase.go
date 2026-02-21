@@ -52,8 +52,9 @@ type versionsBase struct {
 }
 
 // todo: remove head parameter
-func (v *versionsBase) NewVersion(head *inventory.VersionNumber, msg, UserName, UserAddress string) error {
+func (v *versionsBase) NewVersion(msg string, UserName string, UserAddress string) error {
 	var newVersionNumber *inventory.VersionNumber
+	head := v.LatestVersionNumber()
 	if head.IsValid() {
 		if paddingLength := head.GetPaddingLength(); paddingLength > 0 {
 			newVersionNumber = inventory.NewVersionNumber().WithString(fmt.Sprintf("v0%0*d", paddingLength, head.Int()+1))

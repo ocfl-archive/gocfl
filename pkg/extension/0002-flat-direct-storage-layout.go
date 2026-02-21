@@ -36,7 +36,6 @@ type StorageLayoutFlatDirectConfig struct {
 }
 type StorageLayoutFlatDirect struct {
 	*StorageLayoutFlatDirectConfig
-	fsys   fs.FS
 	logger ocfllogger.OCFLLogger
 }
 
@@ -56,10 +55,6 @@ func (sl *StorageLayoutFlatDirect) Terminate() error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *StorageLayoutFlatDirect) GetConfig() any {
 	return sl.StorageLayoutFlatDirectConfig
 }
@@ -72,20 +67,13 @@ func (sl *StorageLayoutFlatDirect) Stat(w io.Writer, statInfo []object.StatInfo)
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
-}
-
 func (sl *StorageLayoutFlatDirect) SetParams(params map[string]string) error {
 	return nil
 }
 
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
-func (sl *StorageLayoutFlatDirect) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *StorageLayoutFlatDirect) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

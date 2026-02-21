@@ -3,10 +3,9 @@ package extension
 import (
 	"encoding/json"
 	"fmt"
-
 	"hash"
-	"io"
 	"io/fs"
+
 	"math"
 	"strings"
 
@@ -36,7 +35,6 @@ var convert = map[rune]rune{
 type StorageLayoutPairTree struct {
 	*StorageLayoutPairTreeConfig
 	hash   hash.Hash
-	fsys   fs.FS
 	logger ocfllogger.OCFLLogger
 }
 
@@ -58,12 +56,12 @@ func (sl *StorageLayoutPairTree) Terminate() error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *StorageLayoutPairTree) GetConfig() any {
 	return sl.StorageLayoutPairTreeConfig
+}
+
+func (sl *StorageLayoutPairTree) GetFS() fs.FS {
+	return nil
 }
 
 func (sl *StorageLayoutPairTree) IsRegistered() bool {
@@ -90,9 +88,7 @@ func (sl *StorageLayoutPairTree) WriteLayout(fsys fs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
-}
+func (sl *StorageLayoutPairTree) SetFS(fsys fs.FS, create bool) {}
 
 type StorageLayoutPairTreeConfig struct {
 	*extensiontypes.ExtensionConfig
@@ -123,11 +119,8 @@ func (sl *StorageLayoutPairTree) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *StorageLayoutPairTree) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

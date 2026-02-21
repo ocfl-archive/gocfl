@@ -56,7 +56,6 @@ type ContentSubPathConfig struct {
 }
 type ContentSubPath struct {
 	*ContentSubPathConfig
-	fsys   fs.FS
 	area   string
 	logger ocfllogger.OCFLLogger
 }
@@ -83,20 +82,12 @@ func (sl *ContentSubPath) GetMetadata(object object.Object) (map[string]any, err
 	return map[string]any{"": sl.Paths}, nil
 }
 
-func (sl *ContentSubPath) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *ContentSubPath) GetConfig() any {
 	return sl.ContentSubPathConfig
 }
 
 func (sl *ContentSubPath) IsRegistered() bool {
 	return false
-}
-
-func (sl *ContentSubPath) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
 }
 
 func (sl *ContentSubPath) SetParams(params map[string]string) error {
@@ -110,11 +101,8 @@ func (sl *ContentSubPath) SetParams(params map[string]string) error {
 
 func (sl *ContentSubPath) GetName() string { return ContentSubPathName }
 
-func (sl *ContentSubPath) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *ContentSubPath) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -143,11 +131,11 @@ func (sl *ContentSubPath) BuildObjectManifestPath(object object.Object, original
 	return path, nil
 }
 
-func (sl *ContentSubPath) UpdateObjectBefore(object object.Object) error {
+func (sl *ContentSubPath) UpdateObjectBefore(object object.VersionWriter) error {
 
 	return nil
 }
-func (sl *ContentSubPath) UpdateObjectAfter(object object.Object) error {
+func (sl *ContentSubPath) UpdateObjectAfter(object object.VersionWriter) error {
 	readme := doc.NewMarkDown()
 	readme.WriteTitle("Description of folders", doc.LevelTitle).
 		WriteLines(2)

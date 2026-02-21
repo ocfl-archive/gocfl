@@ -92,7 +92,6 @@ type DirectCleanConfig struct {
 
 type DirectClean struct {
 	*DirectCleanConfig
-	fsys      fs.FS
 	hash      hash.Hash  `json:"-"`
 	hashMutex sync.Mutex `json:"-"`
 	logger    ocfllogger.OCFLLogger
@@ -139,10 +138,6 @@ func (sl *DirectClean) Terminate() error {
 	return nil
 }
 
-func (sl *DirectClean) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *DirectClean) GetConfig() any {
 	return sl.DirectCleanConfig
 }
@@ -155,19 +150,12 @@ func (sl *DirectClean) IsRegistered() bool {
 
 func (sl *DirectClean) GetName() string { return DirectCleanName }
 
-func (sl *DirectClean) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
-}
-
 func (sl *DirectClean) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *DirectClean) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+func (sl *DirectClean) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}

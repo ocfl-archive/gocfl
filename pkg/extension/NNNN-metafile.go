@@ -77,7 +77,7 @@ type MetaFile struct {
 	*MetaFileConfig
 	schema         []byte
 	metadataSource *url.URL
-	fsys           fs.FS
+	fsys           streamfs.FS
 	compiledSchema *jsonschema.Schema
 	stored         bool
 	info           map[string][]byte
@@ -122,10 +122,6 @@ func (sl *MetaFile) Terminate() error {
 	return nil
 }
 
-func (sl *MetaFile) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *MetaFile) GetConfig() any {
 	return sl.MetaFileConfig
 }
@@ -167,19 +163,22 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 }
 
 func (sl *MetaFile) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
+	if sfs, ok := fsys.(streamfs.FS); ok {
+		sl.fsys = sfs
+	}
+}
+
+func (sl *MetaFile) GetFS() fs.FS {
+	return sl.fsys
 }
 
 func (sl *MetaFile) GetName() string { return MetaFileName }
 
-func (sl *MetaFile) WriteConfig(streamfs.FS) error {
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
+func (sl *MetaFile) WriteConfig(fsys streamfs.FS) error {
+	if _, err := writefs.WriteFile(fsys, sl.MetaSchema, sl.schema); err != nil {
+		return errors.Wrapf(err, "cannot write schema to %v/%s", fsys, sl.MetaSchema)
 	}
-	if _, err := writefs.WriteFile(sl.fsys, sl.MetaSchema, sl.schema); err != nil {
-		return errors.Wrapf(err, "cannot write schema to %v/%s", sl.fsys, sl.MetaSchema)
-	}
-	configWriter, err := writefs.Create(sl.fsys, "config.json")
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
 	}
@@ -223,7 +222,7 @@ func toStringKeys(val interface{}) (interface{}, error) {
 	}
 }
 
-func (sl *MetaFile) UpdateObjectBefore(object object.Object) error {
+func (sl *MetaFile) UpdateObjectBefore(object object.VersionWriter) error {
 	if sl.metadataSource.Path == "" {
 		return nil
 	}
@@ -376,7 +375,7 @@ func downloadFile(u string) ([]byte, error) {
 
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
-func (sl *MetaFile) UpdateObjectAfter(object object.Object) error {
+func (sl *MetaFile) UpdateObjectAfter(object object.VersionWriter) error {
 	return nil
 }
 
@@ -401,7 +400,7 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 		if metadata, ok = sl.info[ver.String()]; ok {
 			break
 		}
-		if metadata, err = ReadFile(object, sl.MetaName, ver, sl.StorageType, sl.StorageName, sl.fsys); err == nil {
+		if metadata, err = ReadFile(sl.fsys, object, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
 			break
 		}
 	}

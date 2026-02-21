@@ -103,7 +103,7 @@ type MetsConfig struct {
 }
 type Mets struct {
 	*MetsConfig
-	fsys   fs.FS
+	fsys   streamfs.FS
 	logger ocfllogger.OCFLLogger
 	//	descriptiveMetadata     string
 	//	descriptiveMetadataType string
@@ -122,10 +122,6 @@ func (me *Mets) Load(fsys fs.FS) error {
 		return errors.Wrapf(err, "cannot unmarshal MetsConfig '%s'", string(data))
 	}
 	return nil
-}
-
-func (me *Mets) GetFS() fs.FS {
-	return me.fsys
 }
 
 func (me *Mets) GetConfig() any {
@@ -147,16 +143,19 @@ func (me *Mets) SetParams(params map[string]string) error {
 }
 
 func (me *Mets) SetFS(fsys fs.FS, create bool) {
-	me.fsys = fsys
+	if sfs, ok := fsys.(streamfs.FS); ok {
+		me.fsys = sfs
+	}
+}
+
+func (me *Mets) GetFS() fs.FS {
+	return me.fsys
 }
 
 func (me *Mets) GetName() string { return METSName }
 
-func (me *Mets) WriteConfig(streamfs.FS) error {
-	if me.fsys == nil {
-		return errors.New("no filesystem set")
-	}
-	configWriter, err := writefs.Create(me.fsys, "config.json")
+func (me *Mets) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot create config.json")
 	}
@@ -170,7 +169,7 @@ func (me *Mets) WriteConfig(streamfs.FS) error {
 	return nil
 }
 
-func (me *Mets) UpdateObjectBefore(object object.Object) error {
+func (me *Mets) UpdateObjectBefore(object object.VersionWriter) error {
 	return nil
 }
 
@@ -222,7 +221,7 @@ type metaFileBase struct {
 
 */
 
-func (me *Mets) UpdateObjectAfter(obj object.Object) error {
+func (me *Mets) UpdateObjectAfter(object object.VersionWriter) error {
 	inventory := obj.GetInventory()
 	metadata, err := obj.GetMetadata()
 	if err != nil {
