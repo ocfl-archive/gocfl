@@ -132,7 +132,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
 	ctx := validation.NewContextValidation(context.TODO())
 
-	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil)
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
 
 	doInitConf(cmd)
 	doAddConf(cmd)

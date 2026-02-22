@@ -3,12 +3,11 @@ package objectimpl
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -39,7 +38,6 @@ func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVer
 		versionInventories: map[string]inventory.Inventory{},
 		changed:            false,
 		logger:             logger,
-		version:            defaultVersion,
 		digest:             "",
 		echo:               false,
 		updateFiles:        []string{},
@@ -60,12 +58,12 @@ type ObjectBase struct {
 	versionInventories map[string]inventory.Inventory
 	changed            bool
 	logger             ocfllogger.OCFLLogger
-	version            version.OCFLVersion
-	digest             checksum.DigestAlgorithm
-	echo               bool
-	updateFiles        []string
-	area               string
-	factory            factorytypes.Factory
+	//version            version.OCFLVersion
+	digest      checksum.DigestAlgorithm
+	echo        bool
+	updateFiles []string
+	area        string
+	factory     factorytypes.Factory
 }
 
 var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
@@ -83,20 +81,6 @@ func (objectBase *ObjectBase) GetExtensionManager() object.ExtensionManager {
 }
 
 func (objectBase *ObjectBase) IsModified() bool { return objectBase.i.IsModified() }
-
-func (objectBase *ObjectBase) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
-	valError := validation.GetValidationError(objectBase.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", objectBase.i.GetID())
-	_, file, line, _ := runtime.Caller(1)
-	objectBase.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
-	return errors.WithStack(validation.AddValidationErrors(objectBase.ctx, valError))
-}
-
-func (objectBase *ObjectBase) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
-	valError := validation.GetValidationError(objectBase.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", objectBase.i.GetID())
-	_, file, line, _ := runtime.Caller(1)
-	objectBase.logger.Debug().Msgf("[%s:%v] %s", file, line, valError.Error())
-	return errors.WithStack(validation.AddValidationWarnings(objectBase.ctx, valError))
-}
 
 func (objectBase *ObjectBase) GetMetadata() (*inventory.Metadata, error) {
 	inv := objectBase.i
@@ -207,7 +191,7 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 			if slices.Contains(statInfo, object.StatObjectVersionState) || len(statInfo) == 0 {
 				for cs, sList := range ver.GetState().Iterate() {
 					for _, s := range sList {
-						fmt.Fprintf(w, "[%s]        %s\n", objectBase.i.GetID(), s)
+						_, _ = fmt.Fprintf(w, "[%s]        %s\n", objectBase.i.GetID(), s)
 						if slices.Contains(statInfo, object.StatObjectManifest) || len(statInfo) == 0 {
 							ms, err := manifest.GetFiles(cs)
 							if err != nil {
@@ -318,7 +302,11 @@ func (objectBase *ObjectBase) GetID() string {
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
-	return objectBase.version
+	return objectBase.i.GetOCFLVersion()
+}
+
+func (objectBase *ObjectBase) GetChecker(fsys fs.FS) (object.Checker, error) {
+
 }
 
 func (objectBase *ObjectBase) Check() error {
@@ -340,11 +328,11 @@ func (objectBase *ObjectBase) Check() error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
-				objectBase.AddValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
+				objectBase.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
 				// could it be a version folder?
 				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
 					if err2 := objectBase.checkVersionFolder(entry.Name()); err2 == nil {
-						objectBase.AddValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
+						objectBase.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						fmt.Println(err2)
 					}
@@ -363,14 +351,14 @@ func (objectBase *ObjectBase) Check() error {
 			}
 		} else {
 			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				objectBase.AddValidationError(validation.E001, "invalid file '%s' found", entry.Name())
+				objectBase.logger.ValidationError(validation.E001, "invalid file '%s' found", entry.Name())
 			}
 		}
 	}
 
 	invVersionCounter := len(ocfl.SeqToSlice(objectBase.i.GetVersions().GetVersionNumbers()))
 	if versionCounter != invVersionCounter {
-		objectBase.AddValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
+		objectBase.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
 	}
 
 	if err := objectBase.checkFilesAndVersions(); err != nil {
@@ -426,41 +414,6 @@ func (objectBase *ObjectBase) createContentManifest() (map[checksum.DigestAlgori
 }
 
 // helper functions
-
-func (objectBase *ObjectBase) getVersionInventories() (map[string]inventory.Inventory, error) {
-	if len(objectBase.versionInventories) > 0 {
-		return objectBase.versionInventories, nil
-	}
-
-	versionStrings := ocfl.SeqToSlice(objectBase.i.GetVersions().GetVersionNumbers())
-
-	// sort in ascending order
-	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
-		if a.Less(b) {
-			return -1
-		}
-
-		if a.Equal(b) {
-			return 0
-		}
-
-		return 1
-	})
-	versionInventories := map[string]inventory.Inventory{}
-	for _, ver := range versionStrings {
-		vi, err := objectBase.joadInventory(ver.String())
-		if err != nil {
-			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-				objectBase.AddValidationWarning(validation.W010, "no inventory for version '%s'", ver)
-				continue
-			}
-			return nil, errors.Wrapf(err, "cannot load inventory from folder '%s'", ver)
-		}
-		versionInventories[ver.String()] = vi
-	}
-	objectBase.versionInventories = versionInventories
-	return objectBase.versionInventories, nil
-}
 
 /*
 func (objectBase *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
@@ -53,6 +52,10 @@ func (f *FactoryBase) GetVersion() version.OCFLVersion {
 
 func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {
 	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
+}
+
+func (f *FactoryBase) NewChecker(ctx context.Context) object.Checker {
+	return objectimpl.NewObjectBaseChecker(ctx, f, f.version, f.logger)
 }
 
 func (f *FactoryBase) NewObject(ctx context.Context) object.Object {

@@ -16,7 +16,7 @@ func (objectBase *ObjectBase) Init(fsys streamfs.FS, id string, digest checksum.
 	objectBase.logger.Debug().Msgf("%s", id)
 	objectBase.extensionManager = extensionManager.(object.ExtensionManager)
 
-	objectConformanceDeclaration := "ocfl_object_" + string(objectBase.version)
+	objectConformanceDeclaration := "ocfl_object_" + string(objectBase.i.GetOCFLVersion())
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 	/*
 

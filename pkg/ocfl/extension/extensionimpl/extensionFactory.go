@@ -97,15 +97,15 @@ func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVers
 		ext, err := f.LoadExtensionFile(sub)
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
-			f.logger.ValidationError(ver, validation.W000, "extension %s not supported by gocfl %s", file.Name(), info.Version)
+			f.logger.ValidationError(validation.W000, "extension %s not supported by gocfl %s", file.Name(), info.Version)
 		} else {
 			if !ext.IsRegistered() {
-				f.logger.ValidationError(ver, validation.W013, "extension %s is not registered", ext.GetName())
+				f.logger.ValidationError(validation.W013, "extension %s is not registered", ext.GetName())
 			}
 			// warning if extension name is different from folder name and extension name is not 'initial'
 			// todo: initial should follow the same rule
 			if fName != ext.GetName() && fName != "initial" {
-				f.logger.ValidationError(ver, validation.W013, "extension %s has a different name than the folder", ext.GetName())
+				f.logger.ValidationError(validation.W013, "extension %s has a different name than the folder", ext.GetName())
 			}
 			// we have the initial folder, but the extension is not initial. let's create the initial extension
 			if fName == "initial" && ext.GetName() != "initial" {

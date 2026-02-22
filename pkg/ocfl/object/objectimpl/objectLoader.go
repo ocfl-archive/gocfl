@@ -88,11 +88,11 @@ func (loader *objectLoader) loadInventory(data []byte) (inventory.Inventory, err
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			loader.logger.ValidationError(ver, validation.E033, "json unmarshal error: %v", err2)
-			loader.logger.ValidationError(ver, validation.E034, "json unmarshal error: %v", err2)
+			loader.logger.ValidationError(validation.E033, "json unmarshal error: %v", err2)
+			loader.logger.ValidationError(validation.E034, "json unmarshal error: %v", err2)
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				loader.logger.ValidationError(ver, validation.E040, "json head not a string: %v", jsonMap["head"])
+				loader.logger.ValidationError(validation.E040, "json head not a string: %v", jsonMap["head"])
 			}
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
@@ -105,7 +105,7 @@ var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.jso
 
 // loadInventory loads inventory from existing Object
 func (loader *objectLoader) LoadInventory() (inventory.Inventory, error) {
-	filename, err := util.FindInventoryFile(loader.fsys)
+	filename, err := findInventoryFile(loader.fsys)
 	// load inventory file
 	inventoryBytes, err := fs.ReadFile(loader.fsys, filename)
 	if err != nil {
