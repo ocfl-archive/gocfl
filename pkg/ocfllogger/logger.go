@@ -11,7 +11,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func NewOCFLLogger(ctx context.Context, logger zLogger.ZLogger, data map[string]string) *OCFLLoggerImpl {
+func NewOCFLLogger(ctx context.Context, logger zLogger.ZLogger, data map[string]string, ver version.OCFLVersion) *OCFLLoggerImpl {
 	if data == nil {
 		data = make(map[string]string)
 	}
@@ -19,6 +19,7 @@ func NewOCFLLogger(ctx context.Context, logger zLogger.ZLogger, data map[string]
 		ctx:     ctx,
 		ZLogger: logger,
 		data:    data,
+		ver:     ver,
 	}
 }
 
@@ -32,36 +33,42 @@ type OCFLLogger interface {
 	Err(err error) *zerolog.Event
 	Fatal() *zerolog.Event
 	Panic() *zerolog.Event
-	With(name, value string) *OCFLLoggerImpl
-	ValidationError(ver version.OCFLVersion, code validation.ValidationErrorCode, format string, a ...interface{}) *OCFLLoggerImpl
+	With(name, value string) OCFLLogger
+	WithVersion(ver version.OCFLVersion) OCFLLogger
+	ValidationError(code validation.ValidationErrorCode, format string, a ...interface{}) *OCFLLoggerImpl
 }
 
 type OCFLLoggerImpl struct {
 	zLogger.ZLogger
 	data map[string]string
 	ctx  context.Context
+	ver  version.OCFLVersion
+}
+
+func (l *OCFLLoggerImpl) WithVersion(ver version.OCFLVersion) OCFLLogger {
+	return NewOCFLLogger(l.ctx, l.ZLogger, l.data, ver)
 }
 
 func (l *OCFLLoggerImpl) Logger() zLogger.ZLogger {
 	return l.ZLogger
 }
 
-func (l *OCFLLoggerImpl) With(name, value string) *OCFLLoggerImpl {
+func (l *OCFLLoggerImpl) With(name, value string) OCFLLogger {
 	newData := maps.Clone(l.data)
 	newData[strings.ToLower(name)] = value
-	return NewOCFLLogger(l.ctx, new(l.Logger.With().Str(name, value).Logger()), newData)
+	return NewOCFLLogger(l.ctx, new(l.ZLogger.With().Str(name, value).Logger()), newData, l.ver)
 }
 
-func (l *OCFLLoggerImpl) ValidationError(ver version.OCFLVersion, code validation.ValidationErrorCode, format string, a ...interface{}) *OCFLLoggerImpl {
-	validationError := validation.GetValidationError(ver, code).AppendContext(format, a...)
+func (l *OCFLLoggerImpl) ValidationError(code validation.ValidationErrorCode, format string, a ...interface{}) *OCFLLoggerImpl {
+	validationError := validation.GetValidationError(l.ver, code).AppendContext(format, a...)
 	var event *zerolog.Event
-	validation.AddValidationErrors(l.ctx, validation.GetValidationError(ver, code).AppendDescription(format, a...))
+	_ = validation.AddValidationErrors(l.ctx, validationError)
 	if validationError.Code[0] == 'W' {
-		event = l.Logger.Warn()
+		event = l.Logger().Warn()
 	} else {
-		event = l.Logger.Error()
+		event = l.Logger().Error()
 	}
-	event.Str("OCFLVersion", ver.String()).
+	event.Str("OCFLVersion", l.ver.String()).
 		Str("validationErrorCode", string(validationError.Code)).
 		Str("validationErrorMessage", validationError.Description).
 		Msgf(format, a...)
