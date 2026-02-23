@@ -305,113 +305,15 @@ func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 	return objectBase.i.GetOCFLVersion()
 }
 
-func (objectBase *ObjectBase) GetChecker(fsys fs.FS) (object.Checker, error) {
-
+func (objectBase *ObjectBase) GetChecker(fsys fs.FS) object.Checker {
+	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase).WithFS(fsys)
 }
 
-func (objectBase *ObjectBase) Check() error {
-	// https://ocfl.io/1.0/spec/#object-structure
-	//object.fs
-	objectBase.logger.Info().Msgf("object '%s' with object version '%s' found", objectBase.i.GetID(), objectBase.GetOCFLVersion())
-	// check folders
-
-	// check for allowed files and directories
-	allowedDirs := []string{"logs", "extensions"}
-	for v := range objectBase.i.GetVersions().GetVersionNumbers() {
-		allowedDirs = append(allowedDirs, v.String())
-	}
-	versionCounter := 0
-	entries, err := fs.ReadDir(objectBase.fsys, ".")
-	if err != nil {
-		return errors.Wrap(err, "cannot read object folder")
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			if !slices.Contains(allowedDirs, entry.Name()) {
-				objectBase.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
-				// could it be a version folder?
-				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
-					if err2 := objectBase.checkVersionFolder(entry.Name()); err2 == nil {
-						objectBase.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
-					} else {
-						fmt.Println(err2)
-					}
-				}
-			}
-
-			// check version directories
-			for v := range objectBase.i.GetVersions().GetVersionNumbers() {
-				if v.String() == entry.Name() {
-					if err := objectBase.checkVersionFolder(entry.Name()); err != nil {
-						return errors.WithStack(err)
-					}
-					versionCounter++
-					break
-				}
-			}
-		} else {
-			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				objectBase.logger.ValidationError(validation.E001, "invalid file '%s' found", entry.Name())
-			}
-		}
-	}
-
-	invVersionCounter := len(ocfl.SeqToSlice(objectBase.i.GetVersions().GetVersionNumbers()))
-	if versionCounter != invVersionCounter {
-		objectBase.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
-	}
-
-	if err := objectBase.checkFilesAndVersions(); err != nil {
-		return errors.WithStack(err)
-	}
-
-	dAlgs := []checksum.DigestAlgorithm{objectBase.i.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, ocfl.SeqToSlice(objectBase.i.GetFixity().GetDigestAlgorithms())...)
-	return nil
+func (objectBase *ObjectBase) GetExtractor(fsys fs.FS) object.Extractor {
+	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(fsys)
 }
 
 // create checksums of all content files
-func (objectBase *ObjectBase) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
-	// get all possible digest algs
-	digestAlgorithms := append(ocfl.SeqToSlice(objectBase.i.GetFixity().GetDigestAlgorithms()), objectBase.i.GetDigestAlgorithm())
-
-	result := map[checksum.DigestAlgorithm]map[string][]string{}
-	for versionNumber := range objectBase.i.GetVersions().GetVersionNumbers() {
-		if err := fs.WalkDir(
-			objectBase.fsys,
-			//fmt.Sprintf("%s/%s", version, objectBase.i.GetContentDir()),
-			versionNumber.String(),
-			func(path string, d fs.DirEntry, err error) error {
-				//objectBase.logger.Debug(path)
-				if d.IsDir() {
-					return nil
-				}
-				fname := path // filepath.ToSlash(filepath.Join(version, path))
-				fp, err := objectBase.fsys.Open(fname)
-				if err != nil {
-					return errors.Wrapf(err, "cannot open file '%v/%s'", objectBase.fsys, fname)
-				}
-				defer fp.Close()
-				css, err := checksum.Copy(digestAlgorithms, fp, &checksum.NullWriter{})
-				if err != nil {
-					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", fname)
-				}
-				for d, cs := range css {
-					if _, ok := result[d]; !ok {
-						result[d] = map[string][]string{}
-					}
-					if _, ok := result[d][cs]; !ok {
-						result[d][cs] = []string{}
-					}
-					result[d][cs] = append(result[d][cs], fname)
-				}
-				return nil
-			}); err != nil {
-			return nil, errors.Wrapf(err, "cannot walk content dir '%s'", objectBase.i.GetContentDir())
-		}
-	}
-	return result, nil
-}
 
 // helper functions
 

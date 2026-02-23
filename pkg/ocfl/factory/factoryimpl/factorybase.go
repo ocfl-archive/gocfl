@@ -55,7 +55,7 @@ func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoo
 }
 
 func (f *FactoryBase) NewChecker(ctx context.Context) object.Checker {
-	return objectimpl.NewObjectBaseChecker(ctx, f, f.version, f.logger)
+	return objectimpl.NewObjectBaseChecker(ctx, f, f.logger)
 }
 
 func (f *FactoryBase) NewObject(ctx context.Context) object.Object {

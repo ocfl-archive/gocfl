@@ -2,14 +2,17 @@ package objectimpl
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
@@ -18,13 +21,13 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewObjectBaseChecker(ctx context.Context, objectBase *ObjectBase, fsys fs.FS, factory factory.Factory) object.Checker {
+func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Checker {
 	return &objectBaseChecker{
-		Object:  objectBase,
-		fsys:    fsys,
+		Object:  nil,
+		fsys:    nil,
 		ctx:     ctx,
 		factory: factory,
-		logger:  objectBase.logger.With("task", "checker"),
+		logger:  logger.With("task", "checker"),
 	}
 }
 
@@ -36,19 +39,89 @@ type objectBaseChecker struct {
 	logger  ocfllogger.OCFLLogger
 }
 
+func (obj *objectBaseChecker) WithObject(o object.Object) object.Checker {
+	obj.Object = o
+	return obj
+}
+
+func (obj *objectBaseChecker) WithFS(fsys fs.FS) object.Checker {
+	obj.fsys = fsys
+	return obj
+}
+
 func (obj *objectBaseChecker) Check() error {
+	inv := obj.GetInventory()
 	//TODO implement me
-	panic("implement me")
+	// https://ocfl.io/1.0/spec/#object-structure
+	//object.fs
+	obj.logger.Info().Msgf("object '%s' with object version '%s' found", inv.GetID(), obj.factory.GetVersion())
+	// check folders
+
+	// check for allowed files and directories
+	allowedDirs := []string{"logs", "extensions"}
+	for v := range inv.GetVersions().GetVersionNumbers() {
+		allowedDirs = append(allowedDirs, v.String())
+	}
+	versionCounter := 0
+	entries, err := fs.ReadDir(obj.fsys, ".")
+	if err != nil {
+		return errors.Wrap(err, "cannot read object folder")
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if !slices.Contains(allowedDirs, entry.Name()) {
+				obj.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
+				// could it be a version folder?
+				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
+					if err2 := obj.checkVersionFolder(entry.Name()); err2 == nil {
+						obj.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
+					} else {
+						fmt.Println(err2)
+					}
+				}
+			}
+
+			// check version directories
+			for v := range inv.GetVersions().GetVersionNumbers() {
+				if v.String() == entry.Name() {
+					if err := obj.checkVersionFolder(entry.Name()); err != nil {
+						return errors.WithStack(err)
+					}
+					versionCounter++
+					break
+				}
+			}
+		} else {
+			if !allowedFilesRegexp.MatchString(entry.Name()) {
+				obj.logger.ValidationError(validation.E001, "invalid file '%s' found", entry.Name())
+			}
+		}
+	}
+
+	invVersionCounter := len(ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers()))
+	if versionCounter != invVersionCounter {
+		obj.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
+	}
+
+	if err := obj.checkFilesAndVersions(); err != nil {
+		return errors.WithStack(err)
+	}
+
+	dAlgs := []checksum.DigestAlgorithm{inv.GetDigestAlgorithm()}
+	dAlgs = append(dAlgs, ocfl.SeqToSlice(inv.GetFixity().GetDigestAlgorithms())...)
+	return nil
+
 }
 
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
 func (obj *objectBaseChecker) getVersionInventories() (map[string]inventory.Inventory, error) {
-	if obj.GetInventory().GetVersions().IsEmpty() {
+	inv := obj.GetInventory()
+	if inv.GetVersions().IsEmpty() {
 		return map[string]inventory.Inventory{}, nil
 	}
 
-	versionStrings := ocfl.SeqToSlice(obj.GetInventory().GetVersions().GetVersionNumbers())
+	versionStrings := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
@@ -317,7 +390,7 @@ func (obj *objectBaseChecker) checkFilesAndVersions() error {
 		}
 		rootVersion := inv.GetHead()
 		if objectContentVersionNumber.Less(rootVersion) {
-			rootManifestFiles := ocfl.SeqToSlice(obj.GetInventory().GetManifest().GetFilesFlat())
+			rootManifestFiles := ocfl.SeqToSlice(inv.GetManifest().GetFilesFlat())
 			for _, objectContentVersionFile := range objectContentVersionFiles {
 				// check all inventories which are less in version
 				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
@@ -328,6 +401,49 @@ func (obj *objectBaseChecker) checkFilesAndVersions() error {
 	}
 
 	return nil
+}
+
+func (obj *objectBaseChecker) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+	inv := obj.GetInventory()
+	// get all possible digest algs
+	digestAlgorithms := append(ocfl.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
+
+	result := map[checksum.DigestAlgorithm]map[string][]string{}
+	for versionNumber := range inv.GetVersions().GetVersionNumbers() {
+		if err := fs.WalkDir(
+			obj.fsys,
+			//fmt.Sprintf("%s/%s", version, inv.GetContentDir()),
+			versionNumber.String(),
+			func(path string, d fs.DirEntry, err error) error {
+				//obj.logger.Debug(path)
+				if d.IsDir() {
+					return nil
+				}
+				fname := path // filepath.ToSlash(filepath.Join(version, path))
+				fp, err := obj.fsys.Open(fname)
+				if err != nil {
+					return errors.Wrapf(err, "cannot open file '%v/%s'", obj.fsys, fname)
+				}
+				defer fp.Close()
+				css, err := checksum.Copy(digestAlgorithms, fp, &checksum.NullWriter{})
+				if err != nil {
+					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", fname)
+				}
+				for d, cs := range css {
+					if _, ok := result[d]; !ok {
+						result[d] = map[string][]string{}
+					}
+					if _, ok := result[d][cs]; !ok {
+						result[d][cs] = []string{}
+					}
+					result[d][cs] = append(result[d][cs], fname)
+				}
+				return nil
+			}); err != nil {
+			return nil, errors.Wrapf(err, "cannot walk content dir '%s'", inv.GetContentDir())
+		}
+	}
+	return result, nil
 }
 
 var _ object.Checker = (*objectBaseChecker)(nil)

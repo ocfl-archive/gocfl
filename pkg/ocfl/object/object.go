@@ -31,10 +31,19 @@ type VersionWriter interface {
 
 type Checker interface {
 	Check() error
+	WithObject(o Object) Checker
+	WithFS(fsys fs.FS) Checker
+}
+
+type Extractor interface {
+	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
+	WithObject(o Object) Extractor
+	WithFS(fsys fs.FS) Extractor
 }
 
 type Object interface {
-	GetChecker(fsys fs.FS) (Checker, error)
+	GetChecker(fsys fs.FS) Checker
+	GetExtractor(fsys fs.FS) Extractor
 	//VersionWriter
 	Load(sourceFS fs.FS) error
 	StartUpdate(targetFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
@@ -53,7 +62,7 @@ type Object interface {
 	GetAreaPath(area string) (string, error)
 
 	Stat(w io.Writer, statInfo []StatInfo) error
-	Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error
+	//Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error
 	GetMetadata() (*inventory.Metadata, error)
 	GetExtensionManager() ExtensionManager
 	BuildNames(files []string, area string) (*NamesStruct, error)
