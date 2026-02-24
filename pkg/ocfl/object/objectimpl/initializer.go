@@ -2,7 +2,6 @@ package objectimpl
 
 import (
 	"context"
-	"slices"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -15,14 +14,14 @@ import (
 )
 
 func NewInitializer(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Initializer {
-	return &objectBaseInitializer{
+	return &initializer{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "initializer"),
 	}
 }
 
-type objectBaseInitializer struct {
+type initializer struct {
 	object.Object
 	objectFS streamfs.FS
 	logger   ocfllogger.OCFLLogger
@@ -30,17 +29,17 @@ type objectBaseInitializer struct {
 	factory  factory.Factory
 }
 
-func (initializer *objectBaseInitializer) WithObject(o object.Object) object.Initializer {
+func (initializer *initializer) WithObject(o object.Object) object.Initializer {
 	initializer.Object = o
 	return initializer
 }
 
-func (initializer *objectBaseInitializer) WithFS(objectFS streamfs.FS) object.Initializer {
+func (initializer *initializer) WithFS(objectFS streamfs.FS) object.Initializer {
 	initializer.objectFS = objectFS
 	return initializer
 }
 
-func (initializer *objectBaseInitializer) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
+func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
 	initializer.logger.Debug().Msgf("%s", id)
 
 	objectConformanceDeclaration := "ocfl_object_" + string(initializer.factory.GetVersion())
@@ -81,15 +80,15 @@ func (initializer *objectBaseInitializer) Init(id string, digest checksum.Digest
 	}
 
 	// enforce sha512/sha256
-	algs := []checksum.DigestAlgorithm{
+	allowedAlgorithms := []checksum.DigestAlgorithm{
 		checksum.DigestSHA512,
 		checksum.DigestSHA256,
 	}
-	algs = append(algs, initializer.GetExtensionManager().GetFixityDigests()...)
-	slices.Sort(algs)
-	algs = slices.Compact(algs)
-	if !util.SliceContains(algs, fixity) {
-		return errors.Errorf("forbidden digest algorithm for fixity %v. Supported algorithms are %v. (to fix try to use extension 0001-digest-algorithms)", fixity, algs)
+	allowedAlgorithms = append(allowedAlgorithms, initializer.GetExtensionManager().GetFixityDigests()...)
+	//slices.Sort(allowedAlgorithms)
+	//allowedAlgorithms = slices.Compact(allowedAlgorithms)
+	if !util.SliceContains(allowedAlgorithms, fixity) {
+		return errors.Errorf("forbidden digest algorithm for fixity %v. Supported algorithms are %v. (to fix try to use extension 0001-digest-algorithms)", fixity, allowedAlgorithms)
 	}
 
 	newInventory := initializer.factory.NewInventory(initializer.ctx).
@@ -102,4 +101,4 @@ func (initializer *objectBaseInitializer) Init(id string, digest checksum.Digest
 
 }
 
-var _ object.Initializer = (*objectBaseInitializer)(nil)
+var _ object.Initializer = (*initializer)(nil)

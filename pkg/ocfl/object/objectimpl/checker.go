@@ -22,7 +22,7 @@ import (
 )
 
 func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Checker {
-	return &objectBaseChecker{
+	return &checker{
 		Object:  nil,
 		fsys:    nil,
 		ctx:     ctx,
@@ -31,7 +31,7 @@ func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger o
 	}
 }
 
-type objectBaseChecker struct {
+type checker struct {
 	object.Object
 	ctx     context.Context
 	factory factory.Factory
@@ -39,17 +39,17 @@ type objectBaseChecker struct {
 	logger  ocfllogger.OCFLLogger
 }
 
-func (obj *objectBaseChecker) WithObject(o object.Object) object.Checker {
+func (obj *checker) WithObject(o object.Object) object.Checker {
 	obj.Object = o
 	return obj
 }
 
-func (obj *objectBaseChecker) WithFS(fsys fs.FS) object.Checker {
+func (obj *checker) WithFS(fsys fs.FS) object.Checker {
 	obj.fsys = fsys
 	return obj
 }
 
-func (obj *objectBaseChecker) Check() error {
+func (obj *checker) Check() error {
 	inv := obj.GetInventory()
 	//TODO implement me
 	// https://ocfl.io/1.0/spec/#object-structure
@@ -115,7 +115,7 @@ func (obj *objectBaseChecker) Check() error {
 
 var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
 
-func (obj *objectBaseChecker) getVersionInventories() (map[string]inventory.Inventory, error) {
+func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, error) {
 	inv := obj.GetInventory()
 	if inv.GetVersions().IsEmpty() {
 		return map[string]inventory.Inventory{}, nil
@@ -150,7 +150,7 @@ func (obj *objectBaseChecker) getVersionInventories() (map[string]inventory.Inve
 	return versionInventories, nil
 }
 
-func (obj *objectBaseChecker) checkVersionFolder(version string) error {
+func (obj *checker) checkVersionFolder(version string) error {
 	versionEntries, err := fs.ReadDir(obj.fsys, version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
@@ -165,7 +165,7 @@ func (obj *objectBaseChecker) checkVersionFolder(version string) error {
 	return nil
 }
 
-func (obj *objectBaseChecker) checkFilesAndVersions() error {
+func (obj *checker) checkFilesAndVersions() error {
 	inv := obj.GetInventory()
 	//ocflVersion := inv.GetOCFLVersion()
 	// create list of version content directories
@@ -403,7 +403,7 @@ func (obj *objectBaseChecker) checkFilesAndVersions() error {
 	return nil
 }
 
-func (obj *objectBaseChecker) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	inv := obj.GetInventory()
 	// get all possible digest algs
 	digestAlgorithms := append(ocfl.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
@@ -446,4 +446,4 @@ func (obj *objectBaseChecker) createContentManifest() (map[checksum.DigestAlgori
 	return result, nil
 }
 
-var _ object.Checker = (*objectBaseChecker)(nil)
+var _ object.Checker = (*checker)(nil)

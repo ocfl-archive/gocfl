@@ -18,14 +18,14 @@ import (
 )
 
 func NewExtractor(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Extractor {
-	return &objectBaseExtractor{
+	return &extractor{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "extractor"),
 	}
 }
 
-type objectBaseExtractor struct {
+type extractor struct {
 	object.Object
 	sourceFS fs.FS
 	objectFS streamfs.FS
@@ -34,7 +34,7 @@ type objectBaseExtractor struct {
 	logger   ocfllogger.OCFLLogger
 }
 
-func (extractor *objectBaseExtractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
+func (extractor *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
 	var manifest strings.Builder
 	var err error
 	var inv = extractor.GetInventory()
@@ -104,15 +104,15 @@ func (extractor *objectBaseExtractor) Extract(version *inventory.VersionNumber, 
 
 }
 
-func (extractor *objectBaseExtractor) WithObject(o object.Object) object.Extractor {
+func (extractor *extractor) WithObject(o object.Object) object.Extractor {
 	extractor.Object = o
 	return extractor
 }
 
-func (extractor *objectBaseExtractor) WithFS(sourceFS fs.FS, objectFS streamfs.FS) object.Extractor {
+func (extractor *extractor) WithFS(sourceFS fs.FS, objectFS streamfs.FS) object.Extractor {
 	extractor.sourceFS = sourceFS
 	extractor.objectFS = objectFS
 	return extractor
 }
 
-var _ object.Extractor = (*objectBaseExtractor)(nil)
+var _ object.Extractor = (*extractor)(nil)
