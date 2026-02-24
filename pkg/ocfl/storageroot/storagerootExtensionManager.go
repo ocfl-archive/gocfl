@@ -5,6 +5,6 @@ import (
 )
 
 type ExtensionManager interface {
-	extension.ExtensionManagerCore
+	extension.ManagerCore
 	ExtensionStorageRootPath
 }

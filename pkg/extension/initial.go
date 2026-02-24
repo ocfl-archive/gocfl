@@ -115,6 +115,6 @@ func (sl *Initial) WriteConfig(fsys streamfs.FS) error {
 
 // check interface satisfaction
 var (
-	_ extension.Extension        = &Initial{}
-	_ extension.ExtensionInitial = &Initial{}
+	_ extension.Extension = &Initial{}
+	_ extension.Initial   = &Initial{}
 )

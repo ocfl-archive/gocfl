@@ -24,7 +24,7 @@ import (
 )
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) *ObjectBase {
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
 		//extensionManager: extensionManager.(object.ExtensionManager),
@@ -46,7 +46,7 @@ func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVer
 
 type ObjectBase struct {
 	//	storageRoot        storageroot.StorageRoot
-	extensionFactory *extensionimpl.ExtensionFactory
+	extensionFactory *extensionimpl.Factory
 	extensionManager object.ExtensionManager
 	ctx              context.Context
 	//fsys             fs.FS

@@ -28,7 +28,7 @@ import (
 )
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) *StorageRootBase {
+func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) *StorageRootBase {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:     ctx,
@@ -48,7 +48,7 @@ func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersio
 type StorageRootBase struct {
 	ctx              context.Context
 	fsys             fs.FS
-	extensionFactory *extensionimpl.ExtensionFactory
+	extensionFactory *extensionimpl.Factory
 	extensionManager storageroot.ExtensionManager
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
@@ -91,7 +91,7 @@ func (osr *StorageRootBase) AddValidationWarning(errno validation.ValidationErro
 	return errors.WithStack(validation.AddValidationWarnings(osr.ctx, valError))
 }
 
-func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error {
+func (osr *StorageRootBase) Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ManagerCore) error {
 	var err error
 	osr.logger.Debug()
 
@@ -304,7 +304,7 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 	return folder, errors.WithStack(err)
 }
 
-func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extensionimpl.ExtensionFactory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
+func (osr *StorageRootBase) CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extensionimpl.Factory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	subfs, err := writefs.SubFSCreate(osr.fsys, folder)
 	if err != nil {

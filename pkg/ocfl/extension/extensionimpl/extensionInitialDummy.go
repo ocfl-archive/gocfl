@@ -21,14 +21,14 @@ func NewInitialDummyFS(fsys fs.FS) (extension.Extension, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
-	var config = &extension.ExtensionManagerConfig{}
+	var config = &extension.ManagerConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
 	return NewInitialDummy(config)
 }
 
-func NewInitialDummy(config *extension.ExtensionManagerConfig) (*InitialDummy, error) {
+func NewInitialDummy(config *extension.ManagerConfig) (*InitialDummy, error) {
 	sl := &InitialDummy{ExtensionManagerConfig: config}
 	if config.ExtensionName != sl.GetName() {
 		return nil, errors.New(fmt.Sprintf("invalid extension name %s for extension %s", config.ExtensionName, sl.GetName()))
@@ -37,7 +37,7 @@ func NewInitialDummy(config *extension.ExtensionManagerConfig) (*InitialDummy, e
 }
 
 type InitialDummy struct {
-	*extension.ExtensionManagerConfig
+	*extension.ManagerConfig
 }
 
 func (dummy *InitialDummy) Terminate() error {

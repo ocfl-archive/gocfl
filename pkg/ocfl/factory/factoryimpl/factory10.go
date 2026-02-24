@@ -8,7 +8,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
-func NewFactory10(extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) factory.Factory {
+func NewFactory10(extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) factory.Factory {
 	return &factory10{
 		Factory: NewFactoryBase(version.Version1_0, inventory.InventorySpec1_0, extensionFactory, logger),
 	}

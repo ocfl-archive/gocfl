@@ -24,7 +24,7 @@ const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
 func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) (*GOCFLExtensionManager, error) {
-	var config = &extension2.ExtensionManagerConfig{
+	var config = &extension2.ManagerConfig{
 		ExtensionConfig: &extension2.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
 		},
@@ -32,21 +32,21 @@ func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) (*GOCFLExtensionMana
 		Exclusion: map[string][][]string{},
 	}
 	m := &GOCFLExtensionManager{
-		ExtensionManagerConfig: config,
-		extensions:             []extension2.Extension{},
-		storageRootPath:        []storageroot.ExtensionStorageRootPath{},
-		objectContentPath:      []object.ExtensionObjectContentPath{},
-		objectChange:           []object.ExtensionObjectChange{},
-		fixityDigest:           []object.ExtensionFixityDigest{},
-		metadata:               []object.ExtensionMetadata{},
-		area:                   []object.ExtensionArea{},
-		logger:                 logger.With("extension", GOCFLExtensionManagerName),
+		ManagerConfig:     config,
+		extensions:        []extension2.Extension{},
+		storageRootPath:   []storageroot.ExtensionStorageRootPath{},
+		objectContentPath: []object.ExtensionObjectContentPath{},
+		objectChange:      []object.ExtensionObjectChange{},
+		fixityDigest:      []object.ExtensionFixityDigest{},
+		metadata:          []object.ExtensionMetadata{},
+		area:              []object.ExtensionArea{},
+		logger:            logger.With("extension", GOCFLExtensionManagerName),
 	}
 	return m, nil
 }
 
 type GOCFLExtensionManager struct {
-	*extension2.ExtensionManagerConfig
+	*extension2.ManagerConfig
 	extensions         []extension2.Extension
 	storageRootPath    []storageroot.ExtensionStorageRootPath
 	objectContentPath  []object.ExtensionObjectContentPath
@@ -59,7 +59,7 @@ type GOCFLExtensionManager struct {
 	area               []object.ExtensionArea
 	stream             []object.ExtensionStream
 	newVersion         []object.ExtensionNewVersion
-	initial            extension2.ExtensionInitial
+	initial            extension2.Initial
 	logger             ocfllogger.OCFLLogger
 }
 
@@ -69,7 +69,7 @@ func (manager *GOCFLExtensionManager) Load(fsys fs.FS) error {
 		return errors.Wrap(err, "cannot read config.json")
 	}
 
-	if err := json.Unmarshal(data, manager.ExtensionManagerConfig); err != nil {
+	if err := json.Unmarshal(data, manager.ManagerConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal ExtensionManagerConfig '%s'", string(data))
 	}
 	return nil
@@ -85,7 +85,7 @@ func (manager *GOCFLExtensionManager) Terminate() error {
 	return errors.Combine(errs...)
 }
 
-func (manager *GOCFLExtensionManager) SetInitial(initial extension2.ExtensionInitial) {
+func (manager *GOCFLExtensionManager) SetInitial(initial extension2.Initial) {
 	manager.initial = initial
 }
 
@@ -94,7 +94,7 @@ func (manager *GOCFLExtensionManager) GetExtensions() []extension2.Extension {
 }
 
 func (manager *GOCFLExtensionManager) GetConfig() any {
-	return manager.ExtensionManagerConfig
+	return manager.ManagerConfig
 }
 
 func (manager *GOCFLExtensionManager) GetConfigName(extName string) (any, error) {
@@ -269,7 +269,7 @@ func (manager *GOCFLExtensionManager) WriteConfig(fsys streamfs.FS) error {
 		defer configWriter.Close()
 		jenc := json.NewEncoder(configWriter)
 		jenc.SetIndent("", "   ")
-		if err := jenc.Encode(manager.ExtensionManagerConfig); err != nil {
+		if err := jenc.Encode(manager.ManagerConfig); err != nil {
 			return errors.Wrapf(err, "cannot encode config to file")
 		}
 	}
@@ -586,5 +586,5 @@ func (manager *GOCFLExtensionManager) StreamObject(versionWriter object.VersionW
 
 // check interface satisfaction
 var (
-	_ extension2.ExtensionManagerCore = (*GOCFLExtensionManager)(nil)
+	_ extension2.ManagerCore = (*GOCFLExtensionManager)(nil)
 )

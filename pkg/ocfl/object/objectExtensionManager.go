@@ -5,7 +5,7 @@ import (
 )
 
 type ExtensionManager interface {
-	extension.ExtensionManagerCore
+	extension.ManagerCore
 	ExtensionObjectContentPath
 	ExtensionObjectStatePath
 	ExtensionContentChange

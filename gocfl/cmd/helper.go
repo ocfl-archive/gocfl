@@ -57,9 +57,9 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger ocfllogger.OCFLLogger) (*extensionimpl.ExtensionFactory, error) {
+func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger ocfllogger.OCFLLogger) (*extensionimpl.Factory, error) {
 	logger.Debug().Msgf("initializing ExtensionFactory")
-	extensionFactory, err := extensionimpl.NewExtensionFactory(extensionParams, logger)
+	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot instantiate extension factory")
 	}
@@ -196,7 +196,7 @@ func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[s
 	return result
 }
 
-func initDefaultExtensions(ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, storageRootExtensionsFolder, objectExtensionsFolder string, logger ocfllogger.OCFLLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
+func initDefaultExtensions(ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, storageRootExtensionsFolder, objectExtensionsFolder string, logger ocfllogger.OCFLLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -326,7 +326,7 @@ func showStatus(ctx context.Context, logger ocfllogger.OCFLLogger) error {
 	return nil
 }
 
-func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.ExtensionFactory, id string, logger ocfllogger.OCFLLogger) (object.Object, error) {
+func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.Factory, id string, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	folder, err := sr.IdToFolder(id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
@@ -346,7 +346,7 @@ func addObjectByPath(
 	ctx context.Context,
 	sr storageroot.StorageRoot,
 	fixity []checksum.DigestAlgorithm,
-	extensionFactory *extensionimpl.ExtensionFactory,
+	extensionFactory *extensionimpl.Factory,
 	extensionManager object.ExtensionManager,
 	checkDuplicates bool,
 	id, userName, userAddress, message string,
@@ -416,7 +416,7 @@ func addObjectByPath(
 	return o.IsModified(), nil
 }
 
-func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	storageRoot := fact.NewStorageRoot(ctx).WithFS(fsys)
 
@@ -427,7 +427,7 @@ func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion,
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	ver, err := util.GetVersion(fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
@@ -452,7 +452,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensio
 	return storageRoot, nil
 }
 
-func LoadStorageRootRO(ctx context.Context, fact factory.Factory, fsys fs.FS, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+func LoadStorageRootRO(ctx context.Context, fact factory.Factory, fsys fs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	ver, err := util.GetVersion(fsys, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)

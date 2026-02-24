@@ -5,6 +5,7 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
@@ -40,6 +41,13 @@ type Initializer interface {
 	WithFS(objectFS streamfs.FS) Initializer
 }
 
+type Loader interface {
+	Load() error
+	WithObject(o Object) Loader
+	WithFS(sourceFS fs.FS) Loader
+	WithExtensionFactory(factory extension.Factory) Loader
+}
+
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	WithObject(o Object) Extractor
@@ -50,27 +58,14 @@ type Object interface {
 	GetChecker(objectFS fs.FS) Checker
 	GetExtractor(objectFS fs.FS) Extractor
 	GetInitializer(objectFS streamfs.FS) Initializer
-
+	GetLoader() Loader
 	WithInventory(inv inventory.Inventory) Object
-	//VersionWriter
-	Load(sourceFS fs.FS) error
+	//	Load(sourceFS fs.FS) error
 	StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
-	//WithFS(fsys fs.FS) Object
-	//GetFS() fs.FS
-
-	//Init(objectFS streamfs.FS, id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
-
 	GetID() string
-	//GetOCFLVersion() version.OCFLVersion
-	//IsModified() bool
-
-	//CreateInventory(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) (Inventory, error)
 	GetInventory() inventory.Inventory
-
 	GetAreaPath(area string) (string, error)
-
 	Stat(w io.Writer, statInfo []StatInfo) error
-	//Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error
 	GetMetadata() (*inventory.Metadata, error)
 	GetExtensionManager() ExtensionManager
 	BuildNames(files []string, area string) (*NamesStruct, error)

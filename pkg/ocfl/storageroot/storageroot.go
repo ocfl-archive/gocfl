@@ -23,14 +23,14 @@ type StorageRoot interface {
 	ObjectExists(id string) (bool, error)
 	//LoadObjectByFolder(folder string) (object.Object, error)
 	//LoadObjectByID(id string) (object.Object, error)
-	//CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) (object.Object, error)
+	//CreateObject(id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ManagerCore) (object.Object, error)
 	//CreateExtension(fsys fs.FS) (extension.Extension, error)
 	//CreateExtensions(fsys fs.FS, validation validation.Validation) (extension.Extension, error)
 	Check() error
 	IdToFolder(id string) (folder string, err error)
 	//CheckObjectByFolder(objectFolder string) error
 	//CheckObjectByID(objectID string) error
-	Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
+	Init(ver version.OCFLVersion, digest checksum.DigestAlgorithm, manager extension.ManagerCore) error
 	Load() error
 	IsModified() bool
 	SetModified()

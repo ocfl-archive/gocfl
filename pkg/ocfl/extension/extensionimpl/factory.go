@@ -13,7 +13,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-type ExtensionFactory struct {
+type Factory struct {
 	creators           map[string]extension.CreatorFunc
 	defaultStorageRoot []extension.Extension
 	defaultObject      []extension.Extension
@@ -21,8 +21,8 @@ type ExtensionFactory struct {
 	logger             ocfllogger.OCFLLogger
 }
 
-func NewExtensionFactory(params map[string]string, logger ocfllogger.OCFLLogger) (*ExtensionFactory, error) {
-	m := &ExtensionFactory{
+func NewFactory(params map[string]string, logger ocfllogger.OCFLLogger) (*Factory, error) {
+	m := &Factory{
 		creators:        map[string]extension.CreatorFunc{},
 		extensionParams: params,
 		logger:          logger,
@@ -30,19 +30,19 @@ func NewExtensionFactory(params map[string]string, logger ocfllogger.OCFLLogger)
 	return m, nil
 }
 
-func (f *ExtensionFactory) AddCreator(name string, creator extension.CreatorFunc) {
+func (f *Factory) AddCreator(name string, creator extension.CreatorFunc) {
 	f.creators[name] = creator
 }
 
-func (f *ExtensionFactory) AddStorageRootDefaultExtension(ext extension.Extension) {
+func (f *Factory) AddStorageRootDefaultExtension(ext extension.Extension) {
 	f.defaultStorageRoot = append(f.defaultStorageRoot, ext)
 }
 
-func (f *ExtensionFactory) AddObjectDefaultExtension(ext extension.Extension) {
+func (f *Factory) AddObjectDefaultExtension(ext extension.Extension) {
 	f.defaultObject = append(f.defaultObject, ext)
 }
 
-func (f *ExtensionFactory) LoadExtensionFile(fsys fs.FS) (extension.Extension, error) {
+func (f *Factory) LoadExtensionFile(fsys fs.FS) (extension.Extension, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
@@ -50,7 +50,7 @@ func (f *ExtensionFactory) LoadExtensionFile(fsys fs.FS) (extension.Extension, e
 	return f.LoadExtensionData(fsys, data)
 }
 
-func (f *ExtensionFactory) LoadExtensionData(fsys fs.FS, data []byte) (extension.Extension, error) {
+func (f *Factory) LoadExtensionData(fsys fs.FS, data []byte) (extension.Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -67,17 +67,14 @@ func (f *ExtensionFactory) LoadExtensionData(fsys fs.FS, data []byte) (extension
 	if !ok {
 		return nil, errors.Errorf("unknown extension '%s'", name)
 	}
-	ext, err := creator(fsys)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot initialize extension '%s'", name)
-	}
+	ext := creator()
 	if err := ext.SetParams(f.extensionParams); err != nil {
 		return nil, errors.Wrapf(err, "cannot set params for extension '%s'", ext.GetName())
 	}
 	return ext, nil
 }
 
-func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (extension.ExtensionManagerCore, error) {
+func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (extension.ManagerCore, error) {
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
@@ -113,11 +110,8 @@ func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVers
 				if !ok {
 					return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 				}
-				initialExt, err := initialCreator(nil)
-				if err != nil {
-					return nil, errors.Wrapf(err, "cannot create initial extension %s", extension.DefaultExtensionInitialName)
-				}
-				initial, ok := initialExt.(extension.ExtensionInitial)
+				initialExt := initialCreator()
+				initial, ok := initialExt.(extension.Initial)
 				if !ok {
 					return nil, errors.Errorf("'%s' extension is not an initial extension", extension.DefaultExtensionInitialName)
 				}
@@ -128,13 +122,13 @@ func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVers
 		}
 	}
 	// find the initial extension and remove it from extension list
-	var initial extension.ExtensionInitial
+	var initial extension.Initial
 	var manager object.ExtensionManager
 	var result2 = []extension.Extension{}
 	for _, ext := range result {
 		if ext.GetName() == "initial" {
 			var ok bool
-			initial, ok = ext.(extension.ExtensionInitial)
+			initial, ok = ext.(extension.Initial)
 			if !ok {
 				errs = append(errs, errors.Errorf("extension %s is not an initial extension", ext.GetName()))
 			}
@@ -174,11 +168,8 @@ func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVers
 			if !ok {
 				return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 			}
-			initialExt, err := initialCreator(nil)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create initial extension %s", extension.DefaultExtensionInitialName)
-			}
-			initial, ok = initialExt.(extension.ExtensionInitial)
+			initialExt := initialCreator()
+			initial, ok = initialExt.(extension.Initial)
 			if !ok {
 				return nil, errors.Errorf("'%s' extension is not an initial extension", extension.DefaultExtensionInitialName)
 			}
@@ -189,10 +180,7 @@ func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVers
 		if !ok {
 			return nil, errors.Errorf("no default extension manager (%s) found", extension.DefaultExtensionManagerName)
 		}
-		ext, err := creator(nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create default extension manager")
-		}
+		ext := creator()
 		manager, ok = ext.(object.ExtensionManager)
 		if !ok {
 			return nil, errors.Errorf("default extension manager is not a manager extension")
@@ -210,10 +198,12 @@ func (f *ExtensionFactory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVers
 	return manager, errors.Combine(errs...)
 }
 
-func (f *ExtensionFactory) LoadExtensions(fsys fs.FS, ver version.OCFLVersion) (extension.Extension, error) {
+func (f *Factory) LoadExtensions(fsys fs.FS, ver version.OCFLVersion) (extension.Extension, error) {
 	manager, err := f.LoadExtensionManager(fsys, ver)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extensions")
 	}
 	return manager, nil
 }
+
+var _ extension.Factory = (*Factory)(nil)

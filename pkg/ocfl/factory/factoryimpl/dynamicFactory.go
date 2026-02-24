@@ -9,7 +9,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewDynamicFactory(ver version.OCFLVersion, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) factory.Factory {
+func NewDynamicFactory(ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) factory.Factory {
 	return &dynamicFactory{
 		Factory:          NewFactory(ver, extensionFactory, logger),
 		extensionFactory: extensionFactory,
@@ -19,7 +19,7 @@ func NewDynamicFactory(ver version.OCFLVersion, extensionFactory *extensionimpl.
 
 type dynamicFactory struct {
 	factory.Factory
-	extensionFactory *extensionimpl.ExtensionFactory
+	extensionFactory *extensionimpl.Factory
 	logger           ocfllogger.OCFLLogger
 }
 

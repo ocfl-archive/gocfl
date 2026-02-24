@@ -16,7 +16,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.ExtensionFactory, logger ocfllogger.OCFLLogger) factory.Factory {
+func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) factory.Factory {
 	return &FactoryBase{
 		logger:           logger,
 		version:          version,
@@ -29,7 +29,7 @@ type FactoryBase struct {
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
-	extensionFactory *extensionimpl.ExtensionFactory
+	extensionFactory *extensionimpl.Factory
 }
 
 func (f *FactoryBase) Copy() factory.Factory {
