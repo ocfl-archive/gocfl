@@ -14,6 +14,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
@@ -305,6 +306,10 @@ func (objectBase *ObjectBase) GetID() string {
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 	return objectBase.i.GetOCFLVersion()
+}
+
+func (objectBase *ObjectBase) GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) object.Loader {
+	return objectBase.factory.NewLoader(objectBase.ctx).WithObject(objectBase).WithFS(sourceFS).WithExtensionFactory(extensionFactory)
 }
 
 func (objectBase *ObjectBase) GetInitializer(objectFS streamfs.FS) object.Initializer {

@@ -58,7 +58,7 @@ type Object interface {
 	GetChecker(objectFS fs.FS) Checker
 	GetExtractor(objectFS fs.FS) Extractor
 	GetInitializer(objectFS streamfs.FS) Initializer
-	GetLoader() Loader
+	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader
 	WithInventory(inv inventory.Inventory) Object
 	//	Load(sourceFS fs.FS) error
 	StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)

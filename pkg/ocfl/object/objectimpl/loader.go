@@ -7,12 +7,14 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewLoader(ctx context.Context, factory factory.Factory) *Loader {
+func NewLoader(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) *Loader {
 	return &Loader{
 		ctx:     ctx,
 		factory: factory,
+		logger:  logger.With("task", "loader"),
 	}
 }
 
@@ -22,6 +24,7 @@ type Loader struct {
 	factory          factory.Factory
 	extensionFactory extension.Factory
 	sourceFS         fs.FS
+	logger           ocfllogger.OCFLLogger
 }
 
 func (l *Loader) Load() error {

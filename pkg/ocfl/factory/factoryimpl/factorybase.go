@@ -54,6 +54,10 @@ func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoo
 	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
 }
 
+func (f *FactoryBase) NewLoader(ctx context.Context) object.Loader {
+	return objectimpl.NewLoader(ctx, f, f.logger)
+}
+
 func (f *FactoryBase) NewInitializer(ctx context.Context) object.Initializer {
 	return objectimpl.NewInitializer(ctx, f, f.logger)
 }
