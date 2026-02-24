@@ -19,10 +19,10 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
-func NewVersionWriter(obj object.Object, targetFS streamfs.FS, echo bool, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
+func NewVersionWriter(obj object.Object, objectFS streamfs.FS, echo bool, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
 	vw := &versionWriter{
 		Object:      obj,
-		targetFS:    targetFS,
+		objectFS:    objectFS,
 		logger:      logger,
 		echo:        echo,
 		updateFiles: []string{},
@@ -35,7 +35,7 @@ func NewVersionWriter(obj object.Object, targetFS streamfs.FS, echo bool, logger
 
 type versionWriter struct {
 	object.Object
-	targetFS    streamfs.FS
+	objectFS    streamfs.FS
 	versionFS   streamfs.FS
 	ver         *inventory.VersionNumber
 	logger      ocfllogger.OCFLLogger
@@ -104,7 +104,7 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 
 	if objectRoot {
-		iWriter, err := writefs.Create(versionWriter.targetFS, iFileName)
+		iWriter, err := writefs.Create(versionWriter.objectFS, iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inv.json")
 		}
@@ -115,21 +115,21 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrap(err, "cannot write to inv.json")
 		}
 		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.targetFS, iFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.objectFS, iFileName)
 		}
 		csFileName := fmt.Sprintf("inv.json.%s", string(inv.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(versionWriter.targetFS, csFileName)
+		iCSWriter, err := writefs.Create(versionWriter.objectFS, csFileName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.targetFS, csFileName)
+			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.objectFS, csFileName)
 		}
 		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 			if err := iCSWriter.Close(); err != nil {
 				versionWriter.logger.Error().Err(err).Msg("cannot close iCSWriter writer")
 			}
-			return errors.Wrapf(err, "cannot write to '%v/%s'", versionWriter.targetFS, csFileName)
+			return errors.Wrapf(err, "cannot write to '%v/%s'", versionWriter.objectFS, csFileName)
 		}
 		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.targetFS, csFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.objectFS, csFileName)
 		}
 	}
 	if version {

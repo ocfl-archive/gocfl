@@ -33,6 +33,7 @@ func CreateObject(
 ) (object.Object, error) {
 	f := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithFS(fsys)
+
 	if obj == nil {
 		return nil, errors.New("cannot instantiate object")
 	}

@@ -54,8 +54,16 @@ func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoo
 	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
 }
 
+func (f *FactoryBase) NewInitializer(ctx context.Context) object.Initializer {
+	return objectimpl.NewInitializer(ctx, f, f.logger)
+}
+
 func (f *FactoryBase) NewChecker(ctx context.Context) object.Checker {
 	return objectimpl.NewObjectBaseChecker(ctx, f, f.logger)
+}
+
+func (f *FactoryBase) NewExtractor(ctx context.Context) object.Extractor {
+	return objectimpl.NewExtractor(ctx, f, f.logger)
 }
 
 func (f *FactoryBase) NewObject(ctx context.Context) object.Object {

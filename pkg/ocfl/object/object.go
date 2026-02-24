@@ -5,7 +5,6 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
@@ -35,22 +34,31 @@ type Checker interface {
 	WithFS(fsys fs.FS) Checker
 }
 
+type Initializer interface {
+	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
+	WithObject(o Object) Initializer
+	WithFS(objectFS streamfs.FS) Initializer
+}
+
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	WithObject(o Object) Extractor
-	WithFS(fsys fs.FS) Extractor
+	WithFS(sourceFS fs.FS, objectFS streamfs.FS) Extractor
 }
 
 type Object interface {
-	GetChecker(fsys fs.FS) Checker
-	GetExtractor(fsys fs.FS) Extractor
+	GetChecker(objectFS fs.FS) Checker
+	GetExtractor(objectFS fs.FS) Extractor
+	GetInitializer(objectFS streamfs.FS) Initializer
+
+	WithInventory(inv inventory.Inventory) Object
 	//VersionWriter
 	Load(sourceFS fs.FS) error
-	StartUpdate(targetFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
+	StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
 	//WithFS(fsys fs.FS) Object
 	//GetFS() fs.FS
 
-	Init(targetFS streamfs.FS, id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
+	//Init(objectFS streamfs.FS, id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, manager extension.ExtensionManagerCore) error
 
 	GetID() string
 	//GetOCFLVersion() version.OCFLVersion

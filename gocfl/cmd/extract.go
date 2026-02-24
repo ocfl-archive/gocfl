@@ -11,11 +11,12 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -98,8 +99,9 @@ func doExtract(cmd *cobra.Command, args []string) {
 		defer _logfile.Close()
 	}
 
+	ctx := validation.NewContextValidation(context.TODO())
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
 
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
@@ -157,7 +159,6 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := validation.NewContextValidation(context.TODO())
 	sr, err := LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot load storage root")

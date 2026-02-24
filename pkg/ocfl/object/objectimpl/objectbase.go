@@ -13,14 +13,11 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
@@ -64,6 +61,11 @@ type ObjectBase struct {
 	updateFiles []string
 	area        string
 	factory     factorytypes.Factory
+}
+
+func (objectBase *ObjectBase) WithInventory(inv inventory.Inventory) object.Object {
+	objectBase.i = inv
+	return objectBase
 }
 
 var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
@@ -261,10 +263,10 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 	return objectBase.i.GetDigestAlgorithm()
 }
 
-func (objectBase *ObjectBase) StartUpdate(targetFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
+func (objectBase *ObjectBase) StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 
-	vw, err := NewVersionWriter(objectBase, targetFS, echo, objectBase.logger)
+	vw, err := NewVersionWriter(objectBase, objectFS, echo, objectBase.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create version writer")
 	}
@@ -305,12 +307,16 @@ func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 	return objectBase.i.GetOCFLVersion()
 }
 
-func (objectBase *ObjectBase) GetChecker(fsys fs.FS) object.Checker {
-	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase).WithFS(fsys)
+func (objectBase *ObjectBase) GetInitializer(objectFS streamfs.FS) object.Initializer {
+	return objectBase.factory.NewInitializer(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
+}
+
+func (objectBase *ObjectBase) GetChecker(objectFS fs.FS) object.Checker {
+	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
 }
 
 func (objectBase *ObjectBase) GetExtractor(fsys fs.FS) object.Extractor {
-	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(fsys)
+	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(fsys, nil)
 }
 
 // create checksums of all content files
@@ -335,74 +341,6 @@ func (objectBase *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error
 	return allDigestAlgs, nil
 }
 */
-
-func (objectBase *ObjectBase) Extract(fsys fs.FS, version *inventory.VersionNumber, withManifest bool, area string) error {
-	var manifest strings.Builder
-	var err error
-	var digestAlg = objectBase.i.GetDigestAlgorithm()
-	if err := objectBase.i.IterateFiles(version, func(internals, externals []string, digest string) error {
-		for _, external := range externals {
-			external, err = objectBase.extensionManager.BuildObjectExtractPath(objectBase, external, area)
-			if err != nil {
-				errCause := errors.Cause(err)
-				if errors.Is(errCause, object.ExtensionObjectExtractPathWrongAreaError) {
-					return nil
-				}
-				return errors.Wrapf(err, "cannot map path '%s'", external)
-			}
-			if err := func() error {
-				if len(internals) == 0 {
-					return errors.Errorf("no internal paths for '%v'", externals)
-				}
-				internal := internals[0]
-				src, err := objectBase.fsys.Open(internal)
-				if err != nil {
-					return errors.Wrapf(err, "cannot open '%v/%s'", objectBase.fsys, internal)
-				}
-				defer src.Close()
-				target, err := writefs.Create(fsys, external)
-				if err != nil {
-					return errors.Wrapf(err, "cannot create '%v/%s'", fsys, external)
-				}
-				defer target.Close()
-				objectBase.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", objectBase.fsys, internal, fsys, external)
-				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
-				if err != nil {
-					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", objectBase.fsys, internal, fsys, external)
-				}
-				copyDigest, ok := copyDigests[digestAlg]
-				if !ok {
-					return errors.Errorf("no digest '%s' generatied", digestAlg)
-				}
-				if copyDigest != digest {
-					return errors.Errorf("invalid digest for '%s' - [%s] != [%s]", internal, copyDigests, digest)
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-			if withManifest {
-				manifest.WriteString(fmt.Sprintf("%s %s\n", digest, external))
-			}
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "cannot iterate external files")
-	}
-	if withManifest {
-		manifestName := fmt.Sprintf("manifest.%s", digestAlg)
-		fp, err := writefs.Create(fsys, manifestName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot crate manifest file %v/%s", fsys, manifestName)
-		}
-		if _, err := io.WriteString(fp, manifest.String()); err != nil {
-			return errors.Wrapf(err, "cannot write manifest file %v/%s", fsys, manifestName)
-		}
-		defer fp.Close()
-	}
-	objectBase.logger.Debug().Msgf("object '%s' extracted", objectBase.i.GetID())
-	return nil
-}
 
 func (objectBase *ObjectBase) GetAreaPath(area string) (string, error) {
 	path, err := objectBase.extensionManager.GetAreaPath(objectBase, area)
