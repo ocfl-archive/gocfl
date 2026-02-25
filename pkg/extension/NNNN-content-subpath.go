@@ -78,7 +78,7 @@ func (sl *ContentSubPath) Terminate() error {
 	return nil
 }
 
-func (sl *ContentSubPath) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *ContentSubPath) GetMetadata(object.Object) (map[string]any, error) {
 	return map[string]any{"": sl.Paths}, nil
 }
 
@@ -116,7 +116,7 @@ func (sl *ContentSubPath) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectManifestPath(originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -155,7 +155,7 @@ func (sl *ContentSubPath) UpdateObjectAfter(object object.VersionWriter) error {
 	return nil
 }
 
-func (sl *ContentSubPath) BuildObjectStatePath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectStatePath(originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -170,7 +170,7 @@ func (sl *ContentSubPath) BuildObjectStatePath(object object.Object, originalPat
 	return path, nil
 }
 
-func (sl *ContentSubPath) BuildObjectExtractPath(_ object.Object, originalPath string, area string) (string, error) {
+func (sl *ContentSubPath) BuildObjectExtractPath(originalPath string, area string) (string, error) {
 	if area == "" {
 		area = sl.area
 	}
@@ -189,7 +189,7 @@ func (sl *ContentSubPath) BuildObjectExtractPath(_ object.Object, originalPath s
 	return originalPath, nil
 }
 
-func (sl *ContentSubPath) GetAreaPath(_ object.Object, area string) (string, error) {
+func (sl *ContentSubPath) GetAreaPath(area string) (string, error) {
 	subpath, ok := sl.Paths[area]
 	if !ok {
 		return "", errors.Errorf("invalid area '%s'", sl.area)

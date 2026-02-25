@@ -98,24 +98,24 @@ func (extFS *Filesystem) GetConfig() any {
 	return extFS.FilesystemConfig
 }
 
-func (extFS *Filesystem) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (extFS *Filesystem) AddFileBefore(object object.VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (extFS *Filesystem) UpdateFileBefore(object object.VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) DeleteFileBefore(object object.Object, dest string, area string) error {
+func (extFS *Filesystem) DeleteFileBefore(versionWriter object.VersionWriter, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+func (extFS *Filesystem) AddFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
 	if isDir && extFS.Folders == "" {
 		return nil
 	}
 
-	inventory := object.GetInventory()
+	inventory := versionWriter.GetInventory()
 	latestVersion := inventory.GetVersions().GetVersion(inventory.GetVersions().LatestVersionNumber())
 
 	var err error
@@ -162,7 +162,7 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 		if err := fsMeta.init(fullpath, stat); err != nil {
 			return errors.Wrapf(err, "cannot init fsMeta for '%s'", fullpath)
 		}
-		newSrc, err := object.GetExtensionManager().BuildObjectStatePath(object, src, area)
+		newSrc, err := versionWriter.GetExtensionManager().BuildObjectStatePath(src, area)
 		if err != nil {
 			return errors.Wrapf(err, "cannot build object extract path for '%s'", src)
 		}
@@ -170,13 +170,13 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 		if isDir {
 			newEmptyFile := filepath.ToSlash(filepath.Join(src, extFS.Folders))
 			if !emptyExists {
-				if _, err := object.AddReader(io.NopCloser(bytes.NewReader([]byte{})), []string{newEmptyFile}, area, true, false); err != nil {
+				if _, err := versionWriter.AddReader(io.NopCloser(bytes.NewReader([]byte{})), []string{newEmptyFile}, area, true, false); err != nil {
 					return errors.Wrapf(err, "cannot add empty file '%s'", newEmptyFile)
 				}
 				emptyExists = true
 			} else {
 				// todo: make it more elegant
-				names, err := object.BuildNames([]string{newEmptyFile}, area)
+				names, err := versionWriter.BuildNames([]string{newEmptyFile}, area)
 				if err != nil {
 					return errors.Wrapf(err, "cannot build names for '%s'", newEmptyFile)
 				}
@@ -206,18 +206,18 @@ func (extFS *Filesystem) AddFileAfter(object object.Object, sourceFS fs.FS, sour
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileAfter(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (extFS *Filesystem) UpdateFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error {
 	return errors.WithStack(
-		extFS.AddFileAfter(object, sourceFS, []string{source}, "", "", area, isDir),
+		extFS.AddFileAfter(versionWriter, sourceFS, []string{source}, "", "", area, isDir),
 	)
 
 }
 
-func (extFS *Filesystem) DeleteFileAfter(object object.Object, dest string, area string) error {
+func (extFS *Filesystem) DeleteFileAfter(object object.VersionWriter, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) NeedNewVersion(object object.Object) (bool, error) {
+func (extFS *Filesystem) NeedNewVersion(object object.VersionWriter) (bool, error) {
 	return false, nil
 }
 

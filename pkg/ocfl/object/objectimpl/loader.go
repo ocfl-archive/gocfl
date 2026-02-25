@@ -2,49 +2,230 @@ package objectimpl
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/fs"
+	"path"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
 
+	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewLoader(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) *Loader {
+func NewLoader(ctx context.Context, logger ocfllogger.OCFLLogger) *Loader {
 	return &Loader{
-		ctx:     ctx,
-		factory: factory,
-		logger:  logger.With("task", "loader"),
+		ctx:    ctx,
+		logger: logger.With("task", "loader"),
 	}
 }
 
 type Loader struct {
 	object.Object
 	ctx              context.Context
-	factory          factory.Factory
 	extensionFactory extension.Factory
 	sourceFS         fs.FS
 	logger           ocfllogger.OCFLLogger
 }
 
-func (l *Loader) Load() error {
-	//TODO implement me
-	panic("implement me")
+func (loader *Loader) Load() error {
+	if err := loader.loadExtensionManager(); err != nil {
+		return errors.Wrap(err, "loading extension manager")
+	}
+	if err := loader.loadInventory(); err != nil {
+		return errors.Wrap(err, "cannot load inventory.json")
+	}
+	return nil
 }
 
-func (l *Loader) WithExtensionFactory(factory extension.Factory) object.Loader {
-	l.extensionFactory = factory
-	return l
+func (loader *Loader) WithExtensionFactory(factory extension.Factory) object.Loader {
+	loader.extensionFactory = factory
+	return loader
 }
 
-func (l *Loader) WithObject(o object.Object) object.Loader {
-	l.Object = o
-	return l
+func (loader *Loader) WithObject(o object.Object) object.Loader {
+	loader.Object = o
+	return loader
 }
 
-func (l *Loader) WithFS(sourceFS fs.FS) object.Loader {
-	l.sourceFS = sourceFS
-	return l
+func (loader *Loader) WithFS(sourceFS fs.FS) object.Loader {
+	loader.sourceFS = sourceFS
+	return loader
+}
+
+func (loader *Loader) findInventoryFile(fsys fs.FS) (string, error) {
+	// for version 1.0 and 1.1 there MUST be an inventory.json in the object root
+	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.GetOCFLVersion()) {
+		return "/inventory.json", nil
+	}
+	dirs, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to read directory %v", fsys)
+	}
+	for _, d := range dirs {
+		if d.IsDir() {
+			continue
+		}
+		if d.Name() == "inventory.json" {
+			return "/inventory.json", nil
+		}
+	}
+	var headNumber int64
+	var p string
+	for _, d := range dirs {
+		if !d.IsDir() {
+			continue
+		}
+		folderName := d.Name()
+		if folderName[0] != 'v' {
+			continue
+		}
+		num, err := strconv.ParseInt(strings.TrimLeft(folderName[1:], "0"), 10, 64)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to parse version number from folder name '%s'", folderName)
+		}
+		if num > headNumber {
+			p = path.Join("/", folderName, "inventory.json")
+			headNumber = num
+		}
+	}
+	if headNumber == 0 {
+		return "", errors.Errorf("failed to find inventory.json in %v", fsys)
+	}
+	return p, nil
+}
+
+func (loader *Loader) unmarshalInventoryData(data []byte) error {
+	anyMap := map[string]any{}
+	if err := json.Unmarshal(data, &anyMap); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
+	}
+	var ver version.OCFLVersion
+	t, ok := anyMap["type"]
+	if !ok {
+		return errors.New("no type in inventory")
+	}
+	sStr, ok := t.(string)
+	if !ok {
+		return errors.Errorf("type not a string in inventory - '%v'", t)
+	}
+	switch sStr {
+	case "https://ocfl.io/1.1/spec/#inventory":
+		ver = version.Version1_1
+	case "https://ocfl.io/1.0/spec/#inventory":
+		ver = version.Version1_0
+	case "https://ocfl.io/2.0/spec/#inventory":
+		ver = version.Version2_0
+	default:
+		// if we don't know anything use the old stuff
+		return errors.Errorf("unsupported inventory type '%s'", sStr)
+	}
+	if ver != loader.GetOCFLVersion() {
+		return errors.Errorf("inventory version '%s' does not match expected version '%s'", ver, loader.GetOCFLVersion())
+	}
+	inv := loader.GetInventory()
+	/*
+		inventory, err := inventory.NewInventory(objectBase.ctx, folder, ver, objectBase.logger)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create empty inventory")
+		}
+	*/
+	if err := json.Unmarshal(data, inv); err != nil {
+		// now lets try it again
+		jsonMap := map[string]any{}
+		// check for json format error
+		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
+			loader.logger.ValidationError(validation.E033, "json unmarshal error: %v", err2)
+			loader.logger.ValidationError(validation.E034, "json unmarshal error: %v", err2)
+		} else {
+			if _, ok := jsonMap["head"].(string); !ok {
+				loader.logger.ValidationError(validation.E040, "json head not a string: %v", jsonMap["head"])
+			}
+		}
+		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
+	}
+
+	return inv.Finalize(false)
+}
+
+var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
+
+func (loader *Loader) loadInventory() error {
+	inv := loader.GetInventory()
+	var filename string
+	var err error
+	filename, err = loader.findInventoryFile(loader.sourceFS)
+
+	// load inventory file
+	inventoryBytes, err := fs.ReadFile(loader.sourceFS, filename)
+	if err != nil {
+		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
+			return errors.Wrapf(err, "inventory file '%v/%s' does not exist", loader.sourceFS, filename)
+		}
+		return errors.Wrapf(err, "failed to read inventory file '%v/%s'", loader.sourceFS, filename)
+	}
+	if err := loader.unmarshalInventoryData(inventoryBytes); err != nil {
+		return errors.Wrap(err, "cannot unmarshal inventory object")
+	}
+	digest := inv.GetDigestAlgorithm()
+
+	// check digest for inventory
+	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
+	sidecarBytes, err := fs.ReadFile(loader.sourceFS, sidecarPath)
+	if err != nil {
+		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
+			loader.logger.ValidationError(validation.E058, "sidecar '%v/%s' does not exist", loader.sourceFS, sidecarPath)
+		} else {
+			loader.logger.ValidationError(validation.E060, "cannot read sidecar '%v/%s'", loader.sourceFS, sidecarPath)
+		}
+		//		objectBase.logger.ValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
+	} else {
+		digestString := strings.TrimSpace(string(sidecarBytes))
+		//if !strings.HasSuffix(digestString, " inventory.json") {
+		matches := inventorySideCarFormat.FindStringSubmatch(digestString)
+		if /* matches == nil || */ len(matches) == 0 {
+			loader.logger.ValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", loader.sourceFS, sidecarPath)
+		} else {
+			//digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
+			digestString = matches[1]
+			h, err := checksum.GetHash(digest)
+			if err != nil {
+				return errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
+			}
+			h.Reset()
+			h.Write(inventoryBytes)
+			sumBytes := h.Sum(nil)
+			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
+			if digestString != inventoryDigestString {
+				loader.logger.ValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
+			}
+		}
+	}
+	return nil
+}
+
+func (loader *Loader) loadExtensionManager() error {
+	extensionFS, err := writefs.Sub(loader.sourceFS, "extensions")
+	if err != nil {
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.sourceFS, "extensions")
+	}
+	manager, err := loader.extensionFactory.LoadExtensionManager(extensionFS, loader.Object.GetOCFLVersion())
+	if err != nil {
+		loader.logger.ValidationError(validation.W000, "cannot initialize all extensions in folder '%s': %v", extensionFS, err)
+		if manager == nil {
+			return errors.Wrap(err, "cannot create extension manager")
+		}
+	}
+	loader.Object.WithExtensionManager(manager.(object.ExtensionManager))
+	return nil
 }
 
 var _ object.Loader = (*Loader)(nil)

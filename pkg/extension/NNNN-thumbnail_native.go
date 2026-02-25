@@ -133,8 +133,8 @@ func (thumb *Thumbnail) StreamObject(object object.VersionWriter, reader io.Read
 	return nil
 }
 
-func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath string, digest string, area string, isDir bool) error {
-	inventory := object.GetInventory()
+func (thumb *Thumbnail) AddFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+	inventory := versionWriter.GetInventory()
 	head := inventory.GetHead()
 	if _, ok := thumb.counter[head.String()]; !ok {
 		thumb.counter[head.String()] = 0
@@ -151,7 +151,7 @@ func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, sourc
 		delete(thumb.streamImg[head.String()], infoName)
 		newImg = nil
 	}()
-	fsys := object.GetFS()
+	fsys := versionWriter.GetFS()
 	if fsys == nil {
 		return errors.New("no filesystem set")
 	}
@@ -182,7 +182,7 @@ func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, sourc
 	}()
 
 	thumb.counter[head.String()]++
-	targetFile, digest, err := thumb.storeThumbnail(object, head, pr)
+	targetFile, digest, err := thumb.storeThumbnail(versionWriter, head, pr)
 	if err != nil {
 		return errors.Wrap(err, "cannot store thumbnail")
 	}
@@ -199,23 +199,23 @@ func (thumb *Thumbnail) AddFileAfter(object object.Object, sourceFS fs.FS, sourc
 	return nil
 }
 
-func (thumb *Thumbnail) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (thumb *Thumbnail) AddFileBefore(object object.VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (thumb *Thumbnail) UpdateFileBefore(object object.VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
-func (thumb *Thumbnail) DeleteFileBefore(object object.Object, dest string, area string) error {
+func (thumb *Thumbnail) DeleteFileBefore(versionWriter object.VersionWriter, dest string, area string) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateFileAfter(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (thumb *Thumbnail) UpdateFileAfter(object object.VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error {
 	return nil
 }
 
-func (thumb *Thumbnail) DeleteFileAfter(object object.Object, dest string, area string) error {
+func (thumb *Thumbnail) DeleteFileAfter(object object.VersionWriter, dest string, area string) error {
 	return nil
 }
 

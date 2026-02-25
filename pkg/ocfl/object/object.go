@@ -7,6 +7,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
@@ -17,6 +18,7 @@ type NamesStruct struct {
 }
 
 type VersionWriter interface {
+	Object
 	AddFolder(sourceFS fs.FS, checkDuplicate bool, area string) error
 	AddFile(sourceFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
@@ -27,6 +29,7 @@ type VersionWriter interface {
 	GetID() string
 	BeginArea(area string)
 	EndArea() error
+	BuildNames(files []string, area string) (*NamesStruct, error)
 }
 
 type Checker interface {
@@ -60,13 +63,13 @@ type Object interface {
 	GetInitializer(objectFS streamfs.FS) Initializer
 	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader
 	WithInventory(inv inventory.Inventory) Object
-	//	Load(sourceFS fs.FS) error
+	WithExtensionManager(manager ExtensionManager) Object
 	StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
 	GetID() string
 	GetInventory() inventory.Inventory
-	GetAreaPath(area string) (string, error)
+	//GetAreaPath(area string) (string, error)
 	Stat(w io.Writer, statInfo []StatInfo) error
 	GetMetadata() (*inventory.Metadata, error)
 	GetExtensionManager() ExtensionManager
-	BuildNames(files []string, area string) (*NamesStruct, error)
+	GetOCFLVersion() version.OCFLVersion
 }

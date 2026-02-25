@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,7 +15,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -25,13 +24,13 @@ import (
 )
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) *ObjectBase {
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
 		//extensionManager: extensionManager.(object.ExtensionManager),
 		ctx: ctx,
 		//		fsys: nil,
-		i: factory.NewInventory(ctx).WithWriteable(),
+		i: fact.NewInventory(ctx).WithWriteable(),
 		//versionFolders:     []string{},
 		versionInventories: map[string]inventory.Inventory{},
 		changed:            false,
@@ -40,7 +39,7 @@ func NewObjectBase(ctx context.Context, factory factorytypes.Factory, defaultVer
 		echo:               false,
 		updateFiles:        []string{},
 		area:               "",
-		factory:            factory,
+		factory:            fact,
 	}
 	return objectBase
 }
@@ -61,7 +60,11 @@ type ObjectBase struct {
 	echo        bool
 	updateFiles []string
 	area        string
-	factory     factorytypes.Factory
+	factory     factory.Factory
+}
+
+func (objectBase *ObjectBase) GetFactory() factory.Factory {
+	return objectBase.factory
 }
 
 func (objectBase *ObjectBase) WithInventory(inv inventory.Inventory) object.Object {
@@ -69,16 +72,11 @@ func (objectBase *ObjectBase) WithInventory(inv inventory.Inventory) object.Obje
 	return objectBase
 }
 
-var versionRegexp = regexp.MustCompile("^v(\\d+)/$")
+func (objectBase *ObjectBase) WithExtensionManager(manager object.ExtensionManager) object.Object {
+	objectBase.extensionManager = manager
+	return objectBase
+}
 
-//var inventoryDigestRegexp = regexp.MustCompile(fmt.Sprintf("^(?i)inventory\\.json\\.(%s|%s)$", string(checksum.DigestSHA512), string(checksum.DigestSHA256)))
-
-/*
-	func (objectBase *ObjectBase) WithFS(fsys fs.FS) object.Object {
-		objectBase.fsys = fsys
-		return objectBase
-	}
-*/
 func (objectBase *ObjectBase) GetExtensionManager() object.ExtensionManager {
 	return objectBase.extensionManager
 }
@@ -229,12 +227,6 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 	return nil
 }
 
-/*
-func (objectBase *ObjectBase) GetFS() fs.FS {
-	return objectBase.fsys
-}
-*/
-
 func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.DigestAlgorithm, fixityAlgs []checksum.DigestAlgorithm) (inventory.Inventory, error) {
 	fixity := objectBase.factory.NewFixity(objectBase.ctx).WithAlgorithms(fixityAlgs...)
 	inventory := objectBase.factory.NewInventory(objectBase.ctx).
@@ -256,7 +248,11 @@ func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.Dige
 
 	return inventory, inventory.Finalize(true)
 }
+
 func (objectBase *ObjectBase) GetInventory() inventory.Inventory {
+	if objectBase.i == nil {
+		objectBase.i = objectBase.factory.NewInventory(objectBase.ctx)
+	}
 	return objectBase.i
 }
 
@@ -274,29 +270,6 @@ func (objectBase *ObjectBase) StartUpdate(objectFS streamfs.FS, msg string, User
 	return vw, nil
 }
 
-func (objectBase *ObjectBase) BuildNames(files []string, area string) (*object.NamesStruct, error) {
-	var err error
-	result := &object.NamesStruct{
-		ExternalPaths: []string{},
-	}
-	for _, file := range files {
-		externalPath, err := objectBase.extensionManager.BuildObjectStatePath(objectBase, file, area)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", file)
-		}
-		result.ExternalPaths = append(result.ExternalPaths, externalPath)
-	}
-	result.InternalPath, err = objectBase.extensionManager.BuildObjectManifestPath(objectBase, files[0], area)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create manifest path for '%s'", files[0])
-	}
-	result.ManifestPath = objectBase.i.BuildManifestName(result.InternalPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", result.InternalPath)
-	}
-	return result, nil
-}
-
 func (objectBase *ObjectBase) GetID() string {
 	if objectBase.i == nil {
 		return ""
@@ -305,7 +278,7 @@ func (objectBase *ObjectBase) GetID() string {
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
-	return objectBase.i.GetOCFLVersion()
+	return objectBase.factory.GetVersion()
 }
 
 func (objectBase *ObjectBase) GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) object.Loader {
@@ -324,32 +297,11 @@ func (objectBase *ObjectBase) GetExtractor(fsys fs.FS) object.Extractor {
 	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(fsys, nil)
 }
 
-// create checksums of all content files
-
-// helper functions
-
 /*
-func (objectBase *ObjectBase) getAllDigests() ([]checksum.DigestAlgorithm, error) {
-	versionInventories, err := objectBase.getVersionInventories()
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot get version inventories")
-	}
-	allDigestAlgs := []checksum.DigestAlgorithm{objectBase.i.GetDigestAlgorithm()}
-	for _, vi := range versionInventories {
-		allDigestAlgs = append(allDigestAlgs, vi.GetDigestAlgorithm())
-		for digestAlg := range vi.GetFixity().GetDigestAlgorithms() {
-			allDigestAlgs = append(allDigestAlgs, digestAlg)
-		}
-	}
-	slices.Sort(allDigestAlgs)
-	allDigestAlgs = slices.Compact(allDigestAlgs)
-	return allDigestAlgs, nil
-}
-*/
-
 func (objectBase *ObjectBase) GetAreaPath(area string) (string, error) {
-	path, err := objectBase.extensionManager.GetAreaPath(objectBase, area)
+	path, err := objectBase.extensionManager.GetAreaPath(area)
 	return path, errors.WithStack(err)
 }
+*/
 
 var _ object.Object = (*ObjectBase)(nil)

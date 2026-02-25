@@ -196,6 +196,7 @@ func (versionWriter *versionWriter) Close() error {
 	}
 
 	//object.storageRoot.setModified()
+
 	if err := versionWriter.GetExtensionManager().UpdateObjectAfter(versionWriter); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
 	}
@@ -221,11 +222,35 @@ func (versionWriter *versionWriter) Close() error {
 	}
 	return nil
 }
+
+func (versionWriter *versionWriter) BuildNames(files []string, area string) (*object.NamesStruct, error) {
+	var err error
+	result := &object.NamesStruct{
+		ExternalPaths: []string{},
+	}
+	for _, file := range files {
+		externalPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(file, area)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", file)
+		}
+		result.ExternalPaths = append(result.ExternalPaths, externalPath)
+	}
+	result.InternalPath, err = versionWriter.GetExtensionManager().BuildObjectManifestPath(files[0], area)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create manifest path for '%s'", files[0])
+	}
+	result.ManifestPath = versionWriter.GetInventory().BuildManifestName(result.InternalPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", result.InternalPath)
+	}
+	return result, nil
+}
+
 func (versionWriter *versionWriter) echoDelete() error {
 	inv := versionWriter.GetInventory()
 	slices.Sort(versionWriter.updateFiles)
 	versionWriter.updateFiles = slices.Compact(versionWriter.updateFiles)
-	basePath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(versionWriter, ".", "")
+	basePath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(".", "")
 	if err != nil {
 		return errors.Wrap(err, "cannot build external path for '.'")
 	}
@@ -291,7 +316,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 		if err != nil {
 			return errors.Wrapf(err, "cannot open file '%v/%s'", sourceFS, path)
 		}
-		newPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(versionWriter, path, area)
+		newPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(path, area)
 		if err != nil {
 			if err := file.Close(); err != nil {
 				versionWriter.logger.Error().Err(err).Msgf("cannot close file '%s'", path)
@@ -471,7 +496,7 @@ func (versionWriter *versionWriter) AddData(data []byte, path string, checkDupli
 
 	versionWriter.logger.Info().Msgf("adding file %s:%s", area, path)
 
-	newPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(versionWriter, path, area)
+	newPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(path, area)
 	if err != nil {
 		return errors.Wrapf(err, "cannot map external path '%s'", path)
 	}

@@ -277,7 +277,7 @@ func (manager *GOCFLExtensionManager) WriteConfig(fsys streamfs.FS) error {
 }
 
 // StorageRootPath
-func (manager *GOCFLExtensionManager) StoreRootLayout(fsys fs.FS) error {
+func (manager *GOCFLExtensionManager) StoreRootLayout(fsys streamfs.FS) error {
 	for _, ext := range manager.storageRootPath {
 		if err := ext.WriteLayout(fsys); err != nil {
 			return errors.Wrapf(err, "cannot store '%v'", ext)
@@ -335,10 +335,10 @@ func (manager *GOCFLExtensionManager) SetParams(params map[string]string) error 
 }
 
 // ObjectContentPath
-func (manager *GOCFLExtensionManager) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildObjectManifestPath(originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectContentPath {
-		p, err := ocp.BuildObjectManifestPath(object, originalPath, area)
+		p, err := ocp.BuildObjectManifestPath(originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -352,10 +352,10 @@ func (manager *GOCFLExtensionManager) BuildObjectManifestPath(object object.Obje
 }
 
 // ObjectExternalPath
-func (manager *GOCFLExtensionManager) BuildObjectStatePath(object object.Object, originalPath string, area string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildObjectStatePath(originalPath string, area string) (string, error) {
 	var errs = []error{}
 	for _, ocp := range manager.objectExternalPath {
-		p, err := ocp.BuildObjectStatePath(object, originalPath, area)
+		p, err := ocp.BuildObjectStatePath(originalPath, area)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -369,7 +369,7 @@ func (manager *GOCFLExtensionManager) BuildObjectStatePath(object object.Object,
 }
 
 // ContentChange
-func (manager *GOCFLExtensionManager) AddFileBefore(object object.Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) AddFileBefore(object object.VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.AddFileBefore(object, sourceFS, source, dest, area, isDir); err != nil {
@@ -379,7 +379,7 @@ func (manager *GOCFLExtensionManager) AddFileBefore(object object.Object, source
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) UpdateFileBefore(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) UpdateFileBefore(object object.VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.UpdateFileBefore(object, sourceFS, source, dest, area, isDir); err != nil {
@@ -389,37 +389,37 @@ func (manager *GOCFLExtensionManager) UpdateFileBefore(object object.Object, sou
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) DeleteFileBefore(object object.Object, dest string, area string) error {
+func (manager *GOCFLExtensionManager) DeleteFileBefore(versionWriter object.VersionWriter, dest string, area string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.DeleteFileBefore(object, dest, area); err != nil {
+		if err := ocp.DeleteFileBefore(versionWriter, dest, area); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) AddFileAfter(object object.Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) AddFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.AddFileAfter(object, sourceFS, source, internalPath, digest, area, isDir); err != nil {
+		if err := ocp.AddFileAfter(versionWriter, sourceFS, source, internalPath, digest, area, isDir); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) UpdateFileAfter(object object.Object, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (manager *GOCFLExtensionManager) UpdateFileAfter(object object.VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
-		if err := ocp.UpdateFileAfter(object, sourceFS, source, dest, area, isDir); err != nil {
+		if err := ocp.UpdateFileAfter(object, sourceFS, source, area, isDir); err != nil {
 			errs = append(errs, err)
 			continue
 		}
 	}
 	return errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) DeleteFileAfter(object object.Object, dest string, area string) error {
+func (manager *GOCFLExtensionManager) DeleteFileAfter(object object.VersionWriter, dest string, area string) error {
 	var errs = []error{}
 	for _, ocp := range manager.contentChange {
 		if err := ocp.DeleteFileAfter(object, dest, area); err != nil {
@@ -463,10 +463,10 @@ func (manager *GOCFLExtensionManager) GetFixityDigests() []checksum.DigestAlgori
 	return digests
 }
 
-func (manager *GOCFLExtensionManager) BuildObjectExtractPath(object object.Object, originalPath string, area string) (string, error) {
+func (manager *GOCFLExtensionManager) BuildObjectExtractPath(originalPath string, area string) (string, error) {
 	var err error
 	for _, ext := range manager.objectExtractPath {
-		originalPath, err = ext.BuildObjectExtractPath(object, originalPath, area)
+		originalPath, err = ext.BuildObjectExtractPath(originalPath, area)
 		if err != nil {
 			return "", errors.Wrapf(err, "cannot call BuildObjectExtractPath")
 		}
@@ -496,10 +496,10 @@ func (manager *GOCFLExtensionManager) GetMetadata(object object.Object) (map[str
 	return result, nil
 }
 
-func (manager *GOCFLExtensionManager) GetAreaPath(object object.Object, area string) (string, error) {
+func (manager *GOCFLExtensionManager) GetAreaPath(area string) (string, error) {
 	var errs = []error{}
 	for _, ext := range manager.area {
-		path, err := ext.GetAreaPath(object, area)
+		path, err := ext.GetAreaPath(area)
 		if err != nil {
 			errs = append(errs, errors.Wrapf(err, "cannot call GetArea(%s) from extension '%s'", area, ext.GetName()))
 		}
@@ -512,7 +512,7 @@ func (manager *GOCFLExtensionManager) GetAreaPath(object object.Object, area str
 }
 
 // NewVersion
-func (manager *GOCFLExtensionManager) NeedNewVersion(object object.Object) (bool, error) {
+func (manager *GOCFLExtensionManager) NeedNewVersion(object object.VersionWriter) (bool, error) {
 	for _, ext := range manager.newVersion {
 		need, err := ext.NeedNewVersion(object)
 		if err != nil {

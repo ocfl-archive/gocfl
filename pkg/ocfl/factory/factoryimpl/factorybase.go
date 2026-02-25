@@ -50,10 +50,6 @@ func (f *FactoryBase) GetVersion() version.OCFLVersion {
 	return f.version
 }
 
-func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {
-	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
-}
-
 func (f *FactoryBase) NewLoader(ctx context.Context) object.Loader {
 	return objectimpl.NewLoader(ctx, f, f.logger)
 }
@@ -102,6 +98,19 @@ func (f *FactoryBase) NewVersion(ctx context.Context) inventory.Version {
 
 func (f *FactoryBase) NewState(context.Context) inventory.State {
 	return inventoryimpl.NewStateBase()
+}
+
+func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {
+	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
+}
+
+func (f *FactoryBase) NewStorageRootInitializer(ctx context.Context) storageroot.Initializer {
+	return storagerootimpl.NewInitializer(ctx, f, f.version, f.extensionFactory, f.logger)
+}
+
+func (f *FactoryBase) NewStorageRootLoader(ctx context.Context) storageroot.Loader {
+	//TODO implement me
+	panic("implement me")
 }
 
 var _ factory.Factory = (*FactoryBase)(nil)

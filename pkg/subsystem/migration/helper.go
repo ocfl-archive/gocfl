@@ -11,7 +11,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/google/shlex"
 	"github.com/ocfl-archive/gocfl/v2/config"
-	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	object "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
 func anyToStringMapString(dataAny any) (map[string]string, error) {
@@ -71,7 +71,7 @@ func GetMigrations(conf *config.GOCFLConfig) (*Migration, error) {
 	return m, nil
 }
 
-func DoMigrate(object objecttypes.Object, mig *Function, ext string, targetNames []string, file io.ReadCloser) error {
+func DoMigrate(obj object.VersionWriter, mig *Function, ext string, targetNames []string, file io.ReadCloser) error {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return errors.Wrap(err, "cannot create temp file")
@@ -94,15 +94,15 @@ func DoMigrate(object objecttypes.Object, mig *Function, ext string, targetNames
 		_ = os.Remove(targetFilename)
 	}()
 	if err := mig.Migrate(tmpFilename, targetFilename); err != nil {
-		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, obj.GetID())
 	}
 
 	mFile, err := os.Open(targetFilename)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open file '%s'", targetFilename)
 	}
-	if _, err := object.AddReader(mFile, targetNames, "content", false, false); err != nil {
-		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, object.GetID())
+	if _, err := obj.AddReader(mFile, targetNames, "content", false, false); err != nil {
+		return errors.Wrapf(err, "cannot migrate file '%v' to object '%s'", targetNames, obj.GetID())
 	}
 	if err := mFile.Close(); err != nil {
 		return errors.Wrapf(err, "cannot close file '%s'", targetFilename)

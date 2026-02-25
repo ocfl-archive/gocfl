@@ -1,3 +1,5 @@
+//go:build not
+
 package objectimpl
 
 import (
@@ -6,7 +8,6 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
-	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
@@ -162,42 +163,4 @@ func unmarshalInventoryData(ctx context.Context, data []byte, factory factory.Fa
 	}
 
 	return inv, inv.Finalize(false)
-}
-
-func findInventoryFile(fsys fs.FS) (string, error) {
-	dirs, err := fs.ReadDir(fsys, ".")
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to read directory %v", fsys)
-	}
-	for _, d := range dirs {
-		if d.IsDir() {
-			continue
-		}
-		if d.Name() == "inventory.json" {
-			return "/inventory.json", nil
-		}
-	}
-	var headNumber int64
-	var p string
-	for _, d := range dirs {
-		if !d.IsDir() {
-			continue
-		}
-		folderName := d.Name()
-		if folderName[0] != 'v' {
-			continue
-		}
-		num, err := strconv.ParseInt(strings.TrimLeft(folderName[1:], "0"), 10, 64)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to parse version number from folder name '%s'", folderName)
-		}
-		if num > headNumber {
-			p = path.Join("/", folderName, "inventory.json")
-			headNumber = num
-		}
-	}
-	if headNumber == 0 {
-		return "", errors.Errorf("failed to find inventory.json in %v", fsys)
-	}
-	return p, nil
 }

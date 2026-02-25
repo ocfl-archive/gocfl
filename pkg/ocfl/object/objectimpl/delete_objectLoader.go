@@ -1,3 +1,5 @@
+//go:build not
+
 package objectimpl
 
 import (
@@ -100,8 +102,6 @@ func (loader *objectLoader) loadInventory(data []byte) (inventory.Inventory, err
 
 	return inv, inv.Finalize(false)
 }
-
-var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
 
 // loadInventory loads inventory from existing Object
 func (loader *objectLoader) LoadInventory() (inventory.Inventory, error) {

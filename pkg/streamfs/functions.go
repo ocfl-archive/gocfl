@@ -9,7 +9,7 @@ func Sub(fsys FS, path string) (FS, error) {
 	if fsys == nil {
 		return nil, errors.New("fsys is nil")
 	}
-	newFS, err := writefs.Sub(fsys, path)
+	newFS, err := writefs.SubFSCreate(fsys, path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "subfs %v/%s", fsys, path)
 	}

@@ -222,7 +222,7 @@ func toStringKeys(val interface{}) (interface{}, error) {
 	}
 }
 
-func (sl *MetaFile) UpdateObjectBefore(object object.VersionWriter) error {
+func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
 	if sl.metadataSource.Path == "" {
 		return nil
 	}
@@ -231,7 +231,7 @@ func (sl *MetaFile) UpdateObjectBefore(object object.VersionWriter) error {
 	}
 	sl.stored = true
 	var err error
-	inventory := object.GetInventory()
+	inventory := obj.GetInventory()
 	if inventory == nil {
 		return errors.New("no inventory available")
 	}
@@ -249,21 +249,21 @@ func (sl *MetaFile) UpdateObjectBefore(object object.VersionWriter) error {
 	var fname string
 	switch strings.ToLower(sl.metadataSource.Scheme) {
 	case "http":
-		fname = strings.Replace(sl.metadataSource.String(), "$ID", object.GetID(), -1)
+		fname = strings.Replace(sl.metadataSource.String(), "$ID", obj.GetID(), -1)
 		resp, err := http.Get(fname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get '%s'", fname)
 		}
 		rc = resp.Body
 	case "https":
-		fname = strings.Replace(sl.metadataSource.String(), "$ID", object.GetID(), -1)
+		fname = strings.Replace(sl.metadataSource.String(), "$ID", obj.GetID(), -1)
 		resp, err := http.Get(fname)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get '%s'", fname)
 		}
 		rc = resp.Body
 	case "file":
-		fname = strings.Replace(sl.metadataSource.Path, "$ID", object.GetID(), -1)
+		fname = strings.Replace(sl.metadataSource.Path, "$ID", obj.GetID(), -1)
 		fname = "/" + strings.TrimLeft(fname, "/")
 		if windowsPathWithDrive.Match([]byte(fname)) {
 			fname = strings.TrimLeft(fname, "/")
@@ -273,7 +273,7 @@ func (sl *MetaFile) UpdateObjectBefore(object object.VersionWriter) error {
 			return errors.Wrapf(err, "cannot open '%s'", fname)
 		}
 	case "":
-		fname = strings.Replace(sl.metadataSource.Path, "$ID", object.GetID(), -1)
+		fname = strings.Replace(sl.metadataSource.Path, "$ID", obj.GetID(), -1)
 		fname = "/" + strings.TrimLeft(fname, "/")
 		rc, err = os.Open(fname)
 		if err != nil {
@@ -332,18 +332,18 @@ func (sl *MetaFile) UpdateObjectBefore(object object.VersionWriter) error {
 	switch strings.ToLower(sl.StorageType) {
 	case "area":
 		targetname := strings.TrimLeft(sl.MetaName, "/")
-		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, sl.StorageName, true, false); err != nil {
+		if _, err := obj.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, sl.StorageName, true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
-		path, err := object.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
 		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, sl.StorageName, sl.MetaName)), "/")
 
 		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
-		if _, err := object.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, "", true, false); err != nil {
+		if _, err := obj.AddReader(io.NopCloser(bytes.NewBuffer(infoData)), []string{targetname}, "", true, false); err != nil {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
@@ -375,14 +375,14 @@ func downloadFile(u string) ([]byte, error) {
 
 var windowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
 
-func (sl *MetaFile) UpdateObjectAfter(object object.VersionWriter) error {
+func (sl *MetaFile) UpdateObjectAfter(obj object.VersionWriter) error {
 	return nil
 }
 
-func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *MetaFile) GetMetadata(obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
-	inv := object.GetInventory()
+	inv := obj.GetInventory()
 	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	slices.SortFunc(versions, func(a, b *inventorytypes.VersionNumber) int {
 		if a.Less(b) {
@@ -400,7 +400,7 @@ func (sl *MetaFile) GetMetadata(object object.Object) (map[string]any, error) {
 		if metadata, ok = sl.info[ver.String()]; ok {
 			break
 		}
-		if metadata, err = ReadFile(sl.fsys, object, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
+		if metadata, err = ReadFile(sl.fsys, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
 			break
 		}
 	}

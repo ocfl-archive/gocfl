@@ -80,7 +80,7 @@ type MigrationFiles map[string]*MigrationTarget
 
 type Migration struct {
 	*MigrationConfig
-	fsys      streamfs.FS
+	//targetFS  streamfs.FS
 	lastHead  *inventorytypes.VersionNumber
 	migration *migration.Migration
 	//buffer *bytes.Buffer
@@ -109,9 +109,18 @@ func (mi *Migration) Terminate() error {
 	return nil
 }
 
+/*
 func (mi *Migration) GetFS() fs.FS {
-	return mi.fsys
+	return mi.targetFS
 }
+
+func (mi *Migration) SetFS(targetFS fs.FS, create bool) {
+	if sfs, ok := targetFS.(streamfs.FS); ok {
+		mi.targetFS = sfs
+	}
+}
+
+*/
 
 func (mi *Migration) GetConfig() any {
 	return mi.MigrationConfig
@@ -120,12 +129,6 @@ func (mi *Migration) GetConfig() any {
 func (mi *Migration) IsRegistered() bool { return false }
 
 func (mi *Migration) GetName() string { return MigrationName }
-
-func (mi *Migration) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(streamfs.FS); ok {
-		mi.fsys = sfs
-	}
-}
 
 func (mi *Migration) SetParams(map[string]string) error {
 	return nil
@@ -203,7 +206,7 @@ func (mi *Migration) UpdateObjectAfter(object object.VersionWriter) error {
 	return nil
 }
 
-func (mi *Migration) NeedNewVersion(object.Object) (bool, error) {
+func (mi *Migration) NeedNewVersion(object.VersionWriter) (bool, error) {
 	return len(mi.migrationFiles) > 0 && !mi.done, nil
 }
 
@@ -226,10 +229,12 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 	}
 	inv := object.GetInventory()
 	head := inv.GetHead()
-	extensionManager := object.GetExtensionManager()
-	if extensionManager == nil {
-		return errors.Errorf("extension manager is nil")
-	}
+	/*
+		extensionManager := object.GetExtensionManager()
+		if extensionManager == nil {
+			return errors.Errorf("extension manager is nil")
+		}
+	*/
 	mi.buffer[head.String()] = &bytes.Buffer{}
 	mi.writer = brotli.NewWriter(mi.buffer[head.String()])
 	//files := inv.GetFiles()
@@ -296,7 +301,7 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 				if len(stateFiles) == 0 {
 					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, object.GetID())
 				}
-				external, err := object.GetExtensionManager().BuildObjectExtractPath(object, stateFiles[len(stateFiles)-1], "")
+				external, err := object.GetExtensionManager().BuildObjectExtractPath(stateFiles[len(stateFiles)-1], "")
 				if err != nil {
 					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], object.GetID())
 				}
@@ -319,13 +324,13 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 		*/
 		extractTargetNames := []string{}
 		for _, targetName := range targetNames {
-			extractTargetName, err := extensionManager.BuildObjectExtractPath(object, targetName, "")
+			extractTargetName, err := object.GetExtensionManager().BuildObjectExtractPath(targetName, "")
 			if err != nil {
 				return errors.Wrapf(err, "cannot build extract path for file '%s' in object '%s'", targetName, object.GetID())
 			}
 			extractTargetNames = append(extractTargetNames, extractTargetName)
 		}
-		manifestName, err := object.GetExtensionManager().BuildObjectManifestPath(object, extractTargetNames[0], "content")
+		manifestName, err := object.GetExtensionManager().BuildObjectManifestPath(extractTargetNames[0], "content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
 		}
@@ -392,7 +397,7 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 		return nil
 	}
 	if err := WriteJsonL(
-		mi.fsys,
+		mi.targetFS,
 		object,
 		"migration",
 		buffer.Bytes(),
@@ -428,7 +433,7 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(mi.fsys, object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
+			data, err = ReadJsonL(mi.targetFS, object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

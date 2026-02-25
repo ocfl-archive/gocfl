@@ -1118,7 +1118,7 @@ func (s *Server) report(c *gin.Context) {
 			path = ""
 		}
 		fname := filepath.ToSlash(filepath.Join(path, metafileCfg.MetaName))
-		mPath, err := extManager.BuildObjectManifestPath(s.object, fname, area)
+		mPath, err := extManager.BuildObjectManifestPath(fname, area)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errors.Wrapf(err, "cannot map %s:%s", area, fname).Error()})
 			return

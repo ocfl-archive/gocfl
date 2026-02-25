@@ -23,7 +23,7 @@ type ManagerCore interface {
 	Finalize()
 	GetConfigName(extName string) (any, error)
 	//GetFSName(extName string) (fs.FS, error)
-	StoreRootLayout(fsys fs.FS) error
+	StoreRootLayout(fsys streamfs.FS) error
 	SetInitial(initial Initial)
 }
 

@@ -27,24 +27,24 @@ const (
 
 type ExtensionObjectContentPath interface {
 	extension.Extension
-	BuildObjectManifestPath(object Object, originalPath string, area string) (string, error)
+	BuildObjectManifestPath(originalPath string, area string) (string, error)
 }
 
 var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
 
 type ExtensionObjectExtractPath interface {
 	extension.Extension
-	BuildObjectExtractPath(object Object, originalPath string, area string) (string, error)
+	BuildObjectExtractPath(originalPath string, area string) (string, error)
 }
 
 type ExtensionObjectStatePath interface {
 	extension.Extension
-	BuildObjectStatePath(object Object, originalPath string, area string) (string, error)
+	BuildObjectStatePath(originalPath string, area string) (string, error)
 }
 
 type ExtensionArea interface {
 	extension.Extension
-	GetAreaPath(object Object, area string) (string, error)
+	GetAreaPath(area string) (string, error)
 }
 
 type ExtensionStream interface {
@@ -54,12 +54,12 @@ type ExtensionStream interface {
 
 type ExtensionContentChange interface {
 	extension.Extension
-	AddFileBefore(object Object, sourceFS fs.FS, source string, dest string, area string, isDir bool) error
-	UpdateFileBefore(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error
-	DeleteFileBefore(object Object, dest string, area string) error
-	AddFileAfter(object Object, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error
-	UpdateFileAfter(object Object, sourceFS fs.FS, source, dest, area string, isDir bool) error
-	DeleteFileAfter(object Object, dest string, area string) error
+	AddFileBefore(object VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error
+	UpdateFileBefore(object VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error
+	DeleteFileBefore(versionWriter VersionWriter, dest string, area string) error
+	AddFileAfter(versionWriter VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error
+	UpdateFileAfter(object VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error
+	DeleteFileAfter(object VersionWriter, dest string, area string) error
 }
 
 type ExtensionObjectChange interface {
@@ -85,6 +85,6 @@ type ExtensionVersionDone interface {
 
 type ExtensionNewVersion interface {
 	extension.Extension
-	NeedNewVersion(object Object) (bool, error)
+	NeedNewVersion(object VersionWriter) (bool, error)
 	DoNewVersion(object VersionWriter) error
 }

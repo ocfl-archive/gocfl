@@ -164,6 +164,22 @@ func GetErrorStacktrace(err error) errors.StackTrace {
 	// fmt.Printf("%+v", st[0:2]) // top two frames
 }
 
+func GetObjectVersion(sourceFS fs.FS) (version.OCFLVersion, error) {
+	ver, err := GetVersion(sourceFS, ".", "ocfl_object_")
+	if err != nil {
+		return "", errors.Wrap(err, "getting object version")
+	}
+	return ver, nil
+}
+
+func GetStorageRootVersion(sourceFS fs.FS) (version.OCFLVersion, error) {
+	ver, err := GetVersion(sourceFS, ".", "ocfl_")
+	if err != nil {
+		return "", errors.Wrap(err, "getting storage root version")
+	}
+	return ver, nil
+}
+
 func GetVersion(fsys fs.FS, folder, prefix string) (ver version.OCFLVersion, err error) {
 	rString := fmt.Sprintf("0=%s([0-9]+\\.[0-9]+)", prefix)
 	r, err := regexp.Compile(rString)

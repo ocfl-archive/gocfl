@@ -41,7 +41,7 @@ func (extractor *extractor) Extract(version *inventory.VersionNumber, withManife
 	var digestAlg = inv.GetDigestAlgorithm()
 	if err := inv.IterateFiles(version, func(internals, externals []string, digest string) error {
 		for _, external := range externals {
-			external, err = extractor.GetExtensionManager().BuildObjectExtractPath(extractor, external, area)
+			external, err = extractor.GetExtensionManager().BuildObjectExtractPath(external, area)
 			if err != nil {
 				errCause := errors.Cause(err)
 				if errors.Is(errCause, object.ExtensionObjectExtractPathWrongAreaError) {

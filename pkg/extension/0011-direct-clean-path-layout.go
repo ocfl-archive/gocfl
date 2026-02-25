@@ -193,7 +193,7 @@ func (sl *DirectClean) BuildStorageRootPath(storageRoot storageroot.StorageRoot,
 	return sl.build(id)
 }
 
-func (sl *DirectClean) BuildObjectManifestPath(object object.Object, originalPath string, area string) (string, error) {
+func (sl *DirectClean) BuildObjectManifestPath(originalPath string, area string) (string, error) {
 	return sl.build(originalPath)
 }
 
