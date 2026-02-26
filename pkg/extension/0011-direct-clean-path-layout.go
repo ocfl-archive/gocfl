@@ -49,7 +49,7 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectClean(logger ocfllogger.OCFLLogger) (extensiontypes.Extension, error) {
+func NewDirectClean(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
 	config := &DirectCleanConfig{
 		ExtensionConfig:             &extensiontypes.ExtensionConfig{ExtensionName: DirectCleanName},
 		MaxPathnameLen:              32000,
@@ -64,9 +64,9 @@ func NewDirectClean(logger ocfllogger.OCFLLogger) (extensiontypes.Extension, err
 	sl := &DirectClean{DirectCleanConfig: config, logger: logger.With("extension", DirectCleanName)}
 	var err error
 	if sl.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
-		return nil, errors.Wrapf(err, "hash %s not supported", config.FallbackDigestAlgorithm)
+		return nil
 	}
-	return sl, nil
+	return sl
 }
 
 func encodeUTFCode(s string) string {
@@ -168,7 +168,7 @@ func (sl *DirectClean) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *DirectClean) WriteLayout(fsys fs.FS) error {
+func (sl *DirectClean) WriteLayout(fsys streamfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

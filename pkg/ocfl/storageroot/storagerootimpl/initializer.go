@@ -7,35 +7,38 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/docs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
-func NewInitializer(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Initializer {
+func NewInitializer(ctx context.Context, factory factory.Factory, extensionFactory extension.Factory, logger ocfllogger.OCFLLogger) storageroot.Initializer {
 	return &initializer{
-		ctx:     ctx,
-		factory: factory,
-		logger:  logger.With("task", "storage root initializer"),
+		ctx:             ctx,
+		factory:         factory,
+		extensionFactor: extensionFactory,
+		logger:          logger.With("task", "storage root initializer"),
 	}
 }
 
 type initializer struct {
-	object.Object
-	storageRootFS streamfs.FS
-	logger        ocfllogger.OCFLLogger
-	ctx           context.Context
-	factory       factory.Factory
+	storageroot.StorageRoot
+	storageRootFS   streamfs.FS
+	logger          ocfllogger.OCFLLogger
+	ctx             context.Context
+	factory         factory.Factory
+	extensionFactor extension.Factory
 }
 
-func (initializer *initializer) WithObject(o object.Object) object.Initializer {
-	initializer.Object = o
+func (initializer *initializer) WithStorageRoot(sr storageroot.StorageRoot) storageroot.Initializer {
+	initializer.StorageRoot = sr
 	return initializer
 }
 
-func (initializer *initializer) WithFS(objectFS streamfs.FS) object.Initializer {
-	initializer.storageRootFS = objectFS
+func (initializer *initializer) WithFS(storageRootFS streamfs.FS) storageroot.Initializer {
+	initializer.storageRootFS = storageRootFS
 	return initializer
 }
 
@@ -84,4 +87,4 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 
 }
 
-var _ object.Initializer = (*initializer)(nil)
+var _ storageroot.Initializer = (*initializer)(nil)

@@ -18,7 +18,7 @@ import (
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
 const StorageLayoutFlatDirectDescription = "one to one mapping without changes"
 
-func NewStorageLayoutFlatDirect(logger ocfllogger.OCFLLogger) (*StorageLayoutFlatDirect, error) {
+func NewStorageLayoutFlatDirect(logger ocfllogger.OCFLLogger) *StorageLayoutFlatDirect {
 	var config = &StorageLayoutFlatDirectConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: StorageLayoutFlatDirectName,
@@ -28,7 +28,7 @@ func NewStorageLayoutFlatDirect(logger ocfllogger.OCFLLogger) (*StorageLayoutFla
 		StorageLayoutFlatDirectConfig: config,
 		logger:                        logger.With("extension", StorageLayoutFlatDirectName),
 	}
-	return sl, nil
+	return sl
 }
 
 type StorageLayoutFlatDirectConfig struct {
@@ -86,7 +86,7 @@ func (sl *StorageLayoutFlatDirect) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) WriteLayout(fsys fs.FS) error {
+func (sl *StorageLayoutFlatDirect) WriteLayout(fsys streamfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

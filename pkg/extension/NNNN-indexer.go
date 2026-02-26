@@ -48,7 +48,7 @@ func GetIndexerParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewIndexer(logger ocfllogger.OCFLLogger, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool) (*Indexer, error) {
+func NewIndexer(logger ocfllogger.OCFLLogger, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool) *Indexer {
 	var config = &IndexerConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: IndexerName,
@@ -66,9 +66,9 @@ func NewIndexer(logger ocfllogger.OCFLLogger, urlString string, indexerActions *
 	}
 	var err error
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
-		return nil, errors.Wrapf(err, "cannot parse url '%s'", urlString)
+		return nil
 	}
-	return sl, nil
+	return sl
 }
 
 type IndexerConfig struct {

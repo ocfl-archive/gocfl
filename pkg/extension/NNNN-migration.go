@@ -27,7 +27,7 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigration(logger ocfllogger.OCFLLogger, mig *migration.Migration) (*Migration, error) {
+func NewMigration(logger ocfllogger.OCFLLogger, mig *migration.Migration) *Migration {
 	config := &MigrationConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: MigrationName},
 	}
@@ -43,7 +43,7 @@ func NewMigration(logger ocfllogger.OCFLLogger, mig *migration.Migration) (*Migr
 	if mig != nil {
 		sl.sourceFS = mig.SourceFS
 	}
-	return sl, nil
+	return sl
 }
 
 type MigrationConfig struct {

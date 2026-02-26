@@ -29,7 +29,7 @@ func GetTimestampParams() []*extensionimpl.ExtensionExternalParam {
 	return []*extensionimpl.ExtensionExternalParam{}
 }
 
-func NewTimestamp(logger ocfllogger.OCFLLogger) (*Timestamp, error) {
+func NewTimestamp(logger ocfllogger.OCFLLogger) *Timestamp {
 	config := &TimestampConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: TimestampName},
 		Authority:       map[string]string{},
@@ -38,7 +38,7 @@ func NewTimestamp(logger ocfllogger.OCFLLogger) (*Timestamp, error) {
 		TimestampConfig: config,
 		logger:          logger.With("extension", TimestampName),
 	}
-	return sl, nil
+	return sl
 }
 
 type TimestampConfig struct {

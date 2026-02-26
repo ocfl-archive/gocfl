@@ -25,7 +25,7 @@ import (
 )
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) *StorageRootBase {
+func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory extension.Factory, logger ocfllogger.OCFLLogger) *StorageRootBase {
 	var err error
 	ocfl := &StorageRootBase{
 		ctx:     ctx,
@@ -45,7 +45,7 @@ func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersio
 type StorageRootBase struct {
 	ctx              context.Context
 	fsys             fs.FS
-	extensionFactory *extensionimpl.Factory
+	extensionFactory extension.Factory
 	extensionManager storageroot.ExtensionManager
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
@@ -54,18 +54,20 @@ type StorageRootBase struct {
 	factory          factory.Factory
 }
 
+func (osr *StorageRootBase) GetExtensionManager() storageroot.ExtensionManager {
+	return osr.extensionManager
+}
+
 func (osr *StorageRootBase) GetOCFLVersion() version.OCFLVersion {
 	return osr.factory.GetVersion()
 }
 
 func (osr *StorageRootBase) GetLoader(sourceFS fs.FS, extensionFactor extension.Factory) storageroot.Loader {
-	//TODO implement me
-	panic("implement me")
+	return osr.factory.NewStorageRootLoader(osr.ctx).WithStorageRoot(osr).WithExtensionFactory(extensionFactor).WithFS(sourceFS)
 }
 
 func (osr *StorageRootBase) GetInitializer(storageRootFS streamfs.FS) storageroot.Initializer {
-	//TODO implement me
-	panic("implement me")
+	return osr.factory.NewStorageRootInitializer(osr.ctx).WithStorageRoot(osr).WithFS(storageRootFS)
 }
 
 //var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)

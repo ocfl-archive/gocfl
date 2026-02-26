@@ -19,13 +19,13 @@ import (
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
 const FlatOmitPrefixStorageLayoutDescription = "removes prefix after last occurrence of delimiter"
 
-func NewFlatOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) (*FlatOmitPrefixStorageLayout, error) {
+func NewFlatOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) *FlatOmitPrefixStorageLayout {
 	config := &FlatOmitPrefixStorageLayoutConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FlatOmitPrefixStorageLayoutName},
 		Delimiter:       ":",
 	}
 	sl := &FlatOmitPrefixStorageLayout{FlatOmitPrefixStorageLayoutConfig: config}
-	return sl, nil
+	return sl
 }
 
 func (sl *FlatOmitPrefixStorageLayout) Load(fsys fs.FS) error {
@@ -85,7 +85,7 @@ func (sl *FlatOmitPrefixStorageLayout) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *FlatOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
+func (sl *FlatOmitPrefixStorageLayout) WriteLayout(fsys streamfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

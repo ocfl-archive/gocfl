@@ -15,16 +15,19 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewLoader(ctx context.Context, logger ocfllogger.OCFLLogger) *Loader {
+func NewLoader(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) *Loader {
 	return &Loader{
-		ctx:    ctx,
-		logger: logger.With("task", "loader"),
+		ctx:     ctx,
+		factory: factory,
+		logger:  logger.With("task", "loader"),
 	}
 }
 
@@ -34,6 +37,11 @@ type Loader struct {
 	extensionFactory extension.Factory
 	sourceFS         fs.FS
 	logger           ocfllogger.OCFLLogger
+	factory          factory.Factory
+}
+
+func (loader *Loader) GetFS() fs.FS {
+	return loader.sourceFS
 }
 
 func (loader *Loader) Load() error {
@@ -61,14 +69,14 @@ func (loader *Loader) WithFS(sourceFS fs.FS) object.Loader {
 	return loader
 }
 
-func (loader *Loader) findInventoryFile(fsys fs.FS) (string, error) {
+func (loader *Loader) findInventoryFile() (string, error) {
 	// for version 1.0 and 1.1 there MUST be an inventory.json in the object root
 	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.GetOCFLVersion()) {
 		return "/inventory.json", nil
 	}
-	dirs, err := fs.ReadDir(fsys, ".")
+	dirs, err := fs.ReadDir(loader.sourceFS, ".")
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to read directory %v", fsys)
+		return "", errors.Wrapf(err, "failed to read directory %v", loader.sourceFS)
 	}
 	for _, d := range dirs {
 		if d.IsDir() {
@@ -98,7 +106,7 @@ func (loader *Loader) findInventoryFile(fsys fs.FS) (string, error) {
 		}
 	}
 	if headNumber == 0 {
-		return "", errors.Errorf("failed to find inventory.json in %v", fsys)
+		return "", errors.Errorf("failed to find inventory.json in %v", loader.sourceFS)
 	}
 	return p, nil
 }
@@ -158,27 +166,7 @@ func (loader *Loader) unmarshalInventoryData(data []byte) error {
 
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
 
-func (loader *Loader) loadInventory() error {
-	inv := loader.GetInventory()
-	var filename string
-	var err error
-	filename, err = loader.findInventoryFile(loader.sourceFS)
-
-	// load inventory file
-	inventoryBytes, err := fs.ReadFile(loader.sourceFS, filename)
-	if err != nil {
-		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			return errors.Wrapf(err, "inventory file '%v/%s' does not exist", loader.sourceFS, filename)
-		}
-		return errors.Wrapf(err, "failed to read inventory file '%v/%s'", loader.sourceFS, filename)
-	}
-	if err := loader.unmarshalInventoryData(inventoryBytes); err != nil {
-		return errors.Wrap(err, "cannot unmarshal inventory object")
-	}
-	digest := inv.GetDigestAlgorithm()
-
-	// check digest for inventory
-	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
+func (loader *Loader) getInventorySidecarChecksum(sidecarPath string) (string, error) {
 	sidecarBytes, err := fs.ReadFile(loader.sourceFS, sidecarPath)
 	if err != nil {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
@@ -186,29 +174,62 @@ func (loader *Loader) loadInventory() error {
 		} else {
 			loader.logger.ValidationError(validation.E060, "cannot read sidecar '%v/%s'", loader.sourceFS, sidecarPath)
 		}
+		return "", errors.Wrapf(err, "cannot read sidecar '%v/%s'", loader.sourceFS, sidecarPath)
 		//		objectBase.logger.ValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
-	} else {
-		digestString := strings.TrimSpace(string(sidecarBytes))
-		//if !strings.HasSuffix(digestString, " inventory.json") {
-		matches := inventorySideCarFormat.FindStringSubmatch(digestString)
-		if /* matches == nil || */ len(matches) == 0 {
-			loader.logger.ValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", loader.sourceFS, sidecarPath)
-		} else {
-			//digestString = strings.TrimSpace(strings.TrimSuffix(digestString, " inventory.json"))
-			digestString = matches[1]
-			h, err := checksum.GetHash(digest)
-			if err != nil {
-				return errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
-			}
-			h.Reset()
-			h.Write(inventoryBytes)
-			sumBytes := h.Sum(nil)
-			inventoryDigestString := fmt.Sprintf("%x", sumBytes)
-			if digestString != inventoryDigestString {
-				loader.logger.ValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
-			}
+	}
+
+	digestString := strings.TrimSpace(string(sidecarBytes))
+	matches := inventorySideCarFormat.FindStringSubmatch(digestString)
+	if len(matches) == 0 {
+		loader.logger.ValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", loader.sourceFS, sidecarPath)
+		return "", errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", sidecarPath))
+	}
+
+	return matches[1], nil
+}
+
+func (loader *Loader) LoadInventoryFile(filename string) (inventory.Inventory, error) {
+	inv := loader.factory.NewInventory(loader.ctx)
+	// load inventory file
+	inventoryBytes, err := fs.ReadFile(loader.sourceFS, filename)
+	if err != nil {
+		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
+			return nil, errors.Wrapf(err, "inventory file '%v/%s' does not exist", loader.sourceFS, filename)
+		}
+		return nil, errors.Wrapf(err, "failed to read inventory file '%v/%s'", loader.sourceFS, filename)
+	}
+	if err := loader.unmarshalInventoryData(inventoryBytes); err != nil {
+		return nil, errors.Wrap(err, "cannot unmarshal inventory object")
+	}
+	digest := inv.GetDigestAlgorithm()
+
+	// check digest for inventory
+	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
+	digestString, err := loader.getInventorySidecarChecksum(sidecarPath)
+	if err == nil {
+		h, err := checksum.GetHash(digest)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
+		}
+		h.Reset()
+		h.Write(inventoryBytes)
+		sumBytes := h.Sum(nil)
+		inventoryDigestString := fmt.Sprintf("%x", sumBytes)
+		if digestString != inventoryDigestString {
+			loader.logger.ValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
 		}
 	}
+	return inv, nil
+}
+
+func (loader *Loader) loadInventory() error {
+	filename, err := loader.findInventoryFile()
+
+	inv, err := loader.LoadInventoryFile(filename)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load inventory file '%s'", filename)
+	}
+	loader.WithInventory(inv)
 	return nil
 }
 
@@ -226,6 +247,10 @@ func (loader *Loader) loadExtensionManager() error {
 	}
 	loader.Object.WithExtensionManager(manager.(object.ExtensionManager))
 	return nil
+}
+
+func (loader *Loader) GetChecker() object.Checker {
+	return loader.factory.NewChecker(loader.ctx).WithLoader(loader)
 }
 
 var _ object.Loader = (*Loader)(nil)

@@ -19,7 +19,7 @@ import (
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
 const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 
-func NewStorageLayoutHashedNTuple(logger ocfllogger.OCFLLogger) (*StorageLayoutHashedNTuple, error) {
+func NewStorageLayoutHashedNTuple(logger ocfllogger.OCFLLogger) *StorageLayoutHashedNTuple {
 	config := &StorageLayoutHashedNTupleConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutHashedNTupleName},
 		DigestAlgorithm: string(checksum.DigestSHA512),
@@ -30,9 +30,9 @@ func NewStorageLayoutHashedNTuple(logger ocfllogger.OCFLLogger) (*StorageLayoutH
 	sl := &StorageLayoutHashedNTuple{StorageLayoutHashedNTupleConfig: config, logger: logger.With("extension", StorageLayoutHashedNTupleName)}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil, errors.Wrapf(err, "invalid hash %s", config.DigestAlgorithm)
+		return nil
 	}
-	return sl, nil
+	return sl
 }
 
 func (sl *StorageLayoutHashedNTuple) Load(fsys fs.FS) error {
@@ -129,7 +129,7 @@ func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot storageroo
 	return strings.Join(dirparts, "/"), nil
 }
 
-func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys fs.FS) error {
+func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys streamfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

@@ -37,7 +37,7 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
-func NewThumbnail(logger ocfllogger.OCFLLogger, mig *thumbnail.Thumbnail) (*Thumbnail, error) {
+func NewThumbnail(logger ocfllogger.OCFLLogger, mig *thumbnail.Thumbnail) *Thumbnail {
 	config := &ThumbnailConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ThumbnailName},
 		StorageType:     "extension",
@@ -61,7 +61,7 @@ func NewThumbnail(logger ocfllogger.OCFLLogger, mig *thumbnail.Thumbnail) (*Thum
 	if mig != nil {
 		sl.sourceFS = mig.SourceFS
 	}
-	return sl, nil
+	return sl
 }
 
 type ThumbnailConfig struct {

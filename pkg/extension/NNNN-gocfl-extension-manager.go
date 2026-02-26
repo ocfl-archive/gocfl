@@ -23,7 +23,7 @@ import (
 const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
-func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) (*GOCFLExtensionManager, error) {
+func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) *GOCFLExtensionManager {
 	var config = &extension2.ManagerConfig{
 		ExtensionConfig: &extension2.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
@@ -42,7 +42,7 @@ func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) (*GOCFLExtensionMana
 		area:              []object.ExtensionArea{},
 		logger:            logger.With("extension", GOCFLExtensionManagerName),
 	}
-	return m, nil
+	return m
 }
 
 type GOCFLExtensionManager struct {
@@ -299,7 +299,7 @@ func (manager *GOCFLExtensionManager) BuildStorageRootPath(storageRoot storagero
 	}
 	return id, errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) WriteLayout(fsys fs.FS) error {
+func (manager *GOCFLExtensionManager) WriteLayout(fsys streamfs.FS) error {
 	if len(manager.storageRootPath) == 0 {
 		return nil
 	}

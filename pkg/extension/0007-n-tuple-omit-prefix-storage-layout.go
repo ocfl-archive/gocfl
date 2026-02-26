@@ -34,7 +34,7 @@ func reverse(s string) string {
 	return string(rns)
 }
 
-func NewNTupleOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) (*NTupleOmitPrefixStorageLayout, error) {
+func NewNTupleOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) *NTupleOmitPrefixStorageLayout {
 	config := &NTupleOmitPrefixStorageLayoutConfig{
 		ExtensionConfig:   &extensiontypes.ExtensionConfig{ExtensionName: NTupleOmitPrefixStorageLayoutName},
 		Delimiter:         ":",
@@ -44,7 +44,7 @@ func NewNTupleOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) (*NTupleOmit
 		ReverseObjectRoot: false,
 	}
 	sl := &NTupleOmitPrefixStorageLayout{NTupleOmitPrefixStorageLayoutConfig: config, logger: logger.With("extension", NTupleOmitPrefixStorageLayoutName)}
-	return sl, nil
+	return sl
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) Load(fsys fs.FS) error {
@@ -120,7 +120,7 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys fs.FS) error {
+func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys streamfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

@@ -8,6 +8,6 @@ import (
 
 type ExtensionStorageRootPath interface {
 	extensiontypes.Extension
-	WriteLayout(fsys fs.FS) error
+	WriteLayout(fsys streamfs.FS) error
 	BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)
 }

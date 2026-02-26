@@ -2,12 +2,14 @@ package extension
 
 import (
 	"io/fs"
+
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
 const DefaultExtensionInitialName = "initial"
 
-type CreatorFunc func() Extension
+type CreatorFunc func(sourceFS fs.FS) (Extension, error)
 
 type Initial interface {
 	Extension

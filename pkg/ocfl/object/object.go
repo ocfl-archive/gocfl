@@ -34,8 +34,7 @@ type VersionWriter interface {
 
 type Checker interface {
 	Check() error
-	WithObject(o Object) Checker
-	WithFS(fsys fs.FS) Checker
+	WithLoader(loader Loader) Checker
 }
 
 type Initializer interface {
@@ -45,10 +44,14 @@ type Initializer interface {
 }
 
 type Loader interface {
+	Object
+	GetChecker() Checker
 	Load() error
 	WithObject(o Object) Loader
 	WithFS(sourceFS fs.FS) Loader
+	GetFS() fs.FS
 	WithExtensionFactory(factory extension.Factory) Loader
+	LoadInventoryFile(filename string) (inventory.Inventory, error)
 }
 
 type Extractor interface {
@@ -58,7 +61,6 @@ type Extractor interface {
 }
 
 type Object interface {
-	GetChecker(objectFS fs.FS) Checker
 	GetExtractor(objectFS fs.FS) Extractor
 	GetInitializer(objectFS streamfs.FS) Initializer
 	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader

@@ -23,8 +23,6 @@ import (
 
 func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Checker {
 	return &checker{
-		Object:  nil,
-		fsys:    nil,
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "checker"),
@@ -32,20 +30,14 @@ func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger o
 }
 
 type checker struct {
-	object.Object
+	object.Loader
 	ctx     context.Context
 	factory factory.Factory
-	fsys    fs.FS
 	logger  ocfllogger.OCFLLogger
 }
 
-func (obj *checker) WithObject(o object.Object) object.Checker {
-	obj.Object = o
-	return obj
-}
-
-func (obj *checker) WithFS(fsys fs.FS) object.Checker {
-	obj.fsys = fsys
+func (obj *checker) WithLoader(loader object.Loader) object.Checker {
+	obj.Loader = loader
 	return obj
 }
 
@@ -63,7 +55,7 @@ func (obj *checker) Check() error {
 		allowedDirs = append(allowedDirs, v.String())
 	}
 	versionCounter := 0
-	entries, err := fs.ReadDir(obj.fsys, ".")
+	entries, err := fs.ReadDir(obj.GetFS(), ".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read object folder")
 	}
@@ -137,7 +129,7 @@ func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, err
 	})
 	versionInventories := map[string]inventory.Inventory{}
 	for _, ver := range versionStrings {
-		vi, err := loadInventoryFile(obj.ctx, obj.fsys, path.Join(ver.String(), "inventory.json"), obj.factory, obj.logger)
+		vi, err := obj.LoadInventoryFile(path.Join(ver.String(), "inventory.json"))
 		if err != nil {
 			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 				obj.logger.ValidationError(validation.E010, "inventory file '%s' does not exist", ver.String())
@@ -151,7 +143,7 @@ func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, err
 }
 
 func (obj *checker) checkVersionFolder(version string) error {
-	versionEntries, err := fs.ReadDir(obj.fsys, version)
+	versionEntries, err := fs.ReadDir(obj.GetFS(), version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
 	}
@@ -201,7 +193,7 @@ func (obj *checker) checkFilesAndVersions() error {
 			objectContentFiles[ver] = []string{}
 		}
 		fs.WalkDir(
-			obj.fsys,
+			obj.GetFS(),
 			ver,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
@@ -226,7 +218,7 @@ func (obj *checker) checkFilesAndVersions() error {
 			},
 		)
 		if len(objectContentFiles[ver]) == 0 {
-			fi, err := fs.Stat(obj.fsys, versionContent)
+			fi, err := fs.Stat(obj.GetFS(), versionContent)
 			if err != nil {
 				if !errors.Is(errors.Cause(err), fs.ErrNotExist) {
 					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
@@ -270,7 +262,7 @@ func (obj *checker) checkFilesAndVersions() error {
 		digestAlg := inv.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
 		allowedDirs := []string{inv.GetContentDir()}
-		versionEntries, err := fs.ReadDir(obj.fsys, ver.String())
+		versionEntries, err := fs.ReadDir(obj.GetFS(), ver.String())
 		if err != nil {
 			obj.logger.ValidationError(validation.E010, "cannot read version folder '%s'", ver)
 			continue
@@ -411,7 +403,7 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 	for versionNumber := range inv.GetVersions().GetVersionNumbers() {
 		if err := fs.WalkDir(
-			obj.fsys,
+			obj.GetFS(),
 			//fmt.Sprintf("%s/%s", version, inv.GetContentDir()),
 			versionNumber.String(),
 			func(path string, d fs.DirEntry, err error) error {
@@ -420,9 +412,9 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 					return nil
 				}
 				fname := path // filepath.ToSlash(filepath.Join(version, path))
-				fp, err := obj.fsys.Open(fname)
+				fp, err := obj.GetFS().Open(fname)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open file '%v/%s'", obj.fsys, fname)
+					return errors.Wrapf(err, "cannot open file '%v/%s'", obj.GetFS(), fname)
 				}
 				defer fp.Close()
 				css, err := checksum.Copy(digestAlgorithms, fp, &checksum.NullWriter{})

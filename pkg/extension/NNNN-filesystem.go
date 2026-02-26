@@ -25,7 +25,7 @@ import (
 const FilesystemName = "NNNN-filesystem"
 const FilesystemDescription = "preserves filesytem metadata"
 
-func NewFilesystem(logger ocfllogger.OCFLLogger) (*Filesystem, error) {
+func NewFilesystem(logger ocfllogger.OCFLLogger) *Filesystem {
 	config := &FilesystemConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FilesystemName},
 		Folders:         "",
@@ -39,7 +39,7 @@ func NewFilesystem(logger ocfllogger.OCFLLogger) (*Filesystem, error) {
 	}
 	// sl.writer = brotli.NewWriter(sl.buffer)
 	sl.logger = logger.With("extension", FilesystemName)
-	return sl, nil
+	return sl
 }
 
 type FilesystemMeta struct {

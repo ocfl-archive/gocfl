@@ -68,7 +68,7 @@ func (sl *StorageLayoutPairTree) IsRegistered() bool {
 	return false
 }
 
-func (sl *StorageLayoutPairTree) WriteLayout(fsys fs.FS) error {
+func (sl *StorageLayoutPairTree) WriteLayout(fsys streamfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
@@ -98,7 +98,7 @@ type StorageLayoutPairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewStorageLayoutPairTree(logger ocfllogger.OCFLLogger) (*StorageLayoutPairTree, error) {
+func NewStorageLayoutPairTree(logger ocfllogger.OCFLLogger) *StorageLayoutPairTree {
 	config := &StorageLayoutPairTreeConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutPairTreeName},
 		ShortyLength:    2,
@@ -108,7 +108,7 @@ func NewStorageLayoutPairTree(logger ocfllogger.OCFLLogger) (*StorageLayoutPairT
 		StorageLayoutPairTreeConfig: config,
 		logger:                      logger.With("extension", StorageLayoutPairTreeName),
 	}
-	return sl, nil
+	return sl
 }
 
 func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }

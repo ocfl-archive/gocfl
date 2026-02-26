@@ -289,10 +289,6 @@ func (objectBase *ObjectBase) GetInitializer(objectFS streamfs.FS) object.Initia
 	return objectBase.factory.NewInitializer(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
 }
 
-func (objectBase *ObjectBase) GetChecker(objectFS fs.FS) object.Checker {
-	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
-}
-
 func (objectBase *ObjectBase) GetExtractor(fsys fs.FS) object.Extractor {
 	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(fsys, nil)
 }
