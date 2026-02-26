@@ -1,4 +1,3 @@
-// Custom view/summary objects for consumers of RO-CRATE metadata.
 package rocrate
 
 import (
@@ -10,7 +9,7 @@ import (
 
 const stringSeparator = "; "
 
-// GocflSummary provides a summary compatible with gocfl user's
+// GocflSummary provides a summary compatible with GOCFL user's
 // expectations for the info.json object.
 //
 /*

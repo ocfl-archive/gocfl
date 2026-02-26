@@ -415,7 +415,7 @@ var carpentriesCrate []byte = []byte(`
   }
 `)
 
-// specCrate is an example of a ro-crate-metadata.json file found in
+// specCrate is an example of a `ro-crate-metadata.json` file found in
 // the wild.
 var specCrate []byte = []byte(`
   { "@context": "https://w3id.org/ro/crate/1.1/context",

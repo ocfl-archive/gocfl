@@ -1,8 +1,8 @@
-// Package rocrate enables simple processing of ro-crate data so that
-// it can be remapped in custome metadata.
+// Package rocrate enables simple processing of RO-CRATE data so that
+// it can be remapped in custom metadata.
 //
 // For additional reference for some of the structural information in
-// this module, including cardinality, please look at crate-o:
+// this module, including cardinality, please look at Crate-O:
 //
 //   - https://language-research-technology.github.io/crate-o
 package rocrate
@@ -18,6 +18,7 @@ import (
 
 var versions []string = []string{
 	"https://w3id.org/ro/crate/1.1/context",
+	"https://w3id.org/ro/crate/1.2/context",
 }
 
 type rocrateMeta struct {
@@ -76,7 +77,6 @@ func (rcMeta *rocrateMeta) Context() string {
 	//
 	// "@context": "https://example.com/vocab/context"
 	//
-
 	switch rcMeta.LDContext.(type) {
 	case string:
 		return rcMeta.LDContext.(string)
@@ -92,7 +92,7 @@ func (rcMeta *rocrateMeta) Context() string {
 }
 
 // RocrateSummary provides a summary structure we can access safefly
-// so as to reason about the data in a ro-crate.
+// so as to reason about the data in a RO-CRATE.
 // The data in this structure mirrors the basic information in the
 // ro-create-preview.htm file.
 type RocrateSummary struct {
@@ -130,7 +130,7 @@ type RocrateSummary struct {
 // in the stringer function in this module.
 const StringerError = "error in ro-crate stringer"
 
-// String provides stringer functions for the rocrate summary object.
+// String provides stringer functions for the RO-CRATE summary object.
 func (rcSummary RocrateSummary) String() string {
 	ret, err := json.MarshalIndent(rcSummary, " ", " ")
 	if err != nil {
@@ -277,7 +277,7 @@ type nodeIdentifier struct {
 // RO-CRATE map like objects acting as identifiers correctly.
 type NodeIdentifierOrSlice []nodeIdentifier
 
-// UnmarshalJSON implements unmarshal for th e NodeIdentifierOrSlice
+// UnmarshalJSON implements unmarshal for the NodeIdentifierOrSlice
 // object.
 func (s *NodeIdentifierOrSlice) UnmarshalJSON(d []byte) error {
 	if d[0] == '{' {
