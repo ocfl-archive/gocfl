@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	inventory2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"golang.org/x/exp/slices"
 )
 
@@ -26,7 +26,7 @@ const (
 	DataDir     = "data"
 )
 
-func NewObjectFS(obj objecttypes.Object) (*ObjectFS, error) {
+func NewObjectFS(obj object.Object, objectFS fs.FS) (*ObjectFS, error) {
 	/*
 		metadata, err := obj.GetMetadata()
 		if err != nil {
@@ -34,7 +34,8 @@ func NewObjectFS(obj objecttypes.Object) (*ObjectFS, error) {
 		}
 	*/
 	return &ObjectFS{
-		object: obj,
+		object:   obj,
+		objectFS: objectFS,
 		//		metadata:  metadata,
 		inventory: obj.GetInventory(),
 		manifest:  obj.GetInventory().GetManifest(),
@@ -42,10 +43,11 @@ func NewObjectFS(obj objecttypes.Object) (*ObjectFS, error) {
 }
 
 type ObjectFS struct {
-	object objecttypes.Object
+	object object.Object
 	//	metadata  *ocfl.ObjectMetadata
-	inventory inventory2.Inventory
-	manifest  inventory2.Manifest
+	inventory inventory.Inventory
+	manifest  inventory.Manifest
+	objectFS  fs.FS
 }
 
 func (o *ObjectFS) readDir(name string, num int) (files []fs.DirEntry, err error) {
@@ -88,7 +90,7 @@ func (o *ObjectFS) openState(name string) (fs.File, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = inventory2.NewVersionNumber().WithString(parts[0])
+	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionStr = o.inventory.GetHead()
@@ -113,7 +115,7 @@ func (o *ObjectFS) openState(name string) (fs.File, error) {
 		if len(realpaths) == 0 {
 			return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s for version %s and path %s", cs, versionNumber.String(), path)
 		}
-		fsys := o.object.GetFS()
+		fsys := o.objectFS
 		return fsys.Open(realpaths[0])
 	}
 	return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
@@ -123,7 +125,7 @@ func (o *ObjectFS) statState(name string) (fs.FileInfo, error) {
 	if len(parts) != 2 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = inventory2.NewVersionNumber().WithString(parts[0])
+	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionStr = o.inventory.GetHead()
@@ -148,7 +150,7 @@ func (o *ObjectFS) statState(name string) (fs.FileInfo, error) {
 		if len(realpaths) == 0 {
 			return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s for version %s and path %s", cs, versionNumber, path)
 		}
-		fsys := o.object.GetFS()
+		fsys := o.objectFS
 		return fs.Stat(fsys, realpaths[0])
 	}
 	return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
@@ -170,7 +172,7 @@ func (o *ObjectFS) readDirState(name string, num int) (files []fs.DirEntry, err 
 	if len(parts) == 0 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "invalid state path: %s", name)
 	}
-	var versionNumber = inventory2.NewVersionNumber().WithString(parts[0])
+	var versionNumber = inventory.NewVersionNumber().WithString(parts[0])
 	/*
 		if parts[0] == "latest" {
 			versionNumber = o.inventory.GetHead()
@@ -253,7 +255,7 @@ func (o *ObjectFS) openManifest(cs string) (fs.File, error) {
 	if len(realpaths) == 0 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s", cs)
 	}
-	fsys := o.object.GetFS()
+	fsys := o.objectFS
 	return fsys.Open(realpaths[0])
 }
 func (o *ObjectFS) statManifest(cs string) (fs.FileInfo, error) {
@@ -264,7 +266,7 @@ func (o *ObjectFS) statManifest(cs string) (fs.FileInfo, error) {
 	if len(realpaths) == 0 {
 		return nil, errors.Wrapf(fs.ErrNotExist, "no files found for checksum %s", cs)
 	}
-	fsys := o.object.GetFS()
+	fsys := o.objectFS
 	return fs.Stat(fsys, realpaths[0])
 }
 func (o *ObjectFS) readDirManifest(cs string, num int) (files []fs.DirEntry, err error) {
@@ -295,7 +297,7 @@ func (o *ObjectFS) openData(name string) (fs.File, error) {
 		if !slices.Contains(realpaths, name) {
 			continue
 		}
-		fs := o.object.GetFS()
+		fs := o.objectFS
 		return fs.Open(realpaths[0])
 	}
 	return nil, errors.Wrapf(fs.ErrNotExist, "unknown file %s", name)
@@ -305,7 +307,7 @@ func (o *ObjectFS) statData(name string) (fs.FileInfo, error) {
 		if !slices.Contains(realpaths, name) {
 			continue
 		}
-		fsys := o.object.GetFS()
+		fsys := o.objectFS
 		return fs.Stat(fsys, realpaths[0])
 	}
 	return nil, errors.Wrapf(fs.ErrNotExist, "unknown file %s", name)

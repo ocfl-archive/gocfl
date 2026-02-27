@@ -167,7 +167,7 @@ func (sl *Timestamp) Terminate() error {
 	return nil
 }
 
-func (sl *Timestamp) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *Timestamp) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	return map[string]any{"TimestampAuthority": sl.Authority}, nil
 }
 

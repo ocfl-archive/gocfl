@@ -132,7 +132,16 @@ func doCreate(cmd *cobra.Command, args []string) {
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
 	ctx := validation.NewContextValidation(context.TODO())
 
-	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
+	ver := version.OCFLVersion(conf.Init.OCFLVersion)
+	if ver == "" {
+		ver = version.Default
+	}
+	if !version.ValidVersion(ver) {
+		l2.Error().Err(err).Msgf("invalid version in [init]: %s", ver)
+		return
+	}
+
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, ver)
 
 	doInitConf(cmd)
 	doAddConf(cmd)
@@ -142,7 +151,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.Logger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.ZLogger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot init indexer")
 	}
@@ -248,7 +257,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
+	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(ver, extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot initialize default extensions")
 		return

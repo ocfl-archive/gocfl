@@ -5,7 +5,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/docs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
@@ -32,35 +31,38 @@ type initializer struct {
 	extensionFactor extension.Factory
 }
 
-func (initializer *initializer) WithStorageRoot(sr storageroot.StorageRoot) storageroot.Initializer {
-	initializer.StorageRoot = sr
-	return initializer
+func (init *initializer) Close() error {
+	return nil
 }
 
-func (initializer *initializer) WithFS(storageRootFS streamfs.FS) storageroot.Initializer {
-	initializer.storageRootFS = storageRootFS
-	return initializer
+func (init *initializer) WithStorageRoot(sr storageroot.StorageRoot) storageroot.Initializer {
+	init.StorageRoot = sr
+	return init
 }
 
-func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
-	initializer.logger.Debug().Msgf("%s", id)
+func (init *initializer) WithFS(storageRootFS streamfs.FS) storageroot.Initializer {
+	init.storageRootFS = storageRootFS
+	return init
+}
 
-	objectConformanceDeclaration := "ocfl_" + string(initializer.factory.GetVersion())
+func (init *initializer) Init() error {
+
+	objectConformanceDeclaration := "ocfl_" + string(init.factory.GetVersion())
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
-	if _, err := writefs.WriteFile(initializer.storageRootFS, objectConformanceDeclarationFile, []byte(objectConformanceDeclaration+"\n")); err != nil {
-		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.storageRootFS, objectConformanceDeclarationFile)
+	if _, err := writefs.WriteFile(init.storageRootFS, objectConformanceDeclarationFile, []byte(objectConformanceDeclaration+"\n")); err != nil {
+		return errors.Wrapf(err, "cannot create '%v/%s'", init.storageRootFS, objectConformanceDeclarationFile)
 	}
 
 	/*
-		if err := writefs.MkDir(initializer.storageRootFS, "extensions"); err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", initializer.storageRootFS, "extensions")
+		if err := writefs.MkDir(init.storageRootFS, "extensions"); err != nil {
+			return errors.Wrapf(err, "cannot create '%v/%s'", init.storageRootFS, "extensions")
 		}
 	*/
-	subFS, err := streamfs.Sub(initializer.storageRootFS, "extensions")
+	subFS, err := streamfs.Sub(init.storageRootFS, "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", initializer.storageRootFS, "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", init.storageRootFS, "extensions")
 	}
-	if err := initializer.GetExtensionManager().WriteConfig(subFS); err != nil {
+	if err := init.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrapf(err, "cannot write extension config to %v", subFS)
 	}
 
@@ -76,11 +78,11 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 		if err != nil {
 			return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
 		}
-		if _, err := writefs.WriteFile(initializer.storageRootFS, extDoc.Name(), extDocFileContent); err != nil {
-			return errors.Wrapf(err, "cannot write extension doc %v/%s", initializer.storageRootFS, extDoc.Name())
+		if _, err := writefs.WriteFile(init.storageRootFS, extDoc.Name(), extDocFileContent); err != nil {
+			return errors.Wrapf(err, "cannot write extension doc %v/%s", init.storageRootFS, extDoc.Name())
 		}
 	}
-	if err := initializer.GetExtensionManager().StoreRootLayout(initializer.storageRootFS); err != nil {
+	if err := init.GetExtensionManager().StoreRootLayout(init.storageRootFS); err != nil {
 		return errors.Wrap(err, "cannot store ocfl layout")
 	}
 	return nil

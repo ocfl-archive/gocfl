@@ -31,6 +31,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -397,9 +398,9 @@ func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
 	}
-	fsys, err := writefs.Sub(sr.GetFS(), folder)
+	fsys, err := writefs.Sub(sr.GetReadFS(), folder)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create subfs for %v / %s", sr.GetFS(), folder)
+		return nil, errors.Wrapf(err, "cannot create subfs for %v / %s", sr.GetReadFS(), folder)
 	}
 	obj, err := functions.LoadObject(context.Background(), fsys, extensionFactory, logger)
 	if err != nil {
@@ -425,6 +426,14 @@ func addObjectByPath(
 		fixity = []checksum.DigestAlgorithm{}
 	}
 	var o object.Object
+	objPath, err := sr.IdToFolder(id)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot create folder for id %s", id)
+	}
+	objectFS, err := streamfs.Sub(sr.GetWriteFS(), objPath)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot create subfs %v / %s for id %s", sr.GetWriteFS(), objPath, id)
+	}
 	exists, err := sr.ObjectExists(flagObjectID)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot check for existence of %s", id)
@@ -440,79 +449,72 @@ func addObjectByPath(
 			fixity = append(fixity, alg)
 		}
 	} else {
-		objPath, err := sr.IdToFolder(id)
-		if err != nil {
-			return false, errors.Wrapf(err, "cannot create folder for id %s", id)
-		}
-		if err := writefs.MkDir(sr.GetFS(), objPath); err != nil {
-			return false, errors.Wrapf(err, "cannot create folder %v %s for id %s", sr.GetFS(), objPath, id)
-		}
-		subFS, err := writefs.Sub(sr.GetFS(), objPath)
-		if err != nil {
-			return false, errors.Wrapf(err, "cannot create subfs %v / %s for id %s", sr.GetFS(), objPath, id)
-		}
-		o, err = functions.CreateObject(ctx, id, sr.GetVersion(), sr.GetDigest(), fixity, extensionFactory, extensionManager, subFS, logger)
+		o, err = functions.CreateObject(ctx, id, sr.GetVersion(), sr.GetDigest(), fixity, extensionFactory, extensionManager, objectFS, logger)
 		if err != nil {
 			return false, errors.Wrapf(err, "cannot create object %s", id)
 		}
 	}
-	versionFS, err := o.StartUpdate(sourceFS, message, userName, userAddress, echo)
+	versionWriter, err := o.StartUpdate(objectFS, message, userName, userAddress, echo)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot start update for object %s", id)
 	}
-
-	if err := o.AddFolder(sourceFS, versionFS, checkDuplicates, area); err != nil {
+	defer func() {
+		if versionWriter != nil {
+			versionWriter.Close()
+		}
+	}()
+	if err := versionWriter.AddFolder(sourceFS, checkDuplicates, area); err != nil {
 		return false, errors.Wrapf(err, "cannot add folder '%s' to '%s'", sourceFS, id)
 	}
 	if areaPaths != nil {
 		for a, aPath := range areaPaths {
-			if err := o.AddFolder(aPath, versionFS, checkDuplicates, a); err != nil {
+			if err := versionWriter.AddFolder(aPath, checkDuplicates, a); err != nil {
 				return false, errors.Wrapf(err, "cannot add area '%s' folder '%s' to '%s'", a, aPath, id)
 			}
 		}
 	}
-	if err := o.EndUpdate(); err != nil {
-		return false, errors.Wrapf(err, "cannot end update for object '%s'", id)
+	if err := versionWriter.Close(); err != nil {
+		return false, errors.Wrapf(err, "cannot close version writer for object %s", id)
 	}
-
-	if err := o.Close(); err != nil {
-		return false, errors.Wrapf(err, "cannot close object '%s'", id)
-	}
-
-	return o.IsModified(), nil
+	versionWriter = nil
+	return o.GetInventory().IsModified(), nil
 }
 
-func CreateStorageRoot(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+func CreateStorageRoot(ctx context.Context, objectWriteFS streamfs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
-	storageRoot := fact.NewStorageRoot(ctx).WithFS(fsys)
+	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(objectWriteFS).WithWriteFS(objectWriteFS)
 
-	if err := storageRoot.Init(ver, digest, extensionManager); err != nil {
+	init := storageRoot.GetInitializer()
+	defer init.Close()
+	if err := init.Init(); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize storage root")
 	}
 
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	ver, err := util.GetVersion(fsys, ".", "ocfl_")
+func LoadStorageRoot(ctx context.Context, storageRootFS streamfs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+	ver, err := util.GetVersion(storageRootFS, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
 	}
 	if ver == "" {
-		dirs, err := fs.ReadDir(fsys, ".")
+		dirs, err := fs.ReadDir(storageRootFS, ".")
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		if len(dirs) > 0 {
-			err := validation.GetValidationError(version.Version1_1, validation.E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fsys)
+			err := validation.GetValidationError(version.Version1_1, validation.E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", storageRootFS)
 			validation.AddValidationErrors(ctx, err)
 			//			return nil, err
 		}
 		ver = version.Version1_1
 	}
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
-	storageRoot := fact.NewStorageRoot(ctx).WithFS(fsys)
-	if err := storageRoot.Load(); err != nil {
+	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(storageRootFS).WithWriteFS(storageRootFS)
+	loader := storageRoot.GetLoader(extensionFactory)
+	defer loader.Close()
+	if err := loader.Load(); err != nil {
 		return nil, errors.Wrap(err, "cannot load storage root")
 	}
 	return storageRoot, nil
@@ -536,8 +538,10 @@ func LoadStorageRootRO(ctx context.Context, fact factory.Factory, fsys fs.FS, ex
 		}
 		ver = version.Version1_1
 	}
-	storageRoot := fact.NewStorageRoot(ctx).WithFS(fsys)
-	if err := storageRoot.Load(); err != nil {
+	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(fsys)
+	loader := storageRoot.GetLoader(extensionFactory)
+	defer loader.Close()
+	if err := loader.Load(); err != nil {
 		return nil, errors.Wrap(err, "cannot load storage root")
 	}
 	return storageRoot, nil

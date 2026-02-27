@@ -155,16 +155,16 @@ func (mi *Migration) alreadyMigrated(cs string) bool {
 	return false
 }
 
-func (mi *Migration) UpdateObjectAfter(object object.VersionWriter) error {
-	inventory := object.GetInventory()
+func (mi *Migration) UpdateObjectAfter(obj object.VersionWriter) error {
+	inventory := obj.GetInventory()
 	if inventory == nil {
 		return errors.Errorf("inventory is nil")
 	}
 
 	// first get the metadata from the object
-	meta, err := object.GetMetadata()
+	meta, err := obj.GetMetadata()
 	if err != nil {
-		return errors.Wrapf(err, "cannot get metadata from object %s", object.GetID())
+		return errors.Wrapf(err, "cannot get metadata from object %s", obj.GetID())
 	}
 	for _, m := range meta.Files {
 		// check whether already migrated
@@ -211,15 +211,15 @@ func (mi *Migration) NeedNewVersion(object.VersionWriter) (bool, error) {
 }
 
 // DoNewVersion todo: check for second migration step and do different naming
-func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
+func (mi *Migration) DoNewVersion(obj object.VersionWriter) error {
 	defer func() {
 		mi.migrationFiles = map[string]*migration.Function{}
 		mi.done = true
 	}()
 
-	migrationMetadata, err := mi.GetMetadata(object)
+	migrationMetadata, err := mi.GetMetadata(nil, obj)
 	if err != nil {
-		return errors.Wrapf(err, "cannot get migration metadata for object '%s'", object.GetID())
+		return errors.Wrapf(err, "cannot get migration metadata for object '%s'", obj.GetID())
 	}
 	migratedChecksums := maps.Keys(migrationMetadata)
 	for _, metaAny := range migrationMetadata {
@@ -227,7 +227,7 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 			_ = meta
 		}
 	}
-	inv := object.GetInventory()
+	inv := obj.GetInventory()
 	head := inv.GetHead()
 	/*
 		extensionManager := object.GetExtensionManager()
@@ -241,7 +241,7 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 
 	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	if len(versions) < 2 {
-		return errors.Errorf("cannot migrate files in object '%s' - no previous version", object.GetID())
+		return errors.Errorf("cannot migrate files in object '%s' - no previous version", obj.GetID())
 	}
 	manifest := inv.GetManifest()
 	if _, ok := mi.migratedFiles[head.String()]; !ok {
@@ -266,21 +266,21 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 		var targetNames = []string{}
 		manifestFiles, err := manifest.GetFiles(cs)
 		if err != nil {
-			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, object.GetID())
+			return errors.Errorf("cannot find file with checksum '%s' in object '%s'", cs, obj.GetID())
 		}
 		// get the files from last version
 		ver := inv.GetVersions().GetVersion(versions[len(versions)-2])
 		if ver == nil {
-			return errors.Errorf("cannot get state files for checksum '%s' in object '%s' version %s", cs, object.GetID(), versions[len(versions)-2])
+			return errors.Errorf("cannot get state files for checksum '%s' in object '%s' version %s", cs, obj.GetID(), versions[len(versions)-2])
 		}
 		externalFiles, err := ver.GetState().GetFiles(cs)
 		if err != nil {
-			return errors.Errorf("cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+			return errors.Errorf("cannot get state files for checksum '%s' in object '%s'", cs, obj.GetID())
 		}
 		for _, externalFile := range externalFiles {
 			t := mig.GetDestinationName(externalFile, head.String(), isMigrated)
 			if t == "" {
-				return errors.Errorf("cannot get destination name for file '%s' in object '%s'", externalFile, object.GetID())
+				return errors.Errorf("cannot get destination name for file '%s' in object '%s'", externalFile, obj.GetID())
 			}
 			targetNames = append(targetNames, t)
 		}
@@ -296,14 +296,14 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 			if mi.sourceFS != nil {
 				stateFiles, err := inv.GetVersions().GetVersion(inv.GetHead()).GetState().GetFiles(cs)
 				if err != nil {
-					return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+					return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, obj.GetID())
 				}
 				if len(stateFiles) == 0 {
-					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, object.GetID())
+					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, obj.GetID())
 				}
-				external, err := object.GetExtensionManager().BuildObjectExtractPath(stateFiles[len(stateFiles)-1], "")
+				external, err := obj.GetExtensionManager().BuildObjectExtractPath(stateFiles[len(stateFiles)-1], "")
 				if err != nil {
-					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], object.GetID())
+					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], obj.GetID())
 				}
 				file, err = mi.sourceFS.Open(external)
 				if err != nil {
@@ -324,18 +324,18 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 		*/
 		extractTargetNames := []string{}
 		for _, targetName := range targetNames {
-			extractTargetName, err := object.GetExtensionManager().BuildObjectExtractPath(targetName, "")
+			extractTargetName, err := obj.GetExtensionManager().BuildObjectExtractPath(targetName, "")
 			if err != nil {
-				return errors.Wrapf(err, "cannot build extract path for file '%s' in object '%s'", targetName, object.GetID())
+				return errors.Wrapf(err, "cannot build extract path for file '%s' in object '%s'", targetName, obj.GetID())
 			}
 			extractTargetNames = append(extractTargetNames, extractTargetName)
 		}
-		manifestName, err := object.GetExtensionManager().BuildObjectManifestPath(extractTargetNames[0], "content")
+		manifestName, err := obj.GetExtensionManager().BuildObjectManifestPath(extractTargetNames[0], "content")
 		if err != nil {
-			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], object.GetID())
+			return errors.Wrapf(err, "cannot build manifest path for file '%s' in object '%s'", extractTargetNames[0], obj.GetID())
 		}
 		path := inv.BuildManifestName(manifestName)
-		if err := migration.DoMigrate(object, mig, ext, extractTargetNames, file); err != nil {
+		if err := migration.DoMigrate(obj, mig, ext, extractTargetNames, file); err != nil {
 			ml = &migrationLine{
 				Path: path,
 				Migration: &MigrationResult{
@@ -359,8 +359,8 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 					if slices.Contains(targetNames, externalFile) {
 						continue
 					}
-					if err := object.DeleteFile(externalFile, cs); err != nil {
-						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", externalFile, object.GetID())
+					if err := obj.DeleteFile(externalFile, cs); err != nil {
+						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", externalFile, obj.GetID())
 					}
 				}
 			case migration.StrategyFolder:
@@ -372,33 +372,33 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 					if !isMigrated {
 						dest = filepath.ToSlash(filepath.Join(filepath.Dir(src), filepath.Base(src), filepath.Base(src)))
 					}
-					if err := object.RenameFile(src, dest, cs); err != nil {
-						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", src, object.GetID())
+					if err := obj.RenameFile(src, dest, cs); err != nil {
+						return errors.Wrapf(err, "cannot delete file '%s' in object '%s'", src, obj.GetID())
 					}
 				}
 			}
 		}
 		data, err := json.Marshal(ml)
 		if err != nil {
-			return errors.Wrapf(err, "cannot marshal migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
+			return errors.Wrapf(err, "cannot marshal migration line for file '%s' in object '%s'", targetNames[0], obj.GetID())
 		}
 		if _, err := mi.writer.Write(append(data, []byte("\n")...)); err != nil {
-			return errors.Wrapf(err, "cannot write migration line for file '%s' in object '%s'", targetNames[0], object.GetID())
+			return errors.Wrapf(err, "cannot write migration line for file '%s' in object '%s'", targetNames[0], obj.GetID())
 		}
 	}
 	if err := mi.writer.Flush(); err != nil {
-		return errors.Wrapf(err, "cannot flush migration line writer for object '%s'", object.GetID())
+		return errors.Wrapf(err, "cannot flush migration line writer for object '%s'", obj.GetID())
 	}
 	if err := mi.writer.Close(); err != nil {
-		return errors.Wrapf(err, "cannot close migration line writer for object '%s'", object.GetID())
+		return errors.Wrapf(err, "cannot close migration line writer for object '%s'", obj.GetID())
 	}
 	buffer, ok := mi.buffer[head.String()]
 	if !ok {
 		return nil
 	}
 	if err := WriteJsonL(
-		mi.targetFS,
-		object,
+		obj.GetFS(),
+		obj,
 		"migration",
 		buffer.Bytes(),
 		mi.MigrationConfig.Compress,
@@ -410,11 +410,11 @@ func (mi *Migration) DoNewVersion(object object.VersionWriter) error {
 	return nil
 }
 
-func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
+func (mi *Migration) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
-	inventory := object.GetInventory()
+	inventory := obj.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
 	for checksum, names := range manifest.Iterate() {
@@ -430,10 +430,10 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
 			data, err = io.ReadAll(reader)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(mi.targetFS, object, "migration", v, mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
+			data, err = ReadJsonL(sourceFS, obj, v, "migration", mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
@@ -448,7 +448,7 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 			line := r.Text()
 			var meta = migrationLine{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
+				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", obj.GetID(), v, line)
 			}
 			var digest string
 			for cs, names := range manifest.Iterate() {
@@ -460,20 +460,20 @@ func (mi *Migration) GetMetadata(object object.Object) (map[string]any, error) {
 				}
 			}
 			if digest == "" {
-				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Migration.Source, object.GetID())
+				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Migration.Source, obj.GetID())
 			}
 			cs, ok := path2digest[meta.Path]
 			if !ok && meta.Migration.Error != "" {
 				cs, ok = path2digest[meta.Migration.Source]
 			}
 			if !ok {
-				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Path, object.GetID())
+				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.Path, obj.GetID())
 			}
 			meta.Migration.Source = digest
 			result[cs] = meta.Migration
 		}
 		if err := r.Err(); err != nil {
-			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
+			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", obj.GetID(), v)
 		}
 	}
 	return result, nil

@@ -78,7 +78,7 @@ func (sl *ContentSubPath) Terminate() error {
 	return nil
 }
 
-func (sl *ContentSubPath) GetMetadata(object.Object) (map[string]any, error) {
+func (sl *ContentSubPath) GetMetadata(fs.FS, object.Object) (map[string]any, error) {
 	return map[string]any{"": sl.Paths}, nil
 }
 

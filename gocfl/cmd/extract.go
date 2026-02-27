@@ -176,7 +176,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := functions.Extract(context.Background(), destFS, sr.GetFS(), oPath, inventorytypes.NewVersionNumber().WithString(conf.Extract.Version), conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
+	if err := functions.Extract(context.Background(), destFS, sr.GetReadFS(), oPath, inventorytypes.NewVersionNumber().WithString(conf.Extract.Version), conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		logger.Error().Err(err).Msg("cannot extract storage root")
 		return

@@ -27,6 +27,7 @@ type VersionWriter interface {
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
 	Close() error
 	GetID() string
+	GetFS() streamfs.FS
 	BeginArea(area string)
 	EndArea() error
 	BuildNames(files []string, area string) (*NamesStruct, error)
@@ -34,7 +35,8 @@ type VersionWriter interface {
 
 type Checker interface {
 	Check() error
-	WithLoader(loader Loader) Checker
+	WithObject(obj Object) Checker
+	WithFS(objectFS fs.FS) Checker
 }
 
 type Initializer interface {
@@ -45,19 +47,19 @@ type Initializer interface {
 
 type Loader interface {
 	Object
-	GetChecker() Checker
 	Load() error
 	WithObject(o Object) Loader
 	WithFS(sourceFS fs.FS) Loader
 	GetFS() fs.FS
 	WithExtensionFactory(factory extension.Factory) Loader
-	LoadInventoryFile(filename string) (inventory.Inventory, error)
 }
 
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	WithObject(o Object) Extractor
 	WithFS(sourceFS fs.FS, objectFS streamfs.FS) Extractor
+	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
+	GetFileReader(name string) (io.ReadCloser, int64, string, error)
 }
 
 type Object interface {
@@ -74,4 +76,5 @@ type Object interface {
 	GetMetadata() (*inventory.Metadata, error)
 	GetExtensionManager() ExtensionManager
 	GetOCFLVersion() version.OCFLVersion
+	GetChecker(sourceFS fs.FS) Checker
 }

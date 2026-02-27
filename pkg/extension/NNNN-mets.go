@@ -221,7 +221,7 @@ type metaFileBase struct {
 
 */
 
-func (me *Mets) UpdateObjectAfter(object object.VersionWriter) error {
+func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 	inventory := obj.GetInventory()
 	metadata, err := obj.GetMetadata()
 	if err != nil {
@@ -273,7 +273,7 @@ func (me *Mets) UpdateObjectAfter(object object.VersionWriter) error {
 			return errors.Wrapf(err, "cannot build names for %s", me.PremisFile)
 		}
 	case "path":
-		path, err := obj.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
@@ -1313,7 +1313,7 @@ func (me *Mets) UpdateObjectAfter(object object.VersionWriter) error {
 			return errors.Wrapf(err, "cannot write '%s'", "schemas/xlink.xsd")
 		}
 	case "path":
-		path, err := obj.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}

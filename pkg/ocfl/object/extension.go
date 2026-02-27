@@ -75,7 +75,7 @@ type ExtensionFixityDigest interface {
 
 type ExtensionMetadata interface {
 	extension.Extension
-	GetMetadata(object Object) (map[string]any, error)
+	GetMetadata(sourceFS fs.FS, obj Object) (map[string]any, error)
 }
 
 type ExtensionVersionDone interface {

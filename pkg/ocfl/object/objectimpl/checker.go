@@ -30,14 +30,20 @@ func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger o
 }
 
 type checker struct {
-	object.Loader
-	ctx     context.Context
-	factory factory.Factory
-	logger  ocfllogger.OCFLLogger
+	object.Object
+	ctx      context.Context
+	objectFS fs.FS
+	factory  factory.Factory
+	logger   ocfllogger.OCFLLogger
 }
 
-func (obj *checker) WithLoader(loader object.Loader) object.Checker {
-	obj.Loader = loader
+func (obj *checker) WithObject(obj2 object.Object) object.Checker {
+	obj.Object = obj2
+	return obj
+}
+
+func (obj *checker) WithFS(objectFS fs.FS) object.Checker {
+	obj.objectFS = objectFS
 	return obj
 }
 
@@ -55,7 +61,7 @@ func (obj *checker) Check() error {
 		allowedDirs = append(allowedDirs, v.String())
 	}
 	versionCounter := 0
-	entries, err := fs.ReadDir(obj.GetFS(), ".")
+	entries, err := fs.ReadDir(obj.objectFS, ".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read object folder")
 	}
@@ -129,7 +135,7 @@ func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, err
 	})
 	versionInventories := map[string]inventory.Inventory{}
 	for _, ver := range versionStrings {
-		vi, err := obj.LoadInventoryFile(path.Join(ver.String(), "inventory.json"))
+		vi, err := loadInventoryFile(obj.ctx, obj.objectFS, path.Join(ver.String(), "inventory.json"), obj.GetOCFLVersion(), obj.factory, obj.logger)
 		if err != nil {
 			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 				obj.logger.ValidationError(validation.E010, "inventory file '%s' does not exist", ver.String())
@@ -143,7 +149,7 @@ func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, err
 }
 
 func (obj *checker) checkVersionFolder(version string) error {
-	versionEntries, err := fs.ReadDir(obj.GetFS(), version)
+	versionEntries, err := fs.ReadDir(obj.objectFS, version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
 	}
@@ -193,7 +199,7 @@ func (obj *checker) checkFilesAndVersions() error {
 			objectContentFiles[ver] = []string{}
 		}
 		fs.WalkDir(
-			obj.GetFS(),
+			obj.objectFS,
 			ver,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
@@ -218,7 +224,7 @@ func (obj *checker) checkFilesAndVersions() error {
 			},
 		)
 		if len(objectContentFiles[ver]) == 0 {
-			fi, err := fs.Stat(obj.GetFS(), versionContent)
+			fi, err := fs.Stat(obj.objectFS, versionContent)
 			if err != nil {
 				if !errors.Is(errors.Cause(err), fs.ErrNotExist) {
 					return errors.Wrapf(err, "cannot stat '%s'", versionContent)
@@ -262,7 +268,7 @@ func (obj *checker) checkFilesAndVersions() error {
 		digestAlg := inv.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
 		allowedDirs := []string{inv.GetContentDir()}
-		versionEntries, err := fs.ReadDir(obj.GetFS(), ver.String())
+		versionEntries, err := fs.ReadDir(obj.objectFS, ver.String())
 		if err != nil {
 			obj.logger.ValidationError(validation.E010, "cannot read version folder '%s'", ver)
 			continue
@@ -403,7 +409,7 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 	for versionNumber := range inv.GetVersions().GetVersionNumbers() {
 		if err := fs.WalkDir(
-			obj.GetFS(),
+			obj.objectFS,
 			//fmt.Sprintf("%s/%s", version, inv.GetContentDir()),
 			versionNumber.String(),
 			func(path string, d fs.DirEntry, err error) error {
@@ -412,9 +418,9 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 					return nil
 				}
 				fname := path // filepath.ToSlash(filepath.Join(version, path))
-				fp, err := obj.GetFS().Open(fname)
+				fp, err := obj.objectFS.Open(fname)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open file '%v/%s'", obj.GetFS(), fname)
+					return errors.Wrapf(err, "cannot open file '%v/%s'", obj.objectFS, fname)
 				}
 				defer fp.Close()
 				css, err := checksum.Copy(digestAlgorithms, fp, &checksum.NullWriter{})

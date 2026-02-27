@@ -115,7 +115,7 @@ func (objectBase *ObjectBase) GetMetadata() (*inventory.Metadata, error) {
 		ib, _ := strconv.Atoi(b)
 		return cmp.Compare(ia, ib)
 	})
-	extensionMetadata, err := objectBase.extensionManager.GetMetadata(objectBase)
+	extensionMetadata, err := objectBase.extensionManager.GetMetadata(nil, objectBase)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get extension metadata for object '%s'", objectBase.i.GetID())
 	}
@@ -275,6 +275,10 @@ func (objectBase *ObjectBase) GetID() string {
 		return ""
 	}
 	return objectBase.i.GetID()
+}
+
+func (objectBase *ObjectBase) GetChecker(sourceFS fs.FS) object.Checker {
+	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase)
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {

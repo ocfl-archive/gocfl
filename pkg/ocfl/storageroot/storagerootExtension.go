@@ -1,9 +1,8 @@
 package storageroot
 
 import (
-	"io/fs"
-
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 type ExtensionStorageRootPath interface {

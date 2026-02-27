@@ -26,6 +26,11 @@ type Loader struct {
 	logger           ocfllogger.OCFLLogger
 }
 
+func (loader *Loader) Close() error {
+	loader.sourceFS = nil
+	return nil
+}
+
 func (loader *Loader) Load() error {
 	if err := loader.loadExtensionManager(); err != nil {
 		return errors.Wrap(err, "loading extension manager")

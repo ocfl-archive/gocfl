@@ -67,7 +67,10 @@ func (f *Factory) LoadExtensionData(fsys fs.FS, data []byte) (extension.Extensio
 	if !ok {
 		return nil, errors.Errorf("unknown extension '%s'", name)
 	}
-	ext := creator()
+	ext, err := creator(fsys)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot load extension '%s'", name)
+	}
 	if err := ext.SetParams(f.extensionParams); err != nil {
 		return nil, errors.Wrapf(err, "cannot set params for extension '%s'", ext.GetName())
 	}
@@ -110,7 +113,10 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 				if !ok {
 					return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 				}
-				initialExt := initialCreator()
+				initialExt, err := initialCreator(fsys)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
+				}
 				initial, ok := initialExt.(extension.Initial)
 				if !ok {
 					return nil, errors.Errorf("'%s' extension is not an initial extension", extension.DefaultExtensionInitialName)
@@ -168,7 +174,10 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 			if !ok {
 				return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 			}
-			initialExt := initialCreator()
+			initialExt, err := initialCreator(fsys)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
+			}
 			initial, ok = initialExt.(extension.Initial)
 			if !ok {
 				return nil, errors.Errorf("'%s' extension is not an initial extension", extension.DefaultExtensionInitialName)
@@ -180,7 +189,10 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 		if !ok {
 			return nil, errors.Errorf("no default extension manager (%s) found", extension.DefaultExtensionManagerName)
 		}
-		ext := creator()
+		ext, err := creator(fsys)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)
+		}
 		manager, ok = ext.(object.ExtensionManager)
 		if !ok {
 			return nil, errors.Errorf("default extension manager is not a manager extension")

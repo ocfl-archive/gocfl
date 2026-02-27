@@ -44,6 +44,10 @@ type versionWriter struct {
 	area        string
 }
 
+func (versionWriter *versionWriter) GetFS() streamfs.FS {
+	return versionWriter.versionFS
+}
+
 func (versionWriter *versionWriter) BeginArea(area string) {
 	versionWriter.area = area
 	versionWriter.updateFiles = []string{}

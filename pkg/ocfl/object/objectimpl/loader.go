@@ -35,13 +35,13 @@ type Loader struct {
 	object.Object
 	ctx              context.Context
 	extensionFactory extension.Factory
-	sourceFS         fs.FS
+	objectFS         fs.FS
 	logger           ocfllogger.OCFLLogger
 	factory          factory.Factory
 }
 
 func (loader *Loader) GetFS() fs.FS {
-	return loader.sourceFS
+	return loader.objectFS
 }
 
 func (loader *Loader) Load() error {
@@ -65,7 +65,7 @@ func (loader *Loader) WithObject(o object.Object) object.Loader {
 }
 
 func (loader *Loader) WithFS(sourceFS fs.FS) object.Loader {
-	loader.sourceFS = sourceFS
+	loader.objectFS = sourceFS
 	return loader
 }
 
@@ -74,9 +74,9 @@ func (loader *Loader) findInventoryFile() (string, error) {
 	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.GetOCFLVersion()) {
 		return "/inventory.json", nil
 	}
-	dirs, err := fs.ReadDir(loader.sourceFS, ".")
+	dirs, err := fs.ReadDir(loader.objectFS, ".")
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to read directory %v", loader.sourceFS)
+		return "", errors.Wrapf(err, "failed to read directory %v", loader.objectFS)
 	}
 	for _, d := range dirs {
 		if d.IsDir() {
@@ -106,106 +106,107 @@ func (loader *Loader) findInventoryFile() (string, error) {
 		}
 	}
 	if headNumber == 0 {
-		return "", errors.Errorf("failed to find inventory.json in %v", loader.sourceFS)
+		return "", errors.Errorf("failed to find inventory.json in %v", loader.objectFS)
 	}
 	return p, nil
 }
 
-func (loader *Loader) unmarshalInventoryData(data []byte) error {
+func unmarshalInventoryData(ctx context.Context, data []byte, ver version.OCFLVersion, fact factory.Factory, logger ocfllogger.OCFLLogger) (inventory.Inventory, error) {
 	anyMap := map[string]any{}
 	if err := json.Unmarshal(data, &anyMap); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
+		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
 	}
-	var ver version.OCFLVersion
+	var iVer version.OCFLVersion
 	t, ok := anyMap["type"]
 	if !ok {
-		return errors.New("no type in inventory")
+		return nil, errors.New("no type in inventory")
 	}
 	sStr, ok := t.(string)
 	if !ok {
-		return errors.Errorf("type not a string in inventory - '%v'", t)
+		return nil, errors.Errorf("type not a string in inventory - '%v'", t)
 	}
 	switch sStr {
 	case "https://ocfl.io/1.1/spec/#inventory":
-		ver = version.Version1_1
+		iVer = version.Version1_1
 	case "https://ocfl.io/1.0/spec/#inventory":
-		ver = version.Version1_0
+		iVer = version.Version1_0
 	case "https://ocfl.io/2.0/spec/#inventory":
-		ver = version.Version2_0
+		iVer = version.Version2_0
 	default:
 		// if we don't know anything use the old stuff
-		return errors.Errorf("unsupported inventory type '%s'", sStr)
+		return nil, errors.Errorf("unsupported inventory type '%s'", sStr)
 	}
-	if ver != loader.GetOCFLVersion() {
-		return errors.Errorf("inventory version '%s' does not match expected version '%s'", ver, loader.GetOCFLVersion())
+	if iVer != ver {
+		return nil, errors.Errorf("inventory version '%s' does not match expected version '%s'", iVer, ver)
 	}
-	inv := loader.GetInventory()
-	/*
-		inventory, err := inventory.NewInventory(objectBase.ctx, folder, ver, objectBase.logger)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create empty inventory")
-		}
-	*/
+	inv := fact.NewInventory(ctx)
 	if err := json.Unmarshal(data, inv); err != nil {
 		// now lets try it again
 		jsonMap := map[string]any{}
 		// check for json format error
 		if err2 := json.Unmarshal(data, &jsonMap); err2 != nil {
-			loader.logger.ValidationError(validation.E033, "json unmarshal error: %v", err2)
-			loader.logger.ValidationError(validation.E034, "json unmarshal error: %v", err2)
+			logger.ValidationError(validation.E033, "json unmarshal error: %v", err2)
+			logger.ValidationError(validation.E034, "json unmarshal error: %v", err2)
 		} else {
 			if _, ok := jsonMap["head"].(string); !ok {
-				loader.logger.ValidationError(validation.E040, "json head not a string: %v", jsonMap["head"])
+				logger.ValidationError(validation.E040, "json head not a string: %v", jsonMap["head"])
 			}
 		}
 		//return nil, errors.Wrapf(err, "cannot marshal data - '%s'", string(data))
 	}
 
-	return inv.Finalize(false)
+	return inv, inv.Finalize(false)
 }
 
 var inventorySideCarFormat = regexp.MustCompile(`^([a-fA-F0-9]+)\s+inventory.json$`)
 
-func (loader *Loader) getInventorySidecarChecksum(sidecarPath string) (string, error) {
-	sidecarBytes, err := fs.ReadFile(loader.sourceFS, sidecarPath)
+func getInventorySidecarChecksum(objectFS fs.FS, sidecarPath string, logger ocfllogger.OCFLLogger) (string, error) {
+	sidecarBytes, err := fs.ReadFile(objectFS, sidecarPath)
 	if err != nil {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			loader.logger.ValidationError(validation.E058, "sidecar '%v/%s' does not exist", loader.sourceFS, sidecarPath)
+			logger.ValidationError(validation.E058, "sidecar '%v/%s' does not exist", objectFS, sidecarPath)
 		} else {
-			loader.logger.ValidationError(validation.E060, "cannot read sidecar '%v/%s'", loader.sourceFS, sidecarPath)
+			logger.ValidationError(validation.E060, "cannot read sidecar '%v/%s'", objectFS, sidecarPath)
 		}
-		return "", errors.Wrapf(err, "cannot read sidecar '%v/%s'", loader.sourceFS, sidecarPath)
+		return "", errors.Wrapf(err, "cannot read sidecar '%v/%s'", objectFS, sidecarPath)
 		//		objectBase.logger.ValidationError(E058, "cannot read '%s': %v", sidecarPath, err)
 	}
 
 	digestString := strings.TrimSpace(string(sidecarBytes))
 	matches := inventorySideCarFormat.FindStringSubmatch(digestString)
 	if len(matches) == 0 {
-		loader.logger.ValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", loader.sourceFS, sidecarPath)
+		logger.ValidationError(validation.E061, "no suffix \" inventory.json\" in '%v/%s'", objectFS, sidecarPath)
 		return "", errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", sidecarPath))
 	}
 
 	return matches[1], nil
 }
 
-func (loader *Loader) LoadInventoryFile(filename string) (inventory.Inventory, error) {
-	inv := loader.factory.NewInventory(loader.ctx)
+func (loader *Loader) loadInventoryFile(filename string) (inventory.Inventory, error) {
+	inv, err := loadInventoryFile(loader.ctx, loader.objectFS, filename, loader.GetOCFLVersion(), loader.factory, loader.logger)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot load inventory file '%s'", filename)
+	}
+	return inv, nil
+}
+func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver version.OCFLVersion, fact factory.Factory, logger ocfllogger.OCFLLogger) (inventory.Inventory, error) {
 	// load inventory file
-	inventoryBytes, err := fs.ReadFile(loader.sourceFS, filename)
+	inventoryBytes, err := fs.ReadFile(objectFS, filename)
 	if err != nil {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			return nil, errors.Wrapf(err, "inventory file '%v/%s' does not exist", loader.sourceFS, filename)
+			return nil, errors.Wrapf(err, "inventory file '%v/%s' does not exist", objectFS, filename)
 		}
-		return nil, errors.Wrapf(err, "failed to read inventory file '%v/%s'", loader.sourceFS, filename)
+		return nil, errors.Wrapf(err, "failed to read inventory file '%v/%s'", objectFS, filename)
 	}
-	if err := loader.unmarshalInventoryData(inventoryBytes); err != nil {
+	inv, err := unmarshalInventoryData(ctx, inventoryBytes, ver, fact, logger)
+	if err != nil {
 		return nil, errors.Wrap(err, "cannot unmarshal inventory object")
 	}
 	digest := inv.GetDigestAlgorithm()
 
 	// check digest for inventory
 	sidecarPath := fmt.Sprintf("%s.%s", filename, digest)
-	digestString, err := loader.getInventorySidecarChecksum(sidecarPath)
+	digestString, err := getInventorySidecarChecksum(objectFS, sidecarPath, logger)
 	if err == nil {
 		h, err := checksum.GetHash(digest)
 		if err != nil {
@@ -216,7 +217,7 @@ func (loader *Loader) LoadInventoryFile(filename string) (inventory.Inventory, e
 		sumBytes := h.Sum(nil)
 		inventoryDigestString := fmt.Sprintf("%x", sumBytes)
 		if digestString != inventoryDigestString {
-			loader.logger.ValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
+			logger.ValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
 		}
 	}
 	return inv, nil
@@ -225,7 +226,7 @@ func (loader *Loader) LoadInventoryFile(filename string) (inventory.Inventory, e
 func (loader *Loader) loadInventory() error {
 	filename, err := loader.findInventoryFile()
 
-	inv, err := loader.LoadInventoryFile(filename)
+	inv, err := loader.loadInventoryFile(filename)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load inventory file '%s'", filename)
 	}
@@ -234,9 +235,9 @@ func (loader *Loader) loadInventory() error {
 }
 
 func (loader *Loader) loadExtensionManager() error {
-	extensionFS, err := writefs.Sub(loader.sourceFS, "extensions")
+	extensionFS, err := writefs.Sub(loader.objectFS, "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.sourceFS, "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.objectFS, "extensions")
 	}
 	manager, err := loader.extensionFactory.LoadExtensionManager(extensionFS, loader.Object.GetOCFLVersion())
 	if err != nil {
@@ -247,10 +248,6 @@ func (loader *Loader) loadExtensionManager() error {
 	}
 	loader.Object.WithExtensionManager(manager.(object.ExtensionManager))
 	return nil
-}
-
-func (loader *Loader) GetChecker() object.Checker {
-	return loader.factory.NewChecker(loader.ctx).WithLoader(loader)
 }
 
 var _ object.Loader = (*Loader)(nil)

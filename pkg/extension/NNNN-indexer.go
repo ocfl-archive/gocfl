@@ -258,11 +258,11 @@ func (sl *Indexer) UpdateObjectAfter(object object.VersionWriter) error {
 	return nil
 }
 
-func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
+func (sl *Indexer) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
-	inventory := object.GetInventory()
+	inventory := obj.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
 	for checksum, names := range manifest.Iterate() {
@@ -283,15 +283,15 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 				reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
 				data, err = io.ReadAll(reader)
 				if err != nil {
-					return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+					return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 				}
 			} else {
 				data = nil
 			}
 		} else {
-			data, err = ReadJsonL(sl.fsys, object, "indexer", v, sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName)
+			data, err = ReadJsonL(sourceFS, obj, v, "indexer", sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
+				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", obj.GetID(), v)
 			}
 		}
 
@@ -304,12 +304,12 @@ func (sl *Indexer) GetMetadata(object object.Object) (map[string]any, error) {
 				line := r.Text()
 				var meta = indexerLine{}
 				if err := json.Unmarshal([]byte(line), &meta); err != nil {
-					return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
+					return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", obj.GetID(), v, line)
 				}
 				result[path2digest[meta.Path]] = meta.Indexer
 			}
 			if err := r.Err(); err != nil {
-				return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
+				return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", obj.GetID(), v)
 			}
 		}
 	}

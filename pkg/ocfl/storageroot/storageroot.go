@@ -12,9 +12,10 @@ import (
 
 type Initializer interface {
 	StorageRoot
-	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
+	Init() error
 	WithStorageRoot(sr StorageRoot) Initializer
 	WithFS(objectFS streamfs.FS) Initializer
+	Close() error
 }
 
 type Loader interface {
@@ -22,12 +23,17 @@ type Loader interface {
 	WithStorageRoot(sr StorageRoot) Loader
 	WithFS(sourceFS fs.FS) Loader
 	WithExtensionFactory(factory extension.Factory) Loader
+	Close() error
 }
 
 type StorageRoot interface {
 	fmt.Stringer
-	GetLoader(sourceFS fs.FS, extensionFactor extension.Factory) Loader
-	GetInitializer(storageRootFS streamfs.FS) Initializer
+	GetLoader(extensionFactor extension.Factory) Loader
+	GetInitializer() Initializer
+	WithReadFS(sourceFS fs.FS) StorageRoot
+	GetReadFS() fs.FS
+	WithWriteFS(streamFS streamfs.FS) StorageRoot
+	GetWriteFS() streamfs.FS
 	//WithFS(fsys fs.FS) StorageRoot
 	WithExtensionManager(extensionManager ExtensionManager) StorageRoot
 	GetExtensionManager() ExtensionManager

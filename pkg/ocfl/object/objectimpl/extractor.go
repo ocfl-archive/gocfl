@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"path/filepath"
 	"strings"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	iou "github.com/je4/utils/v2/pkg/io"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -34,14 +36,40 @@ type extractor struct {
 	logger   ocfllogger.OCFLLogger
 }
 
-func (extractor *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
+func (ext *extractor) GetFileReader(pathStr string) (io.ReadCloser, int64, string, error) {
+	fp, err := ext.sourceFS.Open(pathStr)
+	if err != nil {
+		return nil, 0, "", errors.Wrapf(err, "cannot open file %s", pathStr)
+	}
+	fi, err := fp.Stat()
+	if err != nil {
+		return nil, 0, "", errors.Wrapf(err, "cannot stat file %s", pathStr)
+	}
+
+	mimeReader, err := iou.NewMimeReader(fp)
+	if err != nil {
+		return nil, 0, "", errors.Wrapf(err, "cannot create mime reader for object %s - %s", ext.GetID(), pathStr)
+	}
+	contentType, err := mimeReader.DetectContentType()
+	if err != nil {
+		return nil, 0, "", errors.Wrapf(err, "cannot detect content type for object %s - %s", ext.GetID(), pathStr)
+	}
+	return fp, fi.Size(), contentType, nil
+}
+
+func (ext *extractor) GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error) {
+	pathStr := filepath.ToSlash(filepath.Join("extensions", extensionName, path))
+	return ext.GetFileReader(pathStr)
+}
+
+func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
 	var manifest strings.Builder
 	var err error
-	var inv = extractor.GetInventory()
+	var inv = ext.GetInventory()
 	var digestAlg = inv.GetDigestAlgorithm()
 	if err := inv.IterateFiles(version, func(internals, externals []string, digest string) error {
 		for _, external := range externals {
-			external, err = extractor.GetExtensionManager().BuildObjectExtractPath(external, area)
+			external, err = ext.GetExtensionManager().BuildObjectExtractPath(external, area)
 			if err != nil {
 				errCause := errors.Cause(err)
 				if errors.Is(errCause, object.ExtensionObjectExtractPathWrongAreaError) {
@@ -54,20 +82,20 @@ func (extractor *extractor) Extract(version *inventory.VersionNumber, withManife
 					return errors.Errorf("no internal paths for '%v'", externals)
 				}
 				internal := internals[0]
-				src, err := extractor.sourceFS.Open(internal)
+				src, err := ext.sourceFS.Open(internal)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open '%v/%s'", extractor.sourceFS, internal)
+					return errors.Wrapf(err, "cannot open '%v/%s'", ext.sourceFS, internal)
 				}
 				defer src.Close()
-				target, err := writefs.Create(extractor.objectFS, external)
+				target, err := writefs.Create(ext.objectFS, external)
 				if err != nil {
-					return errors.Wrapf(err, "cannot create '%v/%s'", extractor.objectFS, external)
+					return errors.Wrapf(err, "cannot create '%v/%s'", ext.objectFS, external)
 				}
 				defer target.Close()
-				extractor.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", extractor.sourceFS, internal, extractor.objectFS, external)
+				ext.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", ext.sourceFS, internal, ext.objectFS, external)
 				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 				if err != nil {
-					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", extractor.sourceFS, internal, extractor.objectFS, external)
+					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", ext.sourceFS, internal, ext.objectFS, external)
 				}
 				copyDigest, ok := copyDigests[digestAlg]
 				if !ok {
@@ -90,29 +118,29 @@ func (extractor *extractor) Extract(version *inventory.VersionNumber, withManife
 	}
 	if withManifest {
 		manifestName := fmt.Sprintf("manifest.%s", digestAlg)
-		fp, err := writefs.Create(extractor.objectFS, manifestName)
+		fp, err := writefs.Create(ext.objectFS, manifestName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot crate manifest file %v/%s", extractor.objectFS, manifestName)
+			return errors.Wrapf(err, "cannot crate manifest file %v/%s", ext.objectFS, manifestName)
 		}
 		if _, err := io.WriteString(fp, manifest.String()); err != nil {
-			return errors.Wrapf(err, "cannot write manifest file %v/%s", extractor.objectFS, manifestName)
+			return errors.Wrapf(err, "cannot write manifest file %v/%s", ext.objectFS, manifestName)
 		}
 		defer fp.Close()
 	}
-	extractor.logger.Debug().Msgf("object '%s' extracted", inv.GetID())
+	ext.logger.Debug().Msgf("object '%s' extracted", inv.GetID())
 	return nil
 
 }
 
-func (extractor *extractor) WithObject(o object.Object) object.Extractor {
-	extractor.Object = o
-	return extractor
+func (ext *extractor) WithObject(o object.Object) object.Extractor {
+	ext.Object = o
+	return ext
 }
 
-func (extractor *extractor) WithFS(sourceFS fs.FS, objectFS streamfs.FS) object.Extractor {
-	extractor.sourceFS = sourceFS
-	extractor.objectFS = objectFS
-	return extractor
+func (ext *extractor) WithFS(sourceFS fs.FS, objectFS streamfs.FS) object.Extractor {
+	ext.sourceFS = sourceFS
+	ext.objectFS = objectFS
+	return ext
 }
 
 var _ object.Extractor = (*extractor)(nil)

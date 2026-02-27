@@ -474,10 +474,10 @@ func (manager *GOCFLExtensionManager) BuildObjectExtractPath(originalPath string
 	return originalPath, nil
 }
 
-func (manager *GOCFLExtensionManager) GetMetadata(object object.Object) (map[string]any, error) {
+func (manager *GOCFLExtensionManager) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var metaResult = map[string]map[string]any{}
 	for _, ext := range manager.metadata {
-		meta, err := ext.GetMetadata(object)
+		meta, err := ext.GetMetadata(nil, obj)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot call GetMetadata() from extension '%s'", ext.GetName())
 		}

@@ -225,11 +225,11 @@ func (extFS *Filesystem) DoNewVersion(object object.VersionWriter) error {
 	return nil
 }
 
-func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, error) {
+func (extFS *Filesystem) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]map[string][]*FileSystemLine{}
 
-	inventory := object.GetInventory()
+	inventory := obj.GetInventory()
 	manifest := inventory.GetManifest()
 	path2digest := map[string]string{}
 	for checksum, names := range manifest.Iterate() {
@@ -245,10 +245,10 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
 			data, err = io.ReadAll(reader)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(nil, object, "filesystem", v, extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName)
+			data, err = ReadJsonL(sourceFS, obj, v, "filesystem", extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
@@ -264,7 +264,7 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 			lineStr := r.Text()
 			var meta = &FileSystemLine{}
 			if err := json.Unmarshal([]byte(lineStr), &meta); err != nil {
-				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, lineStr)
+				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", obj.GetID(), v, lineStr)
 			}
 			lines = append(lines, meta)
 		}
@@ -282,7 +282,7 @@ func (extFS *Filesystem) GetMetadata(object object.Object) (map[string]any, erro
 			}
 			return nil
 		}); err != nil {
-			return nil, errors.Wrapf(err, "cannot iterate state files for '%s' version '%s'", object.GetID(), v)
+			return nil, errors.Wrapf(err, "cannot iterate state files for '%s' version '%s'", obj.GetID(), v)
 		}
 	}
 	var retResult = map[string]any{}

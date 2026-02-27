@@ -379,7 +379,7 @@ func (sl *MetaFile) UpdateObjectAfter(obj object.VersionWriter) error {
 	return nil
 }
 
-func (sl *MetaFile) GetMetadata(obj object.Object) (map[string]any, error) {
+func (sl *MetaFile) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 	inv := obj.GetInventory()

@@ -175,7 +175,7 @@ func (thumb *Thumbnail) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventorytypes.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
+func (thumb *Thumbnail) storeThumbnail(obj object.VersionWriter, head *inventorytypes.VersionNumber, mFile io.ReadCloser) (target string, digest string, err error) {
 	var targetName string
 	subfolder := thumb.StorageName
 	if thumb.StorageType == "area" {
@@ -189,23 +189,23 @@ func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventorytype
 	}
 	switch strings.ToLower(thumb.StorageType) {
 	case "area":
-		if digest, err = object.AddReader(mFile, []string{targetName}, thumb.StorageName, true, false); err != nil {
+		if digest, err = obj.AddReader(mFile, []string{targetName}, thumb.StorageName, true, false); err != nil {
 			return "", "", errors.Wrapf(err, "cannot write '%s'", targetName)
 		}
-		areaPath, err := object.GetAreaPath(thumb.StorageName)
+		areaPath, err := obj.GetExtensionManager().GetAreaPath(thumb.StorageName)
 		if err != nil {
 			return "", "", errors.Wrapf(err, "cannot get area path for '%s'", thumb.StorageName)
 		}
 		return fmt.Sprintf("%s/%s", areaPath, targetName), digest, nil
 	case "path":
-		path, err := object.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return "", "", errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
 		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(path, thumb.StorageName, targetName)), "/")
 
 		//targetname := fmt.Sprintf("%s/%s_%s.jsonl%s", name, storageName, head, ext)
-		if digest, err = object.AddReader(mFile, []string{targetname}, "", true, false); err != nil {
+		if digest, err = obj.AddReader(mFile, []string{targetname}, "", true, false); err != nil {
 			return "", "", errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 		return targetname, digest, nil
@@ -226,7 +226,7 @@ func (thumb *Thumbnail) storeThumbnail(object object.Object, head *inventorytype
 	}
 }
 
-func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventorytypes.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
+func (thumb *Thumbnail) DoThumbnail(obj object.VersionWriter, head *inventorytypes.VersionNumber, thumbFunc *thumbnail.Function, ext string, file io.ReadCloser) (string, string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "gocfl_*"+ext)
 	if err != nil {
 		return "", "", errors.Wrap(err, "cannot create temp file")
@@ -260,7 +260,7 @@ func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventorytypes.V
 	}()
 	if err := thumbFunc.Thumbnail(tmpFilename, targetTempName, thumb.ThumbnailConfig.Width, thumb.ThumbnailConfig.Height, thumb.logger); err != nil {
 		//_ = os.Remove(tmpFilename)
-		return "", "", errors.Wrapf(err, "cannot create thumbnail file '%v' to object '%s'", targetTempName, object.GetID())
+		return "", "", errors.Wrapf(err, "cannot create thumbnail file '%v' to object '%s'", targetTempName, obj.GetID())
 	}
 
 	mFile, err := os.Open(targetTempName)
@@ -273,7 +273,7 @@ func (thumb *Thumbnail) DoThumbnail(object object.Object, head *inventorytypes.V
 		}
 	}()
 
-	targetFile, digest, err := thumb.storeThumbnail(object, head, mFile)
+	targetFile, digest, err := thumb.storeThumbnail(obj, head, mFile)
 
 	return targetFile, digest, errors.Wrap(err, "cannot store thumbnail")
 }
@@ -282,8 +282,8 @@ func (thumb *Thumbnail) UpdateObjectBefore(object.VersionWriter) error {
 	return nil
 }
 
-func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
-	inventory := object.GetInventory()
+func (thumb *Thumbnail) UpdateObjectAfter(obj object.VersionWriter) error {
+	inventory := obj.GetInventory()
 	head := inventory.GetHead()
 	thumb.buffer[head.String()] = &bytes.Buffer{}
 	thumb.writer = brotli.NewWriter(thumb.buffer[head.String()])
@@ -296,9 +296,9 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 	}
 
 	// first get the metadata from the object
-	meta, err := object.GetMetadata()
+	meta, err := obj.GetMetadata()
 	if err != nil {
-		return errors.Wrapf(err, "cannot get metadata from object %s", object.GetID())
+		return errors.Wrapf(err, "cannot get metadata from object %s", obj.GetID())
 	}
 	for cs, m := range meta.Files {
 		var found *ThumbnailResult = nil
@@ -335,7 +335,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 			// No direct access to object filesystem, using fallback or leaving empty
 			file = nil
 			ext = ""
-			if false { // Original logic used object.GetFS() which is no longer available
+			if false { // Original logic used obj.GetFS() which is no longer available
 				_ = ext
 			}
 			if file == nil {
@@ -343,14 +343,14 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 					thumb.logger.Info().Msgf("create thumbnail for %s", m.InternalName[0])
 					stateFiles, err := inventory.GetVersions().GetVersion(inventory.GetHead()).GetState().GetFiles(cs)
 					if err != nil {
-						return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, object.GetID())
+						return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, obj.GetID())
 					}
 					if len(stateFiles) == 0 {
-						return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, object.GetID())
+						return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, obj.GetID())
 					}
-					external, err := object.GetExtensionManager().BuildObjectExtractPath(object, stateFiles[len(stateFiles)-1], "")
+					external, err := obj.GetExtensionManager().BuildObjectExtractPath(stateFiles[len(stateFiles)-1], "")
 					if err != nil {
-						return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], object.GetID())
+						return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], obj.GetID())
 					}
 					file, err = thumb.sourceFS.Open(external)
 					if err != nil {
@@ -363,7 +363,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 			if file != nil {
 				//var ml *ThumbnailResult
 				var errStr string
-				targetFile, digest, err := thumb.DoThumbnail(object, head, thumbnailFunction, ext, file)
+				targetFile, digest, err := thumb.DoThumbnail(obj, head, thumbnailFunction, ext, file)
 				if err != nil {
 					errStr = err.Error()
 				}
@@ -380,10 +380,10 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 		if found != nil {
 			data, err := json.Marshal(found)
 			if err != nil {
-				return errors.Wrapf(err, "cannot marshal thumbnail line for file '%s' in object '%s'", found.Filename, object.GetID())
+				return errors.Wrapf(err, "cannot marshal thumbnail line for file '%s' in object '%s'", found.Filename, obj.GetID())
 			}
 			if _, err := thumb.writer.Write(append(data, []byte("\n")...)); err != nil {
-				return errors.Wrapf(err, "cannot write thumbnail line for file '%s' in object '%s'", found.Filename, object.GetID())
+				return errors.Wrapf(err, "cannot write thumbnail line for file '%s' in object '%s'", found.Filename, obj.GetID())
 			}
 		}
 
@@ -398,7 +398,7 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 
 	if err := WriteJsonL(
 		thumb.fsys,
-		object,
+		obj,
 		"thumbnail",
 		buffer.Bytes(),
 		thumb.ThumbnailConfig.Compress,
@@ -411,11 +411,11 @@ func (thumb *Thumbnail) UpdateObjectAfter(object object.VersionWriter) error {
 	return nil
 }
 
-func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error) {
+func (thumb *Thumbnail) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]any{}
 
-	inventory := object.GetInventory()
+	inventory := obj.GetInventory()
 	manifest := inventory.GetManifest()
 	/*
 		path2digest := map[string]string{}
@@ -434,13 +434,13 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
 			data, err = io.ReadAll(reader)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", object.GetID(), v)
+				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(thumb.fsys, object, "thumbnail", v, thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName)
+			data, err = ReadJsonL(sourceFS, obj, v, "thumbnail", thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName)
 			if err != nil {
 				continue
-				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
+				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", obj.GetID(), v)
 			}
 		}
 
@@ -452,7 +452,7 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 			line := r.Text()
 			var meta = ThumbnailResult{}
 			if err := json.Unmarshal([]byte(line), &meta); err != nil {
-				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", object.GetID(), v, line)
+				return nil, errors.Wrapf(err, "cannot unmarshal line from for '%s' %s - [%s]", obj.GetID(), v, line)
 			}
 			meta.SourceDigest = strings.ToLower(meta.SourceDigest) // paranoia
 			meta.ThumbDigest = strings.ToLower(meta.ThumbDigest)   // paranoia
@@ -461,18 +461,18 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 			// just to make sure, that we have a corresponding file in manifest
 
 			if _, err := manifest.GetFiles(meta.SourceDigest); err != nil {
-				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.SourceDigest, object.GetID())
+				return nil, errors.Errorf("cannot find checksum for file '%s' in object '%s'", meta.SourceDigest, obj.GetID())
 			}
 
 			if _, err := manifest.GetFiles(meta.ThumbDigest); err != nil {
 				source := ""
 				ver := inventory.GetVersions().GetVersion(inventory.GetHead())
 				if ver == nil {
-					return nil, errors.Wrapf(err, "cannot find latest version %s for file '%s' in object '%s'", inventory.GetHead(), meta.SourceDigest, object.GetID())
+					return nil, errors.Wrapf(err, "cannot find latest version %s for file '%s' in object '%s'", inventory.GetHead(), meta.SourceDigest, obj.GetID())
 				}
 				externalFiles, err := ver.GetState().GetFiles(meta.SourceDigest)
 				if err != nil {
-					return nil, errors.Wrapf(err, "cannot find state file for file '%s' in object '%s'", meta.SourceDigest, object.GetID())
+					return nil, errors.Wrapf(err, "cannot find state file for file '%s' in object '%s'", meta.SourceDigest, obj.GetID())
 				}
 				if len(externalFiles) > 0 {
 					source = externalFiles[0]
@@ -489,13 +489,13 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 			}
 			switch strings.ToLower(thumb.StorageType) {
 			case "area":
-				areaPath, err := object.GetAreaPath(thumb.StorageName)
+				areaPath, err := obj.GetExtensionManager().GetAreaPath(thumb.StorageName)
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot get area path for '%s'", thumb.StorageName)
 				}
 				meta.Filename = fmt.Sprintf("%s/%s", areaPath, meta.Filename)
 			case "path":
-				areaPath, err := object.GetAreaPath("content")
+				areaPath, err := obj.GetExtensionManager().GetAreaPath("content")
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot get area path for '%s'", thumb.StorageName)
 				}
@@ -514,7 +514,7 @@ func (thumb *Thumbnail) GetMetadata(object object.Object) (map[string]any, error
 			result[meta.SourceDigest] = &meta
 		}
 		if err := r.Err(); err != nil {
-			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", object.GetID(), v)
+			return nil, errors.Wrapf(err, "cannot scan lines for '%s' %s", obj.GetID(), v)
 		}
 	}
 	return result, nil

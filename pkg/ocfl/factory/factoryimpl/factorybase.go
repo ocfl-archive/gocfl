@@ -51,7 +51,7 @@ func (f *FactoryBase) GetVersion() version.OCFLVersion {
 }
 
 func (f *FactoryBase) NewLoader(ctx context.Context) object.Loader {
-	return objectimpl.NewLoader(ctx, f.logger)
+	return objectimpl.NewLoader(ctx, f, f.logger)
 }
 
 func (f *FactoryBase) NewInitializer(ctx context.Context) object.Initializer {

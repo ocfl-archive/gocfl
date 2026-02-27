@@ -20,14 +20,14 @@ func ReadFile(fsys fs.FS, obj object.Object, name string, version *inventory.Ver
 	var targetname string
 	switch storageType {
 	case "area":
-		path, err := obj.GetAreaPath(storageName)
+		path, err := obj.GetExtensionManager().GetAreaPath(storageName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot get area path for '%s'", storageName)
 		}
 		targetname = obj.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s", path, name), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
 	case "path":
-		path, err := obj.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
@@ -42,7 +42,7 @@ func ReadFile(fsys fs.FS, obj object.Object, name string, version *inventory.Ver
 	return fs.ReadFile(fsys, targetname)
 }
 
-func ReadJsonL(fsys fs.FS, obj object.Object, name string, version *inventory.VersionNumber, compress, storageType, storageName string) ([]byte, error) {
+func ReadJsonL(fsys fs.FS, obj object.Object, version *inventory.VersionNumber, name, compress, storageType, storageName string) ([]byte, error) {
 	if fsys == nil {
 		return nil, errors.Errorf("[%s/%s] %s: fsys is nil", obj.GetID(), version, name)
 	}
@@ -59,14 +59,14 @@ func ReadJsonL(fsys fs.FS, obj object.Object, name string, version *inventory.Ve
 	var targetname string
 	switch storageType {
 	case "area":
-		path, err := obj.GetAreaPath(storageName)
+		path, err := obj.GetExtensionManager().GetAreaPath(storageName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot get area path for '%s'", storageName)
 		}
 		targetname = obj.GetInventory().BuildManifestNameVersion(fmt.Sprintf("%s/%s_%s.jsonl%s", path, name, version, ext), version)
 		//targetname = fmt.Sprintf("%s/content/%s/indexer_%s.jsonl%s", version, path, version, ext)
 	case "path":
-		path, err := obj.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}
@@ -83,30 +83,24 @@ func ReadJsonL(fsys fs.FS, obj object.Object, name string, version *inventory.Ve
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open '%v/%s'", fsys, targetname)
 	}
+	defer f.Close()
 	switch compress {
 	case "brotli":
 		reader = brotli.NewReader(f)
 	case "gzip":
-		reader, err = gzip.NewReader(f)
+		r, err := gzip.NewReader(f)
 		if err != nil {
-			f.Close()
 			return nil, errors.Wrapf(err, "cannot open gzip reader on '%s'", targetname)
 		}
+		reader = r
+		defer r.Close()
 	case "none":
 		reader = f
 	}
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
-		if f != nil {
-			f.Close()
-		}
 		return nil, errors.Wrapf(err, "cannot read '%s'", targetname)
-	}
-	if f != nil {
-		if err := f.Close(); err != nil {
-			return nil, errors.Wrapf(err, "cannot close '%s'", targetname)
-		}
 	}
 	return data, nil
 }
@@ -146,7 +140,7 @@ func WriteJsonL(fsys streamfs.FS, obj object.VersionWriter, name string, brotliD
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "path":
-		path, err := obj.GetAreaPath("content")
+		path, err := obj.GetExtensionManager().GetAreaPath("content")
 		if err != nil {
 			return errors.Wrapf(err, "cannot get area path for '%s'", "content")
 		}

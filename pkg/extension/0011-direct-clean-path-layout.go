@@ -180,7 +180,7 @@ func (sl *DirectClean) WriteLayout(fsys streamfs.FS) error {
 		Extension   string `json:"extension"`
 		Description string `json:"description"`
 	}{
-		Extension:   PathDirectName,
+		Extension:   DirectCleanName,
 		Description: DirectCleanDescription,
 	}); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
