@@ -228,21 +228,19 @@ func (versionWriter *versionWriter) BuildNames(files []string, area string) (*ob
 	result := &object.NamesStruct{
 		ExternalPaths: []string{},
 	}
+	extensionManager := versionWriter.GetExtensionManager()
 	for _, file := range files {
-		externalPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(file, area)
+		externalPath, err := extensionManager.BuildObjectStatePath(file, area)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", file)
 		}
 		result.ExternalPaths = append(result.ExternalPaths, externalPath)
 	}
-	result.InternalPath, err = versionWriter.GetExtensionManager().BuildObjectManifestPath(files[0], area)
+	result.InternalPath, err = extensionManager.BuildObjectManifestPath(files[0], area)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create manifest path for '%s'", files[0])
 	}
 	result.ManifestPath = versionWriter.GetInventory().BuildManifestName(result.InternalPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create virtual filename for '%s'", result.InternalPath)
-	}
 	return result, nil
 }
 
