@@ -12,6 +12,7 @@ import (
 
 	"emperror.dev/errors"
 
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/rocrate"
 )
@@ -32,8 +33,11 @@ const rOCrateParamAddress = "address"
 // RoCrateFileDescription ...
 const RoCrateFileDescription = "Description for RO-Crate extension"
 
-// registered ...
+// Registered.
 const registered = false
+
+// Config file.
+const configFile = "config.json"
 
 // ROCrateFileConfig ...
 type ROCrateFileConfig struct {
@@ -116,9 +120,9 @@ func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
 // NewROCrateFileFS returns a new ROCrateFile objet providing access
 // to configuration and other parameters requirerd by this extension.
 func NewROCrateFileFS(fsys fs.FS) (*ROCrateFile, error) {
-	data, err := fs.ReadFile(fsys, "config.json")
+	data, err := fs.ReadFile(fsys, configFile)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read config.json")
+		return nil, errors.Wrapf(err, "cannot read %s", configFile)
 	}
 	var config = &ROCrateFileConfig{
 		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: ROCrateFileName},
@@ -239,9 +243,22 @@ func (rcFile *ROCrateFile) GetName() string {
 	return ROCrateFileName
 }
 
-// WriteConfig ...
+// WriteConfig ensures the configuration file is written to the
+// object's extension directory when an extension is used.
 func (rcFile *ROCrateFile) WriteConfig() error {
-	// not implemented.
+	if rcFile.fsys == nil {
+		return errors.New("no filesystem set")
+	}
+	configWriter, err := writefs.Create(rcFile.fsys, configFile)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open %s", configFile)
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(rcFile.ExtensionConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
 	return nil
 }
 
