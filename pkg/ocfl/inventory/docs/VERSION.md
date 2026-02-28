@@ -39,7 +39,7 @@ In the code, a version is represented by the `Version` interface (`pkg/ocfl/inve
 - `GetCreated() time.Time`: Returns the creation time.
 - `GetMessage() string`: Returns the version message.
 - `GetUser() User`: Returns the [User](TYPES.md#user) object.
-- `GetState() State`: Returns the [State](TYPES.md#state) of the version.
+- `GetState() State`: Returns the [State](STATE.md) of the version.
 - `GetVersionNumber() *VersionNumber`: Returns the [VersionNumber](TYPES.md#versionnumber) (e.g., v1).
 
 ## Concrete Implementation: `VersionBase`
@@ -69,6 +69,7 @@ The default implementation is found in `pkg/ocfl/inventory/inventoryimpl/version
 
 - [Back to README](../README.md)
 - [Go to Inventory Documentation](INVENTORY.md)
+- [Go to State Documentation](STATE.md)
 - [Go to Manifest Documentation](MANIFEST.md)
 - [Go to Fixity Documentation](FIXITY.md)
 - [Go to Types Documentation](TYPES.md)
