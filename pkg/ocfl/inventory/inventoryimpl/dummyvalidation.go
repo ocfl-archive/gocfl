@@ -7,7 +7,7 @@ import (
 )
 
 type ValidationError struct {
-	Errno   validation.ValidationErrorCode
+	Errno   validation.ErrorCode
 	Message string
 }
 
@@ -27,7 +27,7 @@ type DummyValidation struct {
 	Warning []ValidationError
 }
 
-func (d *DummyValidation) HasWarning(errno validation.ValidationErrorCode) bool {
+func (d *DummyValidation) HasWarning(errno validation.ErrorCode) bool {
 	for _, e := range d.Warning {
 		if e.Errno == errno {
 			return true
@@ -36,7 +36,7 @@ func (d *DummyValidation) HasWarning(errno validation.ValidationErrorCode) bool 
 	return false
 }
 
-func (d *DummyValidation) HasError(errno validation.ValidationErrorCode) bool {
+func (d *DummyValidation) HasError(errno validation.ErrorCode) bool {
 	for _, e := range d.Error {
 		if e.Errno == errno {
 			return true

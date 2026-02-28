@@ -14,22 +14,6 @@ import (
 	object "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
-func anyToStringMapString(dataAny any) (map[string]string, error) {
-	result := map[string]string{}
-	data, ok := dataAny.(map[string]interface{})
-	if !ok {
-		return nil, errors.Errorf("cannot convert to map[string]interface{}")
-	}
-	for k, v := range data {
-		str, ok := v.(string)
-		if !ok {
-			return nil, errors.Errorf("cannot convert '%s' to string", k)
-		}
-		result[strings.ToLower(k)] = str
-	}
-	return result, nil
-}
-
 func GetMigrations(conf *config.GOCFLConfig) (*Migration, error) {
 	m := &Migration{
 		Functions: map[string]*Function{},

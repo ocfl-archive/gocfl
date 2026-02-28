@@ -103,6 +103,8 @@ GOCFL command line tool supports the following subcommands
 
 There's a [quickstart guide](docs/quickstart.md) available.
 
+For developers, there is a [package documentation](./pkg/README.md) available.
+
 ### Why GOCFL
 
 There are several [OCFL tools & libraries][ocfl-2] that already exist. This

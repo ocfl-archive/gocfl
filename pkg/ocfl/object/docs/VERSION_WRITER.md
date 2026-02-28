@@ -1,0 +1,43 @@
+# VersionWriter Module
+
+The `VersionWriter` module handles the logic of adding a new version to an existing OCFL object. This includes managing logical file paths, deduplication via digests, and finalizing the update by writing the updated [Inventory](../../inventory/README.md).
+
+- **Interface**: `VersionWriter` (`pkg/ocfl/object/object.go`)
+- **Specification**: [OCFL 1.1: 3.3.1 Version Directories](../../../../data/specs/ocfl_1.1.md#331-version-directories)
+
+## Main Methods
+
+The `VersionWriter` provides comprehensive methods for object updates:
+
+### Adding Content
+- `AddFile(sourceFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error`: Adds a file from a source filesystem.
+- `AddFolder(sourceFS fs.FS, checkDuplicate bool, area string) error`: Recursively adds all files from a source folder.
+- `AddData(data []byte, path string, ...)`: Directly adds binary data as a file.
+- `AddReader(r io.ReadCloser, files []string, ...)`: Streams data into one or more target logical paths.
+
+### Logical Operations
+- `DeleteFile(virtualFilename string, digest string) error`: Removes a logical file reference from the new version.
+- `RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error`: Renames a logical path within the version.
+
+### Lifecycle & Areas
+- `BeginArea(area string)`: Starts adding content to a specific OCFL content area.
+- `EndArea() error`: Finishes the current content area.
+- `Close() error`: Finalizes the version update and writes the updated `inventory.json`.
+
+## Usage Example
+
+```go
+writer, err := obj.StartUpdate(objectFS, "New version message", "User Name", "user@example.com", false)
+if err != nil {
+    // handle error
+}
+defer writer.Close()
+
+err = writer.AddFile(sourceFS, "data.txt", true, "", false, false)
+// ... handle more operations ...
+```
+
+---
+- [Back to Object Overview](../README.md)
+- [The Object Interface](OBJECT.md)
+- [Functional Modules Index](MODULES.md)

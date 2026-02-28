@@ -35,7 +35,7 @@ type OCFLLogger interface {
 	Panic() *zerolog.Event
 	With(name, value string) OCFLLogger
 	WithVersion(ver version.OCFLVersion) OCFLLogger
-	ValidationError(code validation.ValidationErrorCode, format string, a ...interface{}) *OCFLLoggerImpl
+	ValidationError(code validation.ErrorCode, format string, a ...interface{}) *OCFLLoggerImpl
 }
 
 type OCFLLoggerImpl struct {
@@ -59,7 +59,7 @@ func (l *OCFLLoggerImpl) With(name, value string) OCFLLogger {
 	return NewOCFLLogger(l.ctx, new(l.ZLogger.With().Str(name, value).Logger()), newData, l.ver)
 }
 
-func (l *OCFLLoggerImpl) ValidationError(code validation.ValidationErrorCode, format string, a ...interface{}) *OCFLLoggerImpl {
+func (l *OCFLLoggerImpl) ValidationError(code validation.ErrorCode, format string, a ...interface{}) *OCFLLoggerImpl {
 	validationError := validation.GetValidationError(l.ver, code).AppendContext(format, a...)
 	var event *zerolog.Event
 	_ = validation.AddValidationErrors(l.ctx, validationError)

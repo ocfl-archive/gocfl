@@ -1,29 +1,14 @@
 package thumbnail
 
 import (
-	"emperror.dev/errors"
-	"github.com/google/shlex"
-	"github.com/ocfl-archive/gocfl/v2/config"
 	"regexp"
 	"strings"
 	"time"
-)
 
-func anyToStringMapString(dataAny any) (map[string]string, error) {
-	result := map[string]string{}
-	data, ok := dataAny.(map[string]interface{})
-	if !ok {
-		return nil, errors.Errorf("cannot convert to map[string]interface{}")
-	}
-	for k, v := range data {
-		str, ok := v.(string)
-		if !ok {
-			return nil, errors.Errorf("cannot convert '%s' to string", k)
-		}
-		result[strings.ToLower(k)] = str
-	}
-	return result, nil
-}
+	"emperror.dev/errors"
+	"github.com/google/shlex"
+	"github.com/ocfl-archive/gocfl/v2/config"
+)
 
 func GetThumbnails(conf *config.GOCFLConfig) (*Thumbnail, error) {
 	m := &Thumbnail{
