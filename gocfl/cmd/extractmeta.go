@@ -12,10 +12,12 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -108,7 +110,8 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
+	ctx := validation.NewContextValidation(context.TODO())
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
 
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
@@ -143,9 +146,14 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflFS, err := fsFactory.Get(ocflPath, true)
+	_ocflFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		return
+	}
+	ocflFS, ok := _ocflFS.(streamfs.FS)
+	if !ok {
+		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", ocflPath)
 		return
 	}
 	defer func() {
@@ -161,12 +169,12 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := validation.NewContextValidation(context.TODO())
-	sr, err := LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
+	sr, err := LoadStorageRootRO(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot load storage root")
 		return
 	}
+	logger.WithVersion(sr.GetOCFLVersion())
 	if oID != "" {
 		oPath, err = sr.IdToFolder(oID)
 		if err != nil {
@@ -175,7 +183,7 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	metadata, err := functions.ExtractMeta(ctx, sr.GetFS(), oPath, extensionFactory, logger)
+	metadata, err := functions.ExtractMeta(ctx, sr.GetReadFS(), oPath, extensionFactory, logger)
 	if err != nil {
 		fmt.Printf("cannot extract metadata from storage root: %v\n", err)
 		logger.Error().Err(err).Msg("cannot extract metadata from storage root")

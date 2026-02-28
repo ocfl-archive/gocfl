@@ -17,6 +17,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -151,7 +152,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.ZLogger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.Logger())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot init indexer")
 	}
@@ -205,9 +206,13 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
-	destFS, err := fsFactory.Get(ocflPath, false)
+	_destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
 		logger.Fatal().Msgf("cannot get filesystem for '%s'", ocflPath)
+	}
+	destFS, ok := _destFS.(streamfs.FS)
+	if !ok {
+		logger.Fatal().Msgf("filesystem for '%s' is not writeable", ocflPath)
 	}
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {

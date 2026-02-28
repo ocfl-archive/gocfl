@@ -12,10 +12,12 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -137,7 +139,8 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
+	ctx := validation.NewContextValidation(context.TODO())
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
 
 	doUpdateConf(cmd)
 
@@ -145,7 +148,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	var localCache bool
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, *conf.Indexer, logger.Logger())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("cannot init indexer")
 	}
@@ -169,9 +172,13 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("cannot get filesystem for '%s'", srcPath)
 	}
-	destFS, err := fsFactory.Get(ocflPath, false)
+	_destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+	}
+	destFS, ok := _destFS.(streamfs.FS)
+	if !ok {
+		logger.Fatal().Msgf("filesystem for '%s' is not writable", ocflPath)
 	}
 	var doNotClose = false
 	defer func() {
@@ -234,7 +241,18 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		doNotClose = true
 		return
 	}
+
+	if !writefs.HasContent(destFS) {
+
+	}
+	storageRoot, err := LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot load storage root")
+		doNotClose = true
+		return
+	}
 	_, objectExtensions, err := initDefaultExtensions(
+		storageRoot.GetOCFLVersion(),
 		extensionFactory,
 		"",
 		"",
@@ -242,17 +260,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot initialize default extensions")
-		doNotClose = true
-		return
-	}
-
-	ctx := validation.NewContextValidation(context.TODO())
-	if !writefs.HasContent(destFS) {
-
-	}
-	storageRoot, err := LoadStorageRoot(ctx, destFS, extensionFactory, (logger))
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot load storage root")
 		doNotClose = true
 		return
 	}

@@ -10,10 +10,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -99,7 +100,13 @@ func doInit(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
+
+	ver := version.OCFLVersion(conf.Init.OCFLVersion)
+	if !version.ValidVersion(ver) {
+		log.Fatalf("OCFL version  not supported: %v", ver)
+	}
+	ctx := validation.NewContextValidation(context.TODO())
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, ver)
 
 	doInitConf(cmd)
 
@@ -113,9 +120,14 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.Get(ocflPath, false)
+	_destFS, err := fsFactory.Get(ocflPath, false)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		return
+	}
+	destFS, ok := _destFS.(streamfs.FS)
+	if !ok {
+		logger.Error().Msgf("filesystem for '%s' is not writable", ocflPath)
 		return
 	}
 	defer func() {
@@ -140,6 +152,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 	storageRootExtensions, _, err := initDefaultExtensions(
+		ver,
 		extensionFactory,
 		conf.Init.StorageRootExtensionFolder,
 		"",
@@ -150,7 +163,6 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := validation.NewContextValidation(context.TODO())
 	if _, err := CreateStorageRoot(
 		ctx,
 		destFS,

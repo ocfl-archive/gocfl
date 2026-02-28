@@ -2,10 +2,12 @@ package storageroot
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
@@ -50,4 +52,5 @@ type StorageRoot interface {
 	GetVersion() version.OCFLVersion
 	//Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 	GetOCFLVersion() version.OCFLVersion
+	Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 }

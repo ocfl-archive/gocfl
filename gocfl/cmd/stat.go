@@ -12,10 +12,12 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -101,7 +103,8 @@ func doStat(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
+	ctx := validation.NewContextValidation(context.TODO())
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
 
 	doStatConf(cmd)
 
@@ -140,9 +143,14 @@ func doStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	destFS, err := fsFactory.Get(ocflPath, true)
+	_destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		return
+	}
+	destFS, ok := _destFS.(streamfs.FS)
+	if !ok {
+		logger.Error().Msgf("filesystem '%s' is not a writeable", ocflPath)
 		return
 	}
 	defer func() {
@@ -158,7 +166,6 @@ func doStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctx := validation.NewContextValidation(context.TODO())
 	if !writefs.HasContent(destFS) {
 
 	}

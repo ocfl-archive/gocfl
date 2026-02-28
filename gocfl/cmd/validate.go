@@ -4,14 +4,16 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -85,7 +87,8 @@ func validate(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	var logger = ocfllogger.NewOCFLLogger(&l2, nil)
+	ctx := validation.NewContextValidation(context.TODO())
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
 
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
@@ -118,8 +121,7 @@ func validate(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	ctx := validation.NewContextValidation(context.TODO())
-	sr, err := LoadStorageRoot(ctx, destFS, extensionFactory, logger)
+	sr, err := LoadStorageRootRO(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot load storageroot")
 		return
@@ -143,7 +145,7 @@ func validate(cmd *cobra.Command, args []string) {
 				return
 			}
 		}
-		objFsys, err := writefs.Sub(sr.GetFS(), objectPath)
+		objFsys, err := fs.Sub(sr.GetReadFS(), objectPath)
 		if err != nil {
 			logger.Error().Err(err).Msgf("cannot open filesystem for '%s'", objectPath)
 			return
@@ -153,7 +155,8 @@ func validate(cmd *cobra.Command, args []string) {
 			logger.Error().Err(err).Msgf("cannot open object for '%s'", objectPath)
 			return
 		}
-		if err := obj.Check(); err != nil {
+		checker := obj.GetChecker(objFsys)
+		if err := checker.Check(); err != nil {
 			logger.Error().Err(err).Msgf("ocfl object '%s' not valid", objectPath)
 			return
 		}

@@ -17,6 +17,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -135,12 +136,16 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ocflFS, err := fsFactory.Get(ocflPath, true)
+	_ocflFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
-
+	ocflFS, ok := _ocflFS.(streamfs.FS)
+	if !ok {
+		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", ocflPath)
+		return
+	}
 	destFS, err := fsFactory.Get(destPath, false)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", destPath)

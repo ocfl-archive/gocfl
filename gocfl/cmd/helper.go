@@ -21,7 +21,6 @@ import (
 	ocflextension "github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -504,12 +503,11 @@ func LoadStorageRoot(ctx context.Context, storageRootFS streamfs.FS, extensionFa
 			return nil, errors.WithStack(err)
 		}
 		if len(dirs) > 0 {
-			err := validation.GetValidationError(version.Version1_1, validation.E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", storageRootFS)
-			validation.AddValidationErrors(ctx, err)
-			//			return nil, err
+			logger.ValidationError(validation.E069, "storage root %s not empty without version information", storageRootFS)
 		}
 		ver = version.Version1_1
 	}
+	logger.WithVersion(ver)
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(storageRootFS).WithWriteFS(storageRootFS)
 	loader := storageRoot.GetLoader(extensionFactory)
@@ -520,25 +518,24 @@ func LoadStorageRoot(ctx context.Context, storageRootFS streamfs.FS, extensionFa
 	return storageRoot, nil
 }
 
-func LoadStorageRootRO(ctx context.Context, fact factory.Factory, fsys fs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	ver, err := util.GetVersion(fsys, ".", "ocfl_")
+func LoadStorageRootRO(ctx context.Context, storageRootFS fs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+	ver, err := util.GetVersion(storageRootFS, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
 	}
 	if ver == "" {
-		dirs, err := fs.ReadDir(fsys, ".")
+		dirs, err := fs.ReadDir(storageRootFS, ".")
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		if len(dirs) > 0 {
-			err := validation.GetValidationError(version.Version1_1, validation.E069).AppendDescription("storage root not empty without version information").AppendContext("storage root '%s'", fsys)
-			validation.
-				AddValidationErrors(ctx, err)
-			//			return nil, err
+			logger.ValidationError(validation.E069, "storage root %s not empty without version information", storageRootFS)
 		}
 		ver = version.Version1_1
 	}
-	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(fsys)
+	logger.WithVersion(ver)
+	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
+	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(storageRootFS)
 	loader := storageRoot.GetLoader(extensionFactory)
 	defer loader.Close()
 	if err := loader.Load(); err != nil {
