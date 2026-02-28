@@ -10,13 +10,15 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewStateBase() *stateBase {
+func NewStateBase(logger ocfllogger.OCFLLogger) *stateBase {
 	return &stateBase{
 		State:           map[string][]string{},
 		err:             nil,
 		digestAlgorithm: "",
+		logger:          logger,
 	}
 }
 
@@ -24,6 +26,7 @@ type stateBase struct {
 	State           map[string][]string
 	err             error
 	digestAlgorithm checksum.DigestAlgorithm
+	logger          ocfllogger.OCFLLogger
 }
 
 func (s *stateBase) WithDigestAlgorithm(dgst checksum.DigestAlgorithm) inventory.State {
@@ -131,27 +134,27 @@ func (s *stateBase) FileChecksum(path string) string {
 	return ""
 }
 
-func (s *stateBase) Check(val validation.Validation, version *inventory.VersionNumber, manifestDigests []string, manifestDigestsLower []string) error {
+func (s *stateBase) Check(version *inventory.VersionNumber, manifestDigests []string, manifestDigestsLower []string) error {
 	logPaths := []string{}
 	if s.Err() != nil {
-		val.AddValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
+		s.logger.ValidationError(validation.E050, "invalid state format in version '%s': %v", version, s.Err().Error())
 	}
 	for digest, paths := range s.Iterate() {
 		// massive performance boost by using sorted manifest
 		if _, found := slices.BinarySearch(manifestDigests, digest); !found {
 			if _, found := slices.BinarySearch(manifestDigestsLower, strings.ToLower(digest)); found {
-				val.AddValidationError(validation.E096, "wrong digest case in version '%s' - '%s'", version, digest)
+				s.logger.ValidationError(validation.E096, "wrong digest case in version '%s' - '%s'", version, digest)
 			} else {
-				val.AddValidationError(validation.E050, "digest not in manifest of versions '%s' - '%s'", version, digest)
+				s.logger.ValidationError(validation.E050, "digest not in manifest of versions '%s' - '%s'", version, digest)
 			}
 		}
 		for _, path := range paths {
 			logPaths = append(logPaths, paths...)
 			if path[0] == '/' || path[len(path)-1] == '/' {
-				val.AddValidationError(validation.E053, "invalid path '%s' in state for version '%s'", path, version)
+				s.logger.ValidationError(validation.E053, "invalid path '%s' in state for version '%s'", path, version)
 			}
 			if path == "" {
-				val.AddValidationError(validation.E051, "empty path in state for version '%s'", version)
+				s.logger.ValidationError(validation.E051, "empty path in state for version '%s'", version)
 			}
 			path2 := path
 			if path[0] == '/' {
@@ -160,7 +163,7 @@ func (s *stateBase) Check(val validation.Validation, version *inventory.VersionN
 			elements := strings.Split(path2, "/")
 			for _, element := range elements {
 				if slices.Contains([]string{"", ".", ".."}, element) {
-					val.AddValidationError(validation.E052, "invalid path '%s' in state for version '%s'", path, version)
+					s.logger.ValidationError(validation.E052, "invalid path '%s' in state for version '%s'", path, version)
 				}
 			}
 		}
@@ -170,7 +173,7 @@ func (s *stateBase) Check(val validation.Validation, version *inventory.VersionN
 	for j := 0; j < len(logPaths)-1; j++ {
 		prefix := strings.TrimSuffix(logPaths[j], "/") + "/"
 		if strings.HasPrefix(logPaths[j+1], prefix) {
-			val.AddValidationError(validation.E095, "logical path '%s' is prefix of '%s'", logPaths[j], logPaths[j+1])
+			s.logger.ValidationError(validation.E095, "logical path '%s' is prefix of '%s'", logPaths[j], logPaths[j+1])
 		}
 	}
 	return nil

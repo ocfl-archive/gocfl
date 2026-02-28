@@ -5,7 +5,6 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 var DigestAlgNotFound = errors.New("digest algorithm not found")
@@ -19,9 +18,9 @@ type Fixity interface {
 	GetDigestAlgorithms() iter.Seq[checksum.DigestAlgorithm]
 	GetFiles(alg checksum.DigestAlgorithm, digest string) ([]string, error)
 	Err() error
-	Equals(val validation.Validation, fixity Fixity) bool
+	Equals(fixity Fixity) bool
 	CopyFrom(fixity Fixity) error
-	Check(val validation.Validation, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
+	Check(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error
 	Finalize(inCreation bool) error
 	Checksums(s string) map[checksum.DigestAlgorithm]string
 }

@@ -8,40 +8,43 @@ import (
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-func NewUserBase() *userBase {
+func NewUserBase(logger ocfllogger.OCFLLogger) *userBase {
 	return &userBase{
 		Address: inventory.NewOCFLString(""),
 		Name:    inventory.NewOCFLString(""),
+		logger:  logger.With("component", "inventory-user"),
 	}
 }
 
 type userBase struct {
 	Address *inventory.OCFLString `json:"address"`
 	Name    *inventory.OCFLString `json:"name"`
+	logger  ocfllogger.OCFLLogger
 }
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
 
-func (u *userBase) Check(val validation.Validation, version *inventory.VersionNumber) error {
+func (u *userBase) Check(version *inventory.VersionNumber) error {
 	if u.Address.Err() != nil {
-		val.AddValidationError(validation.E054, "invalid user address in Version %s: %s", version, u.Address.Err().Error())
+		u.logger.ValidationError(validation.E054, "invalid user address in Version %s: %s", version, u.Address.Err().Error())
 	}
 	if u.Name.Err() != nil {
-		val.AddValidationWarning(validation.E054, "invalid user name in Version %s: %s", version, u.Name.Err().Error())
+		u.logger.ValidationError(validation.E054, "invalid user name in Version %s: %s", version, u.Name.Err().Error())
 	}
 	uAddr := u.Address.String()
 	if uAddr == "" {
-		val.AddValidationWarning(validation.W008, "no user address in version %s", version)
+		u.logger.ValidationError(validation.W008, "no user address in Version %s", version)
 	} else {
 		if !mailtoUriRegexp.MatchString(uAddr) {
-			u, err := url.Parse(uAddr)
+			url, err := url.Parse(uAddr)
 			if err != nil {
-				val.AddValidationWarning(validation.W009, "cannot parse user address '%s' in version '%s': %v", uAddr, version, err)
+				u.logger.ValidationError(validation.W009, "cannot parse user address '%s' in Version %s: %s", uAddr, version, err.Error())
 			} else {
-				if u.Scheme == "" {
-					val.AddValidationWarning(validation.W009, "cannot parse user address '%s' in version '%s'", uAddr, version)
+				if url.Scheme == "" {
+					u.logger.ValidationError(validation.W009, "cannot parse user address '%s' in Version %s", uAddr, version)
 				}
 			}
 		}

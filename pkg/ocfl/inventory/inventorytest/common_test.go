@@ -263,7 +263,7 @@ func genericUserInvalidAddressCheck(ver version.OCFLVersion, t *testing.T) {
 	f := getFactory(ver)
 	val := inventoryimpl.NewDummyValidation()
 	user := f.NewUser(context.Background()).WithAddress("xxx")
-	if err := user.Check(val, inventorytypes.NewVersionNumber().WithString("v1")); err != nil {
+	if err := user.Check(inventorytypes.NewVersionNumber().WithString("v1")); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
 	if !val.HasWarning(validation.W009) {
@@ -465,7 +465,7 @@ func genericVersionsCheck(ver version.OCFLVersion, t *testing.T) {
 	v := f.NewVersion(context.Background()).WithMessage("test")
 	versions.SetVersion(inventorytypes.NewVersionNumber().WithString("v1"), v)
 
-	if err := versions.Check(val, []string{}); err != nil {
+	if err := versions.Check([]string{}); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
 	if val.HasError(validation.E049) {

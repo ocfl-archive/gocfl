@@ -1,8 +1,6 @@
 package inventory
 
-import (
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-)
+import ()
 
 type User interface {
 	String() string
@@ -13,5 +11,5 @@ type User interface {
 	Finalize()
 	WithAddress(address string) User
 	WithName(name string) User
-	Check(val validation.Validation, version *VersionNumber) error
+	Check(version *VersionNumber) error
 }

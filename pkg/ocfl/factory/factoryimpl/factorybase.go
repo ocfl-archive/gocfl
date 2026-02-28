@@ -82,7 +82,7 @@ func (f *FactoryBase) NewFixity(ctx context.Context) inventory.Fixity {
 }
 
 func (f *FactoryBase) NewUser(context.Context) inventory.User {
-	return inventoryimpl.NewUserBase()
+	return inventoryimpl.NewUserBase(f.logger)
 }
 
 func (f *FactoryBase) NewManifest(context.Context) inventory.Manifest {
@@ -97,7 +97,7 @@ func (f *FactoryBase) NewVersion(ctx context.Context) inventory.Version {
 }
 
 func (f *FactoryBase) NewState(context.Context) inventory.State {
-	return inventoryimpl.NewStateBase()
+	return inventoryimpl.NewStateBase(f.logger)
 }
 
 func (f *FactoryBase) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {

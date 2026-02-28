@@ -120,7 +120,7 @@ func (f *FixityBase) Err() error {
 	return f.err
 }
 
-func (f *FixityBase) Equals(val validation.Validation, fixity inventory.Fixity) bool {
+func (f *FixityBase) Equals(fixity inventory.Fixity) bool {
 	fixity2, ok := fixity.(*FixityBase)
 	if !ok {
 		return false
@@ -166,7 +166,7 @@ func (f *FixityBase) CopyFrom(fixity inventory.Fixity) error {
 	return nil
 }
 
-func (f *FixityBase) Check(val validation.Validation, fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
+func (f *FixityBase) Check(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
 	for digestAlg, fixity := range f.fixity {
 		// check calculated digests
 		if fileManifest != nil {
@@ -179,13 +179,13 @@ func (f *FixityBase) Check(val validation.Validation, fileManifest map[checksum.
 				if !ok {
 					csFilenames, ok = csFiles[strings.ToLower(digest)]
 					if !ok {
-						val.AddValidationError(validation.E093, "fixity digest '%s' for file(s) %v not found in content", digest, files)
+						f.logger.ValidationError(validation.E093, "fixity digest '%s' for file(s) %v not found in content", digest, files)
 						continue
 					}
 				}
 				for _, path := range files {
 					if !slices.Contains(csFilenames, path) {
-						val.AddValidationError(validation.E093, "invalid fixity digest for file '%s'", path)
+						f.logger.ValidationError(validation.E093, "invalid fixity digest for file '%s'", path)
 					}
 				}
 			}
@@ -195,7 +195,7 @@ func (f *FixityBase) Check(val validation.Validation, fileManifest map[checksum.
 			digests := []string{}
 			lowerDigest := strings.ToLower(digest)
 			if _, found := slices.BinarySearch(digests, lowerDigest); found {
-				val.AddValidationError(validation.E097, "fixity '%s' digest '%s' is duplicate", digestAlg, digest)
+				f.logger.ValidationError(validation.E097, "fixity '%s' digest '%s' is duplicate", digestAlg, digest)
 			} else {
 				digests = util.SliceInsertSorted(digests, lowerDigest)
 				//digests = append(digests, lowerDigest)
@@ -203,10 +203,10 @@ func (f *FixityBase) Check(val validation.Validation, fileManifest map[checksum.
 
 			for _, path := range files {
 				if path[0] == '/' || path[len(path)-1] == '/' {
-					val.AddValidationError(validation.E100, "invalid path '%s' in fixity", path)
+					f.logger.ValidationError(validation.E100, "invalid path '%s' in fixity", path)
 				}
 				if path == "" {
-					val.AddValidationError(validation.E099, "empty path in fixity")
+					f.logger.ValidationError(validation.E099, "empty path in fixity")
 				}
 				path2 := path
 				if path[0] == '/' {
@@ -215,7 +215,7 @@ func (f *FixityBase) Check(val validation.Validation, fileManifest map[checksum.
 				elements := strings.Split(path2, "/")
 				for _, element := range elements {
 					if slices.Contains([]string{"", ".", ".."}, element) {
-						val.AddValidationError(validation.E099, "invalid path '%s' in fixity", path)
+						f.logger.ValidationError(validation.E099, "invalid path '%s' in fixity", path)
 					}
 				}
 			}

@@ -4,7 +4,6 @@ import (
 	"iter"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 var VersionNotFound = errors.New("Version not found")
@@ -19,8 +18,8 @@ type Versions interface {
 	GetVersion(versionNumber *VersionNumber) Version
 	IsEmpty() bool
 	SetVersion(versionNumber *VersionNumber, ver Version) Versions
-	Check(val validation.Validation, manifestDigest []string) error
-	Finalize(val validation.Validation, factory Factory, inCreation bool) error
+	Check(manifestDigests []string) error
+	Finalize(inCreation bool) error
 	LatestVersionNumber() *VersionNumber
 	FileExists(path, digest string) (bool, error)
 	Delete(versionNumber *VersionNumber) (bool, error)

@@ -7,10 +7,13 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
+/*
 type Validation interface {
 	AddValidationError(errno ValidationErrorCode, format string, a ...any) error
 	AddValidationWarning(errno ValidationErrorCode, format string, a ...any) error
 }
+
+*/
 
 func AddValidationError(ctx context.Context, ver version.OCFLVersion, errno ValidationErrorCode, format string, a ...any) error {
 	valError := GetValidationError(ver, errno).AppendDescription(format, a...)

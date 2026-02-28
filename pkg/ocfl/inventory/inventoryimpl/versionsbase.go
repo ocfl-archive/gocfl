@@ -200,18 +200,18 @@ func (v *versionsBase) GetVersionNumbers() iter.Seq[*inventory.VersionNumber] {
 	}
 }
 
-func (v *versionsBase) Finalize(val validation.Validation, factory inventory.Factory, inCreation bool) error {
+func (v *versionsBase) Finalize(inCreation bool) error {
 	for ver, version := range v.Iterate() {
-		if err := version.Finalize(val, factory, inCreation); err != nil {
+		if err := version.Finalize(inCreation); err != nil {
 			return errors.Wrapf(err, "failed to finalize inventory version '%s'", ver)
 		}
 	}
 	return nil
 }
 
-func (v *versionsBase) Check(val validation.Validation, manifestDigests []string) error {
+func (v *versionsBase) Check(manifestDigests []string) error {
 	if v.IsEmpty() {
-		val.AddValidationError(validation.E008, "length of ver is 0")
+		v.logger.ValidationError(validation.E008, "length of ver is 0")
 		return nil
 	}
 	var versionsSeq = []int{}
@@ -230,8 +230,8 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 			} else {
 				if paddingLength != len(versionNumber.String())-2 {
 					//i.AddValidationError(E011, "invalid ver padding '%s'", ver)
-					val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionNumber)
-					val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionNumber)
+					v.logger.ValidationError(validation.E012, "invalid ver padding %s", versionNumber.String())
+					v.logger.ValidationError(validation.E013, "invalid ver padding %s", versionNumber.String())
 				}
 			}
 		} else {
@@ -240,30 +240,30 @@ func (v *versionsBase) Check(val validation.Validation, manifestDigests []string
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
-						val.AddValidationError(validation.E011, "invalid ver padding '%s'", versionNumber)
-						val.AddValidationError(validation.E012, "invalid ver padding '%s'", versionNumber)
-						val.AddValidationError(validation.E013, "invalid ver padding '%s'", versionNumber)
+						v.logger.ValidationError(validation.E011, "invalid ver padding %s", versionNumber.String())
+						v.logger.ValidationError(validation.E012, "invalid ver padding %s", versionNumber.String())
+						v.logger.ValidationError(validation.E013, "invalid ver padding %s", versionNumber.String())
 					}
 				}
 			} else {
 				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
-				val.AddValidationError(validation.E104, "invalid version format '%s'", versionNumber)
+				v.logger.ValidationError(validation.E014, "invalid ver format %s", versionNumber.String())
 			}
 		}
 
-		if err := ver.Check(val, manifestDigests, manifestDigestsLower); err != nil {
+		if err := ver.Check(manifestDigests, manifestDigestsLower); err != nil {
 			return errors.Wrapf(err, "version %s validation check failed", versionNumber)
 		}
 	}
 	slices.Sort(versionsSeq)
 	for key, vInt := range versionsSeq {
 		if key != vInt-1 {
-			val.AddValidationError(validation.E010, "invalid ver sequence %v", versionsSeq)
+			v.logger.ValidationError(validation.E010, "invalid ver sequence %v", versionsSeq)
 			break
 		}
 	}
 	if paddingLength > 0 {
-		val.AddValidationWarning(validation.W001, "padding length is %v", paddingLength)
+		v.logger.ValidationError(validation.W001, "padding length %d", paddingLength)
 	}
 
 	return nil

@@ -3,7 +3,6 @@ package inventory
 import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 var DigestNotFound = errors.New("Digest not found")
@@ -19,7 +18,7 @@ type State interface {
 	Err() error
 	Equals(state State) bool
 	CopyFrom(state State) error
-	Check(val validation.Validation, version *VersionNumber, manifestDigests []string, manifestDigestsLower []string) error
+	Check(version *VersionNumber, manifestDigests []string, manifestDigestsLower []string) error
 	FileChecksum(path string) string
 	WithDigestAlgorithm(dgst checksum.DigestAlgorithm) State
 }

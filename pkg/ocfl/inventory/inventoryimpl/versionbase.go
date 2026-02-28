@@ -17,6 +17,7 @@ func NewVersionBase(ctx context.Context, factory inventory.Factory, logger ocfll
 		Message: inventory.NewOCFLString("initial"),
 		State:   factory.NewState(ctx),
 		User:    factory.NewUser(ctx),
+		factory: factory,
 		logger:  logger,
 	}
 }
@@ -30,6 +31,7 @@ type versionBase struct {
 	logger     ocfllogger.OCFLLogger
 	ctx        context.Context
 	inCreation bool
+	factory    inventory.Factory
 }
 
 func (v *versionBase) InCreation() bool {
@@ -85,20 +87,20 @@ func (v *versionBase) FileChecksum(path string) string {
 	return v.State.FileChecksum(path)
 }
 
-func (v *versionBase) Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error {
+func (v *versionBase) Check(manifestDigests, manifestDigestsLower []string) error {
 	if v.Created.Err() != nil {
-		val.AddValidationError(validation.E049, "invalid created format in version '%s': %v", v.version, v.Created.Err())
+		v.logger.ValidationError(validation.E049, "invalid created format in version '%s': %v", v.version, v.Created.Err())
 	}
-	if err := v.User.Check(val, v.version); err != nil {
+	if err := v.User.Check(v.version); err != nil {
 		return errors.Wrapf(err, "cannot check version %s", v.version)
 	}
 	if v.Message.Err() != nil {
-		val.AddValidationError(validation.E094, "invalid format for message in version '%s': %v", v.version, v.Message.Err().Error())
+		v.logger.ValidationError(validation.E094, "invalid message format in version '%s': %v", v.version, v.Message.Err())
 	}
 	if v.State == nil {
 		return errors.Errorf("no state set for version '%s'", v.version)
 	}
-	if err := v.State.Check(val, v.version, manifestDigests, manifestDigestsLower); err != nil {
+	if err := v.State.Check(v.version, manifestDigests, manifestDigestsLower); err != nil {
 		return errors.Wrapf(err, "invalid state check for version '%s'", v.version)
 	}
 	return nil
@@ -162,18 +164,18 @@ func (v *versionBase) GetState() inventory.State {
 	return v.State
 }
 
-func (v *versionBase) Finalize(val validation.Validation, factory inventory.Factory, inCreation bool) error {
+func (v *versionBase) Finalize(inCreation bool) error {
 	if v.User == nil {
-		_ = val.AddValidationWarning(validation.W007, "no user key in version '%s'", v.version)
-		v.User = NewUserBase()
+		v.logger.ValidationError(validation.W007, "no user key in version %s", v.version)
+		v.User = v.factory.NewUser(v.ctx)
 	}
 	v.User.Finalize()
 	if v.Message == nil {
-		_ = val.AddValidationWarning(validation.W007, "no message key in version '%s'", v.version)
+		v.logger.ValidationError(validation.W007, "no message key in version '%s'", v.version)
 		v.Message = inventory.NewOCFLString("")
 	}
 	if v.State == nil {
-		v.State = NewStateBase()
+		v.State = v.factory.NewState(v.ctx)
 	}
 	v.inCreation = inCreation
 	return nil

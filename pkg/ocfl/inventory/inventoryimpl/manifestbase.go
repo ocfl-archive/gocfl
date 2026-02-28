@@ -63,14 +63,14 @@ func (manifest *ManifestBase) GetDuplicates(digest string) []string {
 	return nil
 }
 
-func (manifest *ManifestBase) Finalize(val validation.Validation, factory inventory.Factory, creation bool) error {
+func (manifest *ManifestBase) Finalize(creation bool) error {
 	if manifest.manifest == nil {
 		manifest.manifest = map[string][]string{}
 	}
 	return nil
 }
 
-func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[string][]string, versionDigests []string) error {
+func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests []string) error {
 	if manifest.Err() != nil {
 		return errors.Wrap(manifest.Err(), "manifest has errors")
 	}
@@ -80,12 +80,12 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 		for digest, files := range manifest.Iterate() {
 			csFilenames, ok := csFiles[strings.ToLower(digest)]
 			if !ok {
-				val.AddValidationError(validation.E092, "digest '%s' for file(s) %v not found in content", digest, files)
+				manifest.logger.ValidationError(validation.E092, "digest '%s' for file(s) %v not found in content", digest, files)
 				continue
 			}
 			for _, file := range files {
 				if !slices.Contains(csFilenames, file) {
-					val.AddValidationError(validation.E092, "invalid digest for file '%s'", file)
+					manifest.logger.ValidationError(validation.E092, "invalid digest for file '%s'", file)
 				}
 			}
 		}
@@ -95,23 +95,23 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 	for digest, paths := range manifest.Iterate() {
 		//		digest = strings.ToLower(digest)
 		if slices.Contains(digests, digest) {
-			val.AddValidationError(validation.E096, "manifest digest '%s' is duplicate", digest)
+			manifest.logger.ValidationError(validation.E096, "manifest digest '%s' is duplicate", digest)
 		} else {
 			digests = util.SliceInsertSorted(digests, digest)
 			//digests = append(digests, digest)
 			if _, found := slices.BinarySearch(versionDigests, digest); !found {
 				//if !slices.Contains(versionDigests, digest) {
-				val.AddValidationError(validation.E107, "digest '%s' does not appear in any version", digest)
+				manifest.logger.ValidationError(validation.E107, "digest '%s' does not appear in any version", digest)
 			}
 		}
 		for _, path := range paths {
 			//allPaths = sliceInsertSorted(allPaths, path)
 			allPaths = append(allPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
-				val.AddValidationError(validation.E100, "invalid path '%s' in manifest", path)
+				manifest.logger.ValidationError(validation.E100, "invalid path '%s' in manifest", path)
 			}
 			if path == "" {
-				val.AddValidationError(validation.E099, "empty path in manifest")
+				manifest.logger.ValidationError(validation.E099, "empty path in manifest")
 			}
 			path2 := path
 			if path[0] == '/' {
@@ -120,7 +120,7 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 			elements := strings.Split(path2, "/")
 			for _, element := range elements {
 				if slices.Contains([]string{"", ".", ".."}, element) {
-					val.AddValidationError(validation.E099, "invalid path '%s' in manifest", path)
+					manifest.logger.ValidationError(validation.E099, "invalid path '%s' in manifest", path)
 				}
 			}
 
@@ -131,7 +131,7 @@ func (manifest *ManifestBase) Check(val validation.Validation, csFiles map[strin
 	for j := 0; j < len(allPaths)-1; j++ {
 		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
 		if strings.HasPrefix(allPaths[j], prefix) {
-			val.AddValidationError(validation.E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], prefix)
+			manifest.logger.ValidationError(validation.E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], prefix)
 		}
 	}
 

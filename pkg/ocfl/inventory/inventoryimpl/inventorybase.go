@@ -181,21 +181,21 @@ func (i *InventoryBase) Equals(invent inventory.Inventory) bool {
 func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	if i.Manifest == nil {
 		if !inCreation {
-			i.AddValidationError(validation.E041, "no manifest in inventory")
+			i.logger.ValidationError(validation.E041, "manifest is missing")
 		}
-		i.Manifest = i.factory.NewManifest(nil)
+		i.Manifest = i.factory.NewManifest(i.ctx)
 	}
-	if err := i.Manifest.Finalize(i, i.factory, inCreation); err != nil {
+	if err := i.Manifest.Finalize(inCreation); err != nil {
 		return errors.Wrap(err, "error finalizing manifest")
 	}
 
 	if i.Versions == nil {
 		if !inCreation {
-			i.AddValidationError(validation.E041, "no versions in inventory")
+			i.logger.ValidationError(validation.E041, "versions is missing")
 		}
-		i.Versions = i.factory.NewVersions(nil)
+		i.Versions = i.factory.NewVersions(i.ctx)
 	}
-	if err := i.Versions.Finalize(i, i.factory, inCreation); err != nil {
+	if err := i.Versions.Finalize(inCreation); err != nil {
 		return errors.Wrap(err, "error finalizing versions")
 	}
 
@@ -211,14 +211,6 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	return nil
 }
 
-func (i *InventoryBase) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
-	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", i.GetID())
-	return errors.WithStack(validation.AddValidationErrors(i.ctx, err))
-}
-func (i *InventoryBase) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
-	err := validation.GetValidationError(i.version, errno).AppendDescription(format, a...).AppendContext("object '%s'", i.GetID())
-	return errors.WithStack(validation.AddValidationWarnings(i.ctx, err))
-}
 func (i *InventoryBase) GetHead() *inventory.VersionNumber {
 	return i.GetVersions().LatestVersionNumber()
 }
@@ -266,7 +258,7 @@ func (i *InventoryBase) check() error {
 		manifestDigest = append(manifestDigest, digest)
 		fileManifestDigest[alg] = map[string][]string{digest: files}
 	}
-	if err := i.GetVersions().Check(i, manifestDigest); err != nil {
+	if err := i.GetVersions().Check(manifestDigest); err != nil {
 		return errors.WithStack(err)
 	}
 	versionDigests := []string{}
@@ -286,15 +278,15 @@ func (i *InventoryBase) check() error {
 				return errors.WithStack(err)
 			}
 	*/
-	if err := i.GetFixity().Check(i, fileManifestDigest); err != nil {
+	if err := i.GetFixity().Check(fileManifestDigest); err != nil {
 		return errors.WithStack(err)
 	}
 	if i.Id == "" {
-		i.AddValidationError(validation.E036, "invalid field \"id\" for object")
+		i.logger.ValidationError(validation.E036, "id is invalid")
 	}
 	if i.Id != "" {
 		if _, err := uri.Parse(i.Id); err != nil {
-			i.AddValidationWarning(validation.W005, "cannot parse uri id '%s': %v", i.Id, err)
+			i.logger.ValidationError(validation.W005, "cannot parse id '%s': %v", i.Id, err)
 		} /* else {
 			if u.Scheme == "" {
 				i.AddValidationWarning(W005, "id '%s' is not an uri", i.Id)
@@ -303,26 +295,26 @@ func (i *InventoryBase) check() error {
 		*/
 	}
 	if !i.Head.IsValid() {
-		i.AddValidationError(validation.E040, "invalid field \"head\" for object")
+		i.logger.ValidationError(validation.E040, "invalid field \"head\" for object")
 	}
 	if i.Type == "" {
-		i.AddValidationError(validation.E036, "invalid field \"type\" for object")
+		i.logger.ValidationError(validation.E036, "type is invalid")
 	}
 	if i.DigestAlgorithm == "" {
-		i.AddValidationError(validation.E036, "invalid field \"digestAlgorithm\" for object")
+		i.logger.ValidationError(validation.E036, "digest algorithm is invalid")
 	}
 
 	if !slices.Contains([]checksum.DigestAlgorithm{checksum.DigestSHA512, checksum.DigestSHA256}, i.DigestAlgorithm) {
-		i.AddValidationError(validation.E025, "invalid digest algorithm '%s'", i.DigestAlgorithm)
+		i.logger.ValidationError(validation.E025, "digest algorithm '%s' is not supported", i.DigestAlgorithm)
 	} else {
 		if slices.Contains([]checksum.DigestAlgorithm{checksum.DigestSHA256}, i.DigestAlgorithm) {
-			i.AddValidationError(validation.W004, "digest algorithm '%s' not suggested", i.DigestAlgorithm)
+			i.logger.ValidationError(validation.W004, "digest algorithm '%s' is not suggested", i.DigestAlgorithm)
 		}
 	}
 
 	if i.ContentDirectory != "" {
 		if slices.Contains([]string{"", ".", ".."}, i.ContentDirectory) || strings.Contains(i.ContentDirectory, "/") {
-			i.AddValidationError(validation.E017, "invalid content directory '%s'", i.ContentDirectory)
+			i.logger.ValidationError(validation.E017, "content directory '%s' is invalid", i.ContentDirectory)
 		}
 	}
 
@@ -346,7 +338,7 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 				return errors.Wrap(err, "manifest check failed")
 			}
 	*/
-	if err := i.Fixity.Check(i, fileManifest); err != nil {
+	if err := i.Fixity.Check(fileManifest); err != nil {
 		return errors.Wrap(err, "fixity check failed")
 	}
 	return nil
@@ -506,4 +498,3 @@ func (i *InventoryBase) MarshalJSON() ([]byte, error) {
 }
 
 var _ inventory.Inventory = (*InventoryBase)(nil)
-var _ validation.Validation = (*InventoryBase)(nil)

@@ -39,4 +39,4 @@ func (v *Validator) AddValidationWarning(errno ValidationErrorCode, format strin
 	return errors.WithStack(AddValidationWarnings(v.ctx, valError))
 }
 
-var _ Validation = (*Validator)(nil)
+//var _ Validation = (*Validator)(nil)

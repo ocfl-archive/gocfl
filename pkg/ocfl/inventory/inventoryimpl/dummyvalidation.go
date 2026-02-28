@@ -44,21 +44,3 @@ func (d *DummyValidation) HasError(errno validation.ValidationErrorCode) bool {
 	}
 	return false
 }
-
-func (d *DummyValidation) AddValidationError(errno validation.ValidationErrorCode, format string, a ...any) error {
-	d.Error = append(d.Error, ValidationError{
-		Errno:   errno,
-		Message: fmt.Sprintf(format, a...),
-	})
-	return nil
-}
-
-func (d *DummyValidation) AddValidationWarning(errno validation.ValidationErrorCode, format string, a ...any) error {
-	d.Warning = append(d.Warning, ValidationError{
-		Errno:   errno,
-		Message: fmt.Sprintf(format, a...),
-	})
-	return nil
-}
-
-var _ validation.Validation = &DummyValidation{}

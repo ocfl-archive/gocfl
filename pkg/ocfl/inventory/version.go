@@ -2,8 +2,6 @@ package inventory
 
 import (
 	"time"
-
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 )
 
 type Version interface {
@@ -11,7 +9,7 @@ type Version interface {
 
 	String() string
 	Equals(other Version) bool
-	Finalize(val validation.Validation, factory Factory, inCreation bool) error
+	Finalize(inCreation bool) error
 	WithCreated(t time.Time) Version
 	GetCreated() time.Time
 	WithMessage(msg string) Version
@@ -22,7 +20,7 @@ type Version interface {
 	GetUser() User
 	WithVersion(number *VersionNumber) Version
 	GetVersionNumber() *VersionNumber
-	Check(val validation.Validation, manifestDigests, manifestDigestsLower []string) error
+	Check(manifestDigests, manifestDigestsLower []string) error
 	Err() error
 	FileChecksum(path string) string
 	InCreation() bool
