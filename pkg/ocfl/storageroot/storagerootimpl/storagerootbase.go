@@ -54,6 +54,11 @@ type StorageRootBase struct {
 	streamFS         streamfs.FS
 }
 
+func (osr *StorageRootBase) WithDigestAlgorithm(digest checksum.DigestAlgorithm) storageroot.StorageRoot {
+	osr.digest = digest
+	return osr
+}
+
 func (osr *StorageRootBase) GetReadFS() fs.FS {
 	return osr.sourceFS
 }

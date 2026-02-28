@@ -1,11 +1,14 @@
 package objectimpl
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"io/fs"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 
 	"emperror.dev/errors"
@@ -34,6 +37,85 @@ type extractor struct {
 	ctx      context.Context
 	factory  factory.Factory
 	logger   ocfllogger.OCFLLogger
+}
+
+func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
+	inv := ext.GetInventory()
+	if inv == nil {
+		return nil, errors.Errorf("inventory is nil")
+	}
+
+	result := &inventory.Metadata{
+		ID:              inv.GetID(),
+		Head:            inv.GetHead(),
+		Files:           map[string]*inventory.FileMetadata{},
+		DigestAlgorithm: inv.GetDigestAlgorithm(),
+		Versions:        map[string]*inventory.VersionMetadata{},
+	}
+	versions := inv.GetVersions()
+	versionStrings := []string{}
+	for v, ver := range versions.Iterate() {
+		result.Versions[v.String()] = &inventory.VersionMetadata{
+			Created: ver.GetCreated(),
+			Message: ver.GetMessage(),
+			Name:    ver.GetUser().GetName(),
+			Address: ver.GetUser().GetAddress(),
+		}
+		versionStrings = append(versionStrings, v.String())
+	}
+	// sort version strings in ascending order
+	slices.SortFunc(versionStrings, func(a, b string) int {
+		a = strings.TrimPrefix(a, "v0")
+		b = strings.TrimPrefix(b, "v0")
+		ia, _ := strconv.Atoi(a)
+		ib, _ := strconv.Atoi(b)
+		return cmp.Compare(ia, ib)
+	})
+	extensionMetadata, err := ext.GetExtensionManager().GetMetadata(ext.sourceFS, ext)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot get extension metadata for object '%s'", inv.GetID())
+	}
+	if objectMeta, ok := extensionMetadata[""]; ok {
+		/*
+			for key, val := range objectMeta {
+				result.Extension[key] = val
+			}
+
+		*/
+		result.Extension = objectMeta
+	}
+	manifest := inv.GetManifest()
+	fixity := inv.GetFixity()
+	for digest, fnames := range manifest.Iterate() {
+		if len(fnames) == 0 {
+			continue
+		}
+		fm := &inventory.FileMetadata{
+			Checksums:    map[checksum.DigestAlgorithm]string{},
+			InternalName: fnames,
+			VersionName:  map[string][]string{},
+			Extension:    map[string]any{},
+		}
+		fm.Checksums = fixity.Checksums(fnames[0])
+		for v, ver := range versions.Iterate() {
+			for d, externalNames := range ver.GetState().Iterate() {
+				if digest == d {
+					if _, ok := fm.VersionName[v.String()]; !ok {
+						fm.VersionName[v.String()] = []string{}
+					}
+					fm.VersionName[v.String()] = append(fm.VersionName[v.String()], externalNames...)
+					break
+				}
+			}
+		}
+		if emAny, ok := extensionMetadata[digest]; ok {
+			if em, ok := emAny.(map[string]any); ok {
+				fm.Extension = em
+			}
+		}
+		result.Files[digest] = fm
+	}
+	return result, nil
 }
 
 func (ext *extractor) GetFileReader(pathStr string) (io.ReadCloser, int64, string, error) {

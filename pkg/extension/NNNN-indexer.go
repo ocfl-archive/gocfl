@@ -329,7 +329,7 @@ func (sl *Indexer) StreamObject(object object.VersionWriter, reader io.Reader, s
 	if _, ok := sl.buffer[head.String()]; !ok {
 		sl.buffer[head.String()] = &bytes.Buffer{}
 	}
-	if sl.currentHead != head.String() {
+	if head.String() == "" || sl.currentHead != head.String() {
 		sl.writer = brotli.NewWriter(sl.buffer[head.String()])
 		sl.currentHead = head.String()
 	}

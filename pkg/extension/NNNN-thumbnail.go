@@ -296,7 +296,8 @@ func (thumb *Thumbnail) UpdateObjectAfter(obj object.VersionWriter) error {
 	}
 
 	// first get the metadata from the object
-	meta, err := obj.GetMetadata()
+	extractor := obj.GetExtractor(obj.GetFS())
+	meta, err := extractor.GetMetadata()
 	if err != nil {
 		return errors.Wrapf(err, "cannot get metadata from object %s", obj.GetID())
 	}

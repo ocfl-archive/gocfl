@@ -60,6 +60,7 @@ type Extractor interface {
 	WithFS(sourceFS fs.FS, objectFS streamfs.FS) Extractor
 	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
 	GetFileReader(name string) (io.ReadCloser, int64, string, error)
+	GetMetadata() (*inventory.Metadata, error)
 }
 
 type Object interface {
@@ -73,7 +74,6 @@ type Object interface {
 	GetInventory() inventory.Inventory
 	//GetAreaPath(area string) (string, error)
 	Stat(w io.Writer, statInfo []StatInfo) error
-	GetMetadata() (*inventory.Metadata, error)
 	GetExtensionManager() ExtensionManager
 	GetOCFLVersion() version.OCFLVersion
 	GetChecker(sourceFS fs.FS) Checker

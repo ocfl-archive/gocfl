@@ -53,4 +53,5 @@ type StorageRoot interface {
 	//Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 	GetOCFLVersion() version.OCFLVersion
 	Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
+	WithDigestAlgorithm(digest checksum.DigestAlgorithm) StorageRoot
 }

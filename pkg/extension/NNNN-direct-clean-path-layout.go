@@ -5,6 +5,7 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
@@ -89,6 +90,16 @@ func (sl *LegacyDirectClean) GetConfig() any {
 }
 
 func (sl *LegacyDirectClean) WriteConfig(fsys streamfs.FS) error {
+	configWriter, err := writefs.Create(fsys, "config.json")
+	if err != nil {
+		return errors.Wrap(err, "cannot open config.json")
+	}
+	defer configWriter.Close()
+	jenc := json.NewEncoder(configWriter)
+	jenc.SetIndent("", "   ")
+	if err := jenc.Encode(sl.DirectCleanConfig); err != nil {
+		return errors.Wrapf(err, "cannot encode config to file")
+	}
 	return nil
 }
 

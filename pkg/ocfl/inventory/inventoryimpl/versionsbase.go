@@ -362,11 +362,11 @@ func (v *versionsBase) MarshalJSON() ([]byte, error) {
 
 func (v *versionsBase) LatestVersionNumber() *inventory.VersionNumber {
 	if len(v.versions) == 0 {
-		return nil
+		return &inventory.VersionNumber{}
 	}
 	var latest *inventory.VersionNumber
 	for v2int, v2 := range v.versions {
-		if latest.Int() < v2int {
+		if latest.Int() <= v2int {
 			latest = v2.GetVersionNumber()
 		}
 	}

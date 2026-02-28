@@ -32,7 +32,7 @@ func CreateObject(
 	logger ocfllogger.OCFLLogger,
 ) (object.Object, error) {
 	f := factoryimpl.NewFactory(ver, extensionFactory, logger)
-	obj := f.NewObject(ctx)
+	obj := f.NewObject(ctx).WithExtensionManager(manager)
 	initializer := obj.GetInitializer(fsys)
 
 	if err := initializer.Init(id, digest, fixity); err != nil {
@@ -117,10 +117,11 @@ func Extract(ctx context.Context, destFS, objectFS fs.FS, path string, version *
 func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (*inventory.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
-	o, err := LoadObject(ctx, objFsys, extensionFactory, logger)
+	obj, err := LoadObject(ctx, objFsys, extensionFactory, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
 	logger.Debug().Msgf("extraction done")
-	return o.GetMetadata()
+	extractor := obj.GetExtractor(objFsys)
+	return extractor.GetMetadata()
 }

@@ -191,7 +191,8 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -213,7 +214,8 @@ func (s *Server) downloadExtFile(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -247,7 +249,8 @@ func (s *Server) download(c *gin.Context) {
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -269,7 +272,8 @@ func (s *Server) download(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -311,7 +315,8 @@ func (s *Server) detail(c *gin.Context) {
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -333,7 +338,8 @@ func (s *Server) detail(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -514,7 +520,8 @@ func (s *Server) manifest(c *gin.Context) {
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -536,7 +543,8 @@ func (s *Server) manifest(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -614,7 +622,8 @@ func (s *Server) version(c *gin.Context) {
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -636,7 +645,8 @@ func (s *Server) version(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -736,7 +746,8 @@ func (s *Server) loadObjectID(c *gin.Context) {
 	if s.object != nil && s.object.GetID() == iop.ID {
 		// already loaded
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -758,7 +769,8 @@ func (s *Server) loadObjectID(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -793,7 +805,8 @@ func (s *Server) loadObjectPath(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	s.metadata, err = s.object.GetMetadata()
+	extractor := s.object.GetExtractor(s.objectFS)
+	s.metadata, err = extractor.GetMetadata()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 		return
@@ -886,7 +899,8 @@ func (s *Server) loadObjectBrowser(c *gin.Context) {
 	if s.object != nil && s.object.GetID() == iop.ID {
 		// already loaded
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -914,7 +928,8 @@ func (s *Server) loadObjectBrowser(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return
@@ -957,7 +972,8 @@ func (s *Server) report(c *gin.Context) {
 
 	if s.object != nil && s.object.GetID() == iop.ID {
 		if s.metadata == nil {
-			s.metadata, err = s.object.GetMetadata()
+			extractor := s.object.GetExtractor(s.objectFS)
+			s.metadata, err = extractor.GetMetadata()
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 				return
@@ -979,7 +995,8 @@ func (s *Server) report(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		s.metadata, err = s.object.GetMetadata()
+		extractor := s.object.GetExtractor(s.objectFS)
+		s.metadata, err = extractor.GetMetadata()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errors.Wrapf(err, "cannot get metadata for object %s", s.object.GetID()).Error()})
 			return

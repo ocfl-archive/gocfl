@@ -19,7 +19,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
-func NewVersionWriter(obj object.Object, objectFS streamfs.FS, echo bool, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
+func NewVersionWriter(obj object.Object, objectFS streamfs.FS, echo bool, msg string, name string, address string, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
 	vw := &versionWriter{
 		Object:      obj,
 		objectFS:    objectFS,
@@ -27,7 +27,7 @@ func NewVersionWriter(obj object.Object, objectFS streamfs.FS, echo bool, logger
 		echo:        echo,
 		updateFiles: []string{},
 	}
-	if err := vw.init(); err != nil {
+	if err := vw.init(msg, name, address); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize version writer")
 	}
 	return vw, nil
@@ -64,22 +64,25 @@ func (versionWriter *versionWriter) EndArea() error {
 	return nil
 }
 
-func (versionWriter *versionWriter) init() error {
+func (versionWriter *versionWriter) init(msg string, name string, address string) error {
 	var err error
-	versionWriter.ver = versionWriter.GetInventory().GetHead()
-	versionWriter.versionFS, err = streamfs.Sub(versionWriter.versionFS, versionWriter.ver.String())
+	inv := versionWriter.GetInventory()
+	if err := inv.GetVersions().NewVersion(msg, name, address); err != nil {
+		return errors.Wrap(err, "cannot create new inventory version")
+	}
+	versionWriter.ver = inv.GetHead()
+	versionWriter.versionFS, err = streamfs.Sub(versionWriter.objectFS, versionWriter.ver.String())
 	if err != nil {
 		return errors.Wrapf(err, "failed to open version stream %v/%s", versionWriter.versionFS, versionWriter.ver.String())
-	}
-	if err := versionWriter.GetExtensionManager().UpdateObjectBefore(versionWriter); err != nil {
-		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
 	if versionWriter.ver.Int() <= 1 {
 		if err := versionWriter.storeExtensions(); err != nil {
 			return errors.Wrap(err, "failed to store extensions")
 		}
 	}
-
+	if err := versionWriter.GetExtensionManager().UpdateObjectBefore(versionWriter); err != nil {
+		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
+	}
 	return nil
 }
 
@@ -213,7 +216,7 @@ func (versionWriter *versionWriter) Close() error {
 	if needVersion, err := versionWriter.GetExtensionManager().NeedNewVersion(versionWriter); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
-		nextVersion, err := versionWriter.StartUpdate(nil, "automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false)
+		nextVersion, err := versionWriter.StartUpdate(versionWriter.objectFS, "automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false)
 		if err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
@@ -285,7 +288,6 @@ func (versionWriter *versionWriter) AddFolder(sourceFS fs.FS, checkDuplicate boo
 
 func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
 	versionWriter.logger.Info().Msgf("adding file %s:%s", area, path)
-
 	/*
 		ver := inv.GetVersions().GetVersion(inv.GetHead())
 		if ver == nil {
@@ -391,10 +393,10 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 			return errors.Wrapf(err, "cannot close file '%s'", path)
 		}
 
-	}
-	if !noExtensionHook {
-		if err := versionWriter.GetExtensionManager().AddFileAfter(versionWriter, sourceFS, []string{path}, targetFilename, digest, area, isDir); err != nil {
-			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
+		if !noExtensionHook {
+			if err := versionWriter.GetExtensionManager().AddFileAfter(versionWriter, sourceFS, []string{path}, targetFilename, digest, area, isDir); err != nil {
+				return errors.Wrapf(err, "error on AddFileAfter() extension hook")
+			}
 		}
 	}
 

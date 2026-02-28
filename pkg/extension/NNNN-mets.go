@@ -223,7 +223,8 @@ type metaFileBase struct {
 
 func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 	inventory := obj.GetInventory()
-	metadata, err := obj.GetMetadata()
+	extractor := obj.GetExtractor(obj.GetFS())
+	metadata, err := extractor.GetMetadata()
 	if err != nil {
 		return errors.Wrap(err, "cannot get metadata from object")
 	}
