@@ -1,19 +1,38 @@
-# Version
+# Version and Versions
 
-Every change to an OCFL object is recorded in a new `Version`. A version contains metadata about the change and the `state` of the files at that point in time.
+The `Versions` structural module of the inventory manages the history of an OCFL object. Every change is recorded in a new `Version`, which contains metadata about the change and the `state` of the files at that point in time.
 
-## OCFL Specification (v1.1)
+## Instantiation via Factory
 
-According to the OCFL 1.1 specification ([3.5.3.1 Version](../ocfl11.md#version)), a version object must include the following fields:
+As structural modules of the inventory, `Versions` and individual `Version` objects should be created using the `pkg/ocfl/factory` package.
+
+```go
+versions := f.NewVersions(ctx)
+version := f.NewVersion(ctx, vNumber)
+```
+
+After creation, the `Versions` container is linked to the `Inventory` using the `WithVersions()` method:
+
+```go
+inv.WithVersions(versions)
+```
+
+## OCFL Specification
+
+Each version directory in an OCFL object contains a record of the state of the object at that version.
+
+- **Specification**: [3.5.3 Versions](../../../../data/specs/ocfl_1.1.md#353-versions)
+
+According to the OCFL specification, a version object must include the following fields:
 
 - `created`: Timestamp of creation (RFC3339).
 - `message`: Optional description of the changes.
 - `user`: Information about the creator (name and address).
 - `state`: A mapping of digests (from the manifest) to logical file paths within this version.
 
-## Implementation: `Version` Interface
+## Implementation: `Version` and `Versions` Interfaces
 
-In the code, a version is represented by the `Version` interface (`pkg/ocfl/inventory/version.go`).
+In the code, a version is represented by the `Version` interface (`pkg/ocfl/inventory/version.go`) and the collection by the `Versions` interface (`pkg/ocfl/inventory/versions.go`).
 
 ### Important Methods
 

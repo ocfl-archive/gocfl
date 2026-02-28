@@ -10,7 +10,7 @@ The implementations strictly follow the OCFL specification and use the interface
 - [**VersionBase**](../docs/VERSION.md#concrete-implementation-versionbase): Management of version metadata.
 - [**ManifestBase**](../docs/MANIFEST.md#concrete-implementation-manifestbase): Management of physical file mapping.
 - [**FixityBase**](../docs/FIXITY.md#concrete-implementation-fixitybase): Optional integrity check.
-- [**StateBase**](../docs/TYPES.md#state): Logical view of the files in a version.
+- [**StateBase**](../docs/STATE.md#concrete-implementation-statebase): Logical view of the files in a version.
 
 ## Implementation Features
 

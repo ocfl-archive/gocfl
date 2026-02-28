@@ -2,17 +2,32 @@
 
 This package defines the structures and interfaces for the OCFL (Oxford Common File Layout) Inventory. The inventory is the heart of an OCFL object and contains all metadata about the object's versions, files, and fixity information.
 
-The documentation is based on the [OCFL 1.1 Specification](ocfl11.md).
+## Overview
+
+The inventory structure is divided into several structural modules to maintain clarity and follow the OCFL specification:
+- **Inventory**: The central management unit.
+- **Versions**: Management of the version history and the state of each version.
+- **Manifest**: Mapping of content digests to physical file paths.
+- **Fixity**: Optional additional fixity information for physical files.
+
+## Instantiation and Factory
+
+The recommended way to create inventory components is through the `pkg/ocfl/factory` module. The factory ensures that components are created correctly according to the desired OCFL version (1.0, 1.1, etc.).
+
+When using the factory to create an inventory, the individual components (Manifest, Versions, Fixity) must be linked using the `With...()` methods (e.g., `WithManifest()`, `WithVersions()`, `WithFixity()`).
+
+For more details on instantiation, see the [Factory documentation](../factory/README.md).
 
 ## Data Type Documentation
 
-Detailed documentation has been created for each data type:
+Detailed documentation is available for each module:
 
 - [**Inventory**](docs/INVENTORY.md): The central document of the OCFL object.
 - [**Version**](docs/VERSION.md): Metadata and state of a single version.
 - [**Manifest**](docs/MANIFEST.md): Mapping of digests to physical files.
 - [**Fixity**](docs/FIXITY.md): Optional additional checksums for integrity assurance.
-- [**Types**](docs/TYPES.md): Information about `User`, `VersionNumber`, `State`, and `InventorySpec`.
+- [**State**](docs/STATE.md): Logical view of the files in a version.
+- [**Types**](docs/TYPES.md): Information about `User`, `VersionNumber`, and `InventorySpec`.
 
 ## Directory Structure
 

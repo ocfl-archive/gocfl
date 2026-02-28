@@ -1,12 +1,28 @@
 # Manifest
 
-The `Manifest` is the part of the inventory that bridges the gap between file digests (checksums) and their actual physical storage locations within the OCFL object.
+The `Manifest` is the structural module of the inventory that bridges the gap between file digests (checksums) and their actual physical storage locations within the OCFL object.
 
-## OCFL Specification (v1.1)
+## Instantiation via Factory
 
-According to the OCFL 1.1 specification ([3.5.2 Manifest](../ocfl11.md#manifest)), the manifest is a JSON object.
-Each key in the manifest is a digest value (calculated using the algorithm specified in `digestAlgorithm`).
-The value for each key is an array of paths relative to the OCFL object root directory.
+As a structural module of the inventory, a `Manifest` should be created using the `pkg/ocfl/factory` package.
+
+```go
+manifest := f.NewManifest(ctx)
+```
+
+After creation, it is linked to the `Inventory` using the `WithManifest()` method:
+
+```go
+inv.WithManifest(manifest)
+```
+
+## OCFL Specification
+
+The manifest is a mapping of digests to physical paths within the OCFL object.
+
+- **Specification**: [3.5.2 Manifest](../../../../data/specs/ocfl_1.1.md#352-manifest)
+
+According to the OCFL specification, the manifest is a JSON object. Each key in the manifest is a digest value (calculated using the algorithm specified in `digestAlgorithm`). The value for each key is an array of paths relative to the OCFL object root directory.
 
 ### Path Rules:
 - The separator must be a forward slash (`/`).

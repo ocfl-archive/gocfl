@@ -1,12 +1,28 @@
 # Fixity
 
-The `Fixity` interface allows for the storage of additional checksums for files listed in the manifest. This serves long-term integrity assurance by allowing alternative algorithms (e.g., MD5, SHA-1, SHA-256) to be used in addition to the primary algorithm.
+The `Fixity` structural module of the inventory allows for the storage of additional checksums for files listed in the manifest. This serves long-term integrity assurance by allowing alternative algorithms (e.g., MD5, SHA-1, SHA-256) to be used in addition to the primary algorithm.
 
-## OCFL Specification (v1.1)
+## Instantiation via Factory
 
-According to the OCFL 1.1 specification ([3.5.4 Fixity](../ocfl11.md#fixity)), the `fixity` block is optional.
-It is a JSON object whose keys are the names of the used digest algorithms.
-Each of these keys points to an object that, in turn, maps digests to arrays of physical paths (similar to the manifest).
+As a structural module of the inventory, a `Fixity` should be created using the `pkg/ocfl/factory` package.
+
+```go
+fixity := f.NewFixity(ctx)
+```
+
+After creation, it is linked to the `Inventory` using the `WithFixity()` method:
+
+```go
+inv.WithFixity(fixity)
+```
+
+## OCFL Specification
+
+The fixity block is used to store additional checksums using algorithms other than the main `digestAlgorithm`.
+
+- **Specification**: [3.5.4 Fixity](../../../../data/specs/ocfl_1.1.md#354-fixity)
+
+According to the OCFL specification, the `fixity` block is optional. It is a JSON object whose keys are the names of the used digest algorithms. Each of these keys points to an object that, in turn, maps digests to arrays of physical paths (similar to the manifest).
 
 ## Implementation: `Fixity` Interface
 
