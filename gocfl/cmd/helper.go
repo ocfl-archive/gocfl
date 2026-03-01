@@ -18,6 +18,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/config"
 	defaultextensions_object "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
 	defaultextensions_storageroot "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/storageroot"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	ocflextension "github.com/ocfl-archive/gocfl/v2/pkg/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
@@ -30,7 +31,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -429,7 +429,7 @@ func addObjectByPath(
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot create folder for id %s", id)
 	}
-	objectFS, err := streamfs.Sub(sr.GetWriteFS(), objPath)
+	objectFS, err := appendfs.Sub(sr.GetWriteFS(), objPath)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot create subfs %v / %s for id %s", sr.GetWriteFS(), objPath, id)
 	}
@@ -479,7 +479,7 @@ func addObjectByPath(
 	return o.GetInventory().IsModified(), nil
 }
 
-func CreateStorageRoot(ctx context.Context, objectWriteFS streamfs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+func CreateStorageRoot(ctx context.Context, objectWriteFS appendfs.FS, ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, extensionManager storageroot.ExtensionManager, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
 	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(objectWriteFS).WithWriteFS(objectWriteFS).WithExtensionManager(extensionManager).WithDigestAlgorithm(digest)
 
@@ -492,7 +492,7 @@ func CreateStorageRoot(ctx context.Context, objectWriteFS streamfs.FS, ver versi
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, storageRootFS streamfs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+func LoadStorageRoot(ctx context.Context, storageRootFS appendfs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	ver, err := util.GetVersion(storageRootFS, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)

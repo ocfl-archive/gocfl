@@ -8,10 +8,10 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const InitialName = "initial"
@@ -98,7 +98,7 @@ func (sl *Initial) SetParams(params map[string]string) error {
 
 func (sl *Initial) GetName() string { return InitialName }
 
-func (sl *Initial) WriteConfig(fsys streamfs.FS) error {
+func (sl *Initial) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

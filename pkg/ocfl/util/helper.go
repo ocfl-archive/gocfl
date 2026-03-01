@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -200,7 +201,7 @@ func GetVersion(fsys fs.FS, folder, prefix string) (ver version.OCFLVersion, err
 				return "", ocflerrors.ErrVersionMultiple
 			}
 			ver = version.OCFLVersion(matches[1])
-			cnt, err := fs.ReadFile(fsys, fmt.Sprintf("%s/%s", folder, file.Name()))
+			cnt, err := fs.ReadFile(fsys, path.Join(folder, file.Name()))
 			if err != nil {
 				return "", errors.Wrapf(err, "cannot read %s/%s", folder, file.Name())
 			}

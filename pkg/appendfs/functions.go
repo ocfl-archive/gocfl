@@ -1,4 +1,4 @@
-package streamfs
+package appendfs
 
 import (
 	"io/fs"
@@ -15,11 +15,11 @@ func Sub(fsys FS, path string) (FS, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "subfs %v/%s", fsys, path)
 	}
-	newStreamFS, ok := newFS.(FS)
+	newAppendFS, ok := newFS.(FS)
 	if !ok {
 		return nil, errors.Errorf("subfs %v/%s is not a FS", fsys, path)
 	}
-	return newStreamFS, nil
+	return newAppendFS, nil
 }
 
 func EnsureFS(fsys fs.FS) (FS, error) {
@@ -29,5 +29,5 @@ func EnsureFS(fsys fs.FS) (FS, error) {
 	if sfs, ok := fsys.(FS); ok {
 		return sfs, nil
 	}
-	return nil, errors.Errorf("filesystem %T does not implement streamfs.FS (must support Create and Mkdir)", fsys)
+	return nil, errors.Errorf("filesystem %T does not implement appendfs.FS (must support Create and Mkdir)", fsys)
 }

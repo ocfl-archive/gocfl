@@ -3,7 +3,7 @@ package extension
 import (
 	"io/fs"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 )
 
 type ExtensionConfig struct {
@@ -14,7 +14,7 @@ type Extension interface {
 	GetName() string
 	Load(fsys fs.FS) error
 	SetParams(params map[string]string) error
-	WriteConfig(fsys streamfs.FS) error
+	WriteConfig(fsys appendfs.FS) error
 	GetConfig() any
 	IsRegistered() bool
 	Terminate() error

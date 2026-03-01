@@ -11,6 +11,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
@@ -19,7 +20,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/slices"
 )
 
@@ -51,7 +51,11 @@ type StorageRootBase struct {
 	modified         bool
 	factory          factory.Factory
 	sourceFS         fs.FS
-	streamFS         streamfs.FS
+	appendFS         appendfs.FS
+}
+
+func (osr *StorageRootBase) IsWriteable() bool {
+	return osr.appendFS != nil
 }
 
 func (osr *StorageRootBase) WithDigestAlgorithm(digest checksum.DigestAlgorithm) storageroot.StorageRoot {
@@ -60,11 +64,17 @@ func (osr *StorageRootBase) WithDigestAlgorithm(digest checksum.DigestAlgorithm)
 }
 
 func (osr *StorageRootBase) GetReadFS() fs.FS {
+	if osr.sourceFS == nil {
+		osr.logger.Panic().Msg("source fs is not set")
+	}
 	return osr.sourceFS
 }
 
-func (osr *StorageRootBase) GetWriteFS() streamfs.FS {
-	return osr.streamFS
+func (osr *StorageRootBase) GetWriteFS() appendfs.FS {
+	if osr.appendFS == nil {
+		osr.logger.Panic().Msg("append fs is not set")
+	}
+	return osr.appendFS
 }
 
 func (osr *StorageRootBase) WithReadFS(sourceFS fs.FS) storageroot.StorageRoot {
@@ -72,8 +82,8 @@ func (osr *StorageRootBase) WithReadFS(sourceFS fs.FS) storageroot.StorageRoot {
 	return osr
 }
 
-func (osr *StorageRootBase) WithWriteFS(streamFS streamfs.FS) storageroot.StorageRoot {
-	osr.streamFS = streamFS
+func (osr *StorageRootBase) WithWriteFS(appendFS appendfs.FS) storageroot.StorageRoot {
+	osr.appendFS = appendFS
 	return osr
 }
 
@@ -216,9 +226,9 @@ func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 
 func (osr *StorageRootBase) CreateObject(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionFactory *extensionimpl.Factory, objectExtensionManager object.ExtensionManager) (object.Object, error) {
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
-	subfs, err := streamfs.Sub(osr.streamFS, folder)
+	subfs, err := appendfs.Sub(osr.appendFS, folder)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.streamFS, folder)
+		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.appendFS, folder)
 	}
 
 	obj := osr.factory.NewObject(osr.ctx).WithExtensionManager(objectExtensionManager)

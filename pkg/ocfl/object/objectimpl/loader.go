@@ -72,7 +72,7 @@ func (loader *Loader) WithFS(sourceFS fs.FS) object.Loader {
 func (loader *Loader) findInventoryFile() (string, error) {
 	// for version 1.0 and 1.1 there MUST be an inventory.json in the object root
 	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.GetOCFLVersion()) {
-		return "/inventory.json", nil
+		return "inventory.json", nil
 	}
 	dirs, err := fs.ReadDir(loader.objectFS, ".")
 	if err != nil {
@@ -83,7 +83,7 @@ func (loader *Loader) findInventoryFile() (string, error) {
 			continue
 		}
 		if d.Name() == "inventory.json" {
-			return "/inventory.json", nil
+			return "inventory.json", nil
 		}
 	}
 	var headNumber int64
@@ -101,7 +101,7 @@ func (loader *Loader) findInventoryFile() (string, error) {
 			return "", errors.Wrapf(err, "failed to parse version number from folder name '%s'", folderName)
 		}
 		if num > headNumber {
-			p = path.Join("/", folderName, "inventory.json")
+			p = path.Join(folderName, "inventory.json")
 			headNumber = num
 		}
 	}

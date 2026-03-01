@@ -1,6 +1,6 @@
-# streamfs
+# appendfs
 
-The `streamfs` package provides an extended file system interface that goes beyond the standard functionality of `io/fs`. The primary goal of this interface is to ensure that the provided file system is capable of creating new files and directories.
+The `appendfs` package provides an extended file system interface that goes beyond the standard functionality of `io/fs`. The primary goal of this interface is to ensure that the provided file system is capable of creating new files and directories.
 
 ## Interface: FS
 
@@ -30,7 +30,7 @@ This is particularly useful for restricting operations to a specific subdirector
 **Example:**
 
 ```go
-subFS, err := streamfs.Sub(rootFS, "v1/content")
+subFS, err := appendfs.Sub(rootFS, "v1/content")
 if err != nil {
     // Error handling
 }
@@ -41,8 +41,8 @@ f, err := subFS.Create("data.txt")
 
 ### `EnsureFS(fsys fs.FS) (FS, error)`
 
-The helper function `EnsureFS` checks if a given `fs.FS` implements the `streamfs.FS` interface (i.e., supports write access). If it does, it returns the casted interface; otherwise, an error is reported.
+The helper function `EnsureFS` checks if a given `fs.FS` implements the `appendfs.FS` interface (i.e., supports write access). If it does, it returns the casted interface; otherwise, an error is reported.
 
 ## Project Usage
 
-`streamfs.FS` is used in many places within `gocfl` to abstract the storage layer. It allows other packages (such as `ocfl`, `extension`, etc.) to create files and directories without having to worry about the underlying implementation (local file system, S3, etc.).
+`appendfs.FS` is used in many places within `gocfl` to abstract the storage layer. It allows other packages (such as `ocfl`, `extension`, etc.) to create files and directories without having to worry about the underlying implementation (local file system, S3, etc.).

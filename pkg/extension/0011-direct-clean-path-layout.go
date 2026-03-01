@@ -14,11 +14,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/constraints"
 )
 
@@ -154,7 +154,7 @@ func (sl *DirectClean) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *DirectClean) WriteConfig(fsys streamfs.FS) error {
+func (sl *DirectClean) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
@@ -168,7 +168,7 @@ func (sl *DirectClean) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *DirectClean) WriteLayout(fsys streamfs.FS) error {
+func (sl *DirectClean) WriteLayout(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

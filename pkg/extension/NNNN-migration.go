@@ -12,12 +12,12 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -80,7 +80,7 @@ type MigrationFiles map[string]*MigrationTarget
 
 type Migration struct {
 	*MigrationConfig
-	//targetFS  streamfs.FS
+	//targetFS  appendfs.FS
 	lastHead  *inventorytypes.VersionNumber
 	migration *migration.Migration
 	//buffer *bytes.Buffer
@@ -115,7 +115,7 @@ func (mi *Migration) GetFS() fs.FS {
 }
 
 func (mi *Migration) SetFS(targetFS fs.FS, create bool) {
-	if sfs, ok := targetFS.(streamfs.FS); ok {
+	if sfs, ok := targetFS.(appendfs.FS); ok {
 		mi.targetFS = sfs
 	}
 }
@@ -134,7 +134,7 @@ func (mi *Migration) SetParams(map[string]string) error {
 	return nil
 }
 
-func (mi *Migration) WriteConfig(fsys streamfs.FS) error {
+func (mi *Migration) WriteConfig(fsys appendfs.FS) error {
 	jsonData, _ := json.MarshalIndent(mi.MigrationConfig, "", "  ")
 	if _, err := writefs.WriteFile(fsys, "config.json", jsonData); err != nil {
 		return errors.Wrap(err, "cannot write config.json")

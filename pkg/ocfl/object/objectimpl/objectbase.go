@@ -11,6 +11,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
@@ -18,7 +19,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 // NewObjectBase creates an empty ObjectBase structure
@@ -179,7 +179,7 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 	return objectBase.i.GetDigestAlgorithm()
 }
 
-func (objectBase *ObjectBase) StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
+func (objectBase *ObjectBase) StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	vw, err := NewVersionWriter(objectBase, objectFS, echo, msg, UserName, UserAddress, objectBase.logger)
 	if err != nil {
@@ -196,7 +196,7 @@ func (objectBase *ObjectBase) GetID() string {
 }
 
 func (objectBase *ObjectBase) GetChecker(sourceFS fs.FS) object.Checker {
-	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase)
+	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase).WithFS(sourceFS)
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
@@ -207,7 +207,7 @@ func (objectBase *ObjectBase) GetLoader(sourceFS fs.FS, extensionFactory extensi
 	return objectBase.factory.NewLoader(objectBase.ctx).WithObject(objectBase).WithFS(sourceFS).WithExtensionFactory(extensionFactory)
 }
 
-func (objectBase *ObjectBase) GetInitializer(objectFS streamfs.FS) object.Initializer {
+func (objectBase *ObjectBase) GetInitializer(objectFS appendfs.FS) object.Initializer {
 	return objectBase.factory.NewInitializer(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
 }
 

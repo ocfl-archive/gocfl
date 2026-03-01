@@ -8,6 +8,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
@@ -17,7 +18,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 func CreateObject(
@@ -28,7 +28,7 @@ func CreateObject(
 	fixity []checksum.DigestAlgorithm,
 	extensionFactory *extensionimpl.Factory,
 	manager object.ExtensionManager,
-	fsys streamfs.FS,
+	fsys appendfs.FS,
 	logger ocfllogger.OCFLLogger,
 ) (object.Object, error) {
 	f := factoryimpl.NewFactory(ver, extensionFactory, logger)

@@ -10,10 +10,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
@@ -93,7 +93,7 @@ func (sl *StorageLayoutHashedNTuple) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *StorageLayoutHashedNTuple) WriteConfig(fsys streamfs.FS) error {
+func (sl *StorageLayoutHashedNTuple) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
@@ -129,7 +129,7 @@ func (sl *StorageLayoutHashedNTuple) BuildStorageRootPath(storageRoot storageroo
 	return strings.Join(dirparts, "/"), nil
 }
 
-func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys streamfs.FS) error {
+func (sl *StorageLayoutHashedNTuple) WriteLayout(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

@@ -19,6 +19,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/data/specs"
 	"github.com/ocfl-archive/gocfl/v2/info"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
@@ -26,7 +27,6 @@ import (
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -103,7 +103,7 @@ type MetsConfig struct {
 }
 type Mets struct {
 	*MetsConfig
-	fsys   streamfs.FS
+	fsys   appendfs.FS
 	logger ocfllogger.OCFLLogger
 	//	descriptiveMetadata     string
 	//	descriptiveMetadataType string
@@ -143,7 +143,7 @@ func (me *Mets) SetParams(params map[string]string) error {
 }
 
 func (me *Mets) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(streamfs.FS); ok {
+	if sfs, ok := fsys.(appendfs.FS); ok {
 		me.fsys = sfs
 	}
 }
@@ -154,7 +154,7 @@ func (me *Mets) GetFS() fs.FS {
 
 func (me *Mets) GetName() string { return METSName }
 
-func (me *Mets) WriteConfig(fsys streamfs.FS) error {
+func (me *Mets) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot create config.json")

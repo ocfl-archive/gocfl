@@ -18,11 +18,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
@@ -100,7 +100,7 @@ type ThumbnailMap map[string]*ThumbnailTarget
 type Thumbnail struct {
 	*ThumbnailConfig
 	logger      ocfllogger.OCFLLogger
-	fsys        streamfs.FS
+	fsys        appendfs.FS
 	lastHead    string
 	thumbnail   *thumbnail.Thumbnail
 	buffer      map[string]*bytes.Buffer
@@ -152,7 +152,7 @@ func (thumb *Thumbnail) IsRegistered() bool { return false }
 func (thumb *Thumbnail) GetName() string { return ThumbnailName }
 
 func (thumb *Thumbnail) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(streamfs.FS); ok {
+	if sfs, ok := fsys.(appendfs.FS); ok {
 		thumb.fsys = sfs
 	}
 }
@@ -161,7 +161,7 @@ func (thumb *Thumbnail) SetParams(map[string]string) error {
 	return nil
 }
 
-func (thumb *Thumbnail) WriteConfig(fsys streamfs.FS) error {
+func (thumb *Thumbnail) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

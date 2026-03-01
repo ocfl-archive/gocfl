@@ -11,7 +11,7 @@ The `Initializer` interface provides several key methods for configuring and exe
 
 - `Init() error`: Performs the actual initialization, creating the `0=ocfl_1.1` marker, the `extensions` directory, and the storage layout configuration.
 - `WithStorageRoot(sr StorageRoot) Initializer`: Associates the initializer with a [StorageRoot](STORAGEROOT.md) instance.
-- `WithFS(objectFS streamfs.FS) Initializer`: Sets the destination filesystem where the storage root will be created.
+ - `WithFS(objectFS appendfs.FS) Initializer`: Sets the destination filesystem where the storage root will be created.
 - `Close() error`: Finalizes the initialization process.
 
 ## Usage Example
@@ -19,7 +19,7 @@ The `Initializer` interface provides several key methods for configuring and exe
 Typically, the initializer is accessed via the [StorageRoot](STORAGEROOT.md) interface:
 
 ```go
-initializer := sr.GetInitializer().WithFS(streamFS)
+initializer := sr.GetInitializer().WithFS(appendFS)
 if err := initializer.Init(); err != nil {
     // handle error
 }

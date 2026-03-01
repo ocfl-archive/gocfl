@@ -14,11 +14,11 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/slices"
 )
 
@@ -332,7 +332,7 @@ func (extFS *Filesystem) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (extFS *Filesystem) WriteConfig(fsys streamfs.FS) error {
+func (extFS *Filesystem) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

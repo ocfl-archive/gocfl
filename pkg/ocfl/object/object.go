@@ -5,10 +5,10 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 type NamesStruct struct {
@@ -27,7 +27,7 @@ type VersionWriter interface {
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
 	Close() error
 	GetID() string
-	GetFS() streamfs.FS
+	GetFS() appendfs.FS
 	BeginArea(area string)
 	EndArea() error
 	BuildNames(files []string, area string) (*NamesStruct, error)
@@ -42,7 +42,7 @@ type Checker interface {
 type Initializer interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	WithObject(o Object) Initializer
-	WithFS(objectFS streamfs.FS) Initializer
+	WithFS(objectFS appendfs.FS) Initializer
 }
 
 type Loader interface {
@@ -57,7 +57,7 @@ type Loader interface {
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	WithObject(o Object) Extractor
-	WithFS(sourceFS fs.FS, objectFS streamfs.FS) Extractor
+	WithFS(sourceFS fs.FS, objectFS appendfs.FS) Extractor
 	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
 	GetFileReader(name string) (io.ReadCloser, int64, string, error)
 	GetMetadata() (*inventory.Metadata, error)
@@ -65,11 +65,11 @@ type Extractor interface {
 
 type Object interface {
 	GetExtractor(objectFS fs.FS) Extractor
-	GetInitializer(objectFS streamfs.FS) Initializer
+	GetInitializer(objectFS appendfs.FS) Initializer
 	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader
 	WithInventory(inv inventory.Inventory) Object
 	WithExtensionManager(manager ExtensionManager) Object
-	StartUpdate(objectFS streamfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
+	StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
 	GetID() string
 	GetInventory() inventory.Inventory
 	//GetAreaPath(area string) (string, error)

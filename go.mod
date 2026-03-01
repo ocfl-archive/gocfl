@@ -18,7 +18,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
-	github.com/je4/filesystem/v3 v3.0.41
+	github.com/je4/filesystem/v3 v3.0.42
 	github.com/je4/utils/v2 v2.0.62
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/ocfl-archive/error v1.0.5
@@ -61,7 +61,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/google/certificate-transparency-go v1.3.2 // indirect
+	github.com/google/certificate-transparency-go v1.3.3 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect

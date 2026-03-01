@@ -9,11 +9,11 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const NTupleOmitPrefixStorageLayoutName = "0007-n-tuple-omit-prefix-storage-layout"
@@ -106,7 +106,7 @@ func (sl *NTupleOmitPrefixStorageLayout) SetParams(params map[string]string) err
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) GetName() string { return NTupleOmitPrefixStorageLayoutName }
-func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(fsys streamfs.FS) error {
+func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
@@ -120,7 +120,7 @@ func (sl *NTupleOmitPrefixStorageLayout) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys streamfs.FS) error {
+func (sl *NTupleOmitPrefixStorageLayout) WriteLayout(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

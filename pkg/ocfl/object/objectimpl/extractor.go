@@ -15,11 +15,11 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 func NewExtractor(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Extractor {
@@ -33,7 +33,7 @@ func NewExtractor(ctx context.Context, factory factory.Factory, logger ocfllogge
 type extractor struct {
 	object.Object
 	sourceFS fs.FS
-	objectFS streamfs.FS
+	objectFS appendfs.FS
 	ctx      context.Context
 	factory  factory.Factory
 	logger   ocfllogger.OCFLLogger
@@ -168,12 +168,22 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 				if err != nil {
 					return errors.Wrapf(err, "cannot open '%v/%s'", ext.sourceFS, internal)
 				}
-				defer src.Close()
+				defer func(src fs.File) {
+					err := src.Close()
+					if err != nil {
+						ext.logger.Error().Err(err).Msgf("cannot close '%v/%s'", ext.sourceFS, internal)
+					}
+				}(src)
 				target, err := writefs.Create(ext.objectFS, external)
 				if err != nil {
 					return errors.Wrapf(err, "cannot create '%v/%s'", ext.objectFS, external)
 				}
-				defer target.Close()
+				defer func(target writefs.FileWrite) {
+					err := target.Close()
+					if err != nil {
+						ext.logger.Error().Err(err).Msgf("cannot close '%v'", target)
+					}
+				}(target)
 				ext.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", ext.sourceFS, internal, ext.objectFS, external)
 				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 				if err != nil {
@@ -205,9 +215,14 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 			return errors.Wrapf(err, "cannot crate manifest file %v/%s", ext.objectFS, manifestName)
 		}
 		if _, err := io.WriteString(fp, manifest.String()); err != nil {
+			if err := fp.Close(); err != nil {
+				return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.objectFS, manifestName)
+			}
 			return errors.Wrapf(err, "cannot write manifest file %v/%s", ext.objectFS, manifestName)
 		}
-		defer fp.Close()
+		if err := fp.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.objectFS, manifestName)
+		}
 	}
 	ext.logger.Debug().Msgf("object '%s' extracted", inv.GetID())
 	return nil
@@ -219,7 +234,7 @@ func (ext *extractor) WithObject(o object.Object) object.Extractor {
 	return ext
 }
 
-func (ext *extractor) WithFS(sourceFS fs.FS, objectFS streamfs.FS) object.Extractor {
+func (ext *extractor) WithFS(sourceFS fs.FS, objectFS appendfs.FS) object.Extractor {
 	ext.sourceFS = sourceFS
 	ext.objectFS = objectFS
 	return ext

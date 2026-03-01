@@ -9,8 +9,8 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 func NewInitialDummyFS(fsys fs.FS) (extension.Extension, error) {
@@ -72,7 +72,7 @@ func (dummy *InitialDummy) GetConfigString() string {
 	panic("implement me")
 }
 
-func (dummy *InitialDummy) WriteConfig(streamfs.FS) error {
+func (dummy *InitialDummy) WriteConfig(appendfs.FS) error {
 	panic("never call me")
 }
 

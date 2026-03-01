@@ -11,7 +11,7 @@ Key methods of the `Extension` interface:
 - `GetName() string`: Returns the unique name of the extension (e.g., `NNNN-direct-clean-path-layout`).
 - `Load(fsys fs.FS) error`: Loads the extension's configuration from a filesystem.
 - `SetParams(params map[string]string) error`: Configures the extension via key-value parameters.
-- `WriteConfig(fsys streamfs.FS) error`: Persists the extension's configuration to the OCFL object or storage root.
+- `WriteConfig(fsys appendfs.FS) error`: Persists the extension's configuration to the OCFL object or storage root.
 - `GetConfig() any`: Returns the extension's configuration object.
 - `Terminate() error`: Performs cleanup when the extension is no longer needed.
 

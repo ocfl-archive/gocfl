@@ -8,10 +8,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const DigestAlgorithmsName = "0001-digest-algorithms"
@@ -83,7 +83,7 @@ func (sl *DigestAlgorithms) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *DigestAlgorithms) WriteConfig(fsys streamfs.FS) error {
+func (sl *DigestAlgorithms) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

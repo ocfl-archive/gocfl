@@ -11,7 +11,7 @@ The `Initializer` interface includes methods for configuring and performing the 
 
 - `Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error`: Performs the initialization, including setting the object identifier, primary digest algorithm (e.g., `sha512`), and any additional [Fixity](../../inventory/docs/FIXITY.md) algorithms.
 - `WithObject(o Object) Initializer`: Associates the initializer with an [Object](OBJECT.md) instance.
-- `WithFS(objectFS streamfs.FS) Initializer`: Sets the target [stream-capable filesystem](../../streamfs/README.md) for initialization.
+- `WithFS(objectFS appendfs.FS) Initializer`: Sets the target [append-capable filesystem](../../appendfs/README.md) for initialization.
 
 ## Usage Example
 

@@ -6,17 +6,17 @@ import (
 	"io/fs"
 
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 type Initializer interface {
 	StorageRoot
 	Init() error
 	WithStorageRoot(sr StorageRoot) Initializer
-	WithFS(objectFS streamfs.FS) Initializer
+	WithFS(objectFS appendfs.FS) Initializer
 	Close() error
 }
 
@@ -30,12 +30,13 @@ type Loader interface {
 
 type StorageRoot interface {
 	fmt.Stringer
+	IsWriteable() bool
 	GetLoader(extensionFactor extension.Factory) Loader
 	GetInitializer() Initializer
 	WithReadFS(sourceFS fs.FS) StorageRoot
 	GetReadFS() fs.FS
-	WithWriteFS(streamFS streamfs.FS) StorageRoot
-	GetWriteFS() streamfs.FS
+	WithWriteFS(appendFS appendfs.FS) StorageRoot
+	GetWriteFS() appendfs.FS
 	//WithFS(fsys fs.FS) StorageRoot
 	WithExtensionManager(extensionManager ExtensionManager) StorageRoot
 	GetExtensionManager() ExtensionManager

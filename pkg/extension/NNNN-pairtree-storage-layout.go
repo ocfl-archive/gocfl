@@ -12,10 +12,10 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutPairTreeName = "NNNN-pairtree-storage-layout"
@@ -68,7 +68,7 @@ func (sl *StorageLayoutPairTree) IsRegistered() bool {
 	return false
 }
 
-func (sl *StorageLayoutPairTree) WriteLayout(fsys streamfs.FS) error {
+func (sl *StorageLayoutPairTree) WriteLayout(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
@@ -119,7 +119,7 @@ func (sl *StorageLayoutPairTree) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *StorageLayoutPairTree) WriteConfig(fsys streamfs.FS) error {
+func (sl *StorageLayoutPairTree) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

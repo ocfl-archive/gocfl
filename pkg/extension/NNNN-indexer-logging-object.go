@@ -5,9 +5,9 @@ import (
 	"io/fs"
 	"net/url"
 
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const LoggingIndexerName = "NNNN-indexer-logging-object"
@@ -45,7 +45,7 @@ func (li *LoggingIndexer) SetParams(params map[string]string) error {
 	panic("implement me")
 }
 
-func (li *LoggingIndexer) WriteConfig(streamfs.FS) error {
+func (li *LoggingIndexer) WriteConfig(appendfs.FS) error {
 	//TODO implement me
 	panic("implement me")
 }

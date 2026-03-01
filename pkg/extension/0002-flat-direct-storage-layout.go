@@ -8,11 +8,11 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
@@ -72,7 +72,7 @@ func (sl *StorageLayoutFlatDirect) SetParams(params map[string]string) error {
 }
 
 func (sl *StorageLayoutFlatDirect) GetName() string { return StorageLayoutFlatDirectName }
-func (sl *StorageLayoutFlatDirect) WriteConfig(fsys streamfs.FS) error {
+func (sl *StorageLayoutFlatDirect) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
@@ -86,7 +86,7 @@ func (sl *StorageLayoutFlatDirect) WriteConfig(fsys streamfs.FS) error {
 	return nil
 }
 
-func (sl *StorageLayoutFlatDirect) WriteLayout(fsys streamfs.FS) error {
+func (sl *StorageLayoutFlatDirect) WriteLayout(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "ocfl_layout.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")

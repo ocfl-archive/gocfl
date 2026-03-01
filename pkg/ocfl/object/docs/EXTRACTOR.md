@@ -12,7 +12,7 @@ The `Extractor` interface provides methods for retrieving and extracting object 
 - `GetFileReader(name string) (io.ReadCloser, int64, string, error)`: Retrieves an `io.ReadCloser` for a specific logical file, along with its size and digest.
 - `GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)`: Provides access to files stored within object extensions.
 - `WithObject(o Object) Extractor`: Associates the extractor with an [Object](OBJECT.md) instance.
-- `WithFS(sourceFS fs.FS, objectFS streamfs.FS) Extractor`: Configures the source and target filesystems for extraction.
+- `WithFS(sourceFS fs.FS, objectFS appendfs.FS) Extractor`: Configures the source and target filesystems for extraction.
 
 ## Usage Example
 

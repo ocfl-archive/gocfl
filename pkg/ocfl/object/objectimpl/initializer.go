@@ -6,11 +6,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 func NewInitializer(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Initializer {
@@ -23,7 +23,7 @@ func NewInitializer(ctx context.Context, factory factory.Factory, logger ocfllog
 
 type initializer struct {
 	object.Object
-	objectFS streamfs.FS
+	objectFS appendfs.FS
 	logger   ocfllogger.OCFLLogger
 	ctx      context.Context
 	factory  factory.Factory
@@ -34,7 +34,7 @@ func (initializer *initializer) WithObject(o object.Object) object.Initializer {
 	return initializer
 }
 
-func (initializer *initializer) WithFS(objectFS streamfs.FS) object.Initializer {
+func (initializer *initializer) WithFS(objectFS appendfs.FS) object.Initializer {
 	initializer.objectFS = objectFS
 	return initializer
 }
@@ -71,7 +71,7 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 	if err := writefs.MkDir(initializer.objectFS, "extensions"); err != nil {
 		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.objectFS, "extensions")
 	}
-	subFS, err := streamfs.Sub(initializer.objectFS, "extensions")
+	subFS, err := appendfs.Sub(initializer.objectFS, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", initializer.objectFS, "extensions")
 	}

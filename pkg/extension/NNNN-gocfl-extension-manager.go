@@ -12,11 +12,11 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	iou "github.com/je4/utils/v2/pkg/io"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extension2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"golang.org/x/exp/slices"
 )
 
@@ -246,9 +246,9 @@ func (manager *GOCFLExtensionManager) IsRegistered() bool {
 func (manager *GOCFLExtensionManager) GetName() string {
 	return GOCFLExtensionManagerName
 }
-func (manager *GOCFLExtensionManager) WriteConfig(fsys streamfs.FS) error {
+func (manager *GOCFLExtensionManager) WriteConfig(fsys appendfs.FS) error {
 	for _, ext := range append(manager.extensions, manager.initial) {
-		subFS, err := streamfs.Sub(fsys, ext.GetName())
+		subFS, err := appendfs.Sub(fsys, ext.GetName())
 		if err != nil {
 			return errors.Wrapf(err, "cannot create sub filesystem for %v/%s", fsys, ext.GetName())
 		}
@@ -258,7 +258,7 @@ func (manager *GOCFLExtensionManager) WriteConfig(fsys streamfs.FS) error {
 	}
 
 	if len(manager.Exclusion) != 0 || len(manager.Sort) != 0 {
-		subFS, err := streamfs.Sub(fsys, manager.GetName())
+		subFS, err := appendfs.Sub(fsys, manager.GetName())
 		if err != nil {
 			return errors.Wrapf(err, "cannot create sub filesystem for %v/%s", fsys, manager.GetName())
 		}
@@ -277,7 +277,7 @@ func (manager *GOCFLExtensionManager) WriteConfig(fsys streamfs.FS) error {
 }
 
 // StorageRootPath
-func (manager *GOCFLExtensionManager) StoreRootLayout(fsys streamfs.FS) error {
+func (manager *GOCFLExtensionManager) StoreRootLayout(fsys appendfs.FS) error {
 	for _, ext := range manager.storageRootPath {
 		if err := ext.WriteLayout(fsys); err != nil {
 			return errors.Wrapf(err, "cannot store '%v'", ext)
@@ -299,7 +299,7 @@ func (manager *GOCFLExtensionManager) BuildStorageRootPath(storageRoot storagero
 	}
 	return id, errors.Combine(errs...)
 }
-func (manager *GOCFLExtensionManager) WriteLayout(fsys streamfs.FS) error {
+func (manager *GOCFLExtensionManager) WriteLayout(fsys appendfs.FS) error {
 	if len(manager.storageRootPath) == 0 {
 		return nil
 	}

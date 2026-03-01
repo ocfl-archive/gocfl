@@ -33,7 +33,7 @@ var validateCmd = &cobra.Command{
 
 func initValidate() {
 	validateCmd.Flags().StringP("object-path", "o", "", "validate only the object at the specified path in storage root")
-	validateCmd.Flags().String("object-id", "", "validate only the object with the specified id in storage root")
+	validateCmd.Flags().StringP("object-id", "i", "", "validate only the object with the specified id in storage root")
 }
 
 func doValidateConf(cmd *cobra.Command) {

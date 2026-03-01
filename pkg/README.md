@@ -22,7 +22,7 @@ The main package for OCFL operations. It includes several sub-packages for diffe
 ### [ocfllogger](./ocfllogger)
 A specialized logger package used throughout the `gocfl` project to ensure consistent logging and error reporting.
 
-### [streamfs](./streamfs/README.md)
+### [appendfs](./appendfs/README.md)
 Provides an extended file system interface (`FS`) that supports both read and write operations, abstracting the underlying storage (e.g., local FS, S3).
 
 ### [subsystem](./subsystem/README.md)

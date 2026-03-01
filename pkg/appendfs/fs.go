@@ -1,4 +1,4 @@
-package streamfs
+package appendfs
 
 import (
 	"io/fs"

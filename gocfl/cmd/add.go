@@ -14,11 +14,11 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/internal"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -218,7 +218,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Fatal().Msgf("cannot get filesystem for '%s'", ocflPath)
 	}
-	destFS, ok := _destFS.(streamfs.FS)
+	destFS, ok := _destFS.(appendfs.FS)
 	if !ok {
 		logger.Fatal().Msgf("filesystem for '%s' is not writeable", ocflPath)
 	}

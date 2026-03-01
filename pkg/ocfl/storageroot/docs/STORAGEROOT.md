@@ -14,7 +14,7 @@ The `StorageRoot` interface includes the following key areas:
 
 ### Filesystem and State
 - `WithReadFS(sourceFS fs.FS) StorageRoot` / `GetReadFS() fs.FS`: Handles the read-only filesystem where the storage root is located.
-- `WithWriteFS(streamFS streamfs.FS) StorageRoot` / `GetWriteFS() streamfs.FS`: Handles the writable filesystem for updates and creations.
+ - `WithWriteFS(appendFS appendfs.FS) StorageRoot` / `GetWriteFS() appendfs.FS`: Handles the writable filesystem for updates and creations.
 - `IsModified() bool` / `SetModified()`: Tracks whether the storage root state has changed.
 
 ### Object Management
@@ -45,7 +45,7 @@ The `ExtensionManager` for storage roots extends the base [ManagerCore](../../ex
 This interface (`pkg/ocfl/storageroot/storagerootExtension.go`) is critical for OCFL storage roots as it defines how object identifiers are mapped to storage paths.
 
 - **Methods**:
-  - `WriteLayout(fsys streamfs.FS) error`: Persists the layout configuration.
+  - `WriteLayout(fsys appendfs.FS) error`: Persists the layout configuration.
   - `BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)`: Implements the logic to map an ID to a path.
 - **Specification**: [OCFL 1.1 Storage Layouts](../../../../data/specs/ocfl_1.1.md#42-storage-layout)
 

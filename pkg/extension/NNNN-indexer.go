@@ -17,11 +17,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/slices"
 )
@@ -87,7 +87,7 @@ type Indexer struct {
 	indexerActions *ironmaiden.ActionDispatcher
 	currentHead    string
 	localCache     bool
-	fsys           streamfs.FS
+	fsys           appendfs.FS
 	logger         ocfllogger.OCFLLogger
 }
 
@@ -137,7 +137,7 @@ func (sl *Indexer) IsRegistered() bool { return false }
 func (sl *Indexer) GetName() string { return IndexerName }
 
 func (sl *Indexer) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(streamfs.FS); ok {
+	if sfs, ok := fsys.(appendfs.FS); ok {
 		sl.fsys = sfs
 	}
 }
@@ -202,7 +202,7 @@ func (sl *Indexer) post(data any) ([]byte, int, error) {
 	return result, resp.StatusCode, nil
 }
 
-func (sl *Indexer) WriteConfig(fsys streamfs.FS) error {
+func (sl *Indexer) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

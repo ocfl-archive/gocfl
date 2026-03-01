@@ -7,9 +7,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 // fallback for object with unregigered naming
@@ -89,7 +89,7 @@ func (sl *LegacyDirectClean) GetConfig() any {
 	return sl.DirectCleanConfig
 }
 
-func (sl *LegacyDirectClean) WriteConfig(fsys streamfs.FS) error {
+func (sl *LegacyDirectClean) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

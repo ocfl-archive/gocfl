@@ -11,9 +11,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 )
 
 func ReadFile(fsys fs.FS, obj object.Object, name string, version *inventory.VersionNumber, storageType, storageName string) ([]byte, error) {
@@ -105,7 +105,7 @@ func ReadJsonL(fsys fs.FS, obj object.Object, version *inventory.VersionNumber, 
 	return data, nil
 }
 
-func WriteJsonL(fsys streamfs.FS, obj object.VersionWriter, name string, brotliData []byte, compress, storageType, storageName string) error {
+func WriteJsonL(fsys appendfs.FS, obj object.VersionWriter, name string, brotliData []byte, compress, storageType, storageName string) error {
 	var bufReader = bytes.NewBuffer(brotliData)
 	var ext string
 	var reader io.Reader

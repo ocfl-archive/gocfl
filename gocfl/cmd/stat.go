@@ -12,12 +12,12 @@ import (
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -148,7 +148,7 @@ func doStat(cmd *cobra.Command, args []string) {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
-	destFS, ok := _destFS.(streamfs.FS)
+	destFS, ok := _destFS.(appendfs.FS)
 	if !ok {
 		logger.Error().Msgf("filesystem '%s' is not a writeable", ocflPath)
 		return

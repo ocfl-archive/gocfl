@@ -34,7 +34,7 @@ func NewInventoryBase(ctx context.Context, f factorytypes.Factory, version versi
 		Manifest:         f.NewManifest(ctx),
 		Versions:         f.NewVersions(ctx),
 		Fixity:           f.NewFixity(ctx),
-		logger:           logger,
+		logger:           logger.With("component", "inventorybase"),
 	}
 	return i
 
@@ -116,6 +116,7 @@ func (i *InventoryBase) GetFixity() inventory.Fixity {
 
 func (i *InventoryBase) WithID(id string) inventory.Inventory {
 	i.Id = id
+	i.logger = i.logger.With("id", id)
 	return i
 }
 func (i *InventoryBase) GetID() string { return i.Id }

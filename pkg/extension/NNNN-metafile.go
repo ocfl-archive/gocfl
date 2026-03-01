@@ -16,13 +16,13 @@ import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/streamfs"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
@@ -77,7 +77,7 @@ type MetaFile struct {
 	*MetaFileConfig
 	schema         []byte
 	metadataSource *url.URL
-	fsys           streamfs.FS
+	fsys           appendfs.FS
 	compiledSchema *jsonschema.Schema
 	stored         bool
 	info           map[string][]byte
@@ -163,7 +163,7 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 }
 
 func (sl *MetaFile) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(streamfs.FS); ok {
+	if sfs, ok := fsys.(appendfs.FS); ok {
 		sl.fsys = sfs
 	}
 }
@@ -174,7 +174,7 @@ func (sl *MetaFile) GetFS() fs.FS {
 
 func (sl *MetaFile) GetName() string { return MetaFileName }
 
-func (sl *MetaFile) WriteConfig(fsys streamfs.FS) error {
+func (sl *MetaFile) WriteConfig(fsys appendfs.FS) error {
 	if _, err := writefs.WriteFile(fsys, sl.MetaSchema, sl.schema); err != nil {
 		return errors.Wrapf(err, "cannot write schema to %v/%s", fsys, sl.MetaSchema)
 	}

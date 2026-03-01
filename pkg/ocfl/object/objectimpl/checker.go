@@ -48,6 +48,9 @@ func (obj *checker) WithFS(objectFS fs.FS) object.Checker {
 }
 
 func (obj *checker) Check() error {
+	if obj.objectFS == nil {
+		obj.logger.Panic().Msg("object FS is not set")
+	}
 	inv := obj.GetInventory()
 	//TODO implement me
 	// https://ocfl.io/1.0/spec/#object-structure
@@ -160,6 +163,7 @@ func (obj *checker) checkVersionFolder(version string) error {
 			}
 		}
 	}
+	obj.logger.Debug().Msgf("found %d correct version inventory files", len(versionEntries))
 	return nil
 }
 
@@ -193,17 +197,18 @@ func (obj *checker) checkFilesAndVersions() error {
 	objectFilesFlat := []string{}
 	for ver, cont := range versionContents {
 		// load all object version content files
-		versionContent := ver + "/" + cont
+		versionContent := path.Join(ver, cont)
 		//inventoryFile := ver + "/inventory.json"
 		if _, ok := objectContentFiles[ver]; !ok {
 			objectContentFiles[ver] = []string{}
 		}
-		fs.WalkDir(
+		// erstelle eine liste aller dateien im versionsordner und eine liste aller dateien im contentordner der version
+		if err := fs.WalkDir(
 			obj.objectFS,
 			ver,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
-				if d.IsDir() {
+				if d == nil || d.IsDir() {
 					if !strings.HasPrefix(path, versionContent) && path != ver && !strings.HasPrefix(ver+"/"+inv.GetContentDir(), path) {
 						obj.logger.ValidationError(validation.W002, "extra dir '%s' in version '%s'", path, ver)
 					}
@@ -222,7 +227,10 @@ func (obj *checker) checkFilesAndVersions() error {
 				}
 				return nil
 			},
-		)
+		); err != nil {
+			return errors.Wrapf(err, "cannot walk version '%v/%s'", obj.objectFS, ver)
+		}
+		// leerer content ordner
 		if len(objectContentFiles[ver]) == 0 {
 			fi, err := fs.Stat(obj.objectFS, versionContent)
 			if err != nil {
@@ -345,8 +353,8 @@ func (obj *checker) checkFilesAndVersions() error {
 	//
 	// all files in any manifest must belong to a physical file #E092
 	//
-	for inventoryVersion, inventory := range versionInventories {
-		for manifestFile := range inventory.GetManifest().GetFilesFlat() {
+	for inventoryVersion, inv2 := range versionInventories {
+		for manifestFile := range inv2.GetManifest().GetFilesFlat() {
 			if !slices.Contains(objectFilesFlat, manifestFile) {
 				obj.logger.ValidationError(validation.E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
 			}
@@ -414,13 +422,13 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 			versionNumber.String(),
 			func(path string, d fs.DirEntry, err error) error {
 				//obj.logger.Debug(path)
-				if d.IsDir() {
+				if d == nil || d.IsDir() {
 					return nil
 				}
 				fname := path // filepath.ToSlash(filepath.Join(version, path))
 				fp, err := obj.objectFS.Open(fname)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open file '%v/%s'", obj.objectFS, fname)
+					return errors.Wrapf(err, "cannot open file '%s'", fname)
 				}
 				defer fp.Close()
 				css, err := checksum.Copy(digestAlgorithms, fp, &checksum.NullWriter{})
@@ -436,6 +444,7 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 					}
 					result[d][cs] = append(result[d][cs], fname)
 				}
+				obj.logger.Debug().Msgf("calculated %d checksums for file '%s'", len(css), fname)
 				return nil
 			}); err != nil {
 			return nil, errors.Wrapf(err, "cannot walk content dir '%s'", inv.GetContentDir())
