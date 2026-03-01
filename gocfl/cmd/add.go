@@ -286,7 +286,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	_, objectExtensionManager, err := initDefaultExtensions(storageRoot.GetOCFLVersion(), extensionFactory, "", conf.Add.ObjectExtensionFolder, logger)
+	_, objectExtensionManager, err := InitDefaultExtensions(storageRoot.GetOCFLVersion(), extensionFactory, "", conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
 		doNotClose = true
 		logger.Fatal().Msg("cannot initialize default extensions")

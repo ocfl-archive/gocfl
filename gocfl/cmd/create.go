@@ -262,7 +262,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageRootExtensionManager, objectExtensionManager, err := initDefaultExtensions(ver, extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
+	storageRootExtensionManager, objectExtensionManager, err := InitDefaultExtensions(ver, extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot initialize default extensions")
 		return

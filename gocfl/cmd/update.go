@@ -251,7 +251,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		doNotClose = true
 		return
 	}
-	_, objectExtensions, err := initDefaultExtensions(
+	_, objectExtensions, err := InitDefaultExtensions(
 		storageRoot.GetOCFLVersion(),
 		extensionFactory,
 		"",

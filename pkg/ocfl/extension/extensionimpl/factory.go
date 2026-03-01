@@ -3,6 +3,7 @@ package extensionimpl
 import (
 	"encoding/json"
 	"io/fs"
+	"syscall"
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/info"
@@ -81,7 +82,11 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
+		if errors.Is(err, syscall.ERROR_FILE_NOT_FOUND) {
+			files = []fs.DirEntry{}
+		} else {
+			return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
+		}
 	}
 	var result = []extension.Extension{}
 	for _, file := range files {
@@ -174,7 +179,8 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 			if !ok {
 				return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 			}
-			initialExt, err := initialCreator(fsys)
+			initialFS, _ := fs.Sub(fsys, extension.DefaultExtensionInitialName)
+			initialExt, err := initialCreator(initialFS)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
 			}
@@ -189,7 +195,8 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 		if !ok {
 			return nil, errors.Errorf("no default extension manager (%s) found", extension.DefaultExtensionManagerName)
 		}
-		ext, err := creator(fsys)
+		extensionManagerFS, _ := fs.Sub(fsys, extension.DefaultExtensionManagerName)
+		ext, err := creator(extensionManagerFS)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)
 		}

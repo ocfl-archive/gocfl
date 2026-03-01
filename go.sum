@@ -117,8 +117,8 @@ github.com/huandu/xstrings v1.5.0 h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI
 github.com/huandu/xstrings v1.5.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/je4/filesystem/v3 v3.0.42 h1:GIe83COk5oeYg26pVkYHc0s/amvwN1QzrCLioogth/c=
-github.com/je4/filesystem/v3 v3.0.42/go.mod h1:per0uj7FnTp6TJKRMVIX7EH0FP5+xdi6ZWeA/4fHPYE=
+github.com/je4/filesystem/v3 v3.0.43 h1:2LqW2ytYvyfBp9RpR2IoQpBJXxpe4hsNiH5xf8dKF4Y=
+github.com/je4/filesystem/v3 v3.0.43/go.mod h1:per0uj7FnTp6TJKRMVIX7EH0FP5+xdi6ZWeA/4fHPYE=
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d h1:elX95ncLvCbNgkfD03bfTUhm0cdqdVYuuo5ETIOftoA=
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d/go.mod h1:AU6NEns8+WYmI/UYzllN8CWM2jsIVO7jDz2FeCf7Ssw=
 github.com/je4/trustutil/v2 v2.0.31 h1:QUMfnE8LoyNlBLvhaMdSZFiq/UlOoHyPjJd+C6qT5PY=

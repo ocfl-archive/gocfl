@@ -151,7 +151,7 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger.Error().Err(err).Msg("cannot create extension factory")
 		return
 	}
-	storageRootExtensions, _, err := initDefaultExtensions(
+	storageRootExtensions, _, err := InitDefaultExtensions(
 		ver,
 		extensionFactory,
 		conf.Init.StorageRootExtensionFolder,
