@@ -137,16 +137,7 @@ func doInit(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(
-		extensionParams,
-		"",
-		false,
-		nil,
-		nil,
-		nil,
-		nil,
-		logger,
-	)
+	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot create extension factory")
 		return
