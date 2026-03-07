@@ -29,14 +29,13 @@ func GetTimestampParams() []*extensionimpl.ExtensionExternalParam {
 	return []*extensionimpl.ExtensionExternalParam{}
 }
 
-func NewTimestamp(logger ocfllogger.OCFLLogger) *Timestamp {
+func NewTimestamp() *Timestamp {
 	config := &TimestampConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: TimestampName},
 		Authority:       map[string]string{},
 	}
 	sl := &Timestamp{
 		TimestampConfig: config,
-		logger:          logger.With("extension", TimestampName),
 	}
 	return sl
 }
@@ -50,6 +49,11 @@ type Timestamp struct {
 	*TimestampConfig
 	fsys   appendfs.FS
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *Timestamp) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", TimestampName)
+	return sl
 }
 
 func (sl *Timestamp) Load(fsys fs.FS) error {

@@ -77,7 +77,7 @@ func GetMetsParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewMets(logger ocfllogger.OCFLLogger) *Mets {
+func NewMets() *Mets {
 	config := &MetsConfig{
 		ExtensionConfig:            &extensiontypes.ExtensionConfig{ExtensionName: METSName},
 		StorageType:                "area",
@@ -88,7 +88,6 @@ func NewMets(logger ocfllogger.OCFLLogger) *Mets {
 	}
 	me := &Mets{
 		MetsConfig: config,
-		logger:     logger.With("extension", METSName),
 	}
 	return me
 }
@@ -107,6 +106,11 @@ type Mets struct {
 	logger ocfllogger.OCFLLogger
 	//	descriptiveMetadata     string
 	//	descriptiveMetadataType string
+}
+
+func (me *Mets) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	me.logger = logger.With("extension", METSName)
+	return me
 }
 
 func (me *Mets) Terminate() error {

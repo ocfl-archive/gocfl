@@ -4,6 +4,7 @@ import (
 	"io/fs"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 type ExtensionConfig struct {
@@ -11,6 +12,7 @@ type ExtensionConfig struct {
 }
 
 type Extension interface {
+	WithLogger(logger ocfllogger.OCFLLogger) Extension
 	GetName() string
 	Load(fsys fs.FS) error
 	SetParams(params map[string]string) error

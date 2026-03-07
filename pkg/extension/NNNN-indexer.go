@@ -48,7 +48,13 @@ func GetIndexerParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewIndexer(logger ocfllogger.OCFLLogger, urlString string, indexerActions *ironmaiden.ActionDispatcher, localCache bool) *Indexer {
+func NewIndexer(urlString string, fss map[string]fs.FS, conf ironmaiden.IndexerConfig, localCache bool) (*Indexer, error) {
+
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, conf, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot init indexer")
+	}
+
 	var config = &IndexerConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: IndexerName,
@@ -62,13 +68,11 @@ func NewIndexer(logger ocfllogger.OCFLLogger, urlString string, indexerActions *
 		active:         true,
 		indexerActions: indexerActions,
 		localCache:     localCache,
-		logger:         logger.With("extension", IndexerName),
 	}
-	var err error
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
-		return nil
+		return nil, err
 	}
-	return sl
+	return sl, nil
 }
 
 type IndexerConfig struct {
@@ -89,6 +93,11 @@ type Indexer struct {
 	localCache     bool
 	fsys           appendfs.FS
 	logger         ocfllogger.OCFLLogger
+}
+
+func (sl *Indexer) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", IndexerName)
+	return sl
 }
 
 func (sl *Indexer) Load(fsys fs.FS) error {

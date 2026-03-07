@@ -22,6 +22,11 @@ type LoggingIndexer struct {
 	logger   ocfllogger.OCFLLogger
 }
 
+func (li *LoggingIndexer) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	li.logger = logger.With("extension", LoggingIndexerName)
+	return li
+}
+
 func (sl *LoggingIndexer) Load(fsys fs.FS) error {
 	// no config file currently defined; placeholder to satisfy interface
 	return nil
@@ -50,9 +55,9 @@ func (li *LoggingIndexer) WriteConfig(appendfs.FS) error {
 	panic("implement me")
 }
 
-func NewLoggingIndexer(logger ocfllogger.OCFLLogger) (*LoggingIndexer, error) {
+func NewLoggingIndexer() (*LoggingIndexer, error) {
 	config := &LoggingIndexerConfig{Config: &Config{ExtensionName: LoggingIndexerName}}
-	li := &LoggingIndexer{LoggingIndexerConfig: config, metadata: map[string]any{}, logger: logger.With("extension", LoggingIndexerName)}
+	li := &LoggingIndexer{LoggingIndexerConfig: config, metadata: map[string]any{}}
 	return li, nil
 }
 

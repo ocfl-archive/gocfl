@@ -19,12 +19,17 @@ import (
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
 const FlatOmitPrefixStorageLayoutDescription = "removes prefix after last occurrence of delimiter"
 
-func NewFlatOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) *FlatOmitPrefixStorageLayout {
+func NewFlatOmitPrefixStorageLayout() *FlatOmitPrefixStorageLayout {
 	config := &FlatOmitPrefixStorageLayoutConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FlatOmitPrefixStorageLayoutName},
 		Delimiter:       ":",
 	}
 	sl := &FlatOmitPrefixStorageLayout{FlatOmitPrefixStorageLayoutConfig: config}
+	return sl
+}
+
+func (sl *FlatOmitPrefixStorageLayout) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", FlatOmitPrefixStorageLayoutName)
 	return sl
 }
 
@@ -48,6 +53,7 @@ type FlatOmitPrefixStorageLayoutConfig struct {
 }
 type FlatOmitPrefixStorageLayout struct {
 	*FlatOmitPrefixStorageLayoutConfig
+	logger ocfllogger.OCFLLogger
 }
 
 func (sl *FlatOmitPrefixStorageLayout) Terminate() error {

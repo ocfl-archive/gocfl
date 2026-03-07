@@ -50,7 +50,7 @@ func GetMetaFileParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewMetaFile(logger ocfllogger.OCFLLogger, schema []byte) *MetaFile {
+func NewMetaFile(schema []byte) *MetaFile {
 	var config = &MetaFileConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: MetaFileName,
@@ -60,7 +60,6 @@ func NewMetaFile(logger ocfllogger.OCFLLogger, schema []byte) *MetaFile {
 		MetaFileConfig: config,
 		schema:         schema,
 		info:           map[string][]byte{},
-		logger:         logger.With("extension", MetaFileName),
 	}
 	return sl
 }
@@ -82,6 +81,11 @@ type MetaFile struct {
 	stored         bool
 	info           map[string][]byte
 	logger         ocfllogger.OCFLLogger
+}
+
+func (sl *MetaFile) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", MetaFileName)
+	return sl
 }
 
 func (sl *MetaFile) Load(fsys fs.FS) error {

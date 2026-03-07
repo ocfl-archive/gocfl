@@ -27,7 +27,7 @@ import (
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
-func NewMigration(logger ocfllogger.OCFLLogger, mig *migration.Migration) *Migration {
+func NewMigration(mig *migration.Migration) *Migration {
 	config := &MigrationConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: MigrationName},
 	}
@@ -37,7 +37,6 @@ func NewMigration(logger ocfllogger.OCFLLogger, mig *migration.Migration) *Migra
 		buffer:          map[string]*bytes.Buffer{},
 		migrationFiles:  map[string]*migration.Function{},
 		migratedFiles:   map[string]map[string]string{},
-		logger:          logger.With("extension", MigrationName),
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
 	if mig != nil {
@@ -92,6 +91,11 @@ type Migration struct {
 	currentHead    string
 	done           bool
 	logger         ocfllogger.OCFLLogger
+}
+
+func (mi *Migration) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	mi.logger = logger.With("extension", MigrationName)
+	return mi
 }
 
 func (mi *Migration) Load(fsys fs.FS) error {

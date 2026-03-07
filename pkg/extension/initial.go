@@ -28,7 +28,7 @@ func GetInitialParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewInitial(logger ocfllogger.OCFLLogger) *Initial {
+func NewInitial() *Initial {
 	var config = &InitialConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: InitialName,
@@ -37,7 +37,6 @@ func NewInitial(logger ocfllogger.OCFLLogger) *Initial {
 	}
 	sl := &Initial{
 		InitialConfig: config,
-		logger:        logger.With("extension", InitialName),
 	}
 	return sl
 }
@@ -54,6 +53,11 @@ type InitialConfig struct {
 type Initial struct {
 	*InitialConfig
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {
+	sl.logger = logger.With("extension", InitialName)
+	return sl
 }
 
 func (sl *Initial) Load(fsys fs.FS) error {

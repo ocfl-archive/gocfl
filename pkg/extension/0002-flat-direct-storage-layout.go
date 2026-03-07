@@ -18,7 +18,7 @@ import (
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
 const StorageLayoutFlatDirectDescription = "one to one mapping without changes"
 
-func NewStorageLayoutFlatDirect(logger ocfllogger.OCFLLogger) *StorageLayoutFlatDirect {
+func NewStorageLayoutFlatDirect() *StorageLayoutFlatDirect {
 	var config = &StorageLayoutFlatDirectConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: StorageLayoutFlatDirectName,
@@ -26,7 +26,6 @@ func NewStorageLayoutFlatDirect(logger ocfllogger.OCFLLogger) *StorageLayoutFlat
 	}
 	sl := &StorageLayoutFlatDirect{
 		StorageLayoutFlatDirectConfig: config,
-		logger:                        logger.With("extension", StorageLayoutFlatDirectName),
 	}
 	return sl
 }
@@ -37,6 +36,11 @@ type StorageLayoutFlatDirectConfig struct {
 type StorageLayoutFlatDirect struct {
 	*StorageLayoutFlatDirectConfig
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *StorageLayoutFlatDirect) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {
+	sl.logger = logger.With("extension", StorageLayoutFlatDirectName)
+	return sl
 }
 
 func (sl *StorageLayoutFlatDirect) Load(fsys fs.FS) error {

@@ -17,13 +17,13 @@ import (
 const LegacyDirectCleanName = "NNNN-direct-clean-path-layout"
 const LegacyDirectCleanDescription = "Maps OCFL object identifiers to storage paths or as an object extension that maps logical paths to content paths. This is done by replacing or removing \"dangerous characters\" from names"
 
-func NewLegacyDirectClean(logger ocfllogger.OCFLLogger) extension.Extension {
+func NewLegacyDirectClean() extension.Extension {
 	config := &LegacyDirectCleanConfig{
 		DirectCleanConfig: &DirectCleanConfig{
 			ExtensionConfig: &extension.ExtensionConfig{ExtensionName: LegacyDirectCleanName},
 		},
 	}
-	sl := &LegacyDirectClean{DirectClean: &DirectClean{DirectCleanConfig: config.DirectCleanConfig, logger: logger.With("extension", LegacyDirectCleanName)}}
+	sl := &LegacyDirectClean{DirectClean: &DirectClean{DirectCleanConfig: config.DirectCleanConfig}}
 	return sl
 }
 
@@ -33,6 +33,11 @@ type LegacyDirectCleanConfig struct {
 
 type LegacyDirectClean struct {
 	*DirectClean
+}
+
+func (sl *LegacyDirectClean) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {
+	sl.logger = logger.With("extension", LegacyDirectCleanName)
+	return sl
 }
 
 func (sl *LegacyDirectClean) Load(fsys fs.FS) error {

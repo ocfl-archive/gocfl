@@ -34,7 +34,7 @@ func reverse(s string) string {
 	return string(rns)
 }
 
-func NewNTupleOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) *NTupleOmitPrefixStorageLayout {
+func NewNTupleOmitPrefixStorageLayout() *NTupleOmitPrefixStorageLayout {
 	config := &NTupleOmitPrefixStorageLayoutConfig{
 		ExtensionConfig:   &extensiontypes.ExtensionConfig{ExtensionName: NTupleOmitPrefixStorageLayoutName},
 		Delimiter:         ":",
@@ -43,7 +43,12 @@ func NewNTupleOmitPrefixStorageLayout(logger ocfllogger.OCFLLogger) *NTupleOmitP
 		ZeroPadding:       "",
 		ReverseObjectRoot: false,
 	}
-	sl := &NTupleOmitPrefixStorageLayout{NTupleOmitPrefixStorageLayoutConfig: config, logger: logger.With("extension", NTupleOmitPrefixStorageLayoutName)}
+	sl := &NTupleOmitPrefixStorageLayout{NTupleOmitPrefixStorageLayoutConfig: config}
+	return sl
+}
+
+func (sl *NTupleOmitPrefixStorageLayout) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", NTupleOmitPrefixStorageLayoutName)
 	return sl
 }
 

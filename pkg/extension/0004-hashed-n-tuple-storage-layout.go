@@ -19,7 +19,7 @@ import (
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
 const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 
-func NewStorageLayoutHashedNTuple(logger ocfllogger.OCFLLogger) *StorageLayoutHashedNTuple {
+func NewStorageLayoutHashedNTuple() *StorageLayoutHashedNTuple {
 	config := &StorageLayoutHashedNTupleConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutHashedNTupleName},
 		DigestAlgorithm: string(checksum.DigestSHA512),
@@ -27,11 +27,16 @@ func NewStorageLayoutHashedNTuple(logger ocfllogger.OCFLLogger) *StorageLayoutHa
 		NumberOfTuples:  0,
 		ShortObjectRoot: false,
 	}
-	sl := &StorageLayoutHashedNTuple{StorageLayoutHashedNTupleConfig: config, logger: logger.With("extension", StorageLayoutHashedNTupleName)}
+	sl := &StorageLayoutHashedNTuple{StorageLayoutHashedNTupleConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
 		return nil
 	}
+	return sl
+}
+
+func (sl *StorageLayoutHashedNTuple) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", StorageLayoutHashedNTupleName)
 	return sl
 }
 

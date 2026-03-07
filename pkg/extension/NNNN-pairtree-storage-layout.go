@@ -38,6 +38,11 @@ type StorageLayoutPairTree struct {
 	logger ocfllogger.OCFLLogger
 }
 
+func (sl *StorageLayoutPairTree) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", StorageLayoutPairTreeName)
+	return sl
+}
+
 func (sl *StorageLayoutPairTree) Load(fsys fs.FS) error {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
@@ -98,7 +103,7 @@ type StorageLayoutPairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewStorageLayoutPairTree(logger ocfllogger.OCFLLogger) *StorageLayoutPairTree {
+func NewStorageLayoutPairTree() *StorageLayoutPairTree {
 	config := &StorageLayoutPairTreeConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutPairTreeName},
 		ShortyLength:    2,
@@ -106,7 +111,6 @@ func NewStorageLayoutPairTree(logger ocfllogger.OCFLLogger) *StorageLayoutPairTr
 	}
 	sl := &StorageLayoutPairTree{
 		StorageLayoutPairTreeConfig: config,
-		logger:                      logger.With("extension", StorageLayoutPairTreeName),
 	}
 	return sl
 }

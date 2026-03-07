@@ -28,7 +28,7 @@ var algorithms = []checksum.DigestAlgorithm{
 	checksum.DigestSHA1,
 }
 
-func NewDigestAlgorithms(logger ocfllogger.OCFLLogger) *DigestAlgorithms {
+func NewDigestAlgorithms() *DigestAlgorithms {
 	var config = &DigestAlgorithmsConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: DigestAlgorithmsName,
@@ -36,7 +36,6 @@ func NewDigestAlgorithms(logger ocfllogger.OCFLLogger) *DigestAlgorithms {
 	}
 	sl := &DigestAlgorithms{
 		DigestAlgorithmsConfig: config,
-		logger:                 logger.With("extension", DigestAlgorithmsName),
 	}
 	return sl
 }
@@ -47,6 +46,11 @@ type DigestAlgorithmsConfig struct {
 type DigestAlgorithms struct {
 	*DigestAlgorithmsConfig
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *DigestAlgorithms) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {
+	sl.logger = logger.With("extension", DigestAlgorithmsName)
+	return sl
 }
 
 func (sl *DigestAlgorithms) Load(fsys fs.FS) error {

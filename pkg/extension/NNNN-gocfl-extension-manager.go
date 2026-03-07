@@ -23,7 +23,7 @@ import (
 const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
-func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) *GOCFLExtensionManager {
+func NewGOCFLExtensionManager() *GOCFLExtensionManager {
 	var config = &extension2.ManagerConfig{
 		ExtensionConfig: &extension2.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
@@ -40,7 +40,6 @@ func NewGOCFLExtensionManager(logger ocfllogger.OCFLLogger) *GOCFLExtensionManag
 		fixityDigest:      []object.ExtensionFixityDigest{},
 		metadata:          []object.ExtensionMetadata{},
 		area:              []object.ExtensionArea{},
-		logger:            logger.With("extension", GOCFLExtensionManagerName),
 	}
 	return m
 }
@@ -61,6 +60,11 @@ type GOCFLExtensionManager struct {
 	newVersion         []object.ExtensionNewVersion
 	initial            extension2.Initial
 	logger             ocfllogger.OCFLLogger
+}
+
+func (manager *GOCFLExtensionManager) WithLogger(logger ocfllogger.OCFLLogger) extension2.Extension {
+	manager.logger = logger.With("extension", GOCFLExtensionManagerName)
+	return manager
 }
 
 func (manager *GOCFLExtensionManager) Load(fsys fs.FS) error {

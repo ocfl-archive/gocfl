@@ -37,7 +37,7 @@ import (
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
-func NewThumbnail(logger ocfllogger.OCFLLogger, mig *thumbnail.Thumbnail) *Thumbnail {
+func NewThumbnail(mig *thumbnail.Thumbnail) *Thumbnail {
 	config := &ThumbnailConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ThumbnailName},
 		StorageType:     "extension",
@@ -50,7 +50,6 @@ func NewThumbnail(logger ocfllogger.OCFLLogger, mig *thumbnail.Thumbnail) *Thumb
 	}
 	sl := &Thumbnail{
 		ThumbnailConfig: config,
-		logger:          logger.With("extension", ThumbnailName),
 		thumbnail:       mig,
 		buffer:          map[string]*bytes.Buffer{},
 		counter:         map[string]int64{},
@@ -111,6 +110,11 @@ type Thumbnail struct {
 	counter     map[string]int64
 	streamInfo  map[string]map[string]*ThumbnailResult
 	streamImg   map[string]map[string]image.Image
+}
+
+func (thumb *Thumbnail) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	thumb.logger = logger.With("extension", ThumbnailName)
+	return thumb
 }
 
 func (thumb *Thumbnail) Load(fsys fs.FS) error {

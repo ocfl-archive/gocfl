@@ -33,14 +33,13 @@ func GetContentSubPathParams() []*extensionimpl.ExtensionExternalParam {
 	}
 }
 
-func NewContentSubPath(logger ocfllogger.OCFLLogger) *ContentSubPath {
+func NewContentSubPath() *ContentSubPath {
 	var config = &ContentSubPathConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ContentSubPathName},
 		Paths:           map[string]ContentSubPathEntry{},
 	}
 	sl := &ContentSubPath{
 		ContentSubPathConfig: config,
-		logger:               logger.With("extension", ContentSubPathName),
 	}
 	return sl
 }
@@ -58,6 +57,11 @@ type ContentSubPath struct {
 	*ContentSubPathConfig
 	area   string
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *ContentSubPath) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", ContentSubPathName)
+	return sl
 }
 
 func (sl *ContentSubPath) Load(fsys fs.FS) error {

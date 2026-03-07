@@ -18,6 +18,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -158,7 +159,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	}()
 
 	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, "", false, nil, nil, nil, (logger))
+	extensionFactory, err := InitExtensionFactory(extensionParams, nil, "", false, ironmaiden.IndexerConfig{}, nil, nil, (logger))
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot initialize extension factory")
 		return

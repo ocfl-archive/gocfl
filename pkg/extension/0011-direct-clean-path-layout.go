@@ -49,7 +49,7 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectClean(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+func NewDirectClean() extensiontypes.Extension {
 	config := &DirectCleanConfig{
 		ExtensionConfig:             &extensiontypes.ExtensionConfig{ExtensionName: DirectCleanName},
 		MaxPathnameLen:              32000,
@@ -61,7 +61,7 @@ func NewDirectClean(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
 		ReplacementString:           "",
 		WhitespaceReplacementString: "",
 	}
-	sl := &DirectClean{DirectCleanConfig: config, logger: logger.With("extension", DirectCleanName)}
+	sl := &DirectClean{DirectCleanConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
 		return nil
@@ -95,6 +95,11 @@ type DirectClean struct {
 	hash      hash.Hash  `json:"-"`
 	hashMutex sync.Mutex `json:"-"`
 	logger    ocfllogger.OCFLLogger
+}
+
+func (sl *DirectClean) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	sl.logger = logger.With("extension", DirectCleanName)
+	return sl
 }
 
 func (sl *DirectClean) Load(fsys fs.FS) error {
