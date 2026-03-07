@@ -2,6 +2,7 @@ package extensionimpl
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"syscall"
 
@@ -33,6 +34,20 @@ func NewFactory(params map[string]string, logger ocfllogger.OCFLLogger) (*Factor
 
 func (f *Factory) AddCreator(name string, creator extension.CreatorFunc) {
 	f.creators[name] = creator
+}
+
+func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc) {
+	f.logger.Debug().Msgf("adding creator for extension %s", name)
+	f.AddCreator(name, func(fsys fs.FS) (extension.Extension, error) {
+		ext, err := builder()
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("cannot create extension %s", name))
+		}
+		if err := ext.Load(fsys); err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("cannot load extension %s", name))
+		}
+		return ext, nil
+	})
 }
 
 func (f *Factory) AddStorageRootDefaultExtension(ext extension.Extension) {

@@ -61,7 +61,7 @@ type extensionFactoryBuilder func() (extension.Extension, error)
 
 type extensionRegistration struct {
 	name    string
-	builder extensionFactoryBuilder
+	builder extension.BuilderFunc
 }
 
 func registerExtension(
@@ -222,7 +222,7 @@ func InitExtensionFactory(
 	}
 
 	for _, reg := range registrations {
-		registerExtension(extensionFactory, logger, reg)
+		extensionFactory.RegisterExtension(reg.name, reg.builder)
 	}
 
 	return extensionFactory, nil
