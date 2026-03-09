@@ -14,6 +14,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -26,6 +27,10 @@ import (
 
 const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
+
+func init() {
+	extension.RegisterExtension(MigrationName, nil, nil)
+}
 
 func NewMigration(mig *migration.Migration) *Migration {
 	config := &MigrationConfig{

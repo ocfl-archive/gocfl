@@ -19,6 +19,7 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -36,6 +37,10 @@ import (
 
 const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
+
+func init() {
+	extension.RegisterExtension(ThumbnailName, nil, nil)
+}
 
 func NewThumbnail(mig *thumbnail.Thumbnail) *Thumbnail {
 	config := &ThumbnailConfig{

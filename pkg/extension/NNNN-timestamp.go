@@ -16,8 +16,8 @@ import (
 	"github.com/digitorus/timestamp"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
@@ -25,19 +25,22 @@ import (
 const TimestampName = "NNNN-timestamp"
 const TimestampDescription = "signs ocfl versions"
 
-func GetTimestampParams() []*extensionimpl.ExtensionExternalParam {
-	return []*extensionimpl.ExtensionExternalParam{}
+func init() {
+	extension.RegisterExtension(TimestampName, NewTimestamp, GetTimestampParams)
 }
 
-func NewTimestamp() *Timestamp {
+func GetTimestampParams() ([]*extension.ExternalParam, error) {
+	return nil, nil
+}
+
+func NewTimestamp() (extensiontypes.Extension, error) {
 	config := &TimestampConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: TimestampName},
-		Authority:       map[string]string{},
 	}
 	sl := &Timestamp{
 		TimestampConfig: config,
 	}
-	return sl
+	return sl, nil
 }
 
 type TimestampConfig struct {

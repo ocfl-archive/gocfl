@@ -17,6 +17,10 @@ import (
 const DigestAlgorithmsName = "0001-digest-algorithms"
 const DigestAlgorithmsDescription = "controlled vocabulary of digest algorithm names that may be used to indicate the given algorithm in fixity blocks of OCFL Objects"
 
+func init() {
+	extension.RegisterExtension(DigestAlgorithmsName, NewDigestAlgorithms, nil)
+}
+
 var algorithms = []checksum.DigestAlgorithm{
 	checksum.DigestBlake2b160,
 	checksum.DigestBlake2b256,
@@ -28,7 +32,7 @@ var algorithms = []checksum.DigestAlgorithm{
 	checksum.DigestSHA1,
 }
 
-func NewDigestAlgorithms() *DigestAlgorithms {
+func NewDigestAlgorithms() (extension.Extension, error) {
 	var config = &DigestAlgorithmsConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: DigestAlgorithmsName,
@@ -37,7 +41,7 @@ func NewDigestAlgorithms() *DigestAlgorithms {
 	sl := &DigestAlgorithms{
 		DigestAlgorithmsConfig: config,
 	}
-	return sl
+	return sl, nil
 }
 
 type DigestAlgorithmsConfig struct {

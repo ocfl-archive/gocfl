@@ -18,7 +18,11 @@ import (
 const StorageLayoutFlatDirectName = "0002-flat-direct-storage-layout"
 const StorageLayoutFlatDirectDescription = "one to one mapping without changes"
 
-func NewStorageLayoutFlatDirect() *StorageLayoutFlatDirect {
+func init() {
+	extension.RegisterExtension(StorageLayoutFlatDirectName, NewStorageLayoutFlatDirect, nil)
+}
+
+func NewStorageLayoutFlatDirect() (extension.Extension, error) {
 	var config = &StorageLayoutFlatDirectConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: StorageLayoutFlatDirectName,
@@ -27,7 +31,7 @@ func NewStorageLayoutFlatDirect() *StorageLayoutFlatDirect {
 	sl := &StorageLayoutFlatDirect{
 		StorageLayoutFlatDirectConfig: config,
 	}
-	return sl
+	return sl, nil
 }
 
 type StorageLayoutFlatDirectConfig struct {

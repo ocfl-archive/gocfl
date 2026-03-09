@@ -20,7 +20,11 @@ import (
 const StorageLayoutHashAndIdNTupleName = "0003-hash-and-id-n-tuple-storage-layout"
 const StorageLayoutHashAndIdNTupleDescription = "Hashed Truncated N-tuple Trees with Object ID Encapsulating Directory for OCFL Storage Hierarchies"
 
-func NewStorageLayoutHashAndIdNTuple() *StorageLayoutHashAndIdNTuple {
+func init() {
+	extension.RegisterExtension(StorageLayoutHashAndIdNTupleName, NewStorageLayoutHashAndIdNTuple, nil)
+}
+
+func NewStorageLayoutHashAndIdNTuple() (extension.Extension, error) {
 	config := &StorageLayoutHashAndIdNTupleConfig{
 		ExtensionConfig: &extension.ExtensionConfig{ExtensionName: StorageLayoutHashAndIdNTupleName},
 		DigestAlgorithm: string(checksum.DigestSHA512),
@@ -30,9 +34,9 @@ func NewStorageLayoutHashAndIdNTuple() *StorageLayoutHashAndIdNTuple {
 	sl := &StorageLayoutHashAndIdNTuple{StorageLayoutHashAndIdNTupleConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil
+		return nil, errors.Wrapf(err, "cannot get hash for %s", config.DigestAlgorithm)
 	}
-	return sl
+	return sl, nil
 }
 
 func (sl *StorageLayoutHashAndIdNTuple) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {

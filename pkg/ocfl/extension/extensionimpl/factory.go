@@ -7,12 +7,14 @@ import (
 	"syscall"
 
 	"emperror.dev/errors"
+	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/spf13/cobra"
 )
 
 type Factory struct {
@@ -23,12 +25,17 @@ type Factory struct {
 	logger             ocfllogger.OCFLLogger
 }
 
-func NewFactory(params map[string]string, logger ocfllogger.OCFLLogger) (*Factory, error) {
+func NewFactory(cmd *cobra.Command, conf *config.GOCFLConfig, logger ocfllogger.OCFLLogger) (*Factory, error) {
+	extensionParams, err := extension.GetExtensionParamValues(cmd, conf)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot get extension parameters")
+	}
 	m := &Factory{
 		creators:        map[string]extension.CreatorFunc{},
-		extensionParams: params,
-		logger:          logger,
+		extensionParams: extensionParams,
+		logger:          logger.With("module", "extensionimpl.Factory"),
 	}
+	extension.RegisterWithFactory(m, m.logger)
 	return m, nil
 }
 

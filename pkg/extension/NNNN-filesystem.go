@@ -15,6 +15,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -25,7 +26,11 @@ import (
 const FilesystemName = "NNNN-filesystem"
 const FilesystemDescription = "preserves filesytem metadata"
 
-func NewFilesystem() *Filesystem {
+func init() {
+	extension.RegisterExtension(FilesystemName, NewFilesystem, nil)
+}
+
+func NewFilesystem() (extensiontypes.Extension, error) {
 	config := &FilesystemConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FilesystemName},
 		Folders:         "",
@@ -38,7 +43,7 @@ func NewFilesystem() *Filesystem {
 		buffer:           map[string]*bytes.Buffer{},
 	}
 	// sl.writer = brotli.NewWriter(sl.buffer)
-	return sl
+	return sl, nil
 }
 
 type FilesystemMeta struct {

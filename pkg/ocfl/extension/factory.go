@@ -7,6 +7,7 @@ import (
 )
 
 type BuilderFunc func() (Extension, error)
+type ExternalParamFunc func() ([]*ExternalParam, error)
 
 type Factory interface {
 	AddCreator(name string, creator CreatorFunc)

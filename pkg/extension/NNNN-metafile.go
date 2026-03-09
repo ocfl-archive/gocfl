@@ -18,8 +18,8 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
@@ -31,8 +31,12 @@ import (
 const MetaFileName = "NNNN-metafile"
 const MetaFileDescription = "adds a file in extension folder"
 
-func GetMetaFileParams() []*extensionimpl.ExtensionExternalParam {
-	return []*extensionimpl.ExtensionExternalParam{
+func init() {
+	extension.RegisterExtension(MetaFileName, nil, GetMetaFileParams)
+}
+
+func GetMetaFileParams() ([]*extension.ExternalParam, error) {
+	return []*extension.ExternalParam{
 		{
 			ExtensionName: MetaFileName,
 			Functions:     []string{"add", "update", "create"},
@@ -47,7 +51,7 @@ func GetMetaFileParams() []*extensionimpl.ExtensionExternalParam {
 			//File:          "Target",
 			Description: "url with metadata target folder",
 		},
-	}
+	}, nil
 }
 
 func NewMetaFile(schema []byte) *MetaFile {

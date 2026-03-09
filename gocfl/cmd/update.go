@@ -14,6 +14,7 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -219,10 +220,16 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 	thumb.SetSourceFS(sourceFS)
 
-	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, fss, addr, localCache, *conf.Indexer, mig, thumb, logger)
+	extensionFactory, err := extensionimpl.NewFactory(cmd, conf, logger)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot initialize extension factory")
+		logger.Error().Err(err).Msg("cannot create extension factory")
+		doNotClose = true
+		return
+	}
+
+	err = RegisterComplexExtensions(fss, addr, localCache, *conf.Indexer, mig, thumb, logger)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot register complex extensions")
 		doNotClose = true
 		return
 	}

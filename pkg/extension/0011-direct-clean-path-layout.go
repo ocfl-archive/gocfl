@@ -15,6 +15,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
@@ -23,6 +24,11 @@ import (
 )
 
 const DirectCleanName = "0011-direct-clean-path-layout"
+
+func init() {
+	extension.RegisterExtension(DirectCleanName, NewDirectClean, nil)
+}
+
 const DirectCleanDescription = "Maps OCFL object identifiers to storage paths or as an object extension that maps logical paths to content paths. This is done by replacing or removing \"dangerous characters\" from names"
 
 var directCleanRuleAll = regexp.MustCompile("[\u0000-\u001f\u007f\u0020\u0085\u00a0\u1680\u2000-\u200f\u2028\u2029\u202f\u205f\u3000\n\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
@@ -49,7 +55,7 @@ func max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-func NewDirectClean() extensiontypes.Extension {
+func NewDirectClean() (extensiontypes.Extension, error) {
 	config := &DirectCleanConfig{
 		ExtensionConfig:             &extensiontypes.ExtensionConfig{ExtensionName: DirectCleanName},
 		MaxPathnameLen:              32000,
@@ -64,9 +70,9 @@ func NewDirectClean() extensiontypes.Extension {
 	sl := &DirectClean{DirectCleanConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(config.FallbackDigestAlgorithm); err != nil {
-		return nil
+		return nil, errors.Wrapf(err, "cannot get hash for %s", config.FallbackDigestAlgorithm)
 	}
-	return sl
+	return sl, nil
 }
 
 func encodeUTFCode(s string) string {

@@ -13,6 +13,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -160,10 +161,15 @@ func doStat(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	extensionParams := GetExtensionParamValues(cmd, conf)
-	extensionFactory, err := InitExtensionFactory(extensionParams, nil, "", false, ironmaiden.IndexerConfig{}, nil, nil, (logger))
+	extensionFactory, err := extensionimpl.NewFactory(cmd, conf, logger)
 	if err != nil {
-		logger.Error().Err(err).Msgf("cannot initialize extension factory")
+		logger.Error().Err(err).Msg("cannot create extension factory")
+		return
+	}
+
+	err = RegisterComplexExtensions(nil, "", false, ironmaiden.IndexerConfig{}, nil, nil, (logger))
+	if err != nil {
+		logger.Error().Err(err).Msgf("cannot register complex extensions")
 		return
 	}
 

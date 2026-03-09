@@ -10,6 +10,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
@@ -19,13 +20,17 @@ import (
 const FlatOmitPrefixStorageLayoutName = "0006-flat-omit-prefix-storage-layout"
 const FlatOmitPrefixStorageLayoutDescription = "removes prefix after last occurrence of delimiter"
 
-func NewFlatOmitPrefixStorageLayout() *FlatOmitPrefixStorageLayout {
+func init() {
+	extension.RegisterExtension(FlatOmitPrefixStorageLayoutName, NewFlatOmitPrefixStorageLayout, nil)
+}
+
+func NewFlatOmitPrefixStorageLayout() (extensiontypes.Extension, error) {
 	config := &FlatOmitPrefixStorageLayoutConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: FlatOmitPrefixStorageLayoutName},
 		Delimiter:       ":",
 	}
 	sl := &FlatOmitPrefixStorageLayout{FlatOmitPrefixStorageLayoutConfig: config}
-	return sl
+	return sl, nil
 }
 
 func (sl *FlatOmitPrefixStorageLayout) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {

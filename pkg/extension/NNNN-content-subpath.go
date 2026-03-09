@@ -12,8 +12,8 @@ import (
 	"github.com/atsushinee/go-markdown-generator/doc"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
@@ -21,8 +21,12 @@ import (
 const ContentSubPathName = "NNNN-content-subpath"
 const ContentSubPathDescription = "prepend a path inside the version content"
 
-func GetContentSubPathParams() []*extensionimpl.ExtensionExternalParam {
-	return []*extensionimpl.ExtensionExternalParam{
+func init() {
+	extension.RegisterExtension(ContentSubPathName, NewContentSubPath, GetContentSubPathParams)
+}
+
+func GetContentSubPathParams() ([]*extension.ExternalParam, error) {
+	return []*extension.ExternalParam{
 		{
 			ExtensionName: ContentSubPathName,
 			Functions:     []string{"extract"},
@@ -30,10 +34,10 @@ func GetContentSubPathParams() []*extensionimpl.ExtensionExternalParam {
 			//File:          "area",
 			Description: "subpath for extraction (default: 'content'). 'all' for complete extraction",
 		},
-	}
+	}, nil
 }
 
-func NewContentSubPath() *ContentSubPath {
+func NewContentSubPath() (extensiontypes.Extension, error) {
 	var config = &ContentSubPathConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ContentSubPathName},
 		Paths:           map[string]ContentSubPathEntry{},
@@ -41,7 +45,7 @@ func NewContentSubPath() *ContentSubPath {
 	sl := &ContentSubPath{
 		ContentSubPathConfig: config,
 	}
-	return sl
+	return sl, nil
 }
 
 type ContentSubPathEntry struct {

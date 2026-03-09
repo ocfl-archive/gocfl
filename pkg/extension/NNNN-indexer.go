@@ -18,8 +18,8 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -29,6 +29,10 @@ import (
 const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
+func init() {
+	extension.RegisterExtension(IndexerName, nil, GetIndexerParams)
+}
+
 type indexerLine struct {
 	Path    string
 	Indexer *ironmaiden.ResultV2
@@ -37,15 +41,15 @@ type indexerLine struct {
 var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext", "xml"}
 var compress = []string{"brotli", "gzip", "none"}
 
-func GetIndexerParams() []*extensionimpl.ExtensionExternalParam {
-	return []*extensionimpl.ExtensionExternalParam{
+func GetIndexerParams() ([]*extension.ExternalParam, error) {
+	return []*extension.ExternalParam{
 		{
 			ExtensionName: IndexerName,
 			Param:         "addr",
 			//File:          "Addr",
 			Description: "url for indexer format recognition service",
 		},
-	}
+	}, nil
 }
 
 func NewIndexer(urlString string, fss map[string]fs.FS, conf ironmaiden.IndexerConfig, localCache bool) (*Indexer, error) {

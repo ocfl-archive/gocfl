@@ -22,9 +22,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
 	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	ocflinventory "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
@@ -34,6 +34,10 @@ import (
 
 const METSName = "NNNN-mets"
 const METSDescription = "METS/EAD3/PREMIS metadata"
+
+func init() {
+	extension.RegisterExtension(METSName, NewMets, GetMetsParams)
+}
 
 type metsInternalFiledata struct {
 	ingestVersion string
@@ -66,18 +70,18 @@ var metsMDTypes = []string{
 	"OTHER",
 }
 
-func GetMetsParams() []*extensionimpl.ExtensionExternalParam {
-	return []*extensionimpl.ExtensionExternalParam{
+func GetMetsParams() ([]*extension.ExternalParam, error) {
+	return []*extension.ExternalParam{
 		{
 			ExtensionName: METSName,
 			Functions:     []string{"add", "update", "create"},
 			Param:         "descriptive-metadata",
 			Description:   "reference to archived descriptive metadata (i.e. ead:metadata:ead.xml)",
 		},
-	}
+	}, nil
 }
 
-func NewMets() *Mets {
+func NewMets() (extensiontypes.Extension, error) {
 	config := &MetsConfig{
 		ExtensionConfig:            &extensiontypes.ExtensionConfig{ExtensionName: METSName},
 		StorageType:                "area",
@@ -89,7 +93,7 @@ func NewMets() *Mets {
 	me := &Mets{
 		MetsConfig: config,
 	}
-	return me
+	return me, nil
 }
 
 type MetsConfig struct {
@@ -885,7 +889,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		default:
 			return errors.Errorf("invalid descriptive metadata '%s'", me.PrimaryDescriptiveMetadata)
 		}
-		var found *inventorytypes.FileMetadata
+		var found *ocflinventory.FileMetadata
 		var foundChecksum string
 		for checksum, metaFile := range metadata.Files {
 			if ver, ok := metaFile.VersionName[head.String()]; ok {

@@ -10,25 +10,28 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 const InitialName = "initial"
 const InitialDescription = "initial extension defines the name of the extension manager"
 
-func GetInitialParams() []*extensionimpl.ExtensionExternalParam {
-	return []*extensionimpl.ExtensionExternalParam{
+func GetInitialParams() ([]*extension.ExternalParam, error) {
+	return []*extension.ExternalParam{
 		{
 			ExtensionName: InitialName,
 			Functions:     []string{"add"},
 			Param:         "extension",
 			Description:   "name of the extension manager",
 		},
-	}
+	}, nil
 }
 
-func NewInitial() *Initial {
+func init() {
+	extension.RegisterExtension(InitialName, NewInitial, GetInitialParams)
+}
+
+func NewInitial() (extension.Extension, error) {
 	var config = &InitialConfig{
 		ExtensionConfig: &extension.ExtensionConfig{
 			ExtensionName: InitialName,
@@ -38,7 +41,7 @@ func NewInitial() *Initial {
 	sl := &Initial{
 		InitialConfig: config,
 	}
-	return sl
+	return sl, nil
 }
 
 type InitialEntry struct {

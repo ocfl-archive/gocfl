@@ -23,7 +23,11 @@ import (
 const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
 
-func NewGOCFLExtensionManager() *GOCFLExtensionManager {
+func init() {
+	extension2.RegisterExtension(GOCFLExtensionManagerName, NewGOCFLExtensionManager, nil)
+}
+
+func NewGOCFLExtensionManager() (extension2.Extension, error) {
 	var config = &extension2.ManagerConfig{
 		ExtensionConfig: &extension2.ExtensionConfig{
 			ExtensionName: GOCFLExtensionManagerName,
@@ -41,7 +45,7 @@ func NewGOCFLExtensionManager() *GOCFLExtensionManager {
 		metadata:          []object.ExtensionMetadata{},
 		area:              []object.ExtensionArea{},
 	}
-	return m
+	return m, nil
 }
 
 type GOCFLExtensionManager struct {

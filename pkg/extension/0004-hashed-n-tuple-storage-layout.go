@@ -11,6 +11,7 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
@@ -19,7 +20,11 @@ import (
 const StorageLayoutHashedNTupleName = "0004-hashed-n-tuple-storage-layout"
 const StorageLayoutHashedNTupleDescription = "Hashed N-tuple Storage Layout"
 
-func NewStorageLayoutHashedNTuple() *StorageLayoutHashedNTuple {
+func init() {
+	extension.RegisterExtension(StorageLayoutHashedNTupleName, NewStorageLayoutHashedNTuple, nil)
+}
+
+func NewStorageLayoutHashedNTuple() (extensiontypes.Extension, error) {
 	config := &StorageLayoutHashedNTupleConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutHashedNTupleName},
 		DigestAlgorithm: string(checksum.DigestSHA512),
@@ -30,9 +35,9 @@ func NewStorageLayoutHashedNTuple() *StorageLayoutHashedNTuple {
 	sl := &StorageLayoutHashedNTuple{StorageLayoutHashedNTupleConfig: config}
 	var err error
 	if sl.hash, err = checksum.GetHash(checksum.DigestAlgorithm(config.DigestAlgorithm)); err != nil {
-		return nil
+		return nil, errors.Wrapf(err, "cannot get hash for %s", config.DigestAlgorithm)
 	}
-	return sl
+	return sl, nil
 }
 
 func (sl *StorageLayoutHashedNTuple) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {

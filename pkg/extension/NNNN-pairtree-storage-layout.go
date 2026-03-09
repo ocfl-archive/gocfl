@@ -13,12 +13,18 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
 const StorageLayoutPairTreeName = "NNNN-pairtree-storage-layout"
+const StorageLayoutPairTreeDescription = "pairtree-like storage layout"
+
+func init() {
+	extension.RegisterExtension(StorageLayoutPairTreeName, NewStorageLayoutPairTree, nil)
+}
 
 /*
 	https://pythonhosted.org/Pairtree/pairtree.pairtree_client.PairtreeStorageClient-class.html
@@ -103,7 +109,7 @@ type StorageLayoutPairTreeConfig struct {
 	DigestAlgorithm string `json:"digestAlgorithm"`
 }
 
-func NewStorageLayoutPairTree() *StorageLayoutPairTree {
+func NewStorageLayoutPairTree() (extensiontypes.Extension, error) {
 	config := &StorageLayoutPairTreeConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: StorageLayoutPairTreeName},
 		ShortyLength:    2,
@@ -112,7 +118,7 @@ func NewStorageLayoutPairTree() *StorageLayoutPairTree {
 	sl := &StorageLayoutPairTree{
 		StorageLayoutPairTreeConfig: config,
 	}
-	return sl
+	return sl, nil
 }
 
 func (sl *StorageLayoutPairTree) IsObjectExtension() bool      { return false }

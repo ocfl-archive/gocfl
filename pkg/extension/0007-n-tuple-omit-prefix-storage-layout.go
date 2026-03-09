@@ -10,6 +10,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
@@ -18,6 +19,10 @@ import (
 
 const NTupleOmitPrefixStorageLayoutName = "0007-n-tuple-omit-prefix-storage-layout"
 const NTupleOmitPrefixStorageLayoutDescription = "pairtree-like root directory structure derived from prefix-omitted object identifiers"
+
+func init() {
+	extension.RegisterExtension(NTupleOmitPrefixStorageLayoutName, NewNTupleOmitPrefixStorageLayout, nil)
+}
 
 // function, which takes a string as
 // argument and return the reverse of string.
@@ -34,7 +39,7 @@ func reverse(s string) string {
 	return string(rns)
 }
 
-func NewNTupleOmitPrefixStorageLayout() *NTupleOmitPrefixStorageLayout {
+func NewNTupleOmitPrefixStorageLayout() (extensiontypes.Extension, error) {
 	config := &NTupleOmitPrefixStorageLayoutConfig{
 		ExtensionConfig:   &extensiontypes.ExtensionConfig{ExtensionName: NTupleOmitPrefixStorageLayoutName},
 		Delimiter:         ":",
@@ -44,7 +49,7 @@ func NewNTupleOmitPrefixStorageLayout() *NTupleOmitPrefixStorageLayout {
 		ReverseObjectRoot: false,
 	}
 	sl := &NTupleOmitPrefixStorageLayout{NTupleOmitPrefixStorageLayoutConfig: config}
-	return sl
+	return sl, nil
 }
 
 func (sl *NTupleOmitPrefixStorageLayout) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {

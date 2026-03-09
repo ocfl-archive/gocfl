@@ -34,7 +34,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
-	"github.com/spf13/cobra"
 	"github.com/tink-crypto/tink-go/v2/core/registry"
 )
 
@@ -57,198 +56,31 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-type extensionFactoryBuilder func() (extension.Extension, error)
+func RegisterComplexExtensions(fss map[string]fs.FS, indexerAddr string, indexerLocalCache bool, indexerConf ironmaiden.IndexerConfig, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, logger ocfllogger.OCFLLogger) error {
+	extension.RegisterExtension(
+		ocflextension.IndexerName,
+		func() (extension.Extension, error) {
+			ext, err := ocflextension.NewIndexer(indexerAddr, fss, indexerConf, indexerLocalCache)
+			if err != nil {
+				return nil, err
+			}
+			return ext, nil
+		},
+		ocflextension.GetIndexerParams)
+	extension.RegisterExtension(
+		ocflextension.MigrationName,
+		func() (extension.Extension, error) {
+			return ocflextension.NewMigration(migration), nil
+		},
+		nil)
+	extension.RegisterExtension(
+		ocflextension.ThumbnailName,
+		func() (extension.Extension, error) {
+			return ocflextension.NewThumbnail(thumbnail), nil
+		},
+		nil)
 
-type extensionRegistration struct {
-	name    string
-	builder extension.BuilderFunc
-}
-
-func registerExtension(
-	factory *extensionimpl.Factory,
-	logger ocfllogger.OCFLLogger,
-	reg extensionRegistration,
-) {
-	logger.Debug().Msgf("adding creator for extension %s", reg.name)
-	factory.AddCreator(reg.name, func(fsys fs.FS) (extension.Extension, error) {
-		ext, err := reg.builder()
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("cannot create extension %s", reg.name))
-		}
-		ext = ext.WithLogger(logger)
-		if err := ext.Load(fsys); err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("cannot load extension %s", reg.name))
-		}
-		return ext, nil
-	})
-}
-
-func InitExtensionFactory(
-	extensionParams map[string]string,
-	fss map[string]fs.FS,
-	indexerAddr string,
-	indexerLocalCache bool,
-	indexerConf ironmaiden.IndexerConfig,
-	migration *migration.Migration,
-	thumbnail *thumbnail.Thumbnail,
-	logger ocfllogger.OCFLLogger,
-) (*extensionimpl.Factory, error) {
-	logger.Debug().Msgf("initializing ExtensionFactory")
-	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot instantiate extension factory")
-	}
-
-	// slice because of defined order. map[string]extensionFactoryBuilder would have no range order
-	registrations := []extensionRegistration{
-		{
-			name: ocflextension.InitialName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewInitial(), nil
-			},
-		},
-		{
-			name: ocflextension.GOCFLExtensionManagerName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewGOCFLExtensionManager(), nil
-			},
-		},
-		{
-			name: ocflextension.DigestAlgorithmsName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewDigestAlgorithms(), nil
-			},
-		},
-		{
-			name: ocflextension.StorageLayoutFlatDirectName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewStorageLayoutFlatDirect(), nil
-			},
-		},
-		{
-			name: ocflextension.StorageLayoutHashAndIdNTupleName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewStorageLayoutHashAndIdNTuple(), nil
-			},
-		},
-		{
-			name: ocflextension.StorageLayoutHashedNTupleName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewStorageLayoutHashedNTuple(), nil
-			},
-		},
-		{
-			name: ocflextension.FlatOmitPrefixStorageLayoutName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewFlatOmitPrefixStorageLayout(), nil
-			},
-		},
-		{
-			name: ocflextension.NTupleOmitPrefixStorageLayoutName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewNTupleOmitPrefixStorageLayout(), nil
-			},
-		},
-		{
-			name: ocflextension.DirectCleanName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewDirectClean(), nil
-			},
-		},
-		{
-			name: ocflextension.LegacyDirectCleanName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewLegacyDirectClean(), nil
-			},
-		},
-		{
-			name: ocflextension.StorageLayoutPairTreeName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewStorageLayoutPairTree(), nil
-			},
-		},
-		{
-			name: ocflextension.ContentSubPathName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewContentSubPath(), nil
-			},
-		},
-		{
-			name: ocflextension.MetaFileName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewMetaFile(nil), nil
-			},
-		},
-		{
-			name: ocflextension.TimestampName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewTimestamp(), nil
-			},
-		},
-		{
-			name: ocflextension.IndexerName,
-			builder: func() (extension.Extension, error) {
-				ext, err := ocflextension.NewIndexer(indexerAddr, fss, indexerConf, indexerLocalCache)
-				if err != nil {
-					return nil, err
-				}
-				return ext, nil
-			},
-		},
-		{
-			name: ocflextension.MigrationName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewMigration(migration), nil
-			},
-		},
-		{
-			name: ocflextension.ThumbnailName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewThumbnail(thumbnail), nil
-			},
-		},
-		{
-			name: ocflextension.FilesystemName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewFilesystem(), nil
-			},
-		},
-		{
-			name: ocflextension.METSName,
-			builder: func() (extension.Extension, error) {
-				return ocflextension.NewMets(), nil
-			},
-		},
-	}
-
-	for _, reg := range registrations {
-		extensionFactory.RegisterExtension(reg.name, reg.builder)
-	}
-
-	return extensionFactory, nil
-}
-func GetExtensionParams() []*extensionimpl.ExtensionExternalParam {
-	var result = []*extensionimpl.ExtensionExternalParam{}
-
-	result = append(result, ocflextension.GetIndexerParams()...)
-	result = append(result, ocflextension.GetMetaFileParams()...)
-	result = append(result, ocflextension.GetMetsParams()...)
-	result = append(result, ocflextension.GetContentSubPathParams()...)
-	result = append(result, ocflextension.GetTimestampParams()...)
-
-	return result
-}
-
-func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) map[string]string {
-	var result = map[string]string{}
-	extParams := GetExtensionParams()
-	for _, param := range extParams {
-		name, value := param.GetParam(cmd, conf)
-		if name != "" {
-			result[name] = value
-		}
-	}
-	return result
+	return nil
 }
 
 func InitDefaultExtensions(ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, storageRootExtensionsFolder, objectExtensionsFolder string, logger ocfllogger.OCFLLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
