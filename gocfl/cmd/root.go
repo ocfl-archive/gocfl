@@ -12,6 +12,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/internal"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	version2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/rs/zerolog/log"
@@ -212,7 +213,10 @@ func initConfig() {
 }
 
 func setExtensionFlags(commands ...*cobra.Command) {
-	extensionParams := GetExtensionParams()
+	extensionParams, err := extension.GetExternalParams()
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot get extension params")
+	}
 	for _, cmd := range commands {
 		for _, param := range extensionParams {
 			param.SetParam(cmd)
