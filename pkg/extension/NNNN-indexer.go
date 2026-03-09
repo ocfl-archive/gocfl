@@ -30,7 +30,9 @@ const IndexerName = "NNNN-indexer"
 const IndexerDescription = "technical metadata for all files"
 
 func init() {
-	extension.RegisterExtension(IndexerName, nil, GetIndexerParams)
+	extension.RegisterExtension(IndexerName, func() (extensiontypes.Extension, error) {
+		return NewIndexer("", nil, ironmaiden.IndexerConfig{}, false)
+	}, GetIndexerParams)
 }
 
 type indexerLine struct {

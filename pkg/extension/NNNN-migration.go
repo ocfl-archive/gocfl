@@ -29,7 +29,9 @@ const MigrationName = "NNNN-migration"
 const MigrationDescription = "preservation management - file migration"
 
 func init() {
-	extension.RegisterExtension(MigrationName, nil, nil)
+	extension.RegisterExtension(MigrationName, func() (extensiontypes.Extension, error) {
+		return NewMigration(nil), nil
+	}, nil)
 }
 
 func NewMigration(mig *migration.Migration) *Migration {

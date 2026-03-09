@@ -25,6 +25,7 @@ type Factory struct {
 	logger             ocfllogger.OCFLLogger
 }
 
+// todo: get rid of cobra.Command and config.GOCFLConfig
 func NewFactory(cmd *cobra.Command, conf *config.GOCFLConfig, logger ocfllogger.OCFLLogger) (*Factory, error) {
 	extensionParams, err := extension.GetExtensionParamValues(cmd, conf)
 	if err != nil {

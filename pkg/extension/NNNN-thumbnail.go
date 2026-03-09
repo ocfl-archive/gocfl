@@ -39,10 +39,12 @@ const ThumbnailName = "NNNN-thumbnail"
 const ThumbnailDescription = "preservation management - file thumbnail"
 
 func init() {
-	extension.RegisterExtension(ThumbnailName, nil, nil)
+	extension.RegisterExtension(ThumbnailName, func() (extensiontypes.Extension, error) {
+		return NewThumbnail(nil), nil
+	}, nil)
 }
 
-func NewThumbnail(mig *thumbnail.Thumbnail) *Thumbnail {
+func NewThumbnail(thumb *thumbnail.Thumbnail) *Thumbnail {
 	config := &ThumbnailConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{ExtensionName: ThumbnailName},
 		StorageType:     "extension",
@@ -55,15 +57,15 @@ func NewThumbnail(mig *thumbnail.Thumbnail) *Thumbnail {
 	}
 	sl := &Thumbnail{
 		ThumbnailConfig: config,
-		thumbnail:       mig,
+		thumbnail:       thumb,
 		buffer:          map[string]*bytes.Buffer{},
 		counter:         map[string]int64{},
 		streamInfo:      map[string]map[string]*ThumbnailResult{},
 		streamImg:       map[string]map[string]image.Image{},
 	}
 	//	sl.writer = brotli.NewWriter(sl.buffer)
-	if mig != nil {
-		sl.sourceFS = mig.SourceFS
+	if thumb != nil {
+		sl.sourceFS = thumb.SourceFS
 	}
 	return sl
 }
