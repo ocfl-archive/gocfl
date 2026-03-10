@@ -132,7 +132,13 @@ func RegisterComplexExtensions(
 	return nil
 }
 
-func InitDefaultExtensions(ver version.OCFLVersion, extensionFactory *extensionimpl.Factory, storageRootExtensionsFolder, objectExtensionsFolder string, logger ocfllogger.OCFLLogger) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
+func InitDefaultExtensions(
+	ver version.OCFLVersion,
+	extensionFactory *extensionimpl.Factory,
+	storageRootExtensionsFolder,
+	objectExtensionsFolder string,
+	logger ocfllogger.OCFLLogger,
+) (storageRootExtensions storageroot.ExtensionManager, objectExtensions object.ExtensionManager, err error) {
 	var dStorageRootExtDirFS, dObjectExtDirFS fs.FS
 	if storageRootExtensionsFolder == "" {
 		dStorageRootExtDirFS = defaultextensions_storageroot.DefaultStorageRootExtensionFS
@@ -150,12 +156,12 @@ func InitDefaultExtensions(ver version.OCFLVersion, extensionFactory *extensioni
 			return nil, nil, errors.Wrapf(err, "cannot create filesystem for object extensions folder %v", objectExtensionsFolder)
 		}
 	}
-	_storageRootExtensions, err := extensionFactory.LoadExtensions(dStorageRootExtDirFS, ver)
+	_storageRootExtensions, err := extensionFactory.LoadExtensionManager(dStorageRootExtDirFS, ver)
 	if err != nil {
 		err = errors.Wrapf(err, "cannot load extension folder %v", dStorageRootExtDirFS)
 		return
 	}
-	_objectExtensions, err := extensionFactory.LoadExtensions(dObjectExtDirFS, ver)
+	_objectExtensions, err := extensionFactory.LoadExtensionManager(dObjectExtDirFS, ver)
 	if err != nil {
 		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
@@ -329,7 +335,9 @@ func addObjectByPath(
 	}
 	defer func() {
 		if versionWriter != nil {
-			versionWriter.Close()
+			if err := versionWriter.Close(); err != nil {
+				logger.Error().Err(err).Msg("cannot close version writer")
+			}
 		}
 	}()
 	if err := versionWriter.AddFolder(sourceFS, checkDuplicates, area); err != nil {
@@ -362,54 +370,59 @@ func CreateStorageRoot(ctx context.Context, objectWriteFS appendfs.FS, ver versi
 	return storageRoot, nil
 }
 
-func LoadStorageRoot(ctx context.Context, storageRootFS appendfs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	ver, err := util.GetVersion(storageRootFS, ".", "ocfl_")
+func loadStorageRootInternal(
+	ctx context.Context,
+	readFS fs.FS,
+	writeFS appendfs.FS,
+	extensionFactory *extensionimpl.Factory,
+	logger ocfllogger.OCFLLogger,
+) (storageroot.StorageRoot, error) {
+	ver, err := util.GetVersion(readFS, ".", "ocfl_")
 	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
 		return nil, errors.WithStack(err)
 	}
 	if ver == "" {
-		dirs, err := fs.ReadDir(storageRootFS, ".")
+		dirs, err := fs.ReadDir(readFS, ".")
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		if len(dirs) > 0 {
-			logger.ValidationError(validation.E069, "storage root %s not empty without version information", storageRootFS)
+			logger.ValidationError(validation.E069, "storage root %s not empty without version information", readFS)
 		}
 		ver = version.Version1_1
 	}
+
 	logger.WithVersion(ver)
 	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
-	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(storageRootFS).WithWriteFS(storageRootFS)
+
+	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(readFS)
+	if writeFS != nil {
+		storageRoot = storageRoot.WithWriteFS(writeFS)
+	}
+
 	loader := storageRoot.GetLoader(extensionFactory)
 	defer loader.Close()
+
 	if err := loader.Load(); err != nil {
 		return nil, errors.Wrap(err, "cannot load storage root")
 	}
 	return storageRoot, nil
 }
 
-func LoadStorageRootRO(ctx context.Context, storageRootFS fs.FS, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	ver, err := util.GetVersion(storageRootFS, ".", "ocfl_")
-	if err != nil && !errors.Is(err, ocflerrors.ErrVersionNone) {
-		return nil, errors.WithStack(err)
-	}
-	if ver == "" {
-		dirs, err := fs.ReadDir(storageRootFS, ".")
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if len(dirs) > 0 {
-			logger.ValidationError(validation.E069, "storage root %s not empty without version information", storageRootFS)
-		}
-		ver = version.Version1_1
-	}
-	logger.WithVersion(ver)
-	fact := factoryimpl.NewFactory(ver, extensionFactory, logger)
-	storageRoot := fact.NewStorageRoot(ctx).WithReadFS(storageRootFS)
-	loader := storageRoot.GetLoader(extensionFactory)
-	defer loader.Close()
-	if err := loader.Load(); err != nil {
-		return nil, errors.Wrap(err, "cannot load storage root")
-	}
-	return storageRoot, nil
+func LoadStorageRoot(
+	ctx context.Context,
+	storageRootFS appendfs.FS,
+	extensionFactory *extensionimpl.Factory,
+	logger ocfllogger.OCFLLogger,
+) (storageroot.StorageRoot, error) {
+	return loadStorageRootInternal(ctx, storageRootFS, storageRootFS, extensionFactory, logger)
+}
+
+func LoadStorageRootRO(
+	ctx context.Context,
+	storageRootFS fs.FS,
+	extensionFactory *extensionimpl.Factory,
+	logger ocfllogger.OCFLLogger,
+) (storageroot.StorageRoot, error) {
+	return loadStorageRootInternal(ctx, storageRootFS, nil, extensionFactory, logger)
 }
