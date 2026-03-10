@@ -11,7 +11,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
@@ -94,7 +93,7 @@ func (f *Factory) LoadExtensionData(fsys fs.FS, data []byte) (extension.Extensio
 	return ext, nil
 }
 
-func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (extension.ManagerCore, error) {
+func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error) {
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {

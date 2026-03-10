@@ -26,7 +26,7 @@ func (objectBase *ObjectBase) Load(fsys fs.FS) error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", fsys, "extensions")
 	}
-	manager, err := objectBase.extensionFactory.LoadExtensionManager(extFolder, objectBase.i.GetOCFLVersion())
+	manager, err := objectBase.extensionFactory.LoadExtensionManager(extFolder)
 	if err != nil {
 		objectBase.logger.ValidationError(validation.W000, "cannot initialize all extensions in folder '%s': %v", extFolder, err)
 		if manager == nil {

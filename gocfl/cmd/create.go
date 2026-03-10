@@ -12,9 +12,13 @@ import (
 
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	defaultextensions_object "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
+	defaultextensions_storageroot "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -251,17 +255,31 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageRootExtensionManager, objectExtensionManager, err := InitDefaultExtensions(ver, extensionFactory, conf.Init.StorageRootExtensionFolder, conf.Add.ObjectExtensionFolder, logger)
+	storageRootExtensionManager, err := LoadExtensionManager[storageroot.ExtensionManager](
+		extensionFactory,
+		firstOrSecond(conf.Init.StorageRootExtensionFolder == "", (fs.FS)(defaultextensions_storageroot.DefaultStorageRootExtensionFS), os.DirFS(conf.Init.StorageRootExtensionFolder)),
+	)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot initialize default extensions")
+		logger.Error().Err(err).Msg("cannot load storage root extension")
+		return
+	}
+	defer func() {
+		if err := storageRootExtensionManager.Terminate(); err != nil {
+			logger.Error().Err(err).Msg("cannot terminate storage root extension manager")
+		}
+	}()
+
+	objectExtensionManager, err := LoadExtensionManager[object.ExtensionManager](
+		extensionFactory,
+		firstOrSecond(conf.Add.ObjectExtensionFolder == "", (fs.FS)(defaultextensions_object.DefaultObjectExtensionFS), os.DirFS(conf.Add.ObjectExtensionFolder)),
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot load object extension")
 		return
 	}
 	defer func() {
 		if err := objectExtensionManager.Terminate(); err != nil {
 			logger.Error().Err(err).Msg("cannot terminate object extension manager")
-		}
-		if err := storageRootExtensionManager.Terminate(); err != nil {
-			logger.Error().Err(err).Msg("cannot terminate storage root extension manager")
 		}
 	}()
 

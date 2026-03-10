@@ -38,6 +38,31 @@ import (
 	"github.com/tink-crypto/tink-go/v2/core/registry"
 )
 
+func firstOrSecond[T any](first bool, a T, b T) T {
+	if first {
+		return a
+	}
+	return b
+}
+
+type ExtensionManager interface {
+	extension.ManagerCore
+}
+
+func LoadExtensionManager[T ExtensionManager](fact extension.Factory, fsys fs.FS) (T, error) {
+	m, err := fact.LoadExtensionManager(fsys)
+	if err != nil {
+		var result T
+		return result, errors.Wrapf(err, "loading extension manager")
+	}
+	tVal, ok := m.(T)
+	if !ok {
+		var result T
+		return result, errors.Errorf("failed to cast extension manager to expected type %T", result)
+	}
+	return tVal, nil
+}
+
 func resolveExtensionParam(cmd *cobra.Command, name, extensionName, param, defaultValue string) string {
 	configValue := conf.Extension[extensionName][param]
 	flagValue, _ := cmd.Flags().GetString(name)
@@ -156,12 +181,12 @@ func InitDefaultExtensions(
 			return nil, nil, errors.Wrapf(err, "cannot create filesystem for object extensions folder %v", objectExtensionsFolder)
 		}
 	}
-	_storageRootExtensions, err := extensionFactory.LoadExtensionManager(dStorageRootExtDirFS, ver)
+	_storageRootExtensions, err := extensionFactory.LoadExtensionManager(dStorageRootExtDirFS)
 	if err != nil {
 		err = errors.Wrapf(err, "cannot load extension folder %v", dStorageRootExtDirFS)
 		return
 	}
-	_objectExtensions, err := extensionFactory.LoadExtensionManager(dObjectExtDirFS, ver)
+	_objectExtensions, err := extensionFactory.LoadExtensionManager(dObjectExtDirFS)
 	if err != nil {
 		err = errors.Wrapf(err, "cannot load extension folder %v", dObjectExtDirFS)
 		return
@@ -169,6 +194,7 @@ func InitDefaultExtensions(
 	return _storageRootExtensions.(storageroot.ExtensionManager), _objectExtensions.(object.ExtensionManager), nil
 }
 
+// todo: use filesystem VFS
 func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *config.AESConfig, s3Config *config.S3Config, noCompression, readOnly bool, logger ocfllogger.OCFLLogger) (*writefs.Factory, error) {
 	if zipDigests == nil {
 		zipDigests = []checksum.DigestAlgorithm{checksum.DigestSHA512}

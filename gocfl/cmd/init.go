@@ -4,14 +4,17 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	defaultextensions_storageroot "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -148,23 +151,25 @@ func doInit(cmd *cobra.Command, args []string) {
 		logger.Error().Err(err).Msg("cannot create extension factory")
 		return
 	}
-	storageRootExtensions, _, err := InitDefaultExtensions(
-		ver,
+	storageRootExtensionManager, err := LoadExtensionManager[storageroot.ExtensionManager](
 		extensionFactory,
-		conf.Init.StorageRootExtensionFolder,
-		"",
-		logger,
+		firstOrSecond(conf.Init.StorageRootExtensionFolder == "", (fs.FS)(defaultextensions_storageroot.DefaultStorageRootExtensionFS), os.DirFS(conf.Init.StorageRootExtensionFolder)),
 	)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot initialize default extensions")
+		logger.Error().Err(err).Msg("cannot load storage root extension")
 		return
 	}
+	defer func() {
+		if err := storageRootExtensionManager.Terminate(); err != nil {
+			logger.Error().Err(err).Msg("cannot terminate storage root extension manager")
+		}
+	}()
 
 	if _, err := CreateStorageRoot(
 		ctx,
 		destFS,
 		version.OCFLVersion(conf.Init.OCFLVersion),
-		extensionFactory, storageRootExtensions,
+		extensionFactory, storageRootExtensionManager,
 		conf.Init.Digest,
 		(logger),
 	); err != nil {

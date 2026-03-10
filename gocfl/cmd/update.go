@@ -12,9 +12,11 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
+	defaultextensions_object "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -231,18 +233,21 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		doNotClose = true
 		return
 	}
-	_, objectExtensions, err := InitDefaultExtensions(
-		storageRoot.GetOCFLVersion(),
+
+	// todo: seems to be wrong... should be loaded from object...
+	objectExtensionManager, err := LoadExtensionManager[object.ExtensionManager](
 		extensionFactory,
-		"",
-		"",
-		logger,
+		firstOrSecond(conf.Add.ObjectExtensionFolder == "", (fs.FS)(defaultextensions_object.DefaultObjectExtensionFS), os.DirFS(conf.Add.ObjectExtensionFolder)),
 	)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot initialize default extensions")
-		doNotClose = true
+		logger.Error().Err(err).Msg("cannot load object extension")
 		return
 	}
+	defer func() {
+		if err := objectExtensionManager.Terminate(); err != nil {
+			logger.Error().Err(err).Msg("cannot terminate object extension manager")
+		}
+	}()
 
 	exists, err := storageRoot.ObjectExists(flagObjectID)
 	if err != nil {
@@ -261,7 +266,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		storageRoot,
 		nil,
 		extensionFactory,
-		objectExtensions,
+		objectExtensionManager,
 		conf.Update.Deduplicate,
 		flagObjectID,
 		conf.Update.User.Name,
