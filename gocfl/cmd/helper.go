@@ -83,7 +83,29 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func RegisterComplexExtensions(fss map[string]fs.FS, indexerAddr string, indexerLocalCache bool, indexerConf ironmaiden.IndexerConfig, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, logger ocfllogger.OCFLLogger) error {
+func RegisterComplexExtensions(
+	fss map[string]fs.FS,
+	sourceFS fs.FS,
+	indexerAddr string,
+	indexerLocalCache bool,
+	indexerConf ironmaiden.IndexerConfig,
+	migrationConf *config.Migration,
+	thumbnailConf *config.Thumbnail,
+	logger ocfllogger.OCFLLogger,
+) error {
+
+	mig, err := migration.GetMigrations(migrationConf)
+	if err != nil {
+		return errors.Wrap(err, "cannot get migrations")
+	}
+	mig.SetSourceFS(sourceFS)
+
+	thumb, err := thumbnail.GetThumbnails(thumbnailConf)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot get thumbnails")
+		return errors.Wrap(err, "cannot get thumbnails")
+	}
+	thumb.SetSourceFS(sourceFS)
 	extension.RegisterExtension(
 		ocflextension.IndexerName,
 		func() (extension.Extension, error) {

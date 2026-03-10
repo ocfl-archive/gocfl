@@ -10,13 +10,13 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/config"
 )
 
-func GetThumbnails(conf *config.GOCFLConfig) (*Thumbnail, error) {
+func GetThumbnails(conf *config.Thumbnail) (*Thumbnail, error) {
 	m := &Thumbnail{
 		Functions:  map[string]*Function{},
-		Background: conf.Thumbnail.Background,
+		Background: conf.Background,
 	}
 
-	for name, fn := range conf.Thumbnail.Function {
+	for name, fn := range conf.Function {
 		parts, err := shlex.Split(fn.Command)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Thumbnail.Function.%s", name)

@@ -19,8 +19,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
-	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -236,21 +234,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	mig, err := migration.GetMigrations(conf)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot get migrations")
-		return
-	}
-	mig.SetSourceFS(sourceFS)
-
-	thumb, err := thumbnail.GetThumbnails(conf)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot get thumbnails")
-		return
-	}
-	thumb.SetSourceFS(sourceFS)
-
-	if err := RegisterComplexExtensions(fss, addr, localCache, *conf.Indexer, mig, thumb, logger); err != nil {
+	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, *conf.Indexer, &conf.Migration, &conf.Thumbnail, logger); err != nil {
 		logger.Error().Err(err).Msg("cannot register complex extensions")
 		return
 	}

@@ -14,12 +14,12 @@ import (
 	object "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
-func GetMigrations(conf *config.GOCFLConfig) (*Migration, error) {
+func GetMigrations(conf *config.Migration) (*Migration, error) {
 	m := &Migration{
 		Functions: map[string]*Function{},
 	}
 
-	for name, fn := range conf.Migration.Function {
+	for name, fn := range conf.Function {
 		parts, err := shlex.Split(fn.Command)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse Migration.Function.%s", name)
