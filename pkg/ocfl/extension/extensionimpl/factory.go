@@ -23,7 +23,6 @@ type Factory struct {
 	logger             ocfllogger.OCFLLogger
 }
 
-// todo: get rid of cobra.Command and config.GOCFLConfig
 func NewFactory(extensionParams map[string]string, logger ocfllogger.OCFLLogger) (*Factory, error) {
 	m := &Factory{
 		creators:        map[string]extension.CreatorFunc{},
