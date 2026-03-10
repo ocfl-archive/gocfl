@@ -119,13 +119,13 @@ func RegisterComplexExtensions(
 	extension.RegisterExtension(
 		ocflextension.MigrationName,
 		func() (extension.Extension, error) {
-			return ocflextension.NewMigration(migration), nil
+			return ocflextension.NewMigration(mig), nil
 		},
 		nil)
 	extension.RegisterExtension(
 		ocflextension.ThumbnailName,
 		func() (extension.Extension, error) {
-			return ocflextension.NewThumbnail(thumbnail), nil
+			return ocflextension.NewThumbnail(thumb), nil
 		},
 		nil)
 
