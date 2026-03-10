@@ -12,6 +12,7 @@ type registrationStruct struct {
 
 var registration = map[string]*registrationStruct{}
 
+// RegisterExtension registers an extension with a given name, builder function, and external parameter function. if func is nil, it is ignored.
 func RegisterExtension(name string, builder BuilderFunc, externalParamFunc ExternalParamFunc) {
 	reg, ok := registration[name]
 	if !ok {
@@ -26,10 +27,11 @@ func RegisterExtension(name string, builder BuilderFunc, externalParamFunc Exter
 	}
 }
 
+// RegisterWithFactory registers all extensions with the provided factory if they have a valid builder function.
 func RegisterWithFactory(fact Factory, logger ocfllogger.OCFLLogger) {
 	for name, reg := range registration {
-		if reg == nil || (reg.builder == nil && reg.externalParamFunc == nil) {
-			logger.Debug().Msgf("extension %s has no builder or external param func", name)
+		if reg == nil || reg.builder == nil {
+			logger.Debug().Msgf("extension %s has no builder func", name)
 			continue
 		}
 		fact.RegisterExtension(name, reg.builder)
