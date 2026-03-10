@@ -99,11 +99,6 @@ func validate(cmd *cobra.Command, args []string) {
 
 	logger.Info().Msgf("validating '%s'", ocflPath)
 
-	if err := RegisterComplexExtensions(nil, "", false, ironmaiden.IndexerConfig{}, nil, nil, (logger)); err != nil {
-		logger.Error().Err(err).Msg("cannot register complex extensions")
-		return
-	}
-
 	extensionParams, err := getExtensionParams(cmd)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot get extension params")
