@@ -138,6 +138,11 @@ func doInit(cmd *cobra.Command, args []string) {
 		}
 	}()
 
+	if err := RegisterComplexExtensions(nil, "", false, ironmaiden.IndexerConfig{}, nil, nil, logger); err != nil {
+		logger.Error().Err(err).Msg("cannot register complex extensions")
+		return
+	}
+
 	extensionParams, err := getExtensionParams(cmd)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot get extension params")
@@ -147,12 +152,6 @@ func doInit(cmd *cobra.Command, args []string) {
 	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot create extension factory")
-		return
-	}
-
-	err = RegisterComplexExtensions(nil, "", false, ironmaiden.IndexerConfig{}, nil, nil, logger)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot register complex extensions")
 		return
 	}
 	storageRootExtensions, _, err := InitDefaultExtensions(

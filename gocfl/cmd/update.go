@@ -220,6 +220,12 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	}
 	thumb.SetSourceFS(sourceFS)
 
+	if err := RegisterComplexExtensions(fss, addr, localCache, *conf.Indexer, mig, thumb, logger); err != nil {
+		logger.Error().Err(err).Msg("cannot register complex extensions")
+		doNotClose = true
+		return
+	}
+
 	extensionParams, err := getExtensionParams(cmd)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot get extension params")
@@ -230,13 +236,6 @@ func doUpdate(cmd *cobra.Command, args []string) {
 	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot create extension factory")
-		doNotClose = true
-		return
-	}
-
-	err = RegisterComplexExtensions(fss, addr, localCache, *conf.Indexer, mig, thumb, logger)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot register complex extensions")
 		doNotClose = true
 		return
 	}
