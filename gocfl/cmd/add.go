@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/vfsrw"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	defaultextensions_object "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
@@ -195,6 +196,19 @@ func doAdd(cmd *cobra.Command, args []string) {
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
 	}
 
+	vfs, err := vfsrw.NewFS(conf.VFS, logger.Logger())
+	if err != nil {
+		logger.Panic().Err(err).Msg("cannot create vfs")
+	}
+	defer func() {
+		if err := vfs.Close(); err != nil {
+			logger.Error().Err(err).Msg("cannot close vfs")
+		}
+	}()
+	vfs.AddFS("internal", internal.InternalFS)
+
+	logger.Info().Msgf("vfs created : %v", vfs)
+
 	if _, err := os.Stat(srcPath); err != nil {
 		logger.Fatal().Err(err).Msgf("cannot stat '%s'", srcPath)
 	}
@@ -246,7 +260,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, *conf.Indexer, &conf.Migration, &conf.Thumbnail, logger); err != nil {
+	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, conf.Indexer, &conf.Migration, &conf.Thumbnail, logger); err != nil {
 		doNotClose = true
 		logger.Fatal().Err(err).Msg("cannot register complex extensions")
 	}

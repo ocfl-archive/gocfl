@@ -50,7 +50,7 @@ func GetExtensionParamValues(command string, callback GetParamsFunc) error {
 }
 
 func GetExternalParams() ([]*ExternalParam, error) {
-	result := make([]*ExternalParam, len(registration))
+	result := []*ExternalParam{}
 	for name, reg := range registration {
 		if reg == nil || reg.externalParamFunc == nil {
 			continue
@@ -59,7 +59,11 @@ func GetExternalParams() ([]*ExternalParam, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get external params for extension %s", name)
 		}
-		result = append(result, ps...)
+		for _, p := range ps {
+			if p != nil {
+				result = append(result, p)
+			}
+		}
 	}
 	return result, nil
 }

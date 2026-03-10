@@ -204,7 +204,7 @@ func doUpdate(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, *conf.Indexer, &conf.Migration, &conf.Thumbnail, logger); err != nil {
+	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, conf.Indexer, &conf.Migration, &conf.Thumbnail, logger); err != nil {
 		logger.Error().Err(err).Msg("cannot register complex extensions")
 		doNotClose = true
 		return

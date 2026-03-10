@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
+	"github.com/je4/filesystem/v3/pkg/vfsrw"
 	"github.com/je4/filesystem/v3/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
@@ -138,25 +140,55 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}
 	output := conf.ExtractMeta.Output
 
-	logger.Info().Msgf("extracting metadata from '%s'", ocflPath)
-
-	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot create filesystem factory")
-		return
+	if conf.VFS == nil {
+		conf.VFS = vfsrw.Config{}
 	}
-
-	ocflFS, err := fsFactory.Get(ocflPath, true)
+	for name, val := range getLocalFSConfig() {
+		conf.VFS[name] = val
+	}
+	vfs, err := vfsrw.NewFS(conf.VFS, logger.Logger())
 	if err != nil {
-		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
-		return
+		logger.Panic().Err(err).Msg("cannot create vfs")
 	}
 	defer func() {
-		if err := writefs.Close(ocflFS); err != nil {
-			logger.Error().Err(err).Msgf("cannot close filesystem for '%s'", ocflFS)
+		if err := vfs.Close(); err != nil {
+			logger.Error().Err(err).Msg("cannot close vfs")
 		}
 	}()
+	vfs.AddFS("internal", internal.InternalFS)
 
+	ocflPath, err = path2vfs(ocflPath)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot create ocfl path")
+		return
+	}
+
+	logger.Info().Msgf("vfs created : %v", vfs)
+
+	logger.Info().Msgf("extracting metadata from '%s'", ocflPath)
+
+	/*
+		fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
+		if err != nil {
+			logger.Error().Err(err).Msg("cannot create filesystem factory")
+			return
+		}
+		ocflFS, err := fsFactory.Get(ocflPath, true)
+		if err != nil {
+			logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+			return
+		}
+		defer func() {
+			if err := writefs.Close(ocflFS); err != nil {
+				logger.Error().Err(err).Msgf("cannot close filesystem for '%s'", ocflFS)
+			}
+		}()
+	*/
+	ocflFS, err := writefs.Sub(vfs, ocflPath)
+	if err != nil {
+		logger.Error().Err(err).Msgf("cannot open ocfl filesystem at '%s'", ocflPath)
+		return
+	}
 	extensionParams, err := getExtensionParams(cmd)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot get extension params")

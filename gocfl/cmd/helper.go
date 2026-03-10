@@ -4,12 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
+	"path"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/osfsrw"
 	"github.com/je4/filesystem/v3/pkg/s3fsrw"
+	"github.com/je4/filesystem/v3/pkg/vfsrw"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/filesystem/v3/pkg/zipfs"
 	"github.com/je4/filesystem/v3/pkg/zipfsrw"
@@ -34,6 +39,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
+	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/spf13/cobra"
 	"github.com/tink-crypto/tink-go/v2/core/registry"
 )
@@ -61,6 +67,46 @@ func LoadExtensionManager[T ExtensionManager](fact extension.Factory, fsys fs.FS
 		return result, errors.Errorf("failed to cast extension manager to expected type %T", result)
 	}
 	return tVal, nil
+}
+
+type AddFS interface {
+	AddFS(name string, fsys fs.FS)
+}
+
+func getLocalFSConfig() map[string]*vfsrw.VFS {
+	var result = map[string]*vfsrw.VFS{}
+	if runtime.GOOS == "windows" {
+		partitions, _ := disk.Partitions(false)
+		for _, partition := range partitions {
+			if len(partition.Mountpoint) < 2 {
+				continue
+			}
+			if partition.Mountpoint[1] != ':' {
+				continue
+			}
+			result[strings.ToLower(partition.Mountpoint[:1])] = &vfsrw.VFS{
+				Name:     strings.ToLower(partition.Mountpoint[:1]),
+				Type:     "os",
+				ReadOnly: false,
+				OS: &vfsrw.OS{
+					BaseDir:          partition.Mountpoint + "/",
+					ZipAsFolderCache: 1,
+				},
+			}
+		}
+	} else {
+		result["root"] = &vfsrw.VFS{
+			Name:     "root",
+			Type:     "os",
+			ReadOnly: false,
+			OS: &vfsrw.OS{
+				BaseDir:          "/",
+				ZipAsFolderCache: 1,
+			},
+		}
+
+	}
+	return result
 }
 
 func resolveExtensionParam(cmd *cobra.Command, name, extensionName, param, defaultValue string) string {
@@ -106,6 +152,32 @@ func (t *timer) Start() {
 func (t *timer) String() string {
 	delta := time.Now().Sub(t.start)
 	return delta.String()
+}
+
+func path2vfs(pathStr string) (string, error) {
+	pathStr = filepath.ToSlash(pathStr)
+	if runtime.GOOS == "windows" {
+		if len(pathStr) > 2 && pathStr[1] == ':' {
+			pathStr = "vfs://" + path.Join(strings.ToLower(pathStr[:1]), pathStr[2:])
+		} else {
+			wd, err := os.Getwd()
+			if err != nil {
+				return "", errors.Wrap(err, "getting working directory")
+			}
+			pathStr = path.Join(wd, pathStr)
+			pathStr = "vfs://" + path.Join(strings.ToLower(pathStr[:1]), pathStr[2:])
+		}
+	} else {
+		if pathStr[0] != '/' {
+			wd, err := os.Getwd()
+			if err != nil {
+				return "", errors.Wrap(err, "getting working directory")
+			}
+			pathStr = path.Join(wd, pathStr)
+		}
+		pathStr = "vfs://root" + pathStr
+	}
+	return pathStr, nil
 }
 
 func RegisterComplexExtensions(

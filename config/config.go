@@ -3,6 +3,7 @@ package config
 import (
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
+	"github.com/je4/filesystem/v3/pkg/vfsrw"
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/stashconfig"
@@ -126,7 +127,7 @@ type GOCFLConfig struct {
 	ErrorConfig   string                       `toml:"errorconfig"`
 	AccessLog     string                       `toml:"accesslog"`
 	Extension     map[string]map[string]string `json:"extension"`
-	Indexer       *indexer.IndexerConfig       `toml:"indexer"`
+	Indexer       indexer.IndexerConfig        `toml:"indexer"`
 	Thumbnail     Thumbnail                    `toml:"thumbnail"`
 	Migration     Migration                    `toml:"migration"`
 	AES           AESConfig                    `toml:"aes"`
@@ -140,12 +141,13 @@ type GOCFLConfig struct {
 	Validate      ValidateConfig               `toml:"validate"`
 	S3            S3Config                     `toml:"s3"`
 	DefaultArea   string                       `toml:"defaultarea"`
+	VFS           vfsrw.Config                 `toml:"vfs"`
 	Log           stashconfig.Config           `toml:"log"`
 }
 
 func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
-		Indexer: indexer.GetDefaultConfig(),
+		Indexer: *indexer.GetDefaultConfig(),
 	}
 	if _, err := toml.Decode(defaultConfig, conf); err != nil {
 		return nil, errors.Wrap(err, "error decoding GOCFL default configuration")
