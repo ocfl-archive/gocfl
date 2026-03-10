@@ -19,5 +19,4 @@ type Factory interface {
 	LoadExtensionData(fsys fs.FS, data []byte) (Extension, error)
 
 	LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ManagerCore, error)
-	LoadExtensions(fsys fs.FS, ver version.OCFLVersion) (Extension, error)
 }

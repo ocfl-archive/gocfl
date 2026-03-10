@@ -233,12 +233,4 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS, ver version.OCFLVersion) (ext
 	return manager, errors.Combine(errs...)
 }
 
-func (f *Factory) LoadExtensions(fsys fs.FS, ver version.OCFLVersion) (extension.Extension, error) {
-	manager, err := f.LoadExtensionManager(fsys, ver)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create extensions")
-	}
-	return manager, nil
-}
-
 var _ extension.Factory = (*Factory)(nil)
