@@ -159,7 +159,13 @@ func doExtract(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	extensionFactory, err := extensionimpl.NewFactory(cmd, conf, logger)
+	extensionParams, err := getExtensionParams(cmd)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot get extension params")
+		return
+	}
+
+	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot create extension factory")
 		return

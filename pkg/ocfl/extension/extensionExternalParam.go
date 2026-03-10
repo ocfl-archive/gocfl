@@ -3,12 +3,7 @@ package extension
 import (
 	"fmt"
 	"slices"
-
-	"github.com/ocfl-archive/gocfl/v2/config"
-	"github.com/spf13/cobra"
 )
-
-// todo: get rid of cobra.Command
 
 type ExternalParam struct {
 	ExtensionName string
@@ -19,32 +14,24 @@ type ExternalParam struct {
 	Default     string
 }
 
-func (eep *ExternalParam) SetParam(cmd *cobra.Command) {
-	if !slices.Contains(eep.Functions, cmd.Name()) {
+type SetParamsFunc func(name string, defaultValue string, description string)
+type GetParamsFunc func(name, extensionName, param, defaultValue string)
+
+func (eep *ExternalParam) SetParam(command string, callback SetParamsFunc) {
+	if !slices.Contains(eep.Functions, command) {
 		return
 	}
-	name := eep.GetCobraName()
-	cmd.Flags().String(name, eep.Default, eep.Description)
+	callback(eep.GetParamName(), eep.Default, eep.Description)
 }
 
-func (eep *ExternalParam) GetParam(cmd *cobra.Command, conf *config.GOCFLConfig) (name, value string) {
-	if !slices.Contains(eep.Functions, cmd.Name()) {
+func (eep *ExternalParam) GetParam(command string, callback GetParamsFunc) {
+	if !slices.Contains(eep.Functions, command) {
 		return
 	}
-	name = eep.GetCobraName()
-	value, _ = cmd.Flags().GetString(name)
-	confExt, ok := conf.Extension[eep.ExtensionName]
-	if ok {
-		if str, ok := confExt[eep.Param]; ok {
-			if str != "" {
-				value = str
-			}
-		}
-	}
-	return
+	callback(eep.GetParamName(), eep.ExtensionName, eep.Param, eep.Default)
 }
 
-func (eep *ExternalParam) GetCobraName() string {
+func (eep *ExternalParam) GetParamName() string {
 	flagName := fmt.Sprintf("ext-%s-%s", eep.ExtensionName, eep.Param)
 	return flagName
 }

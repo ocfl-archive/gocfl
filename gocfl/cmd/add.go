@@ -264,8 +264,13 @@ func doAdd(cmd *cobra.Command, args []string) {
 		doNotClose = true
 		logger.Fatal().Err(err).Msg("cannot register complex extensions")
 	}
+	extensionParams, err := getExtensionParams(cmd)
+	if err != nil {
+		doNotClose = true
+		logger.Fatal().Err(err).Msg("cannot get extension params")
+	}
 
-	extensionFactory, err := extensionimpl.NewFactory(cmd, conf, logger)
+	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
 	if err != nil {
 		doNotClose = true
 		logger.Fatal().Err(err).Msg("cannot create extension factory")

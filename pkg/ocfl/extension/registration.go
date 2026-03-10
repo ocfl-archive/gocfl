@@ -38,18 +38,45 @@ func RegisterWithFactory(fact Factory, logger ocfllogger.OCFLLogger) {
 	}
 }
 
+func GetExtensionParamValues(command string, callback GetParamsFunc) error {
+	extParams, err := GetExternalParams()
+	if err != nil {
+		return errors.Wrap(err, "GetExternalParams")
+	}
+	for _, param := range extParams {
+		param.GetParam(command, callback)
+	}
+	return nil
+}
+
 // todo: get rid of cobra.Command and config.GOCFLConfig
-func GetExtensionParamValues(cmd *cobra.Command, conf *config.GOCFLConfig) (map[string]string, error) {
+func GetExtensionParamValuesOld(cmd *cobra.Command, conf *config.GOCFLConfig) (map[string]string, error) {
 	var result = map[string]string{}
 	extParams, err := GetExternalParams()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetExternalParams")
 	}
 	for _, param := range extParams {
-		name, value := param.GetParam(cmd, conf)
-		if name != "" {
+		param.GetParam(cmd.Name(), func(name, extensionName, param, defaultValue string) {
+			if name == "" {
+				return
+			}
+			var value string
+			confExt, ok := conf.Extension[extensionName]
+			if ok {
+				if str, ok := confExt[param]; ok {
+					if str != "" {
+						value = str
+					}
+				}
+			}
+			_value, _ := cmd.Flags().GetString(name)
+			// if cmdline value ist set or config value is empty
+			if (_value != "" && _value != defaultValue) || value == "" {
+				value = _value
+			}
 			result[name] = value
-		}
+		})
 	}
 	return result, nil
 }

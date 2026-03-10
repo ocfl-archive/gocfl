@@ -34,8 +34,35 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
+	"github.com/spf13/cobra"
 	"github.com/tink-crypto/tink-go/v2/core/registry"
 )
+
+func resolveExtensionParam(cmd *cobra.Command, name, extensionName, param, defaultValue string) string {
+	configValue := conf.Extension[extensionName][param]
+	flagValue, _ := cmd.Flags().GetString(name)
+
+	if configValue == "" {
+		return flagValue
+	}
+	if flagValue != "" && flagValue != defaultValue {
+		return flagValue
+	}
+	return configValue
+}
+
+func getExtensionParams(cmd *cobra.Command) (map[string]string, error) {
+	var extensionParams = map[string]string{}
+	if err := extension.GetExtensionParamValues(cmd.Name(), func(name, extensionName, param, defaultValue string) {
+		if name == "" {
+			return
+		}
+		extensionParams[name] = resolveExtensionParam(cmd, name, extensionName, param, defaultValue)
+	}); err != nil {
+		return nil, errors.Wrap(err, "cannot get extension params")
+	}
+	return extensionParams, nil
+}
 
 func startTimer() *timer {
 	t := &timer{}
