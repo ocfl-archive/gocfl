@@ -154,6 +154,12 @@ func doCreate(cmd *cobra.Command, args []string) {
 
 	var fss = map[string]fs.FS{"internal": internal.InternalFS}
 
+	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, &conf.AES, &conf.S3, conf.Add.NoCompress, false, logger)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot create filesystem factory")
+		return
+	}
+
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
@@ -174,12 +180,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 			return
 		}
 		fixityAlgs = append(fixityAlgs, checksum.DigestAlgorithm(alg))
-	}
-
-	fsFactory, err := initializeFSFactory([]checksum.DigestAlgorithm{conf.Init.Digest}, &conf.AES, &conf.S3, conf.Add.NoCompress, false, logger)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot create filesystem factory")
-		return
 	}
 
 	if fi, err := os.Stat(ocflPath); err == nil {

@@ -181,6 +181,7 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 
 func (objectBase *ObjectBase) StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
+	// todo: check for using factory
 	vw, err := NewVersionWriter(objectBase, objectFS, echo, msg, UserName, UserAddress, objectBase.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create version writer")
