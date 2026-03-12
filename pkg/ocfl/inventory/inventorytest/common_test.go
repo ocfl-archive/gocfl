@@ -10,20 +10,20 @@ import (
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory/inventoryimpl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 )
 
-func getFactory(ver version.OCFLVersion) factory.Factory {
+func getFactory(ctx context.Context, ver version.OCFLVersion) factory.Factory {
 	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	return factoryimpl.NewFactory(ver, nil, &logger)
+	return factoryimpl.NewFactory(ver, nil, ocfllogger.NewOCFLLogger(ctx, &logger, nil, ver))
 }
 
-func genericExampleState(ver version.OCFLVersion, cnt int, t *testing.T) inventorytypes.State {
-	f := getFactory(ver)
+func genericExampleState(ver version.OCFLVersion, cnt int, t *testing.T) inventory.State {
+	f := getFactory(context.Background(), ver)
 	var state = f.NewState(context.Background())
 	for i := 0; i < cnt; i++ {
 		modified, err := state.AddFile(fmt.Sprintf("file%03d", i), fmt.Sprintf("digest%03d", i))
@@ -45,7 +45,7 @@ func genericExampleState(ver version.OCFLVersion, cnt int, t *testing.T) invento
 }
 
 func genericStateJSONMarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var cnt = 4
 	var state = genericExampleState(ver, cnt, t)
 	var num int
@@ -74,7 +74,7 @@ func genericStateJSONMarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericStateJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var bytes = []byte(`{
   "digest000" : [ "file000", "file000x" ],
   "digest001" : [ "file001", "file001x" ],
@@ -100,7 +100,7 @@ func genericStateJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericStateJSONUnmarshalError(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var bytes = []byte(`{
   "digest000" : [ "file000", "file000x" ],
   "digest001" : [ "file001", "file001x" ],
@@ -117,7 +117,7 @@ func genericStateJSONUnmarshalError(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericStateDelete(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var state = f.NewState(context.Background())
 	state.AddFile("file1", "digest1")
 	state.AddFile("file2", "digest1")
@@ -153,7 +153,7 @@ func genericStateDelete(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericStateRename(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var state = f.NewState(context.Background())
 	state.AddFile("file1", "digest1")
 
@@ -169,7 +169,7 @@ func genericStateRename(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericStateUniqueness(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var state = f.NewState(context.Background())
 	state.AddFile("file1", "digest1")
 	state.AddFile("file2", "digest2")
@@ -205,7 +205,7 @@ func genericStateUniqueness(ver version.OCFLVersion, t *testing.T) {
 
 // User Tests
 func genericUserJSONMarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	user := f.NewUser(context.Background()).WithName("Alice").WithAddress("mailto:alice@example.org")
 	bytes, err := json.Marshal(user)
 	if err != nil {
@@ -221,7 +221,7 @@ func genericUserJSONMarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericUserJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var jsonData = []byte(`
 {
 	"address": "mailto:alice@example.org",
@@ -243,7 +243,7 @@ func genericUserJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericUserInvalidJSON(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var jsonData = []byte(`
 {
 	"address": 42,
@@ -260,20 +260,31 @@ func genericUserInvalidJSON(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericUserInvalidAddressCheck(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
-	val := inventoryimpl.NewDummyValidation()
-	user := f.NewUser(context.Background()).WithAddress("xxx")
-	if err := user.Check(inventorytypes.NewVersionNumber().WithString("v1")); err != nil {
+	ctx := validation.NewContextValidation(context.Background())
+	f := getFactory(ctx, ver)
+	user := f.NewUser(ctx).WithAddress("xxx")
+	if err := user.Check(inventory.NewVersionNumber().WithString("v1")); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
-	if !val.HasWarning(validation.W009) {
-		t.Errorf("no warning '%s' in %v", validation.W009, val.Warning)
+	val, err := validation.GetValidationStatus(ctx)
+	if err != nil {
+		t.Fatalf("get validation status error: %v", err)
+	}
+	var hasW009 bool
+	for _, w := range val.Errors {
+		if w.Code == validation.W009 {
+			hasW009 = true
+			break
+		}
+	}
+	if !hasW009 {
+		t.Errorf("no warning '%s' in %v", validation.W009, val.Errors)
 	}
 }
 
 // Version Tests
-func genericExampleVersion(ver version.OCFLVersion, stateFileCnt int, t *testing.T) inventorytypes.Version {
-	f := getFactory(ver)
+func genericExampleVersion(ver version.OCFLVersion, stateFileCnt int, t *testing.T) inventory.Version {
+	f := getFactory(context.Background(), ver)
 	var user = f.NewUser(context.Background()).WithName("Test User").WithAddress("test@example.com")
 	var state = f.NewState(context.Background())
 	for i := 0; i < stateFileCnt; i++ {
@@ -294,7 +305,7 @@ func genericExampleVersion(ver version.OCFLVersion, stateFileCnt int, t *testing
 }
 
 func genericVersionJSONMarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var cnt = 3
 	var v = genericExampleVersion(ver, cnt, t)
 	bytes, err := json.Marshal(v)
@@ -311,7 +322,7 @@ func genericVersionJSONMarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var bytes = []byte(`{
   "created": "2024-01-15T10:30:00Z",
   "message": "Initial commit",
@@ -342,7 +353,7 @@ func genericVersionJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionJSONUnmarshalError(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var bytes = []byte(`{
   "created": "invalid-date",
   "message": "Test message",
@@ -375,7 +386,7 @@ func genericVersionState(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionMessage(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var v = f.NewVersion(context.Background()).WithMessage("Test message")
 	if v.GetMessage() != "Test message" {
 		t.Errorf("Message mismatch. Expected 'Test message', got '%s'", v.GetMessage())
@@ -383,7 +394,7 @@ func genericVersionMessage(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionCreated(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	now := time.Now().UTC().Truncate(time.Second)
 	var v = f.NewVersion(context.Background()).WithCreated(now)
 	if !v.GetCreated().Equal(now) {
@@ -393,10 +404,10 @@ func genericVersionCreated(ver version.OCFLVersion, t *testing.T) {
 
 // Versions Tests
 func genericVersionsJSONMarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	versions := f.NewVersions(context.Background())
 	v := f.NewVersion(context.Background()).WithMessage("test version")
-	versions.SetVersion(inventorytypes.NewVersionNumber().WithString("v1"), v)
+	versions.SetVersion(inventory.NewVersionNumber().WithString("v1"), v)
 	bytes, err := json.Marshal(versions)
 	if err != nil {
 		t.Fatalf("Failed to marshal versions: %s", err)
@@ -411,7 +422,7 @@ func genericVersionsJSONMarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionsJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var jsonData = []byte(`
 {
 	"v1": {
@@ -429,7 +440,7 @@ func genericVersionsJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
 	if err := json.Unmarshal(jsonData, versions); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
-	v := versions.GetVersion(inventorytypes.NewVersionNumber().WithString("v1"))
+	v := versions.GetVersion(inventory.NewVersionNumber().WithString("v1"))
 	if v == nil {
 		t.Error("version v1 not found")
 	} else if v.GetMessage() != "initial version" {
@@ -438,7 +449,7 @@ func genericVersionsJSONUnmarshal(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionsInvalidJSON(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
+	f := getFactory(context.Background(), ver)
 	var jsonData = []byte(`
 {
 	"v1": {
@@ -459,16 +470,27 @@ func genericVersionsInvalidJSON(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionsCheck(ver version.OCFLVersion, t *testing.T) {
-	f := getFactory(ver)
-	val := inventoryimpl.NewDummyValidation()
-	versions := f.NewVersions(context.Background())
-	v := f.NewVersion(context.Background()).WithMessage("test")
-	versions.SetVersion(inventorytypes.NewVersionNumber().WithString("v1"), v)
+	ctx := validation.NewContextValidation(context.Background())
+	f := getFactory(ctx, ver)
+	versions := f.NewVersions(ctx)
+	v := f.NewVersion(ctx).WithMessage("test")
+	versions.SetVersion(inventory.NewVersionNumber().WithString("v1"), v)
 
 	if err := versions.Check([]string{}); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
-	if val.HasError(validation.E049) {
-		t.Errorf("unexpected error '%s' in %v", validation.E049, val.Error)
+	val, err := validation.GetValidationStatus(ctx)
+	if err != nil {
+		t.Fatalf("get validation status error: %v", err)
+	}
+	var hasE049 bool
+	for _, e := range val.Errors {
+		if e.Code == validation.E049 {
+			hasE049 = true
+			break
+		}
+	}
+	if hasE049 {
+		t.Errorf("unexpected error '%s' in %v", validation.E049, val.Errors)
 	}
 }
