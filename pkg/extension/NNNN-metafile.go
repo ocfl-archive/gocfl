@@ -20,11 +20,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/santhosh-tekuri/jsonschema/v5"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,7 +30,7 @@ const MetaFileName = "NNNN-metafile"
 const MetaFileDescription = "adds a file in extension folder"
 
 func init() {
-	extension.RegisterExtension(MetaFileName, nil, GetMetaFileParams)
+	extension.RegisterExtension(MetaFileName, NewMetaFile, GetMetaFileParams)
 }
 
 func GetMetaFileParams() ([]*extension.ExternalParam, error) {
@@ -54,7 +52,7 @@ func GetMetaFileParams() ([]*extension.ExternalParam, error) {
 	}, nil
 }
 
-func NewMetaFile(schema []byte) *MetaFile {
+func NewMetaFile() (extensiontypes.Extension, error) {
 	var config = &MetaFileConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: MetaFileName,
@@ -62,10 +60,10 @@ func NewMetaFile(schema []byte) *MetaFile {
 	}
 	sl := &MetaFile{
 		MetaFileConfig: config,
-		schema:         schema,
-		info:           map[string][]byte{},
+		//schema:         schema,
+		info: map[string][]byte{},
 	}
-	return sl
+	return sl, nil
 }
 
 type MetaFileConfig struct {
@@ -80,7 +78,6 @@ type MetaFile struct {
 	*MetaFileConfig
 	schema         []byte
 	metadataSource *url.URL
-	fsys           appendfs.FS
 	compiledSchema *jsonschema.Schema
 	stored         bool
 	info           map[string][]byte
@@ -170,16 +167,6 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (sl *MetaFile) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(appendfs.FS); ok {
-		sl.fsys = sfs
-	}
-}
-
-func (sl *MetaFile) GetFS() fs.FS {
-	return sl.fsys
-}
-
 func (sl *MetaFile) GetName() string { return MetaFileName }
 
 func (sl *MetaFile) WriteConfig(fsys appendfs.FS) error {
@@ -249,9 +236,6 @@ func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
 			return errors.New("no metadata source configured")
 		}
 		return nil
-	}
-	if sl.fsys == nil {
-		return errors.New("no filesystem set")
 	}
 	var rc io.ReadCloser
 	var fname string
@@ -356,8 +340,8 @@ func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
 		}
 	case "extension":
 		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(sl.StorageName, sl.MetaName)), "/")
-		if _, err := writefs.WriteFile(sl.fsys, targetname, infoData); err != nil {
-			return errors.Wrapf(err, "cannot write file '%v/%s'", sl.fsys, targetname)
+		if _, err := writefs.WriteFile(obj.GetFS(), targetname, infoData); err != nil {
+			return errors.Wrapf(err, "cannot write file '%v/%s'", obj.GetFS(), targetname)
 		}
 	default:
 		return errors.Errorf("unsupported storage type '%s'", sl.StorageType)
@@ -391,29 +375,13 @@ func (sl *MetaFile) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]a
 	var err error
 	var result = map[string]any{}
 	inv := obj.GetInventory()
-	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
-	slices.SortFunc(versions, func(a, b *inventorytypes.VersionNumber) int {
-		if a.Less(b) {
-			return -1
-		}
-		if a.Equal(b) {
-			return 0
-		}
-		return 1
-	})
-	slices.Reverse(versions)
+	ver := inv.GetVersions().LatestVersionNumber()
 	var metadata []byte
-	for _, ver := range versions {
-		var ok bool
-		if metadata, ok = sl.info[ver.String()]; ok {
-			break
+	var ok bool
+	if metadata, ok = sl.info[ver.String()]; !ok {
+		if metadata, err = ReadFile(sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
+			return nil, errors.Wrapf(err, "cannot read '%s'", sl.MetaName)
 		}
-		if metadata, err = ReadFile(sl.fsys, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
-			break
-		}
-	}
-	if metadata == nil {
-		return nil, errors.Wrapf(err, "cannot read %s", sl.MetaName)
 	}
 	var metaStruct = map[string]any{}
 	if err := json.Unmarshal(metadata, &metaStruct); err != nil {
