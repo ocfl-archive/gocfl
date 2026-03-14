@@ -218,7 +218,7 @@ func toStringKeys(val interface{}) (interface{}, error) {
 }
 
 func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
-	if sl.metadataSource.Path == "" {
+	if sl.metadataSource == nil || sl.metadataSource.Path == "" {
 		return nil
 	}
 	if sl.stored {
