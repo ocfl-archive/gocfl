@@ -379,7 +379,7 @@ func (sl *MetaFile) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]a
 	var metadata []byte
 	var ok bool
 	if metadata, ok = sl.info[ver.String()]; !ok {
-		if metadata, err = ReadFile(sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
+		if metadata, err = ReadFile(sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err != nil {
 			return nil, errors.Wrapf(err, "cannot read '%s'", sl.MetaName)
 		}
 	}
