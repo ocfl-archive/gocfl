@@ -136,7 +136,7 @@ func (ext *extractor) GetFileReader(pathStr string) (io.ReadCloser, int64, strin
 	if err != nil {
 		return nil, 0, "", errors.Wrapf(err, "cannot detect content type for object %s - %s", ext.GetID(), pathStr)
 	}
-	return fp, fi.Size(), contentType, nil
+	return mimeReader, fi.Size(), contentType, nil
 }
 
 func (ext *extractor) GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error) {

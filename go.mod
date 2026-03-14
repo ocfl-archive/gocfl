@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
 	github.com/je4/filesystem/v3 v3.0.46
-	github.com/je4/utils/v2 v2.0.62
+	github.com/je4/utils/v2 v2.0.63
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/ocfl-archive/error v1.0.5
 	github.com/ocfl-archive/indexer/v3 v3.0.20
