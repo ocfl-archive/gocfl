@@ -371,6 +371,10 @@ func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
 	}
+	var ofs fs.FS = sr.GetWriteFS()
+	if ofs == nil {
+		ofs = sr.GetReadFS()
+	}
 	fsys, err := writefs.Sub(sr.GetReadFS(), folder)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create subfs for %v / %s", sr.GetReadFS(), folder)
@@ -422,6 +426,9 @@ func addObjectByPath(
 			fixity = append(fixity, alg)
 		}
 	} else {
+		if extensionManager == nil {
+			return false, errors.New("extension manager is nil")
+		}
 		o, err = functions.CreateObject(ctx, id, sr.GetVersion(), sr.GetDigest(), fixity, extensionFactory, extensionManager, objectFS, logger)
 		if err != nil {
 			return false, errors.Wrapf(err, "cannot create object %s", id)

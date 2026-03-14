@@ -202,6 +202,10 @@ func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot unmarshal inventory object")
 	}
+	if _, writeable := objectFS.(writefs.AppendFS); writeable {
+		inv.WithWriteable()
+	}
+
 	digest := inv.GetDigestAlgorithm()
 
 	// check digest for inventory

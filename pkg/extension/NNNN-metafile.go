@@ -138,7 +138,7 @@ func (sl *MetaFile) IsRegistered() bool {
 func (sl *MetaFile) SetParams(params map[string]string) error {
 	if params != nil {
 		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")
-		if urlString, ok := params[name]; ok {
+		if urlString, ok := params[name]; ok && urlString != "" {
 			urlString = strings.TrimSpace(urlString)
 			if urlString == "" {
 				return errors.Errorf("no value for parameter '%s'", name)
