@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"emperror.dev/errors"
@@ -20,6 +21,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -375,13 +377,34 @@ func (sl *MetaFile) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]a
 	var err error
 	var result = map[string]any{}
 	inv := obj.GetInventory()
-	ver := inv.GetVersions().LatestVersionNumber()
-	var metadata []byte
-	var ok bool
-	if metadata, ok = sl.info[ver.String()]; !ok {
-		if metadata, err = ReadFile(sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err != nil {
-			return nil, errors.Wrapf(err, "cannot read '%s'", sl.MetaName)
+
+	// walk through versions and get the latest info.json
+	var versions = []*inventory.VersionNumber{}
+	for v := range inv.GetVersions().GetVersionNumbers() {
+		versions = append(versions, v)
+	}
+	slices.SortFunc(versions, func(a, b *inventory.VersionNumber) int {
+		if a.Equal(b) {
+			return 0
 		}
+		if a.Less(b) {
+			return 1
+		}
+		return -1
+	})
+
+	var metadata []byte
+	for _, ver := range versions {
+		var ok bool
+		if metadata, ok = sl.info[ver.String()]; ok {
+			break
+		}
+		if metadata, err = ReadFile(sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
+			break
+		}
+	}
+	if metadata == nil {
+		return nil, errors.Wrapf(err, "cannot read %s", sl.MetaName)
 	}
 	var metaStruct = map[string]any{}
 	if err := json.Unmarshal(metadata, &metaStruct); err != nil {
