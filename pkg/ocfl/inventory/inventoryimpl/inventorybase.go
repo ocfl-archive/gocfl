@@ -332,13 +332,17 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 		}
 		return errors.Errorf("checksum for '%s' not created", i.GetDigestAlgorithm())
 	}
-	_ = csFiles
-	/*
-		// todo: repair this
-			if err := i.Manifest.Check(i, csFiles, nil); err != nil {
-				return errors.Wrap(err, "manifest check failed")
-			}
-	*/
+	var versionDigests = []string{}
+	for _, ver := range i.GetVersions().Iterate() {
+		for digest, _ := range ver.GetState().Iterate() {
+			versionDigests = append(versionDigests, digest)
+		}
+	}
+	slices.Sort(versionDigests)
+	versionDigests = slices.Compact(versionDigests)
+	if err := i.Manifest.Check(csFiles, versionDigests); err != nil {
+		return errors.Wrap(err, "manifest check failed")
+	}
 	if err := i.Fixity.Check(fileManifest); err != nil {
 		return errors.Wrap(err, "fixity check failed")
 	}

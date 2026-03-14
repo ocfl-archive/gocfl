@@ -74,8 +74,6 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 	if manifest.Err() != nil {
 		return errors.Wrap(manifest.Err(), "manifest has errors")
 	}
-	slices.Sort(versionDigests)
-	versionDigests = slices.Compact(versionDigests)
 	if csFiles != nil {
 		for digest, files := range manifest.Iterate() {
 			csFilenames, ok := csFiles[strings.ToLower(digest)]
@@ -90,6 +88,9 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 			}
 		}
 	}
+	slices.Sort(versionDigests)
+	versionDigests = slices.Compact(versionDigests)
+
 	digests := []string{}
 	allPaths := []string{}
 	for digest, paths := range manifest.Iterate() {
