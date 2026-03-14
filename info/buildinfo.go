@@ -29,5 +29,5 @@ func init() {
 			VCSTime, _ = time.Parse(time.RFC3339, setting.Value)
 		}
 	}
-	Version = fmt.Sprintf("%s (%s) %s", VCSRevision, VCSTime.Format(time.RFC3339), GoVersion)
+	Version = fmt.Sprintf("%s %s (%s) %s", MainVersion, VCSRevision, VCSTime.Format(time.RFC3339), GoVersion)
 }
