@@ -206,7 +206,7 @@ func RegisterComplexExtensions(
 	extension.RegisterExtension(
 		ocflextension.IndexerName,
 		func() (extension.Extension, error) {
-			ext, err := ocflextension.NewIndexer(indexerAddr, fss, indexerConf, indexerLocalCache)
+			ext, err := ocflextension.NewIndexer(indexerAddr, fss, indexerConf, indexerLocalCache, logger)
 			if err != nil {
 				return nil, err
 			}

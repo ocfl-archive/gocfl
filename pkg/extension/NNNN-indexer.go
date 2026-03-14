@@ -31,7 +31,7 @@ const IndexerDescription = "technical metadata for all files"
 
 func init() {
 	extension.RegisterExtension(IndexerName, func() (extensiontypes.Extension, error) {
-		return NewIndexer("", nil, ironmaiden.IndexerConfig{}, false)
+		return NewIndexer("", nil, ironmaiden.IndexerConfig{}, false, nil)
 	}, GetIndexerParams)
 }
 
@@ -54,9 +54,9 @@ func GetIndexerParams() ([]*extension.ExternalParam, error) {
 	}, nil
 }
 
-func NewIndexer(urlString string, fss map[string]fs.FS, conf ironmaiden.IndexerConfig, localCache bool) (*Indexer, error) {
+func NewIndexer(urlString string, fss map[string]fs.FS, conf ironmaiden.IndexerConfig, localCache bool, logger ocfllogger.OCFLLogger) (*Indexer, error) {
 
-	indexerActions, err := ironmaiden.InitActionDispatcher(fss, conf, nil)
+	indexerActions, err := ironmaiden.InitActionDispatcher(fss, conf, logger.Logger())
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot init indexer")
 	}
@@ -251,6 +251,7 @@ func (sl *Indexer) UpdateObjectAfter(object object.VersionWriter) error {
 	if err := sl.writer.Close(); err != nil {
 		return errors.Wrap(err, "cannot close brotli writer")
 	}
+	sl.writer = nil
 	head := object.GetInventory().GetHead()
 	if !head.IsValid() {
 		return errors.Errorf("no head for object '%s'", object.GetID())

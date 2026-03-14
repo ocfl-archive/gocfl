@@ -18,12 +18,14 @@ const InitialDescription = "initial extension defines the name of the extension 
 
 func GetInitialParams() ([]*extension.ExternalParam, error) {
 	return []*extension.ExternalParam{
-		{
-			ExtensionName: InitialName,
-			Functions:     []string{"add"},
-			Param:         "extension",
-			Description:   "name of the extension manager",
-		},
+		/*
+			{
+				ExtensionName: InitialName,
+				Functions:     []string{"add"},
+				Param:         "extension",
+				Description:   "name of the extension manager",
+			},
+		*/
 	}, nil
 }
 

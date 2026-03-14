@@ -43,6 +43,7 @@ func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc) 
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot create extension %s", name))
 		}
+		ext = ext.WithLogger(f.logger)
 		if err := ext.Load(fsys); err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot load extension %s", name))
 		}

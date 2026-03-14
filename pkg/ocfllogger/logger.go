@@ -56,7 +56,8 @@ func (l *OCFLLoggerImpl) Logger() zLogger.ZLogger {
 func (l *OCFLLoggerImpl) With(name, value string) OCFLLogger {
 	newData := maps.Clone(l.data)
 	newData[strings.ToLower(name)] = value
-	return NewOCFLLogger(l.ctx, new(l.ZLogger.With().Str(name, value).Logger()), newData, l.ver)
+	_logger := l.ZLogger.With().Str(name, value).Logger()
+	return NewOCFLLogger(l.ctx, &_logger, newData, l.ver)
 }
 
 func (l *OCFLLoggerImpl) ValidationError(code validation.ErrorCode, format string, a ...interface{}) *OCFLLoggerImpl {

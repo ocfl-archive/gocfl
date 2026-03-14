@@ -263,10 +263,14 @@ func (thumb *Thumbnail) DoThumbnail(obj object.VersionWriter, head *inventorytyp
 	// todo: make it better, there should be no warnings
 	defer func() {
 		if err := os.Remove(tmpFilename); err != nil {
-			thumb.logger.Warn().Err(err).Msgf("cannot remove temp file '%s'", tmpFilename)
+			if !errors.Is(err, os.ErrNotExist) {
+				thumb.logger.Warn().Err(err).Msgf("cannot remove temp file '%s'", tmpFilename)
+			}
 		}
 		if err := os.Remove(targetTempName); err != nil {
-			thumb.logger.Warn().Err(err).Msgf("cannot remove temp file '%s'", targetTempName)
+			if !errors.Is(err, os.ErrNotExist) {
+				thumb.logger.Warn().Err(err).Msgf("cannot remove temp file '%s'", targetTempName)
+			}
 		}
 	}()
 	if err := thumbFunc.Thumbnail(tmpFilename, targetTempName, thumb.ThumbnailConfig.Width, thumb.ThumbnailConfig.Height, thumb.logger); err != nil {

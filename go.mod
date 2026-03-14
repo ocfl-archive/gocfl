@@ -1,6 +1,6 @@
 module github.com/ocfl-archive/gocfl/v2
 
-go 1.26.1
+go 1.25.7
 
 require (
 	emperror.dev/emperror v0.33.0

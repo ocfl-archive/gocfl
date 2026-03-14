@@ -239,7 +239,7 @@ func (loader *Loader) loadExtensionManager() error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.objectFS, "extensions")
 	}
-	manager, err := loader.extensionFactory.LoadExtensionManager(loader.objectFS)
+	manager, err := loader.extensionFactory.LoadExtensionManager(extensionFS)
 	if err != nil {
 		loader.logger.ValidationError(validation.W000, "cannot initialize all extensions in folder '%s': %v", extensionFS, err)
 		if manager == nil {
