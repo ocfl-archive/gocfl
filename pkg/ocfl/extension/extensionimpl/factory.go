@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"syscall"
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/info"
@@ -98,7 +97,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 	var errs = []error{}
 	files, err := fs.ReadDir(fsys, ".")
 	if err != nil {
-		if errors.Is(err, syscall.ERROR_FILE_NOT_FOUND) {
+		if errors.Is(err, fs.ErrNotExist) {
 			files = []fs.DirEntry{}
 		} else {
 			return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
