@@ -379,7 +379,7 @@ func (sl *Indexer) StreamObject(object object.VersionWriter, reader io.Reader, s
 	if err != nil {
 		return errors.Wrapf(err, "cannot index '%s'", stateFiles)
 	}
-	if result != nil {
+	if result != nil && sl.writer != nil {
 		var indexerline = indexerLine{
 			Path:    filepath.ToSlash(inventory.BuildManifestName(dest)),
 			Indexer: result,
