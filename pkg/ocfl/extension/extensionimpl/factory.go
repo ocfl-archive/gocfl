@@ -117,7 +117,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 		ext, err := f.LoadExtensionFile(sub)
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
-			f.logger.ValidationError(validation.W000, "extension %s not supported by gocfl %s", file.Name(), info.Version)
+			f.logger.ValidationError(validation.W000, "extension %s not supported by gocfl %s - %s", file.Name(), info.Version, err.Error())
 		} else {
 			if !ext.IsRegistered() {
 				f.logger.ValidationError(validation.W013, "extension %s is not registered", ext.GetName())
