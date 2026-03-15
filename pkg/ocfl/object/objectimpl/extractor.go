@@ -32,8 +32,8 @@ func NewExtractor(ctx context.Context, factory factory.Factory, logger ocfllogge
 
 type extractor struct {
 	object.Object
-	sourceFS fs.FS
-	objectFS appendfs.FS
+	objectFS fs.FS
+	destFS   appendfs.FS
 	ctx      context.Context
 	factory  factory.Factory
 	logger   ocfllogger.OCFLLogger
@@ -71,7 +71,7 @@ func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
 		ib, _ := strconv.Atoi(b)
 		return cmp.Compare(ia, ib)
 	})
-	extensionMetadata, err := ext.GetExtensionManager().GetMetadata(ext.sourceFS, ext)
+	extensionMetadata, err := ext.GetExtensionManager().GetMetadata(ext.objectFS, ext)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get extension metadata for object '%s'", inv.GetID())
 	}
@@ -119,7 +119,7 @@ func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
 }
 
 func (ext *extractor) GetFileReader(pathStr string) (io.ReadCloser, int64, string, error) {
-	fp, err := ext.sourceFS.Open(pathStr)
+	fp, err := ext.objectFS.Open(pathStr)
 	if err != nil {
 		return nil, 0, "", errors.Wrapf(err, "cannot open file %s", pathStr)
 	}
@@ -164,19 +164,19 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 					return errors.Errorf("no internal paths for '%v'", externals)
 				}
 				internal := internals[0]
-				src, err := ext.sourceFS.Open(internal)
+				src, err := ext.objectFS.Open(internal)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open '%v/%s'", ext.sourceFS, internal)
+					return errors.Wrapf(err, "cannot open '%v/%s'", ext.objectFS, internal)
 				}
 				defer func(src fs.File) {
 					err := src.Close()
 					if err != nil {
-						ext.logger.Error().Err(err).Msgf("cannot close '%v/%s'", ext.sourceFS, internal)
+						ext.logger.Error().Err(err).Msgf("cannot close '%v/%s'", ext.objectFS, internal)
 					}
 				}(src)
-				target, err := writefs.Create(ext.objectFS, external)
+				target, err := writefs.Create(ext.destFS, external)
 				if err != nil {
-					return errors.Wrapf(err, "cannot create '%v/%s'", ext.objectFS, external)
+					return errors.Wrapf(err, "cannot create '%v/%s'", ext.destFS, external)
 				}
 				defer func(target writefs.FileWrite) {
 					err := target.Close()
@@ -184,10 +184,10 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 						ext.logger.Error().Err(err).Msgf("cannot close '%v'", target)
 					}
 				}(target)
-				ext.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", ext.sourceFS, internal, ext.objectFS, external)
+				ext.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", ext.objectFS, internal, ext.destFS, external)
 				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 				if err != nil {
-					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", ext.sourceFS, internal, ext.objectFS, external)
+					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", ext.objectFS, internal, ext.destFS, external)
 				}
 				copyDigest, ok := copyDigests[digestAlg]
 				if !ok {
@@ -210,18 +210,18 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 	}
 	if withManifest {
 		manifestName := fmt.Sprintf("manifest.%s", digestAlg)
-		fp, err := writefs.Create(ext.objectFS, manifestName)
+		fp, err := writefs.Create(ext.destFS, manifestName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot crate manifest file %v/%s", ext.objectFS, manifestName)
+			return errors.Wrapf(err, "cannot crate manifest file %v/%s", ext.destFS, manifestName)
 		}
 		if _, err := io.WriteString(fp, manifest.String()); err != nil {
 			if err := fp.Close(); err != nil {
-				return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.objectFS, manifestName)
+				return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.destFS, manifestName)
 			}
-			return errors.Wrapf(err, "cannot write manifest file %v/%s", ext.objectFS, manifestName)
+			return errors.Wrapf(err, "cannot write manifest file %v/%s", ext.destFS, manifestName)
 		}
 		if err := fp.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.objectFS, manifestName)
+			return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.destFS, manifestName)
 		}
 	}
 	ext.logger.Debug().Msgf("object '%s' extracted", inv.GetID())
@@ -234,9 +234,9 @@ func (ext *extractor) WithObject(o object.Object) object.Extractor {
 	return ext
 }
 
-func (ext *extractor) WithFS(sourceFS fs.FS, objectFS appendfs.FS) object.Extractor {
-	ext.sourceFS = sourceFS
+func (ext *extractor) WithFS(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
 	ext.objectFS = objectFS
+	ext.destFS = destFS
 	return ext
 }
 

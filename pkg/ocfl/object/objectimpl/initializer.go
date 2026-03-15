@@ -48,20 +48,20 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 
 
 		// first check whether object is not empty
-		fp, err := initializer.initializer.objectFS.Open(objectConformanceDeclarationFile)
+		fp, err := initializer.initializer.destFS.Open(objectConformanceDeclarationFile)
 		if err == nil {
 			// not empty, close it and return error
 			if err := fp.Close(); err != nil {
 				return errors.Wrapf(err, "cannot close '%s'", objectConformanceDeclarationFile)
 			}
-			return fmt.Errorf("cannot create object '%s'. '%v/%s' already exists", id, initializer.initializer.objectFS, objectConformanceDeclarationFile)
+			return fmt.Errorf("cannot create object '%s'. '%v/%s' already exists", id, initializer.initializer.destFS, objectConformanceDeclarationFile)
 		}
-		cnt, err := fs.ReadDir(initializer.initializer.objectFS, ".")
+		cnt, err := fs.ReadDir(initializer.initializer.destFS, ".")
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return errors.Wrapf(err, "cannot read '%v/%s'", initializer.initializer.objectFS, ".")
+			return errors.Wrapf(err, "cannot read '%v/%s'", initializer.initializer.destFS, ".")
 		}
 		if len(cnt) > 0 {
-			return fmt.Errorf("'%v/%s' is not empty", ".", initializer.initializer.objectFS)
+			return fmt.Errorf("'%v/%s' is not empty", ".", initializer.initializer.destFS)
 		}
 	*/
 	if _, err := writefs.WriteFile(initializer.objectFS, objectConformanceDeclarationFile, []byte(objectConformanceDeclaration+"\n")); err != nil {

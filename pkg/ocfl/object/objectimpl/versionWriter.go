@@ -71,7 +71,7 @@ func (versionWriter *versionWriter) init(msg string, name string, address string
 	}
 	versionWriter.ver = inv.GetHead()
 	/*
-		versionWriter.versionFS, err = appendfs.Sub(versionWriter.objectFS, versionWriter.ver.String())
+		versionWriter.versionFS, err = appendfs.Sub(versionWriter.destFS, versionWriter.ver.String())
 		if err != nil {
 			return errors.Wrapf(err, "failed to open version stream %v/%s", versionWriter.versionFS, versionWriter.ver.String())
 		}

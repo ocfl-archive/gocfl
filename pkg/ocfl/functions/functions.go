@@ -89,7 +89,7 @@ func CheckObject(ctx context.Context, objectFS fs.FS, extensionFactory *extensio
 	return nil
 }
 
-func Extract(ctx context.Context, destFS, objectFS fs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) error {
+func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) error {
 	if !version.IsValid() {
 		version = inventory.NewVersionNumber().WithLatest()
 	}
@@ -105,7 +105,7 @@ func Extract(ctx context.Context, destFS, objectFS fs.FS, path string, version *
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
-	extractor := o.GetExtractor(objectFS)
+	extractor := o.GetExtractor(objFsys, destFS)
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
 	}
@@ -122,6 +122,6 @@ func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory 
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
 	logger.Debug().Msgf("extraction done")
-	extractor := obj.GetExtractor(objFsys)
+	extractor := obj.GetExtractor(objFsys, nil)
 	return extractor.GetMetadata()
 }

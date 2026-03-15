@@ -27,7 +27,7 @@ import (
 )
 
 var extractCmd = &cobra.Command{
-	Use:     "extract [path to ocfl structure] [path to target folder]",
+	Use:     "extract [path to ocfl storage root] [path to target folder]",
 	Aliases: []string{},
 	Short:   "extract version of ocfl content",
 	//Long:    "an utterly useless command for testing",
@@ -108,7 +108,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	ocflPath, err := util.Fullpath(args[0])
+	rootPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
 		return
@@ -129,7 +129,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	logger.Info().Msgf("extracting '%s'", ocflPath)
+	logger.Info().Msgf("extracting '%s'", rootPath)
 
 	fsFactory, err := initializeFSFactory(nil, nil, nil, true, true, logger)
 	if err != nil {
@@ -137,14 +137,14 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_ocflFS, err := fsFactory.Get(ocflPath, true)
+	_ocflFS, err := fsFactory.Get(rootPath, true)
 	if err != nil {
-		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
+		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", rootPath)
 		return
 	}
 	ocflFS, ok := _ocflFS.(appendfs.FS)
 	if !ok {
-		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", ocflPath)
+		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", rootPath)
 		return
 	}
 	destFS, err := fsFactory.Get(destPath, false)
@@ -170,7 +170,7 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	sr, err := LoadStorageRoot(ctx, ocflFS, extensionFactory, logger)
+	sr, err := LoadStorageRootRO(ctx, ocflFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot load storage root")
 		return
@@ -186,8 +186,21 @@ func doExtract(cmd *cobra.Command, args []string) {
 		logger.Debug().Msgf("target folder '%s' is not empty", destFS)
 		return
 	}
+	if conf.Extract.ObjectID != "" {
+		conf.Extract.ObjectPath, err = sr.IdToFolder(conf.Extract.ObjectID)
+		if err != nil {
+			logger.Error().Err(err).Msgf("cannot get object-path for '%s'", conf.Extract.ObjectID)
+			return
+		}
+	}
 
-	if err := functions.Extract(context.Background(), destFS, sr.GetReadFS(), oPath, inventorytypes.NewVersionNumber().WithString(conf.Extract.Version), conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
+	destAppendFS, ok := destFS.(appendfs.FS)
+	if !ok {
+		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", destFS)
+		return
+	}
+
+	if err := functions.Extract(context.Background(), sr.GetReadFS(), destAppendFS, conf.Extract.ObjectPath, inventorytypes.NewVersionNumber().WithString(conf.Extract.Version), conf.Extract.Manifest, conf.Extract.Area, extensionFactory, logger); err != nil {
 		fmt.Printf("cannot extract storage root: %v\n", err)
 		logger.Error().Err(err).Msg("cannot extract storage root")
 		return

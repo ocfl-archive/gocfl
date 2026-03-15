@@ -57,14 +57,14 @@ type Loader interface {
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	WithObject(o Object) Extractor
-	WithFS(sourceFS fs.FS, objectFS appendfs.FS) Extractor
+	WithFS(objectFS fs.FS, destFS appendfs.FS) Extractor
 	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
 	GetFileReader(name string) (io.ReadCloser, int64, string, error)
 	GetMetadata() (*inventory.Metadata, error)
 }
 
 type Object interface {
-	GetExtractor(objectFS fs.FS) Extractor
+	GetExtractor(objectFS fs.FS, destFS appendfs.FS) Extractor
 	GetInitializer(objectFS appendfs.FS) Initializer
 	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader
 	WithInventory(inv inventory.Inventory) Object

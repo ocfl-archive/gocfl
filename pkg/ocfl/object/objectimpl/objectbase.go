@@ -212,8 +212,8 @@ func (objectBase *ObjectBase) GetInitializer(objectFS appendfs.FS) object.Initia
 	return objectBase.factory.NewInitializer(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
 }
 
-func (objectBase *ObjectBase) GetExtractor(fsys fs.FS) object.Extractor {
-	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(fsys, nil)
+func (objectBase *ObjectBase) GetExtractor(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
+	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(objectFS, destFS)
 }
 
 /*
