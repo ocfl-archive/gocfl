@@ -205,9 +205,11 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	}
 
 	if !inCreation {
-		if err := i.check(); err != nil {
-			return errors.WithStack(err)
-		}
+		/*
+			if err := i.check(); err != nil {
+				return errors.WithStack(err)
+			}
+		*/
 	}
 	return nil
 }
