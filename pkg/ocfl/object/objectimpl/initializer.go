@@ -95,7 +95,7 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 		WithWriteable().
 		WithID(id).
 		WithDigestAlgorithm(digest).
-		WithFixity(initializer.factory.NewFixity(initializer.ctx).WithAlgorithms(fixity...))
+		WithFixity(initializer.factory.NewFixity(initializer.ctx).WithAllowedAlgorithms(allowedAlgorithms...).WithAlgorithms(fixity...))
 	initializer.WithInventory(newInventory)
 	return nil
 

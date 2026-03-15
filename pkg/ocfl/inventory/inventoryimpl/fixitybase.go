@@ -1,6 +1,7 @@
 package inventoryimpl
 
 import (
+	"encoding/json"
 	"iter"
 	"maps"
 	"slices"
@@ -32,6 +33,18 @@ type FixityBase struct {
 	allowed                []checksum.DigestAlgorithm
 }
 
+func (f *FixityBase) MarshalJSON() ([]byte, error) {
+	return json.Marshal(f.fixity)
+}
+
+func (f *FixityBase) UnmarshalJSON(b []byte) error {
+	f.fixity = map[checksum.DigestAlgorithm]map[string][]string{}
+	if err := json.Unmarshal(b, &f.fixity); err != nil {
+		return errors.Wrap(err, "error unmarshalling fixity")
+	}
+	return nil
+}
+
 func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {
 	var result = map[checksum.DigestAlgorithm]string{}
 	for alg, csFiles := range f.fixity {
@@ -50,6 +63,13 @@ func (f *FixityBase) Checksums(s string) map[checksum.DigestAlgorithm]string {
 		}
 	}
 	return result
+}
+
+func (f *FixityBase) WithAllowedAlgorithms(algorithms ...checksum.DigestAlgorithm) inventory.Fixity {
+	f.allowed = append(f.allowed, algorithms...)
+	slices.Sort(f.allowed)
+	f.allowed = slices.Compact(f.allowed)
+	return f
 }
 
 func (f *FixityBase) WithAlgorithms(algorithms ...checksum.DigestAlgorithm) inventory.Fixity {
