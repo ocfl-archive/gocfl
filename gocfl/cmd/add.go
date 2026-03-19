@@ -28,7 +28,7 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:     "add [path to ocfl structure]",
+	Use:     "add [path to ocfl structure] [path to content folder]",
 	Aliases: []string{},
 	Short:   "adds new object to existing ocfl structure",
 	Long:    "opens an existing ocfl structure and adds a new object. if an object with the given id already exists, an error is produced",
@@ -101,7 +101,7 @@ func doAddConf(cmd *cobra.Command) {
 
 }
 
-// initAdd executes the gocfl add command
+// doAdd executes the gocfl add command
 func doAdd(cmd *cobra.Command, args []string) {
 	var err error
 

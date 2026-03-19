@@ -9,19 +9,18 @@
 
 ## Overview
 
-This object extension generates thumbnails of Media-Files
+This object extension generates thumbnails of image/video files
 
 ### Usage Scenario
 
-To generate reports or content sites for OCFL Objects, it is helpful to display thumbnails to get an overview of 
-the content.  
+To generate reports or content sites for OCFL objects, it is helpful to display thumbnails to get an overview of the content.  
 
 ## Parameters
 
 ### Summary
 
 * **Name:** `storageType`
-  * **Description:** Location Type where the technical metadata is stored. Possible values are
+  * **Description:** Location type where the thumbnails are to be stored within the OCFL object. Possible values are
     `area`, `path` or `extension`.
     * **area:** within an `area` defined by [NNNN-content-subpath](NNNN-content-subpath.md)
       extension
@@ -29,46 +28,43 @@ the content.
     * **extension:** within the extension subfolder
   * **Type:** string
   * **Default:** "extension"
-
 * **Name:** `storageName`
-  * **Description:** Location within the specified Type
+  * **Description:** Location within the specified storage type.
     * **area:** area name
     * **path:** subfolder within content folder
     * **extension:** subfolder within extension folder
   * **Type:** string
   * **Default:** "data"
-* 
 * **Name:** `compress`
-    * **Description:** Compression type for JSONL file
-        * **none:** no compression
-        * **gzip:** [gzip compression](https://en.wikipedia.org/wiki/Gzip)
-        * **brotli:** [brotli compression](https://en.wikipedia.org/wiki/Brotli)
-    * **Type:** string
-    * **Default:** none
+  * **Description:** Compression type for JSONL file
+    * **none:** no compression
+    * **gzip:** [gzip compression](https://en.wikipedia.org/wiki/Gzip)
+    * **brotli:** [brotli compression](https://en.wikipedia.org/wiki/Brotli)
+  * **Type:** string
+  * **Default:** none
 * **Name:** `ext`
-    * **Description:** Image Format (Extension)
-    * **Type:** string
-    * **Default:** png
+  * **Description:** Image format (based on extension) to use for the thumbnails
+  * **Type:** string
+  * **Default:** png
 * **Name:** `width`
-    * **Description:** Thumbnail width
-    * **Type:** integer
-    * **Default:** 256
+  * **Description:** Thumbnail width
+  * **Type:** integer
+  * **Default:** 256
 * **Name:** `height`
-    * **Description:** Thumbnail height
-    * **Type:** integer
-    * **Default:** 256
+  * **Description:** Thumbnail height
+  * **Type:** integer
+  * **Default:** 256
 * **Name:** `singleDirectory`
-    * **Description:** Write all thumbnails to a single directory. This is useful, if the number of thumbnails do not create problems with directory size.
-    * **Type:** boolean
-    * **Default:** false
-
+  * **Description:** Write all thumbnails to a single directory. This is useful if the number of thumbnails do not create problems with directory size.
+  * **Type:** boolean
+  * **Default:** false
 
 ## Procedure (tbd.)
 
 Every entry whithin the [OCFL Object Manifest](https://ocfl.io/1.1/spec/#manifest)
 is represented by a JSON line in a file called  `thumbnail_<version>.jsonl[.gz|.br]`.
-Since this file is immutable, every version of the ocfl object gets its own indexer file.
-Since thumbnails only add visual value to the OCFL Object, data and metadata is stored within the extension folder.
+Since this file is immutable, every version of the OCFL object gets its own indexer file.
+Since thumbnails only add visual value to the OCFL object, data and metadata is stored within the extension folder.
 
 ## Examples
 
@@ -87,7 +83,7 @@ However, if you were to do so, it would look like the following:
 
 ### Result
 
-JSON Entry for a file with a "png" thumbnail based on process "Image#01". The file is identified by its digest/checksum.
+JSON entry for a file with a "png" thumbnail based on process "Image#01". The file is identified by its digest/checksum.
 ```json
 {
   "ext": "png",
@@ -96,4 +92,3 @@ JSON Entry for a file with a "png" thumbnail based on process "Image#01". The fi
 }
 ```
 The thumbnail itself resides in the file `extensions/NNNN-thumbnail/data/5/c/5cb8c60eb3c7641561df988493acdd0fbc6b6325ec396a6eaf6a9cbc329e1790b006d61b4465371c21a105b0fb5a77dff9a219ed57ead6cd074d6b8a6e2be896.png`
-

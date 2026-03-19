@@ -148,7 +148,7 @@ func NewIndexer(
 	if config.ExtensionName != sl.GetName() {
 		return nil, errorFactory.NewError(
 			errorExtensionConfig,
-			fmt.Sprintf("invalid extension name'%s'for extension %s", config.ExtensionName, sl.GetName()),
+			fmt.Sprintf("invalid extension name '%s' for extension %s", config.ExtensionName, sl.GetName()),
 			err,
 		)
 	}

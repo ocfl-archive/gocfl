@@ -3,6 +3,10 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"io"
+	"log"
+	"os"
+
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
@@ -11,9 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	ublogger "gitlab.switch.ch/ub-unibas/go-ublogger/v2"
 	"go.ub.unibas.ch/cloud/certloader/v2/pkg/loader"
-	"io"
-	"log"
-	"os"
 )
 
 var validateCmd = &cobra.Command{
@@ -23,7 +24,7 @@ var validateCmd = &cobra.Command{
 	//Long:    "an utterly useless command for testing",
 	Example: "gocfl validate ./archive.zip",
 	Args:    cobra.ExactArgs(1),
-	Run:     validate,
+	Run:     doValidate,
 }
 
 func initValidate() {
@@ -40,7 +41,7 @@ func doValidateConf(cmd *cobra.Command) {
 	}
 }
 
-func validate(cmd *cobra.Command, args []string) {
+func doValidate(cmd *cobra.Command, args []string) {
 	ocflPath, err := ocfl.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
