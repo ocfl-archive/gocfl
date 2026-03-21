@@ -121,7 +121,7 @@ func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory 
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
-	logger.Debug().Msgf("extraction done")
+	defer logger.Debug().Msgf("extraction done")
 	extractor := obj.GetExtractor(objFsys, nil)
 	return extractor.GetMetadata()
 }
