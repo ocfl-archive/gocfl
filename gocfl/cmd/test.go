@@ -12,7 +12,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -140,7 +139,8 @@ func doTest(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if err := obj.Stat(os.Stdout, []object.StatInfo{}); err != nil {
+	checker := obj.GetChecker(objFsys)
+	if err := checker.Check(); err != nil {
 		logger.Error().Err(err).Msgf("cannot stat object '%v'", objFsys)
 		return
 	}
