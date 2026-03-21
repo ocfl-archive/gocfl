@@ -79,6 +79,9 @@ type StatConfig struct {
 	ObjectID   string
 }
 
+type TestConfig struct {
+}
+
 type UserConfig struct {
 	Name    string
 	Address string
@@ -138,6 +141,7 @@ type GOCFLConfig struct {
 	Extract       ExtractConfig                `toml:"extract"`
 	ExtractMeta   ExtractMetaConfig            `toml:"extractmeta"`
 	Stat          StatConfig                   `toml:"stat"`
+	Test          TestConfig                   `toml:"test"`
 	Validate      ValidateConfig               `toml:"validate"`
 	S3            S3Config                     `toml:"s3"`
 	DefaultArea   string                       `toml:"defaultarea"`
