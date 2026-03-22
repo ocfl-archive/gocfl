@@ -32,6 +32,10 @@ type FactoryBase struct {
 	extensionFactory *extensionimpl.Factory
 }
 
+func (f *FactoryBase) WithNewVersion(ocflVersion version.OCFLVersion) factory.Factory {
+	return NewFactoryBase(ocflVersion, f.spec, f.extensionFactory, f.logger)
+}
+
 func (f *FactoryBase) Copy() factory.Factory {
 	return &FactoryBase{
 		logger:           f.logger,
@@ -39,11 +43,6 @@ func (f *FactoryBase) Copy() factory.Factory {
 		spec:             f.spec,
 		extensionFactory: f.extensionFactory,
 	}
-}
-
-func (f *FactoryBase) SetVersion(version.OCFLVersion) error {
-	f.logger.Panic().Msgf("cannot change version of fixed version factory")
-	return nil
 }
 
 func (f *FactoryBase) GetVersion() version.OCFLVersion {

@@ -136,8 +136,14 @@ func unmarshalInventoryData(ctx context.Context, data []byte, ver version.OCFLVe
 		// if we don't know anything use the old stuff
 		return nil, errors.Errorf("unsupported inventory type '%s'", sStr)
 	}
-	if iVer != ver {
-		return nil, errors.Errorf("inventory version '%s' does not match expected version '%s'", iVer, ver)
+	// if necessary use factory with older version
+	oldFactVersion := fact.GetVersion()
+	if oldFactVersion != iVer {
+		oldFact := fact
+		fact = fact.WithNewVersion(iVer)
+		defer func() {
+			fact = oldFact
+		}()
 	}
 	inv := fact.NewInventory(ctx)
 	if err := json.Unmarshal(data, inv); err != nil {
