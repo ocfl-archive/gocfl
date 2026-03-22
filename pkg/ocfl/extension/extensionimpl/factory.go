@@ -6,6 +6,7 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
+	defaultobjectextensions "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
 	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
@@ -194,7 +195,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 			if !ok {
 				return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 			}
-			initialFS, _ := fs.Sub(fsys, extension.DefaultExtensionInitialName)
+			initialFS, _ := fs.Sub(defaultobjectextensions.DefaultObjectExtensionFS, extension.DefaultExtensionInitialName)
 			initialExt, err := initialCreator(initialFS)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
@@ -210,7 +211,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 		if !ok {
 			return nil, errors.Errorf("no default extension manager (%s) found", extension.DefaultExtensionManagerName)
 		}
-		extensionManagerFS, _ := fs.Sub(fsys, extension.DefaultExtensionManagerName)
+		extensionManagerFS, _ := fs.Sub(defaultobjectextensions.DefaultObjectExtensionFS, extension.DefaultExtensionManagerName)
 		ext, err := creator(extensionManagerFS)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)
