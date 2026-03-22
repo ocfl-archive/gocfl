@@ -16,10 +16,11 @@ func NewOCFLLogger(ctx context.Context, logger zLogger.ZLogger, data map[string]
 		data = make(map[string]string)
 	}
 	return &OCFLLoggerImpl{
-		ctx:     ctx,
-		ZLogger: logger,
-		data:    data,
-		ver:     ver,
+		ctx:              ctx,
+		ZLogger:          logger,
+		data:             data,
+		ver:              ver,
+		validationErrors: make([]*validation.Error, 0),
 	}
 }
 
@@ -36,13 +37,24 @@ type OCFLLogger interface {
 	With(name, value string) OCFLLogger
 	WithVersion(ver version.OCFLVersion) OCFLLogger
 	ValidationError(code validation.ErrorCode, format string, a ...interface{}) *OCFLLoggerImpl
+	ValidationErrors() []*validation.Error
+	ClearValidationErrors()
 }
 
 type OCFLLoggerImpl struct {
 	zLogger.ZLogger
-	data map[string]string
-	ctx  context.Context
-	ver  version.OCFLVersion
+	data             map[string]string
+	ctx              context.Context
+	ver              version.OCFLVersion
+	validationErrors []*validation.Error
+}
+
+func (l *OCFLLoggerImpl) ValidationErrors() []*validation.Error {
+	return l.validationErrors
+}
+
+func (l *OCFLLoggerImpl) ClearValidationErrors() {
+	l.validationErrors = make([]*validation.Error, 0)
 }
 
 func (l *OCFLLoggerImpl) WithVersion(ver version.OCFLVersion) OCFLLogger {
@@ -64,6 +76,8 @@ func (l *OCFLLoggerImpl) ValidationError(code validation.ErrorCode, format strin
 	validationError := validation.GetValidationError(l.ver, code).AppendContext(format, a...)
 	var event *zerolog.Event
 	_ = validation.AddValidationErrors(l.ctx, validationError)
+	l.validationErrors = append(l.validationErrors, validationError)
+
 	if validationError.Code[0] == 'W' {
 		event = l.Logger().Warn()
 	} else {
