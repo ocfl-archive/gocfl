@@ -67,6 +67,16 @@ func (manifest *ManifestBase) Finalize(creation bool) error {
 	if manifest.manifest == nil {
 		manifest.manifest = map[string][]string{}
 	}
+	manifests := []string{}
+	for digest, _ := range manifest.Iterate() {
+		digest = strings.ToLower(digest)
+		if _, found := slices.BinarySearch(manifests, digest); found {
+			manifest.logger.ValidationError(validation.E096, "digest '%s' is a duplicate", digest)
+		} else {
+			manifests = util.SliceInsertSorted(manifests, digest)
+		}
+	}
+
 	return nil
 }
 
