@@ -21,6 +21,12 @@ var ValidVersions = []OCFLVersion{
 	Version2_0,
 }
 
+var FloatVersions = map[OCFLVersion]float64{
+	Version1_1: 1.1,
+	Version1_0: 1.0,
+	Version2_0: 2.0,
+}
+
 const Default = Version1_1
 
 var OCFLStorageRootVersionNamasteRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
@@ -28,4 +34,14 @@ var ObjectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$"
 
 func ValidVersion(ver OCFLVersion) bool {
 	return slices.Contains(ValidVersions, ver)
+}
+
+func Less(ver OCFLVersion, ver2 OCFLVersion) bool {
+	if !ValidVersion(ver) {
+		return false
+	}
+	if !ValidVersion(ver2) {
+		return false
+	}
+	return FloatVersions[ver] < FloatVersions[ver2]
 }
