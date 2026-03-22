@@ -166,7 +166,7 @@ func doTest(cmd *cobra.Command, args []string) {
 		status.Compact()
 		contextString := ""
 		errs := 0
-		for _, err := range status.Errors {
+		for _, err := range logger.ValidationErrors() {
 			if err.Code[0] == 'E' {
 				errs++
 			}
@@ -207,6 +207,7 @@ func doTest(cmd *cobra.Command, args []string) {
 		} else {
 			fmt.Printf("[%s] All errors found\n", folderName)
 		}
+		logger.ClearValidationErrors()
 	}
 }
 
