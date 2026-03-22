@@ -164,7 +164,7 @@ func path2vfs(pathStr string) (string, error) {
 			if err != nil {
 				return "", errors.Wrap(err, "getting working directory")
 			}
-			pathStr = path.Join(wd, pathStr)
+			pathStr = path.Join(filepath.ToSlash(wd), pathStr)
 			pathStr = "vfs://" + path.Join(strings.ToLower(pathStr[:1]), pathStr[2:])
 		}
 	} else {

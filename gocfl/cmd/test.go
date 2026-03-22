@@ -3,16 +3,20 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
+	"path"
+	"regexp"
 
+	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/vfsrw"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
@@ -24,12 +28,12 @@ import (
 )
 
 var testCmd = &cobra.Command{
-	Use:     "test [path to ocfl structure]",
-	Aliases: []string{},
-	Short:   "test for object without objectroot",
-	Long:    "an utterly useless command for testing",
-	Example: "gocfl test ./archive.zip/<path to ocfl object>",
-	Args:    cobra.ExactArgs(1),
+	Use:     "test [path to folder with test fixtures]",
+	Aliases: []string{"fixtures"},
+	Short:   "check ocfl fixtures",
+	Long:    "check gocfl against folder with test fixtures. Every folder contains one fixture object. If folder name starts with validation codes it's checked, whether they are found.",
+	Example: "gocfl test <path to ocfl test fixtures>",
+	Args:    cobra.MaximumNArgs(1),
 	Run:     doTest,
 }
 
@@ -40,10 +44,8 @@ func doTestConf(cmd *cobra.Command) {
 }
 
 func doTest(cmd *cobra.Command, args []string) {
-	ocflObjectPath, err := util.Fullpath(args[0])
-	if err != nil {
-		cobra.CheckErr(err)
-		return
+	if len(args) > 0 && len(args[0]) > 0 {
+		conf.Test.FixturePath = args[0]
 	}
 
 	// create logger instance
@@ -103,7 +105,9 @@ func doTest(cmd *cobra.Command, args []string) {
 	}()
 	vfs.AddFS("internal", internal.InternalFS)
 
-	ocflObjectPath, err = path2vfs(ocflObjectPath)
+	fixturePath := conf.Test.FixturePath
+
+	fixturePath, err = path2vfs(fixturePath)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot create ocfl path")
 		return
@@ -113,7 +117,7 @@ func doTest(cmd *cobra.Command, args []string) {
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
 
-	logger.Info().Msgf("opening '%s'", ocflObjectPath)
+	logger.Info().Msgf("opening '%s'", fixturePath)
 
 	extensionParams, err := getExtensionParams(cmd)
 	if err != nil {
@@ -121,29 +125,99 @@ func doTest(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	objFsys, err := writefs.Sub(vfs, ocflObjectPath)
+	dirs, err := fs.ReadDir(vfs, fixturePath)
 	if err != nil {
-		logger.Error().Err(err).Msgf("cannot open ocfl filesystem at '%s'", ocflObjectPath)
+		logger.Error().Err(err).Msgf("cannot read dir '%s'", fixturePath)
 		return
 	}
+	for _, dir := range dirs {
+		folderName := dir.Name()
+		logger.Info().Msgf("dir: %s", folderName)
+		if err := func() error {
 
-	extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
-	if err != nil {
-		logger.Error().Err(err).Msg("cannot create extension factory")
-		return
+			objFsys, err := writefs.Sub(vfs, path.Join(fixturePath, folderName))
+			if err != nil {
+				return errors.Wrapf(err, "cannot open ocfl filesystem '%s'", fixturePath)
+			}
+
+			extensionFactory, err := extensionimpl.NewFactory(extensionParams, logger)
+			if err != nil {
+				return errors.Wrapf(err, "cannot create extension factory '%s'", fixturePath)
+			}
+
+			obj, err := functions.LoadObject(ctx, objFsys, extensionFactory, logger)
+			if err != nil {
+				return errors.Wrapf(err, "cannot load object '%v'", objFsys)
+			}
+
+			checker := obj.GetChecker(objFsys)
+			if err := checker.Check(); err != nil {
+				return errors.Wrapf(err, "cannot check object '%v'", objFsys)
+			}
+			return nil
+		}(); err != nil {
+			logger.Error().Err(err).Msgf("cannot validate object '%v'", folderName)
+		}
+		status, err := validation.GetValidationStatus(ctx)
+		if err != nil {
+			logger.Error().Err(err).Msg("cannot get validation status")
+			continue
+		}
+		status.Compact()
+		contextString := ""
+		errs := 0
+		for _, err := range status.Errors {
+			if err.Code[0] == 'E' {
+				errs++
+			}
+			if err.Context != contextString {
+				fmt.Printf("[%s] [%s]\n", folderName, err.Context)
+				contextString = err.Context
+			}
+			fmt.Printf("   #%s - %s\n", err.Code, err.Description)
+		}
+		if errs > 0 {
+			fmt.Printf("\n%d errors found\n", errs)
+		} else {
+			fmt.Printf("\nno errors found\n")
+		}
+		errorList := errorsFromFolder(folderName)
+		errorNotFound := []string{}
+		for _, errNo := range errorList {
+			var found = false
+			var allErrors = map[validation.ErrorCode]string{}
+			for _, err := range status.Errors {
+				allErrors[err.Code] = err.Description
+			}
+			for code, desc := range allErrors {
+				if code == validation.ErrorCode(errNo) {
+					fmt.Printf("Error found:   #%s - %s\n", code, desc)
+					found = true
+					continue
+				}
+			}
+			if !found {
+				errorNotFound = append(errorNotFound, errNo)
+			}
+		}
+		if len(errorNotFound) > 0 {
+			fmt.Printf("[%s] Errors not found: %v\n", folderName, errorNotFound)
+		} else if len(errorList) == 0 && len(status.Errors) > 0 {
+			fmt.Printf("[%s] Errors found, but object should be valid\n", folderName)
+		} else {
+			fmt.Printf("[%s] All errors found\n", folderName)
+		}
 	}
+}
 
-	obj, err := functions.LoadObject(ctx, objFsys, extensionFactory, logger)
-	if err != nil {
-		logger.Error().Err(err).Msgf("cannot load object '%v'", objFsys)
-		return
+var folderErrorRegexp = regexp.MustCompile(`^((?:[EW]\d{3}_)+)`)
+var errorCodeRegexp = regexp.MustCompile(`([EW]\d{3})`)
+
+func errorsFromFolder(folder string) []string {
+	matches := folderErrorRegexp.FindStringSubmatch(folder)
+	if len(matches) < 2 {
+		return nil
 	}
-
-	checker := obj.GetChecker(objFsys)
-	if err := checker.Check(); err != nil {
-		logger.Error().Err(err).Msgf("cannot stat object '%v'", objFsys)
-		return
-	}
-
-	_ = showStatus(ctx, logger)
+	errorMatches := errorCodeRegexp.FindAllString(matches[1], -1)
+	return errorMatches
 }

@@ -80,6 +80,7 @@ type StatConfig struct {
 }
 
 type TestConfig struct {
+	FixturePath string `toml:"fixturepath"`
 }
 
 type UserConfig struct {
