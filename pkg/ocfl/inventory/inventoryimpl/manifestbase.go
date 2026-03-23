@@ -67,16 +67,6 @@ func (manifest *ManifestBase) Finalize(creation bool) error {
 	if manifest.manifest == nil {
 		manifest.manifest = map[string][]string{}
 	}
-	manifests := []string{}
-	for digest, _ := range manifest.Iterate() {
-		digest = strings.ToLower(digest)
-		if _, found := slices.BinarySearch(manifests, digest); found {
-			manifest.logger.ValidationError(validation.E096, "digest '%s' is a duplicate", digest)
-		} else {
-			manifests = util.SliceInsertSorted(manifests, digest)
-		}
-	}
-
 	return nil
 }
 
@@ -103,6 +93,7 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 
 	digests := []string{}
 	allPaths := []string{}
+	manifests := []string{}
 	for digest, paths := range manifest.Iterate() {
 		//		digest = strings.ToLower(digest)
 		if slices.Contains(digests, digest) {
@@ -117,6 +108,11 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 		}
 		for _, path := range paths {
 			//allPaths = sliceInsertSorted(allPaths, path)
+			for _, p := range allPaths {
+				if strings.HasPrefix(path, p) {
+					manifest.logger.ValidationError(validation.E101, "path '%s' contains path '%s'", path, p)
+				}
+			}
 			allPaths = append(allPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
 				manifest.logger.ValidationError(validation.E100, "invalid path '%s' in manifest", path)
@@ -135,6 +131,12 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 				}
 			}
 
+		}
+		digest = strings.ToLower(digest)
+		if _, found := slices.BinarySearch(manifests, digest); found {
+			manifest.logger.ValidationError(validation.E096, "digest '%s' is a duplicate", digest)
+		} else {
+			manifests = util.SliceInsertSorted(manifests, digest)
 		}
 
 	}
