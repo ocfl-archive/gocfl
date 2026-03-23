@@ -38,9 +38,13 @@ var testCmd = &cobra.Command{
 }
 
 func initTest() {
+	testCmd.Flags().StringP("object-path", "p", "", "folder of fixture")
 }
 
 func doTestConf(cmd *cobra.Command) {
+	if str := getFlagString(cmd, "object-path"); str != "" {
+		conf.Test.ObjectPath = str
+	}
 }
 
 func doTest(cmd *cobra.Command, args []string) {
@@ -83,8 +87,8 @@ func doTest(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	ctx := validation.NewContextValidation(context.TODO())
-	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
+	ctx := context.TODO()
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default, nil)
 
 	doTestConf(cmd)
 
@@ -132,6 +136,10 @@ func doTest(cmd *cobra.Command, args []string) {
 	}
 	for _, dir := range dirs {
 		folderName := dir.Name()
+		if conf.Test.ObjectPath != "" && folderName != conf.Test.ObjectPath {
+			logger.Debug().Msgf("ignoring dir '%s'", folderName)
+			continue
+		}
 		logger.Info().Msgf("dir: %s", folderName)
 		if err := func() error {
 
@@ -158,12 +166,6 @@ func doTest(cmd *cobra.Command, args []string) {
 		}(); err != nil {
 			logger.Error().Err(err).Msgf("cannot validate object '%v'", folderName)
 		}
-		status, err := validation.GetValidationStatus(ctx)
-		if err != nil {
-			logger.Error().Err(err).Msg("cannot get validation status")
-			continue
-		}
-		status.Compact()
 		contextString := ""
 		errs := 0
 		for _, err := range logger.ValidationErrors() {
@@ -183,10 +185,11 @@ func doTest(cmd *cobra.Command, args []string) {
 		}
 		errorList := errorsFromFolder(folderName)
 		errorNotFound := []string{}
+		validationErrors := logger.ValidationErrors()
 		for _, errNo := range errorList {
 			var found = false
 			var allErrors = map[validation.ErrorCode]string{}
-			for _, err := range status.Errors {
+			for _, err := range validationErrors {
 				allErrors[err.Code] = err.Description
 			}
 			for code, desc := range allErrors {
@@ -202,7 +205,7 @@ func doTest(cmd *cobra.Command, args []string) {
 		}
 		if len(errorNotFound) > 0 {
 			fmt.Printf("[%s] Errors not found: %v\n", folderName, errorNotFound)
-		} else if len(errorList) == 0 && len(status.Errors) > 0 {
+		} else if len(errorList) == 0 && len(validationErrors) > 0 {
 			fmt.Printf("[%s] Errors found, but object should be valid\n", folderName)
 		} else {
 			fmt.Printf("[%s] All errors found\n", folderName)

@@ -20,7 +20,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/rs/zerolog"
@@ -133,7 +132,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	ctx := validation.NewContextValidation(context.TODO())
+	ctx := context.TODO()
 
 	ver := version.OCFLVersion(conf.Init.OCFLVersion)
 	if ver == "" {
@@ -144,7 +143,7 @@ func doCreate(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, ver)
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, ver, nil)
 
 	doInitConf(cmd)
 	doAddConf(cmd)
@@ -319,6 +318,6 @@ func doCreate(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("error adding content to storageroot filesystem '%s'", destFS)
 	}
-	_ = showStatus(ctx, logger)
+	_ = showStatus(logger)
 
 }

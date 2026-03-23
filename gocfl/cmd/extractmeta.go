@@ -17,7 +17,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/functions"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/rs/zerolog"
@@ -112,8 +111,8 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 	}
 
 	l2 := _logger.With().Timestamp().Str("host", hostname).Logger() //.Output(output)
-	ctx := validation.NewContextValidation(context.TODO())
-	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default)
+	ctx := context.TODO()
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default, nil)
 
 	t := startTimer()
 	defer func() { logger.Info().Msgf("Duration: %s", t.String()) }()
@@ -250,5 +249,5 @@ func doExtractMeta(cmd *cobra.Command, args []string) {
 		fmt.Print("\n")
 	}
 	fmt.Printf("metadata extraction done without errors\n")
-	_ = showStatus(ctx, logger)
+	_ = showStatus(logger)
 }

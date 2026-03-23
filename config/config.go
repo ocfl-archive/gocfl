@@ -81,6 +81,7 @@ type StatConfig struct {
 
 type TestConfig struct {
 	FixturePath string `toml:"fixturepath"`
+	ObjectPath  string `toml:"objectpath"`
 }
 
 type UserConfig struct {

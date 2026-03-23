@@ -2,13 +2,11 @@ package validation
 
 import (
 	"cmp"
-	"context"
 	"fmt"
+	"slices"
 	"strings"
 
-	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"golang.org/x/exp/slices"
 )
 
 type ErrorCode string
@@ -152,8 +150,27 @@ type Error struct {
 	Version      version.OCFLVersion
 }
 
+func NewStatus() *Status {
+	return &Status{
+		Errors: []*Error{},
+	}
+}
+
 type Status struct {
 	Errors []*Error
+}
+
+// removes duplicate errors
+func (status *Status) Compact() {
+	slices.SortFunc(status.Errors, validationSort)
+	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *Error) bool {
+		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
+	})
+
+}
+
+func (status *Status) Add(validationError *Error) {
+	status.Errors = append(status.Errors, validationError)
 }
 
 func validationSort(E1, E2 *Error) int {
@@ -163,61 +180,6 @@ func validationSort(E1, E2 *Error) int {
 		return -1 // sr1 && !sr2
 	}
 	return cmp.Compare(E1.Context+string(E1.Code)+E1.Description2, E2.Context+string(E2.Code)+E2.Description2)
-}
-
-// removes duplicate errors
-func (status *Status) Compact() {
-	slices.SortFunc(status.Errors, validationSort)
-	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *Error) bool {
-		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
-	})
-	/*
-		slices.SortFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
-			return E1.Context+string(E1.Code)+E1.Description2 < E2.Context+string(E2.Code)+E2.Description2
-		})
-		status.Warnings = slices.CompactFunc(status.Warnings, func(E1, E2 *ValidationError) bool {
-			return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
-		})
-	*/
-
-}
-
-func NewContextValidation(parent context.Context) context.Context {
-	return context.WithValue(parent, "validationStatus", &Status{
-		Errors: []*Error{},
-		//		Warnings: []*ValidationError{},
-	})
-}
-
-func GetValidationStatus(ctx context.Context) (*Status, error) {
-	statusAny := ctx.Value("validationStatus")
-	if statusAny == nil {
-		return nil, errors.New("no Value validationStatus in context")
-	}
-	status, ok := statusAny.(*Status)
-	if !ok {
-		return nil, errors.New("validationStatus not of type *ValidationStatus")
-	}
-	return status, nil
-}
-
-func AddValidationErrors(ctx context.Context, vErrs ...*Error) error {
-	status, err := GetValidationStatus(ctx)
-	if err != nil {
-		return errors.Wrap(err, "cannot add validation error")
-	}
-	status.Errors = append(status.Errors, vErrs...)
-	return nil
-}
-
-func AddValidationWarnings(ctx context.Context, vWarns ...*Error) error {
-	status, err := GetValidationStatus(ctx)
-	if err != nil {
-		return errors.Wrap(err, "cannot add validation error")
-	}
-	//	status.Warnings = append(status.Warnings, vWarns...)
-	status.Errors = append(status.Errors, vWarns...)
-	return nil
 }
 
 func (ve *Error) AppendDescription(format string, a ...any) *Error {

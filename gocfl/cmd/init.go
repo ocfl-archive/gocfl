@@ -16,7 +16,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/rs/zerolog"
@@ -109,8 +108,8 @@ func doInit(cmd *cobra.Command, args []string) {
 	if !version.ValidVersion(ver) {
 		log.Fatalf("OCFL version  not supported: %v", ver)
 	}
-	ctx := validation.NewContextValidation(context.TODO())
-	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, ver)
+	ctx := context.TODO()
+	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, ver, nil)
 
 	doInitConf(cmd)
 
@@ -180,5 +179,5 @@ func doInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_ = showStatus(ctx, logger)
+	_ = showStatus(logger)
 }

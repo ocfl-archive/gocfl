@@ -339,15 +339,10 @@ func initializeFSFactory(zipDigests []checksum.DigestAlgorithm, aesConfig *confi
 	return fsFactory, nil
 }
 
-func showStatus(ctx context.Context, logger ocfllogger.OCFLLogger) error {
-	status, err := validation.GetValidationStatus(ctx)
-	if err != nil {
-		return errors.Wrap(err, "cannot get status of validation")
-	}
-	status.Compact()
+func showStatus(logger ocfllogger.OCFLLogger) error {
 	contextString := ""
 	errs := 0
-	for _, err := range status.Errors {
+	for _, err := range logger.ValidationErrors() {
 		if err.Code[0] == 'E' {
 			errs++
 		}

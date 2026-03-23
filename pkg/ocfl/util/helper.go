@@ -13,11 +13,8 @@ import (
 
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
-	"github.com/je4/utils/v2/pkg/errorDetails"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 )
@@ -260,26 +257,6 @@ func sliceInsertAt[E comparable](data []E, i int, v E) []E {
 
 	// Return the updated slice.
 	return data
-}
-
-func showStatus(ctx context.Context, logger ocfllogger.OCFLLogger) error {
-	status, err := validation.GetValidationStatus(ctx)
-	if err != nil {
-		return errors.Wrap(err, "cannot get status of validation")
-	}
-	status.Compact()
-	for _, _err := range status.Errors {
-		//fmt.Println(_err.Error())
-		logger.Error().Err(errorDetails.WithDetail(_err, _err.DetailString()))
-	}
-	/*
-		for _, warning := range status.Warnings {
-			fmt.Println(warning.Error())
-			//logger.Info().Msgf("WARN:  %v", err)
-		}
-		fmt.Println("\n")
-	*/
-	return nil
 }
 
 // CleanPath
