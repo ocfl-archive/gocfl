@@ -53,6 +53,7 @@ type OCFLLoggerImpl struct {
 }
 
 func (l *OCFLLoggerImpl) ValidationErrors() []*validation.Error {
+	l.validationStatus.Compact()
 	return l.validationStatus.Errors
 }
 
