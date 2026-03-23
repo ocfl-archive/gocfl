@@ -107,6 +107,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 	var result = []extension.Extension{}
 	for _, file := range files {
 		if !file.IsDir() {
+			f.logger.ValidationError(validation.E067, "extension file '%s' is not a directory", file.Name())
 			continue
 		}
 		fName := file.Name()
