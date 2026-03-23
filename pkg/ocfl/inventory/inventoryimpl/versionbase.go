@@ -14,7 +14,7 @@ func NewVersionBase(ctx context.Context, factory inventory.Factory, logger ocfll
 	return &versionBase{
 		ctx:     ctx,
 		Created: inventory.NewOCFLTime(time.Now()),
-		Message: inventory.NewOCFLString("initial"),
+		Message: inventory.NewOCFLString(""),
 		State:   factory.NewState(ctx),
 		User:    factory.NewUser(ctx),
 		factory: factory,
@@ -96,6 +96,9 @@ func (v *versionBase) Check(manifestDigests, manifestDigestsLower []string) erro
 	}
 	if v.Message.Err() != nil {
 		v.logger.ValidationError(validation.E094, "invalid message format in version '%s': %v", v.version, v.Message.Err())
+	}
+	if v.Message.String() == "" {
+		v.logger.ValidationError(validation.W007, "empty message in version '%s'", v.version)
 	}
 	if v.State == nil {
 		return errors.Errorf("no state set for version '%s'", v.version)

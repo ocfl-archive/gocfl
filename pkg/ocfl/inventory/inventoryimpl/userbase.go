@@ -39,7 +39,11 @@ func (u *userBase) Check(version *inventory.VersionNumber) error {
 	}
 	uAddr := u.Address.String()
 	if uAddr == "" {
-		u.logger.ValidationError(validation.W008, "no user address in Version %s", version)
+		if u.Name.String() == "" {
+			u.logger.ValidationError(validation.W007, "no user Version %s", version)
+		} else {
+			u.logger.ValidationError(validation.W008, "no user address in Version %s", version)
+		}
 	} else {
 		if !mailtoUriRegexp.MatchString(uAddr) {
 			url, err := url.Parse(uAddr)

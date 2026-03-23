@@ -175,6 +175,15 @@ func (obj *checker) checkFilesAndVersions() error {
 	// create list of version content directories
 	versionContents := map[string]string{}
 	versionStrings := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
+	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+		if a.Less(b) {
+			return -1
+		}
+		if a.Equal(b) {
+			return 0
+		}
+		return 1
+	})
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
@@ -252,6 +261,27 @@ func (obj *checker) checkFilesAndVersions() error {
 	if err != nil {
 		return errors.Wrap(err, "cannot get version inventories")
 	}
+	var lastInventory inventory.Inventory
+	var lastNumber string
+	for _, ver := range versionStrings {
+		versionInventory, ok := versionInventories[ver.String()]
+		if !ok {
+			continue
+		}
+		if lastInventory == nil {
+			lastInventory = versionInventory
+			lastNumber = ver.String()
+			continue
+		}
+		allVersions := versionInventory.GetVersions()
+		for lastVerNumber, lastVer := range lastInventory.GetVersions().Iterate() {
+			if !lastVer.Equals(allVersions.GetVersion(lastVerNumber)) {
+				obj.logger.ValidationError(validation.W011, "version inventory %s/%s does not match %s/%s", ver.String(), lastVerNumber, lastNumber, lastVerNumber)
+			}
+		}
+		lastInventory = versionInventory
+		lastNumber = ver.String()
+	}
 	if lastDigestString != "" {
 		// load root inventory checksum
 		sidecarPath := fmt.Sprintf("%s.%s", "inventory.json", inv.GetDigestAlgorithm())
@@ -274,7 +304,12 @@ func (obj *checker) checkFilesAndVersions() error {
 
 	contentDir := ""
 	if len(versionStrings) > 0 {
-		contentDir = versionInventories[versionStrings[0].String()].GetRealContentDir()
+		versionInventory, ok := versionInventories[versionStrings[0].String()]
+		if !ok {
+			obj.logger.ValidationError(validation.W010, "version inventory '%s' not found", versionStrings[0])
+		} else {
+			contentDir = versionInventory.GetRealContentDir()
+		}
 	}
 	for _, ver := range versionStrings {
 		inv := versionInventories[ver.String()]
@@ -436,6 +471,9 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 	}
 	for _, entry := range entries {
 		if !entry.IsDir() {
+			continue
+		}
+		if entry.Name() == "extensions" {
 			continue
 		}
 		versionNumber := inventory.NewVersionNumber().WithString(entry.Name())
