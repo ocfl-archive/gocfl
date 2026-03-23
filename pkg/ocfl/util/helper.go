@@ -81,6 +81,20 @@ func FixFilename(fname string) string {
 	return fname
 }
 
+func CheckPrefix(list []string, suffix string, f func(str1, str2 string) bool) {
+	slices.Sort(list)
+	for j := 0; j < len(list)-1; j++ {
+		prefix := strings.TrimSuffix(list[j], suffix) + suffix
+		prefix2 := strings.TrimSuffix(list[j+1], suffix) + suffix
+		if strings.HasPrefix(prefix2, prefix) {
+			if f(list[j], list[j+1]) == false {
+				return
+			}
+		}
+	}
+
+}
+
 func Fullpath(path string) (string, error) {
 	path = filepath.ToSlash(filepath.Clean(path))
 	if path == "" {

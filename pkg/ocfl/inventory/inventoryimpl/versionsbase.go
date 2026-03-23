@@ -229,9 +229,9 @@ func (v *versionsBase) Check(manifestDigests []string) error {
 				paddingLength = len(versionNumber.String()) - 2
 			} else {
 				if paddingLength != len(versionNumber.String())-2 {
-					//i.AddValidationError(E011, "invalid ver padding '%s'", ver)
-					v.logger.ValidationError(validation.E012, "invalid ver padding %s", versionNumber.String())
-					v.logger.ValidationError(validation.E013, "invalid ver padding %s", versionNumber.String())
+					//i.AddValidationError(E011, "invalid version padding '%s'", ver)
+					v.logger.ValidationError(validation.E012, "invalid version padding %s", versionNumber.String())
+					v.logger.ValidationError(validation.E013, "invalid version padding %s", versionNumber.String())
 				}
 			}
 		} else {
@@ -240,14 +240,15 @@ func (v *versionsBase) Check(manifestDigests []string) error {
 					paddingLength = 0
 				} else {
 					if paddingLength != 0 {
-						v.logger.ValidationError(validation.E011, "invalid ver padding %s", versionNumber.String())
-						v.logger.ValidationError(validation.E012, "invalid ver padding %s", versionNumber.String())
-						v.logger.ValidationError(validation.E013, "invalid ver padding %s", versionNumber.String())
+						v.logger.ValidationError(validation.E011, "invalid version padding %s", versionNumber.String())
+						v.logger.ValidationError(validation.E012, "invalid version padding %s", versionNumber.String())
+						v.logger.ValidationError(validation.E013, "invalid version padding %s", versionNumber.String())
 					}
 				}
 			} else {
 				// todo: this error is only for ocfl 1.1, find solution for ocfl 1.0
-				v.logger.ValidationError(validation.E014, "invalid ver format %s", versionNumber.String())
+				v.logger.ValidationError(validation.E014, "invalid version format %s", versionNumber.String())
+				v.logger.ValidationError(validation.E001, "invalid version format %s", versionNumber.String())
 			}
 		}
 
@@ -258,7 +259,7 @@ func (v *versionsBase) Check(manifestDigests []string) error {
 	slices.Sort(versionsSeq)
 	for key, vInt := range versionsSeq {
 		if key != vInt-1 {
-			v.logger.ValidationError(validation.E010, "invalid ver sequence %v", versionsSeq)
+			v.logger.ValidationError(validation.E010, "invalid version sequence %v", versionsSeq)
 			break
 		}
 	}

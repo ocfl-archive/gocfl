@@ -205,8 +205,10 @@ func doTest(cmd *cobra.Command, args []string) {
 		}
 		if len(errorNotFound) > 0 {
 			fmt.Printf("[%s] Errors not found: %v\n", folderName, errorNotFound)
+			return
 		} else if len(errorList) == 0 && len(validationErrors) > 0 {
 			fmt.Printf("[%s] Errors found, but object should be valid\n", folderName)
+			return
 		} else {
 			fmt.Printf("[%s] All errors found\n", folderName)
 		}

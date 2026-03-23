@@ -136,7 +136,13 @@ func unmarshalInventoryData(ctx context.Context, data []byte, ver version.OCFLVe
 		// if we don't know anything use the old stuff
 		return nil, errors.Errorf("unsupported inventory type '%s'", sStr)
 	}
-	// if necessary use factory with older version
+	if _, ok := anyMap["manifest"]; !ok {
+		logger.ValidationError(validation.E041, "manifest not found in inventory")
+	}
+	if _, ok := anyMap["versions"]; !ok {
+		logger.ValidationError(validation.E041, "versions not found in inventory")
+	}
+	// if necessary, use factory with an older version
 	oldFactVersion := fact.GetVersion()
 	if oldFactVersion != iVer {
 		oldFact := fact
@@ -189,24 +195,25 @@ func getInventorySidecarChecksum(objectFS fs.FS, sidecarPath string, logger ocfl
 }
 
 func (loader *Loader) loadInventoryFile(filename string) (inventory.Inventory, error) {
-	inv, err := loadInventoryFile(loader.ctx, loader.objectFS, filename, loader.GetOCFLVersion(), loader.factory, loader.logger)
+	inv, _, err := loadInventoryFile(loader.ctx, loader.objectFS, filename, loader.GetOCFLVersion(), loader.factory, loader.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load inventory file '%s'", filename)
 	}
 	return inv, nil
 }
-func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver version.OCFLVersion, fact factory.Factory, logger ocfllogger.OCFLLogger) (inventory.Inventory, error) {
+func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver version.OCFLVersion, fact factory.Factory, logger ocfllogger.OCFLLogger) (inventory.Inventory, string, error) {
 	// load inventory file
 	inventoryBytes, err := fs.ReadFile(objectFS, filename)
 	if err != nil {
 		if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-			return nil, errors.Wrapf(err, "inventory file '%v/%s' does not exist", objectFS, filename)
+			logger.ValidationError(validation.E063, "file '%v/%s' does not exist", objectFS, filename)
+			return nil, "", errors.Wrapf(err, "inventory file '%v/%s' does not exist", objectFS, filename)
 		}
-		return nil, errors.Wrapf(err, "failed to read inventory file '%v/%s'", objectFS, filename)
+		return nil, "", errors.Wrapf(err, "failed to read inventory file '%v/%s'", objectFS, filename)
 	}
 	inv, err := unmarshalInventoryData(ctx, inventoryBytes, ver, fact, logger)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal inventory object")
+		return nil, "", errors.Wrap(err, "cannot unmarshal inventory object")
 	}
 	if _, writeable := objectFS.(writefs.AppendFS); writeable {
 		inv.WithWriteable()
@@ -220,7 +227,8 @@ func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver
 	if err == nil {
 		h, err := checksum.GetHash(digest)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
+			logger.ValidationError(validation.E060, "invalid hash %s in '%v/%s'", digest, objectFS, sidecarPath)
+			return nil, "", errors.New(fmt.Sprintf("invalid digest file for inventory - '%s'", string(digest)))
 		}
 		h.Reset()
 		h.Write(inventoryBytes)
@@ -230,7 +238,7 @@ func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver
 			logger.ValidationError(validation.E060, "'%s' != '%s'", digestString, inventoryDigestString)
 		}
 	}
-	return inv, nil
+	return inv, digestString, nil
 }
 
 func (loader *Loader) loadInventory() error {

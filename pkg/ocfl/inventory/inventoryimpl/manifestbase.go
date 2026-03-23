@@ -108,11 +108,6 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 		}
 		for _, path := range paths {
 			//allPaths = sliceInsertSorted(allPaths, path)
-			for _, p := range allPaths {
-				if strings.HasPrefix(strings.TrimSuffix(path, "/")+"/", strings.TrimSuffix(p, "/")+"/") {
-					manifest.logger.ValidationError(validation.E101, "path '%s' contains path '%s'", path, p)
-				}
-			}
 			allPaths = append(allPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
 				manifest.logger.ValidationError(validation.E100, "invalid path '%s' in manifest", path)
@@ -140,14 +135,22 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 		}
 
 	}
+	util.CheckPrefix(allPaths, "/", func(str1, str2 string) bool {
+		manifest.logger.ValidationError(validation.E101, "content path '%s' is prefix or equal to '%s' in manifest", str1, str2)
+		return true
+	})
 	slices.Sort(allPaths)
-	for j := 0; j < len(allPaths)-1; j++ {
-		prefix := strings.TrimRight(allPaths[j+1], "/") + "/"
-		if strings.HasPrefix(allPaths[j], prefix) {
-			manifest.logger.ValidationError(validation.E101, "content path '%s' is prefix or equal to '%s' in manifest", allPaths[j], prefix)
+	for _, paths := range csFiles {
+		for _, path := range paths {
+			if strings.Count(path, "/") == 1 {
+				continue
+			}
+			if _, found := slices.BinarySearch(allPaths, path); !found {
+				manifest.logger.ValidationError(validation.E023, "'%s' not found in manifest", path)
+			}
 		}
-	}
 
+	}
 	return nil
 }
 

@@ -55,9 +55,14 @@ func LoadObject(
 	// get the version of the object
 	ver, err := util.GetObjectVersion(sourceFS)
 	if err != nil {
+		if errors.Is(err, ocflerrors.ErrInvalidContent) {
+			logger.ValidationError(validation.E007, "invalid version content in fsys '%v'", sourceFS)
+			ver = version.Default
+		}
 		if errors.Is(err, ocflerrors.ErrVersionNone) {
 			logger.ValidationError(validation.E003, "no version in fsys '%v'", sourceFS)
-			return nil, ocflerrors.ErrVersionNone
+			ver = version.Default
+			//return nil, ocflerrors.ErrVersionNone
 		} else {
 			return nil, errors.Wrapf(err, "getting version from fsys '%v'", sourceFS)
 		}

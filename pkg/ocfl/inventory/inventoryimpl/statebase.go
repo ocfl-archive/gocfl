@@ -9,6 +9,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
@@ -144,12 +145,13 @@ func (s *stateBase) Check(version *inventory.VersionNumber, manifestDigests []st
 		if _, found := slices.BinarySearch(manifestDigests, digest); !found {
 			if _, found := slices.BinarySearch(manifestDigestsLower, strings.ToLower(digest)); found {
 				s.logger.ValidationError(validation.E096, "wrong digest case in version '%s' - '%s'", version, digest)
+				s.logger.ValidationError(validation.E050, "wrong digest case in version '%s' - '%s'", version, digest)
 			} else {
 				s.logger.ValidationError(validation.E050, "digest not in manifest of versions '%s' - '%s'", version, digest)
 			}
 		}
 		for _, path := range paths {
-			logPaths = append(logPaths, paths...)
+			logPaths = append(logPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
 				s.logger.ValidationError(validation.E053, "invalid path '%s' in state for version '%s'", path, version)
 			}
@@ -169,14 +171,10 @@ func (s *stateBase) Check(version *inventory.VersionNumber, manifestDigests []st
 		}
 	}
 	// check logical paths for prefixes
-	slices.Sort(logPaths)
-	for j := 0; j < len(logPaths)-1; j++ {
-		prefix := strings.TrimSuffix(logPaths[j], "/") + "/"
-		prefix2 := strings.TrimSuffix(logPaths[j+1], "/") + "/"
-		if strings.HasPrefix(prefix2, prefix) {
-			s.logger.ValidationError(validation.E095, "logical path '%s' is prefix of '%s'", logPaths[j], logPaths[j+1])
-		}
-	}
+	util.CheckPrefix(logPaths, "/", func(str1, str2 string) bool {
+		s.logger.ValidationError(validation.E095, "logical path '%s' is prefix of '%s'", str1, str2)
+		return true
+	})
 	return nil
 }
 

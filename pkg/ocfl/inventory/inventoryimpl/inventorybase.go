@@ -11,6 +11,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/uri"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -204,6 +205,9 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 	if err := i.Fixity.Finalize(inCreation); err != nil {
 		return errors.Wrap(err, "error finalizing fixity")
 	}
+	if i.Versions.GetVersion(i.Head) == nil {
+		i.logger.ValidationError(validation.E040, "head version '%s' is not in versions %v", i.Head, ocfl.SeqToSlice(i.Versions.GetVersionNumbers()))
+	}
 
 	if !inCreation {
 		/*
@@ -327,12 +331,58 @@ func (i *InventoryBase) check() error {
 func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map[string][]string) error {
 	i.logger.Debug().Msgf("[%s] checkFiles", i.GetID())
 	defer i.logger.Debug().Msgf("[%s] checkFiles done", i.GetID())
+
+	if i.Id == "" {
+		i.logger.ValidationError(validation.E036, "id is invalid")
+	}
+	if i.Id != "" {
+		if _, err := uri.Parse(i.Id); err != nil {
+			i.logger.ValidationError(validation.W005, "cannot parse id '%s': %v", i.Id, err)
+		} /* else {
+			if u.Scheme == "" {
+				i.AddValidationWarning(W005, "id '%s' is not an uri", i.Id)
+			}
+		}
+		*/
+	}
+	if !i.Head.IsValid() {
+		i.logger.ValidationError(validation.E040, "invalid field \"head\" for object")
+	}
+	if i.Head.String() == "" {
+		i.logger.ValidationError(validation.E036, "no \"head\" for object")
+	}
+	if i.Type == "" {
+		i.logger.ValidationError(validation.E036, "type is invalid")
+	}
+	if i.DigestAlgorithm == "" {
+		i.logger.ValidationError(validation.E036, "digest algorithm is invalid")
+	}
+	if strings.ContainsAny(i.ContentDirectory, "/") {
+		i.logger.ValidationError(validation.E017, "content directory must not contain '/'")
+	}
+	if slices.Contains([]string{".", ".."}, i.ContentDirectory) {
+		i.logger.ValidationError(validation.E017, "content directory must not be '.' or '..'")
+	}
+	if !slices.Contains([]checksum.DigestAlgorithm{checksum.DigestSHA512, checksum.DigestSHA256}, i.DigestAlgorithm) {
+		i.logger.ValidationError(validation.E025, "digest algorithm '%s' is not supported", i.DigestAlgorithm)
+	} else {
+		if slices.Contains([]checksum.DigestAlgorithm{checksum.DigestSHA256}, i.DigestAlgorithm) {
+			i.logger.ValidationError(validation.W004, "digest algorithm '%s' is not suggested", i.DigestAlgorithm)
+		}
+	}
+	if i.Head.Less(i.Versions.LatestVersionNumber()) {
+		i.logger.ValidationError(validation.E040, "head version '%s' is less than latest version '%s'", i.Head, i.Versions.LatestVersionNumber())
+	}
+
 	csFiles, ok := fileManifest[i.GetDigestAlgorithm()]
 	if !ok {
-		if len(fileManifest) == 0 {
-			return nil
-		}
-		return errors.Errorf("checksum for '%s' not created", i.GetDigestAlgorithm())
+		csFiles = map[string][]string{}
+		/*
+			if len(fileManifest) == 0 {
+				return nil
+			}
+			return errors.Errorf("checksum for '%s' not created", i.GetDigestAlgorithm())
+		*/
 	}
 	var versionDigests = []string{}
 	for _, ver := range i.GetVersions().Iterate() {

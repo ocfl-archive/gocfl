@@ -178,6 +178,9 @@ func (v *versionBase) Finalize(inCreation bool) error {
 		v.State = v.factory.NewState(v.ctx)
 	}
 	v.inCreation = inCreation
+	if v.Created.Err() != nil {
+		v.logger.ValidationError(validation.E049, "invalid created format in version '%s'", v.version)
+	}
 	return nil
 }
 

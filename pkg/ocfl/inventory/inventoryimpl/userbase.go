@@ -1,6 +1,7 @@
 package inventoryimpl
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -16,6 +17,7 @@ func NewUserBase(logger ocfllogger.OCFLLogger) *userBase {
 		Address: inventory.NewOCFLString(""),
 		Name:    inventory.NewOCFLString(""),
 		logger:  logger.With("component", "inventory-user"),
+		errs:    []error{},
 	}
 }
 
@@ -23,6 +25,7 @@ type userBase struct {
 	Address *inventory.OCFLString `json:"address"`
 	Name    *inventory.OCFLString `json:"name"`
 	logger  ocfllogger.OCFLLogger
+	errs    []error
 }
 
 var mailtoUriRegexp = regexp.MustCompile(`mailto:[^@]+@[^@]+`)
@@ -64,10 +67,22 @@ func (u *userBase) WithName(name string) inventory.User {
 
 func (u *userBase) Finalize() {
 	if u.Name == nil {
+		u.logger.ValidationError(validation.E054, "no user name in Version: %s", u.Name.Err().Error())
 		u.Name = inventory.NewOCFLString("")
 	}
 	if u.Address == nil {
+		u.logger.ValidationError(validation.W008, "no address in Version: %s", u.Address.Err().Error())
 		u.Address = inventory.NewOCFLString("")
+	}
+	if u.Name.Err() != nil {
+		u.logger.ValidationError(validation.E054, "invalid user name in Version: %s", u.Name.Err().Error())
+	}
+	if u.Address.Err() != nil {
+		u.logger.ValidationError(validation.W008, "invalid user address in Version: %s", u.Address.Err().Error())
+	}
+	uerr := errors.Combine(u.errs...)
+	if uerr != nil {
+		u.logger.ValidationError(validation.E054, "error decoding user: %s", uerr.Error())
 	}
 }
 
@@ -75,7 +90,7 @@ func (u *userBase) Err() error {
 	if u == nil {
 		return nil
 	}
-	return errors.Combine(u.Name.Err(), u.Address.Err())
+	return errors.Combine(u.Name.Err(), u.Address.Err(), errors.Combine(u.errs...))
 }
 
 func (u *userBase) Equals(other inventory.User) bool {
@@ -96,6 +111,15 @@ func (u *userBase) GetName() string {
 
 func (u *userBase) String() string {
 	return fmt.Sprintf("%s [%s]", u.Name.String(), u.Address.String())
+}
+
+func (u *userBase) UnmarshalJSON(data []byte) error {
+	type userBase2 userBase
+	if err := json.Unmarshal(data, (*userBase2)(u)); err != nil {
+		u.errs = append(u.errs, errors.Wrapf(err, "cannot unmarshal string '%s'", string(data)))
+		return nil
+	}
+	return nil
 }
 
 var _ inventory.User = (*userBase)(nil)
