@@ -194,6 +194,7 @@ func (f *FixityBase) Check(fileManifest map[checksum.DigestAlgorithm]map[string]
 			if !ok {
 				return errors.Errorf("checksum for '%s' not created", digestAlg)
 			}
+			var digests = []string{}
 			for digest, files := range fixity {
 				csFilenames, ok := csFiles[digest]
 				if !ok {
@@ -208,6 +209,14 @@ func (f *FixityBase) Check(fileManifest map[checksum.DigestAlgorithm]map[string]
 						f.logger.ValidationError(validation.E093, "invalid fixity digest for file '%s'", path)
 					}
 				}
+				// check for duplicate digests
+				digest = strings.ToLower(digest)
+				if _, found := slices.BinarySearch(digests, digest); found {
+					f.logger.ValidationError(validation.E097, "%s digest '%s' is a duplicate", digestAlg, digest)
+				} else {
+					digests = util.SliceInsertSorted(digests, digest)
+				}
+
 			}
 		}
 		// check consistency and format
