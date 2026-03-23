@@ -172,7 +172,8 @@ func (s *stateBase) Check(version *inventory.VersionNumber, manifestDigests []st
 	slices.Sort(logPaths)
 	for j := 0; j < len(logPaths)-1; j++ {
 		prefix := strings.TrimSuffix(logPaths[j], "/") + "/"
-		if strings.HasPrefix(logPaths[j+1], prefix) {
+		prefix2 := strings.TrimSuffix(logPaths[j+1], "/") + "/"
+		if strings.HasPrefix(prefix2, prefix) {
 			s.logger.ValidationError(validation.E095, "logical path '%s' is prefix of '%s'", logPaths[j], logPaths[j+1])
 		}
 	}

@@ -109,7 +109,7 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 		for _, path := range paths {
 			//allPaths = sliceInsertSorted(allPaths, path)
 			for _, p := range allPaths {
-				if strings.HasPrefix(path, p) {
+				if strings.HasPrefix(strings.TrimSuffix(path, "/")+"/", strings.TrimSuffix(p, "/")+"/") {
 					manifest.logger.ValidationError(validation.E101, "path '%s' contains path '%s'", path, p)
 				}
 			}

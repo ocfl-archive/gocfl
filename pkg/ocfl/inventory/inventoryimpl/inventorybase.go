@@ -16,6 +16,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -274,7 +275,6 @@ func (i *InventoryBase) check() error {
 			versionDigests = append(versionDigests, digest)
 		}
 	}
-
 	/*
 		todo: repair this
 			if err := i.GetManifest().Check(i, nil, versionDigests); err != nil {
@@ -347,6 +347,9 @@ func (i *InventoryBase) CheckFiles(fileManifest map[checksum.DigestAlgorithm]map
 	}
 	if err := i.Fixity.Check(fileManifest); err != nil {
 		return errors.Wrap(err, "fixity check failed")
+	}
+	if err := i.Versions.Check(maps.Keys(csFiles)); err != nil {
+		return errors.Wrap(err, "versions check failed")
 	}
 	return nil
 }
