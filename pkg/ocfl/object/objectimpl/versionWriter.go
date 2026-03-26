@@ -192,7 +192,7 @@ func (versionWriter *versionWriter) storeExtensions() error {
 
 func (versionWriter *versionWriter) Close() error {
 	inv := versionWriter.GetInventory()
-	versionWriter.logger.Info().Msgf(fmt.Sprintf("Closing Version %s of object '%s'", versionWriter.ver.String(), inv.GetID()))
+	versionWriter.logger.Info().Msgf("Closing Version %s of object '%s'", versionWriter.ver.String(), inv.GetID())
 	if !(inv.IsWriteable()) {
 		return nil
 	}
