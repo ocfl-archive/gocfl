@@ -25,3 +25,7 @@ release:
 # Single-target release
 target:
   goreleaser build --single-target --clean -f .goreleaser.yml
+
+# docs
+docs:
+  godoc -http=localhost:6060
