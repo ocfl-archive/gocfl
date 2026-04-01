@@ -192,9 +192,20 @@ func (sl *NTupleOmitPrefixStorageLayout) BuildStorageRootPath(storageRoot storag
 	/*
 		4) Starting at the leftmost character of the resulting id and working right, divide the id into numberOfTuples each containing tupleSize characters.
 	*/
+	if sl.TupleSize <= 0 {
+		return "", errors.New("tupleSize must be greater than 0")
+	}
 	var pathComponents = []string{}
 	for i := 0; i < targetLength/sl.TupleSize; i++ {
-		pathComponents = append(pathComponents, base[i*sl.TupleSize:(i+1)*sl.TupleSize])
+		start := i * sl.TupleSize
+		end := (i + 1) * sl.TupleSize
+
+		// Sicherstellen, dass der Slice-Bereich innerhalb von base liegt
+		if end > len(base) {
+			return "", errors.Errorf("base string '%s' (length %v) is too short for tuple %v (requires length %v)", base, len(base), i, end)
+		}
+		pathComponents = append(pathComponents, base[start:end])
+		//pathComponents = append(pathComponents, base[i*sl.TupleSize:(i+1)*sl.TupleSize])
 	}
 	/*
 		5) Create the start of the object root path by joining the tuples, in order, using the filesystem path separator.
