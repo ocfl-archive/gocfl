@@ -44,10 +44,17 @@ func NewFixityComplexType(digestAlg, checksum, originator string) *FixityComplex
 		},
 	}
 	if a, ok := locCryptoFunctions[digestAlg]; ok {
-		fct.MessageDigestAlgorithm.AuthorityAttr = "cryptographicHashFunctions"
-		fct.MessageDigestAlgorithm.AuthorityURIAttr = "http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions"
-		fct.MessageDigestAlgorithm.ValueURIAttr = locCryptoFunctionsURI[digestAlg]
-		fct.MessageDigestAlgorithm.Value = a
+		uri, okURI := locCryptoFunctionsURI[digestAlg]
+		if !okURI {
+			// Behandeln des Fehlers: Entweder Fehler zurückgeben oder URI leer lassen
+			uri = ""
+		}
+		if fct.MessageDigestAlgorithm != nil {
+			fct.MessageDigestAlgorithm.AuthorityAttr = "cryptographicHashFunctions"
+			fct.MessageDigestAlgorithm.AuthorityURIAttr = "http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions"
+			fct.MessageDigestAlgorithm.ValueURIAttr = uri
+			fct.MessageDigestAlgorithm.Value = a
+		}
 	}
 	return fct
 }
