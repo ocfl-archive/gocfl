@@ -29,3 +29,6 @@ target:
 # docs
 docs:
   godoc -http=localhost:6060
+# init-submodules
+init-sub:
+  git submodule update --init --recursive.
