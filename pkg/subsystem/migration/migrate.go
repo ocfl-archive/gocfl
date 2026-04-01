@@ -2,7 +2,6 @@ package migration
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
 	"io/fs"
 	"os/exec"
@@ -10,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"emperror.dev/errors"
 )
 
 type Strategy string
@@ -45,7 +46,7 @@ func (f *Function) GetDestinationName(src string, head string, isMigrated bool) 
 	if f.Strategy == StrategyFolder {
 		if isMigrated {
 			parts := migrationVersionRegexp.FindStringSubmatch(filepath.Base(src))
-			if parts == nil {
+			if len(parts) < 3 {
 				return ""
 			}
 			dest = filepath.ToSlash(filepath.Join(filepath.Dir(src), fmt.Sprintf("%s.%s", head, parts[2])))

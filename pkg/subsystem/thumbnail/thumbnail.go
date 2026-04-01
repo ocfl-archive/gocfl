@@ -34,6 +34,9 @@ type Function struct {
 }
 
 func (f *Function) Thumbnail(source string, dest string, width uint64, height uint64, logger ocfllogger.OCFLLogger) error {
+	if f.thumb == nil {
+		return errors.New("thumbnail function not initialized")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	args := []string{}

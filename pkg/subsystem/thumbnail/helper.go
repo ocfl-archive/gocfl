@@ -11,6 +11,9 @@ import (
 )
 
 func GetThumbnails(conf *config.Thumbnail) (*Thumbnail, error) {
+	if conf == nil {
+		return nil, errors.New("thumbnail configuration is nil")
+	}
 	m := &Thumbnail{
 		Functions:  map[string]*Function{},
 		Background: conf.Background,

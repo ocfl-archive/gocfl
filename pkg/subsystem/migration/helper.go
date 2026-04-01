@@ -68,6 +68,9 @@ func DoMigrate(obj object.VersionWriter, mig *Function, ext string, targetNames 
 		return errors.Wrap(err, "cannot close file")
 	}
 	tmpFilename := filepath.ToSlash(tmpFile.Name())
+	if len(targetNames) == 0 {
+		return errors.New("targetNames is empty")
+	}
 	targetFilename := filepath.ToSlash(filepath.Join(filepath.Dir(tmpFilename), "target."+filepath.Base(tmpFilename)+filepath.Ext(targetNames[0])))
 
 	if err := tmpFile.Close(); err != nil {
