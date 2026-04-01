@@ -25,3 +25,7 @@ release:
 # Single-target release
 target:
   goreleaser build --single-target --clean -f .goreleaser.yml
+
+# init-submodules
+init-sub:
+  git submodule update --init --recursive.
