@@ -91,6 +91,10 @@ func (i *InventoryBase) WithVersions(versions inventory.Versions) inventory.Inve
 	return i
 }
 func (i *InventoryBase) GetVersions() inventory.Versions {
+	if i.Versions == nil {
+		i.logger.Logger().Fatal().Msgf("no versions available for inventory '%s'", i.Id)
+		return nil
+	}
 	return i.Versions
 }
 
@@ -99,6 +103,10 @@ func (i *InventoryBase) WithManifest(manifest inventory.Manifest) inventory.Inve
 	return i
 }
 func (i *InventoryBase) GetManifest() inventory.Manifest {
+	if i.Manifest == nil {
+		i.logger.Logger().Fatal().Msgf("no manifest available for inventory '%s'", i.Id)
+		return nil
+	}
 	return i.Manifest
 }
 
@@ -107,12 +115,10 @@ func (i *InventoryBase) WithFixity(fixity inventory.Fixity) inventory.Inventory 
 	return i
 }
 func (i *InventoryBase) GetFixity() inventory.Fixity {
-	/*
-		if i.Fixity == nil {
-			return map[checksum.DigestAlgorithm]map[string][]string{}
-		}
-
-	*/
+	if i.Fixity == nil {
+		i.logger.Logger().Fatal().Msgf("no fixity available for inventory '%s'", i.Id)
+		return nil
+	}
 	return i.Fixity
 }
 

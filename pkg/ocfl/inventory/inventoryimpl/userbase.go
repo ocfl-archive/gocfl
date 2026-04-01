@@ -71,11 +71,11 @@ func (u *userBase) WithName(name string) inventory.User {
 
 func (u *userBase) Finalize() {
 	if u.Name == nil {
-		u.logger.ValidationError(validation.E054, "no user name in Version: %s", u.Name.Err().Error())
+		u.logger.ValidationError(validation.E054, "no user name in Version")
 		u.Name = inventory.NewOCFLString("")
 	}
 	if u.Address == nil {
-		u.logger.ValidationError(validation.W008, "no address in Version: %s", u.Address.Err().Error())
+		u.logger.ValidationError(validation.W008, "no address in Version")
 		u.Address = inventory.NewOCFLString("")
 	}
 	if u.Name.Err() != nil {

@@ -151,12 +151,13 @@ func (s *stateBase) Check(version *inventory.VersionNumber, manifestDigests []st
 			}
 		}
 		for _, path := range paths {
+			if path == "" {
+				s.logger.ValidationError(validation.E051, "empty path in state for version '%s'", version)
+				continue
+			}
 			logPaths = append(logPaths, path)
 			if path[0] == '/' || path[len(path)-1] == '/' {
 				s.logger.ValidationError(validation.E053, "invalid path '%s' in state for version '%s'", path, version)
-			}
-			if path == "" {
-				s.logger.ValidationError(validation.E051, "empty path in state for version '%s'", version)
 			}
 			path2 := path
 			if path[0] == '/' {

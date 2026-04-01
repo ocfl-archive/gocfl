@@ -65,7 +65,11 @@ func (loader *Loader) loadExtensionManager() error {
 			return errors.Wrap(err, "cannot create extension manager")
 		}
 	}
-	loader.StorageRoot.WithExtensionManager(manager.(storageroot.ExtensionManager))
+	extensionManager, ok := manager.(storageroot.ExtensionManager)
+	if !ok {
+		return errors.Errorf("extension manager does not implement storageroot.ExtensionManager")
+	}
+	loader.StorageRoot.WithExtensionManager(extensionManager)
 	return nil
 }
 

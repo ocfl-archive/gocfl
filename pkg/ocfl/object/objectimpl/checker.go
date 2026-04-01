@@ -175,15 +175,17 @@ func (obj *checker) checkFilesAndVersions() error {
 	// create list of version content directories
 	versionContents := map[string]string{}
 	versionStrings := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
-	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
-		if a.Less(b) {
-			return -1
-		}
-		if a.Equal(b) {
-			return 0
-		}
-		return 1
-	})
+	if len(versionStrings) > 1 {
+		slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
+			if a.Less(b) {
+				return -1
+			}
+			if a.Equal(b) {
+				return 0
+			}
+			return 1
+		})
+	}
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {

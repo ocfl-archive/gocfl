@@ -93,7 +93,7 @@ func (loader *Loader) findInventoryFile() (string, error) {
 			continue
 		}
 		folderName := d.Name()
-		if folderName[0] != 'v' {
+		if len(folderName) == 0 || folderName[0] != 'v' {
 			continue
 		}
 		num, err := strconv.ParseInt(strings.TrimLeft(folderName[1:], "0"), 10, 64)
