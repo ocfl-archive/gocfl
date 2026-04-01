@@ -27,13 +27,13 @@ KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
 KeepassKey="%%GOCFL_KEEPASS_KEY%%"
 
 [test]
-fixturepath = "./fixtures/1.1/bad-objects"
+fixturepath = "../fixtures/1.1/bad-objects"
 
 [init]
 # --ocfl-version
 OCFLVersion="1.1"
 # --default-storageroot-extensions
-#StorageRootExtensions="./data/defaultextensions/storageroot"
+#StorageRootExtensions="../data/defaultextensions/storageroot"
 # --digest
 Digest="sha512"
 
@@ -45,7 +45,7 @@ Digest="sha512"
 # --fixity
 Fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
-#ObjectExtensions="./data/fullextensions/object"
+#ObjectExtensions="../data/fullextensions/object"
 deduplicate = false
 nocompress = true
 
