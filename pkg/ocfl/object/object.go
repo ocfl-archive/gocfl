@@ -47,7 +47,8 @@ type Checker interface {
 }
 
 // Initializer is the interface that defines operations for initializing
-// an OCFL object.
+// a brand-new OCFL object handling the initial folder structure
+// creation and the generation of the base inventory.json.
 type Initializer interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	WithObject(o Object) Initializer
