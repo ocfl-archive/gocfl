@@ -18,8 +18,7 @@ import (
 )
 
 func getFactory(ctx context.Context, ver version.OCFLVersion) factory.Factory {
-	var logger = zerolog.New(zerolog.NewConsoleWriter())
-	return factoryimpl.NewFactory(ver, nil, ocfllogger.NewOCFLLogger(ctx, &logger, nil, ver, nil))
+	return factoryimpl.NewFactory(ver, nil, ocfllogger.NewOCFLLogger(ctx, new(zerolog.New(zerolog.NewConsoleWriter())), nil, ver, nil))
 }
 
 func genericExampleState(ver version.OCFLVersion, cnt int, t *testing.T) inventory.State {
