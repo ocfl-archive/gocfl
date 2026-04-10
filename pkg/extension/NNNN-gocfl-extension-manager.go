@@ -163,12 +163,14 @@ func (manager *GOCFLExtensionManager) GetFSName(extName string) (fs.FS, error) {
 
 func sortExtensions[E extension2.Extension](list []E, sortName []string) {
 	sortFunc := func(aExt, bExt E) int {
-		if aExt == nil {
-			return -1
-		}
-		if bExt == nil {
-			return 1
-		}
+		/*
+			if aExt == nil {
+				return -1
+			}
+			if bExt == nil {
+				return 1
+			}
+		*/
 		aName := aExt.GetName()
 		bName := bExt.GetName()
 		var aNum, bNum int
@@ -207,9 +209,11 @@ func excludeExtensions[E extension2.Extension](list []E, exclusionSort []string)
 	var first = true
 	var remove = []int{}
 	for num, entry := range list {
-		if entry == nil {
-			continue
-		}
+		/*
+			if entry == nil {
+				continue
+			}
+		*/
 		if slices.Contains(exclusionSort, entry.GetName()) {
 			if first {
 				first = false

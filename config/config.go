@@ -132,7 +132,7 @@ type GOCFLConfig struct {
 	ErrorConfig   string                       `toml:"errorconfig"`
 	AccessLog     string                       `toml:"accesslog"`
 	Extension     map[string]map[string]string `json:"extension"`
-	Indexer       indexer.IndexerConfig        `toml:"indexer"`
+	Indexer       *indexer.IndexerConfig       `toml:"indexer"`
 	Thumbnail     Thumbnail                    `toml:"thumbnail"`
 	Migration     Migration                    `toml:"migration"`
 	AES           AESConfig                    `toml:"aes"`
@@ -153,7 +153,7 @@ type GOCFLConfig struct {
 
 func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
 	var conf = &GOCFLConfig{
-		Indexer: *indexer.GetDefaultConfig(),
+		Indexer: indexer.GetDefaultConfig(),
 	}
 	if _, err := toml.Decode(defaultConfig, conf); err != nil {
 		return nil, errors.Wrap(err, "error decoding GOCFL default configuration")

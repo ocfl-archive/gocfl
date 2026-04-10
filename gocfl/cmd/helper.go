@@ -185,7 +185,7 @@ func RegisterComplexExtensions(
 	sourceFS fs.FS,
 	indexerAddr string,
 	indexerLocalCache bool,
-	indexerConf ironmaiden.IndexerConfig,
+	indexerConf *ironmaiden.IndexerConfig,
 	migrationConf *config.Migration,
 	thumbnailConf *config.Thumbnail,
 	logger ocfllogger.OCFLLogger,
