@@ -23,6 +23,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	ironmaiden "github.com/ocfl-archive/indexer/v3/pkg/indexer"
+	indexerutil "github.com/ocfl-archive/indexer/v3/pkg/util"
 	"golang.org/x/exp/slices"
 )
 
@@ -31,7 +32,7 @@ const IndexerDescription = "technical metadata for all files"
 
 func init() {
 	extension.RegisterExtension(IndexerName, func() (extensiontypes.Extension, error) {
-		return NewIndexer("", nil, ironmaiden.IndexerConfig{}, false, nil)
+		return NewIndexer("", nil, &ironmaiden.IndexerConfig{}, false, nil)
 	}, GetIndexerParams)
 }
 
@@ -54,7 +55,7 @@ func GetIndexerParams() ([]*extension.ExternalParam, error) {
 	}, nil
 }
 
-func NewIndexer(urlString string, fss map[string]fs.FS, conf ironmaiden.IndexerConfig, localCache bool, logger ocfllogger.OCFLLogger) (*Indexer, error) {
+func NewIndexer(urlString string, fss map[string]fs.FS, conf *ironmaiden.IndexerConfig, localCache bool, logger ocfllogger.OCFLLogger) (*Indexer, error) {
 	var config = &IndexerConfig{
 		ExtensionConfig: &extensiontypes.ExtensionConfig{
 			ExtensionName: IndexerName,
@@ -70,11 +71,14 @@ func NewIndexer(urlString string, fss map[string]fs.FS, conf ironmaiden.IndexerC
 	}
 
 	if logger != nil {
-		indexerActions, err := ironmaiden.InitActionDispatcher(fss, conf, logger.Logger())
+		indexerActions, availableActions, indexerCloser, err := indexerutil.InitIndexer(conf, logger.Logger())
+		//indexerActions, err := ironmaiden.InitActionDispatcher(fss, conf, logger.Logger())
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot init indexer")
 		}
-		sl.indexerActions = indexerActions
+		sl.indexerActions = indexerActions.ActionDispatcher()
+		sl.availableActions = availableActions
+		sl.indexerCloser = indexerCloser
 	}
 	var err error
 	if sl.indexerURL, err = url.Parse(urlString); err != nil {
@@ -92,15 +96,17 @@ type IndexerConfig struct {
 }
 type Indexer struct {
 	*IndexerConfig
-	indexerURL     *url.URL
-	buffer         map[string]*bytes.Buffer
-	writer         *brotli.Writer
-	active         bool
-	indexerActions *ironmaiden.ActionDispatcher
-	currentHead    string
-	localCache     bool
-	fsys           appendfs.FS
-	logger         ocfllogger.OCFLLogger
+	indexerURL       *url.URL
+	buffer           map[string]*bytes.Buffer
+	writer           *brotli.Writer
+	active           bool
+	indexerActions   *ironmaiden.ActionDispatcher
+	currentHead      string
+	localCache       bool
+	fsys             appendfs.FS
+	logger           ocfllogger.OCFLLogger
+	availableActions []string
+	indexerCloser    io.Closer
 }
 
 func (sl *Indexer) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
