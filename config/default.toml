@@ -21,29 +21,29 @@ level = "INFO"
 #Region="%%GOCFL_S3_REGION%%"
 
 [aes]
-Enable=false
-KeepassFile="c:/temp/test.kdbx"
-KeepassEntry="keepass2://test.kdbx/Root/gocfl/test"
-KeepassKey="%%GOCFL_KEEPASS_KEY%%"
+enable=false
+keepassfile="c:/temp/test.kdbx"
+keepassentry="keepass2://test.kdbx/Root/gocfl/test"
+keepasskey="%%GOCFL_KEEPASS_KEY%%"
 
 [test]
 fixturepath = "../fixtures/1.1/bad-objects"
 
 [init]
 # --ocfl-version
-OCFLVersion="1.1"
+ocflversion="1.1"
 # --default-storageroot-extensions
 #StorageRootExtensions="../data/defaultextensions/storageroot"
 # --digest
-Digest="sha512"
+digest="sha512"
 
 [add]
 # --message
-Message="initial commit"
+message="initial commit"
 # --digest
-Digest="sha512"
+digest="sha512"
 # --fixity
-Fixity=["sha256", "sha1", "md5"]
+fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
 #ObjectExtensions="../data/fullextensions/object"
 deduplicate = false
@@ -51,24 +51,24 @@ nocompress = true
 
 [add.user]
 # --user-name
-Name="unknown user"
+name="unknown user"
 # --user-address
-Address="https://github.com/ocfl-archive/gocfl"
+address="https://github.com/ocfl-archive/gocfl"
 
 [update]
 # --message
-Message="update"
+message="update"
 # --digest
-Digest="sha512"
+digest="sha512"
 deduplicate = true
 nocompress = true
 echo = true
 
 [update.user]
 # --user-name
-Name="unknown user"
+name="unknown user"
 # --user-address
-Address="https://github.com/ocfl-archive/gocfl"
+address="https://github.com/ocfl-archive/gocfl"
 
 [display]
 addr = "localhost:80"
@@ -95,116 +95,35 @@ info = ["ExtensionConfigs",
 #
 # Extension parameter
 #
-[Extension]
-[Extension.NNNN-metafile]
-Source=""
+[extension]
+[extension.NNNN-metafile]
+source=""
 
-[Extension.NNNN-mets]
+[extension.NNNN-mets]
 # --ext-NNNN-mets-descriptive-metadata
 descriptive-metadata="other:metadata:info.json"
 #
 # Indexer
 #
-[Indexer]
-Enabled=true
-# Enable this, if there are problem detecting length of audio files with ffmpeg
-LocalCache=false
+[indexer]
+enabled=true
+optimize=true
 
-[Indexer.Checksum]
-Enabled=true
-Digest=["sha512"]
-
-[Indexer.XML]
-Enabled=true
-[Indexer.XML.Format.document]
-Attributes.xmlns = "http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.xml"
-Type = "ocr"
-Subtype = "FineReader10"
-Mime = "application/xml"
-[Indexer.XML.Format."mets:mets"]
-Regexp = true
-Attributes."xmlns:mets" = "^https?://www.loc.gov/METS/?$"
-Type = "metadata"
-Subtype = "METS"
-Mime = "application/xml"
-
-[Indexer.Siegfried]
-Enabled=true
-#Signature = "/usr/share/siegfried/default.sig"
-#Signature = "file://C:/Users/micro/siegfried/default.sig"
-Signature = "internal:/siegfried/default.sig"
-
-# mapping of pronom id to mimetype if not found in siegfried
-[Indexer.Siegfried.MimeMap]
-"x-fmt/92" = "image/psd"
-"fmt/134" = "audio/mp3"
-"x-fmt/184" = "image/x-sun-raster"
-"fmt/202" = "image/x-nikon-nef"
-"fmt/211" = "image/x-photo-cd"
-"x-fmt/383" = "image/fits"
-"fmt/405" = "image/x-portable-anymap"
-"fmt/406" = "image/x-portable-graymap"
-"fmt/408" = "image/x-portable-pixmap"
-"fmt/436" = "image/x-adobe-dng"
-"fmt/437" = "image/x-adobe-dng"
-"fmt/592" = "image/x-canon-cr2"
-"fmt/642" = "image/x-raw-fuji"
-"fmt/662" = "image/x-raw-panasonic"
-"fmt/668" = "image/x-olympus-orf"
-"fmt/986" = "text/xmp"
-"fmt/1001" = "image/x-exr"
-"fmt/1040" = "image/vnd.ms-dds"
-"fmt/1781" = "image/x-pentax-pef"
-
-# relevance of mimetype for sorting
-# relevance < 100: rate down
-# relevance > 100: rate up
-# default = 100
-[Indexer.MimeRelevance.1]
-Regexp = "^application/octet-stream"
-Weight = 1
-[Indexer.MimeRelevance.2]
-Regexp = "^text/plain"
-Weight = 3
-[Indexer.MimeRelevance.3]
-Regexp = "^audio/mpeg"
-Weight = 6
-[Indexer.MimeRelevance.4]
-Regexp = "^video/mpeg"
-Weight = 5
-[Indexer.MimeRelevance.5]
-Regexp = "^application/vnd\\..+"
-Weight = 4
-[Indexer.MimeRelevance.6]
-Regexp = "^application/rtf"
-Weight = 4
-[Indexer.MimeRelevance.7]
-Regexp = "^application/.+"
-Weight = 2
-[Indexer.MimeRelevance.8]
-Regexp = "^text/.+"
-Weight = 4
-[Indexer.MimeRelevance.9]
-Regexp = "^audio/.+"
-Weight = 5
-[Indexer.MimeRelevance.10]
-Regexp = "^video/.+"
-Weight = 4
-[Indexer.MimeRelevance.11]
-Regexp = "^.+/x-.+"
-Weight = 80
+[indexer.checksum]
+enabled=true
+digest=["sha512"]
 
 
 #
 # Thumbnail
 #
-[Thumbnail]
-Enable=true
-Background="none"
+[thumbnail]
+enable=true
+background="none"
 
 #
 # Migration
 #
-[Migration]
+[migration]
 # --with-migration
-Enable=false
+enable=false
