@@ -92,6 +92,16 @@ info = ["ExtensionConfigs",
     "ObjectVersions",
     "ObjectExtension",
     "ObjectExtensionConfigs"]
+
+[storeconfig]
+configfolder="~/gocfl"
+tomlfile="gocfl.toml"
+extensionfolder="extensions"
+scriptfolder="scripts"
+fullconfig=false
+extensions=true
+scripts=true
+
 #
 # Extension parameter
 #
@@ -112,7 +122,6 @@ optimize=true
 [indexer.checksum]
 enabled=true
 digest=["sha512"]
-
 
 #
 # Thumbnail

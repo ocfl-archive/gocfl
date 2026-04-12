@@ -1,15 +1,20 @@
 package config
 
 import (
+	"os"
+
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
 	"github.com/je4/filesystem/v3/pkg/vfsrw"
 	"github.com/je4/utils/v2/pkg/checksum"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/stashconfig"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	indexerutil "github.com/ocfl-archive/indexer/v3/pkg/util"
 )
+
+const DefaultPath = "~/gocfl/gocfl.toml"
 
 type InitConfig struct {
 	OCFLVersion                string                   `toml:"ocflversion"`
@@ -128,6 +133,16 @@ type S3Config struct {
 	Region      configutil.EnvString `toml:"region"`
 }
 
+type StoreConfig struct {
+	ConfigFolder    string `toml:"configfolder"`
+	TOMLFile        string `toml:"tomlfile"`
+	ExtensionFolder string `toml:"extensionfolder"`
+	ScriptFolder    string `toml:"scriptfolder"`
+	FullConfig      bool   `toml:"fullconfig"`
+	Extensions      bool   `toml:"extensions"`
+	Scripts         bool   `toml:"scripts"`
+}
+
 type GOCFLConfig struct {
 	ErrorTemplate string                       `toml:"errortemplate"`
 	ErrorConfig   string                       `toml:"errorconfig"`
@@ -146,6 +161,7 @@ type GOCFLConfig struct {
 	Stat          StatConfig                   `toml:"stat"`
 	Test          TestConfig                   `toml:"test"`
 	Validate      ValidateConfig               `toml:"validate"`
+	StoreConfig   StoreConfig                  `toml:"storeconfig"`
 	S3            S3Config                     `toml:"s3"`
 	DefaultArea   string                       `toml:"defaultarea"`
 	VFS           vfsrw.Config                 `toml:"vfs"`
@@ -153,11 +169,21 @@ type GOCFLConfig struct {
 }
 
 func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
+	var err error
 	var conf = &GOCFLConfig{
 		Indexer: indexer.GetDefaultConfig(),
 	}
 	if _, err := toml.Decode(defaultConfig, conf); err != nil {
 		return nil, errors.Wrap(err, "error decoding GOCFL default configuration")
+	}
+	if filename == "" {
+		filename, err = util.Fullpath(DefaultPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting '~/gocfl/gocfl.toml' file path")
+		}
+		if _, err := os.Stat(filename); os.IsNotExist(err) {
+			filename = ""
+		}
 	}
 	if filename != "" {
 		if _, err := toml.DecodeFile(filename, conf); err != nil {
