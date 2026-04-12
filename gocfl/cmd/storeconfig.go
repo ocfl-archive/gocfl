@@ -151,7 +151,9 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("TOML File: %s", tomlPath)
 
 	scripts := []string{}
-	miniConfig := map[string]interface{}{}
+	miniConfig := map[string]interface{}{
+		"loglevel": "info",
+	}
 
 	// check ghostscript and image magick convert
 	gsPath, gsOK := indexerutil.CheckProgram(indexerutil.CheckProgramGhostscript, "")
