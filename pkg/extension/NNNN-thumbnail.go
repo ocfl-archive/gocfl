@@ -348,33 +348,25 @@ func (thumb *Thumbnail) UpdateObjectAfter(obj object.VersionWriter) error {
 
 			var file io.ReadCloser
 			var ext string
-			// No direct access to object filesystem, using fallback or leaving empty
-			file = nil
-			ext = ""
-			if false { // Original logic used obj.GetFS() which is no longer available
-				_ = ext
-			}
-			if file == nil {
-				if thumb.sourceFS != nil {
-					thumb.logger.Info().Msgf("create thumbnail for %s", m.InternalName[0])
-					stateFiles, err := inventory.GetVersions().GetVersion(inventory.GetHead()).GetState().GetFiles(cs)
-					if err != nil {
-						return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, obj.GetID())
-					}
-					if len(stateFiles) == 0 {
-						return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, obj.GetID())
-					}
-					external, err := obj.GetExtensionManager().BuildObjectExtractPath(stateFiles[len(stateFiles)-1], "")
-					if err != nil {
-						return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], obj.GetID())
-					}
-					file, err = thumb.sourceFS.Open(external)
-					if err != nil {
-						continue
-						// return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", thumb.sourceFS, external)
-					}
-					ext = filepath.Ext(external)
+			if thumb.sourceFS != nil {
+				thumb.logger.Info().Msgf("create thumbnail for %s", m.InternalName[0])
+				stateFiles, err := inventory.GetVersions().GetVersion(inventory.GetHead()).GetState().GetFiles(cs)
+				if err != nil {
+					return errors.Wrapf(err, "cannot get state files for checksum '%s' in object '%s'", cs, obj.GetID())
 				}
+				if len(stateFiles) == 0 {
+					return errors.Errorf("zero state file for checksum '%s' in object '%s'", cs, obj.GetID())
+				}
+				external, err := obj.GetExtensionManager().BuildObjectExtractPath(stateFiles[len(stateFiles)-1], "")
+				if err != nil {
+					return errors.Wrapf(err, "cannot build external path for file '%s' in object '%s'", stateFiles[len(stateFiles)-1], obj.GetID())
+				}
+				file, err = thumb.sourceFS.Open(external)
+				if err != nil {
+					continue
+					// return errors.Wrapf(err, "cannot open file '%v/%s' in source filesystem", thumb.sourceFS, external)
+				}
+				ext = filepath.Ext(external)
 			}
 			if file != nil {
 				//var ml *ThumbnailResult
