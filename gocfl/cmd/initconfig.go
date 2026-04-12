@@ -39,52 +39,52 @@ func quoteShellArg(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'"'"'`) + "'"
 }
 
-var storeConfigCmd = &cobra.Command{
-	Use:     "storeconfig [path to config file]",
+var initConfigCmd = &cobra.Command{
+	Use:     "initconfig [path to config file]",
 	Aliases: []string{},
 	Short:   "store configuration of gocfl in toml format",
 	//Long:    "an utterly useless command for testing",
-	Example: "gocfl storeconfig ~/",
+	Example: "gocfl initconfig",
 	Args:    cobra.MaximumNArgs(1),
-	Run:     doStoreConfig,
+	Run:     doInitConfig,
 }
 
-func initStoreConfig() {
-	storeConfigCmd.Flags().String("toml", "", "name of toml config file")
-	storeConfigCmd.Flags().String("extension-folder", "", "folder for extension templates")
-	storeConfigCmd.Flags().String("script-folder", "", "folder for extension scripts")
-	storeConfigCmd.Flags().Bool("fullconfig", false, "store all configuration options instead of minimal configuration")
-	storeConfigCmd.Flags().Bool("extensions", false, "extract extension templates")
-	storeConfigCmd.Flags().Bool("scripts", false, "extract extension scripts")
+func initInitConfig() {
+	initConfigCmd.Flags().String("toml", "", "name of toml config file")
+	initConfigCmd.Flags().String("extension-folder", "", "folder for extension templates")
+	initConfigCmd.Flags().String("script-folder", "", "folder for extension scripts")
+	initConfigCmd.Flags().Bool("fullconfig", false, "store all configuration options instead of minimal configuration")
+	initConfigCmd.Flags().Bool("extensions", false, "extract extension templates")
+	initConfigCmd.Flags().Bool("scripts", false, "extract extension scripts")
 }
 
-func doStoreConfigConf(cmd *cobra.Command) {
+func doInitConfigConf(cmd *cobra.Command) {
 	if str := getFlagString(cmd, "toml"); str != "" {
-		conf.StoreConfig.TOMLFile = str
+		conf.InitConfig.TOMLFile = str
 	}
 	if str := getFlagString(cmd, "extension-folder"); str != "" {
-		conf.StoreConfig.ExtensionFolder = str
+		conf.InitConfig.ExtensionFolder = str
 	}
 	if str := getFlagString(cmd, "script-folder"); str != "" {
-		conf.StoreConfig.ScriptFolder = str
+		conf.InitConfig.ScriptFolder = str
 	}
 	if b, ok := getFlagBool(cmd, "fullconfig"); ok {
-		conf.StoreConfig.FullConfig = b
+		conf.InitConfig.FullConfig = b
 	}
 	if b, ok := getFlagBool(cmd, "extensions"); ok {
-		conf.StoreConfig.Extensions = b
+		conf.InitConfig.Extensions = b
 	}
 	if b, ok := getFlagBool(cmd, "scripts"); ok {
-		conf.StoreConfig.Scripts = b
+		conf.InitConfig.Scripts = b
 	}
 
 }
 
-func doStoreConfig(cmd *cobra.Command, args []string) {
+func doInitConfig(cmd *cobra.Command, args []string) {
 	var configFolder string
 	var err error
 	if len(args) == 0 {
-		configFolder = conf.StoreConfig.ConfigFolder
+		configFolder = conf.InitConfig.ConfigFolder
 	} else {
 		configFolder = args[0]
 	}
@@ -132,11 +132,11 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 	ctx := context.TODO()
 	var logger = ocfllogger.NewOCFLLogger(ctx, &l2, nil, version.Default, nil)
 
-	doStoreConfigConf(cmd)
+	doInitConfigConf(cmd)
 
-	var scriptFolder = conf.StoreConfig.ScriptFolder
-	var extensionFolder = conf.StoreConfig.ExtensionFolder
-	var tomlPath = conf.StoreConfig.TOMLFile
+	var scriptFolder = conf.InitConfig.ScriptFolder
+	var extensionFolder = conf.InitConfig.ExtensionFolder
+	var tomlPath = conf.InitConfig.TOMLFile
 	if !filepath.IsAbs(scriptFolder) {
 		scriptFolder = filepath.ToSlash(filepath.Join(configFolder, scriptFolder))
 	}
@@ -153,6 +153,10 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 	scripts := []string{}
 	miniConfig := map[string]interface{}{
 		"loglevel": "info",
+		"update": map[string]interface{}{
+			"user":    conf.Update.User,
+			"message": conf.Update.Message,
+		},
 	}
 
 	// check ghostscript and image magick convert
@@ -217,14 +221,14 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 		return true
 	}
 
-	if conf.StoreConfig.Scripts {
+	if conf.InitConfig.Scripts {
 		files, err := fs.ReadDir(internal.InternalFS, "thumbnail/scripts")
 		if err != nil {
 			logger.Fatal().Err(err).Msg("cannot read internal:thumbnail/scripts")
 		}
 		if len(files) > 0 {
 			if err := os.MkdirAll(scriptFolder, 0755); err != nil {
-				logger.Fatal().Err(err).Msgf("cannot create script folder: %s", conf.StoreConfig.ScriptFolder)
+				logger.Fatal().Err(err).Msgf("cannot create script folder: %s", conf.InitConfig.ScriptFolder)
 			}
 		}
 		for _, f := range files {
@@ -247,7 +251,7 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 			scripts = append(scripts, f.Name())
 		}
 	}
-	if conf.StoreConfig.Extensions {
+	if conf.InitConfig.Extensions {
 		if err := os.MkdirAll(extensionFolder, 0755); err != nil {
 			logger.Fatal().Err(err).Msgf("cannot create extension folder: %s", extensionFolder)
 		}
@@ -299,8 +303,10 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 		}
 		conf.Init.StorageRootExtensionFolder = filepath.ToSlash(filepath.Join(extensionFolder, "storageroot"))
 
-		miniConfig["add"] = map[string]string{
+		miniConfig["add"] = map[string]any{
 			"objectextensions": filepath.ToSlash(filepath.Join(extensionFolder, "object")),
+			"user":             conf.Add.User,
+			"message":          conf.Add.Message,
 		}
 		conf.Add.ObjectExtensionFolder = filepath.ToSlash(filepath.Join(extensionFolder, "object"))
 	}
@@ -350,7 +356,7 @@ func doStoreConfig(cmd *cobra.Command, args []string) {
 	tenc := toml.NewEncoder(fp)
 	tenc.Indent = "  "
 	var cfg any = miniConfig
-	if conf.StoreConfig.FullConfig {
+	if conf.InitConfig.FullConfig {
 		cfg = conf
 	}
 	if err := tenc.Encode(cfg); err != nil {

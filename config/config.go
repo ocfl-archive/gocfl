@@ -133,7 +133,7 @@ type S3Config struct {
 	Region      configutil.EnvString `toml:"region"`
 }
 
-type StoreConfig struct {
+type InitConfigConfig struct {
 	ConfigFolder    string `toml:"configfolder"`
 	TOMLFile        string `toml:"tomlfile"`
 	ExtensionFolder string `toml:"extensionfolder"`
@@ -161,7 +161,7 @@ type GOCFLConfig struct {
 	Stat          StatConfig                   `toml:"stat"`
 	Test          TestConfig                   `toml:"test"`
 	Validate      ValidateConfig               `toml:"validate"`
-	StoreConfig   StoreConfig                  `toml:"storeconfig"`
+	InitConfig    InitConfigConfig             `toml:"initconfig"`
 	S3            S3Config                     `toml:"s3"`
 	DefaultArea   string                       `toml:"defaultarea"`
 	VFS           vfsrw.Config                 `toml:"vfs"`
