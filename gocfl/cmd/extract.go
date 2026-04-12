@@ -136,14 +136,9 @@ func doExtract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_ocflFS, err := fsFactory.Get(rootPath, true)
+	ocflFS, err := fsFactory.Get(rootPath, true)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", rootPath)
-		return
-	}
-	ocflFS, ok := _ocflFS.(appendfs.FS)
-	if !ok {
-		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", rootPath)
 		return
 	}
 	destFS, err := fsFactory.Get(destPath, false)
