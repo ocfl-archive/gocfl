@@ -28,7 +28,7 @@ var validateCmd = &cobra.Command{
 	//Long:    "an utterly useless command for testing",
 	Example: "gocfl validate ./archive.zip",
 	Args:    cobra.ExactArgs(1),
-	Run:     validate,
+	Run:     doValidate,
 }
 
 func initValidate() {
@@ -45,7 +45,7 @@ func doValidateConf(cmd *cobra.Command) {
 	}
 }
 
-func validate(cmd *cobra.Command, args []string) {
+func doValidate(cmd *cobra.Command, args []string) {
 	ocflPath, err := util.Fullpath(args[0])
 	if err != nil {
 		cobra.CheckErr(err)
