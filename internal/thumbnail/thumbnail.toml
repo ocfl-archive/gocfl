@@ -1,0 +1,37 @@
+Enabled=true
+Background="none"
+
+[Function.CR2]
+ID = "CR2#01"
+Title = "Thumbnail from Canon CR2"
+Command = "%%CONVERT%% %%CONVERT_PARAMS%% 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Function.Images]
+ID = "Image#01"
+Title = "Thumbnail from Image"
+Command = "%%CONVERT%% %%CONVERT_PARAMS%% '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Mime = ["image/.+"]
+
+[Function.Audio]
+ID = "Audio#01"
+Title = "Spectrogram from Audio"
+Command = "%%FFMPEG%% %%FFMPEG_PARAMS%% -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Mime = ["audio/.+"]
+
+[Function.PDF]
+ID = "PDF#01"
+Title = "Thumbnail from Image"
+Command = "pdf2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = ["application/pdf"]
+
+[Function.Video]
+ID = "Video#01"
+Title = "Thumbnail from Video"
+Command = "video2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+Timeout = "2m"
+Mime = ["video/.+"]
