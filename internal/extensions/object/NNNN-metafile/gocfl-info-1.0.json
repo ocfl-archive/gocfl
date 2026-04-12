@@ -127,7 +127,7 @@
           "description": "unstructured additional data"
         }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "type": "object",
       "required": [
         "signature",
