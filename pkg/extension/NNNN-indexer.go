@@ -269,7 +269,7 @@ func (sl *Indexer) UpdateObjectAfter(object object.VersionWriter) error {
 		return nil
 	}
 	if err := WriteJsonL(
-		sl.fsys,
+		sl.GetName(),
 		object,
 		"indexer",
 		buffer.Bytes(),
@@ -313,7 +313,7 @@ func (sl *Indexer) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]an
 				data = nil
 			}
 		} else {
-			data, err = ReadJsonL(sourceFS, obj, v, "indexer", sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName)
+			data, err = ReadJsonL(sl.GetName(), sourceFS, obj, v, "indexer", sl.IndexerConfig.Compress, sl.StorageType, sl.StorageName)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", obj.GetID(), v)
 			}

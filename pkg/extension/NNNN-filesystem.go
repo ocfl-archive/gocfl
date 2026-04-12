@@ -80,47 +80,47 @@ type Filesystem struct {
 	logger      ocfllogger.OCFLLogger
 }
 
-func (extFS *Filesystem) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
-	extFS.logger = logger.With("extension", FilesystemName)
-	return extFS
+func (fi *Filesystem) WithLogger(logger ocfllogger.OCFLLogger) extensiontypes.Extension {
+	fi.logger = logger.With("extension", FilesystemName)
+	return fi
 }
 
-func (extFS *Filesystem) Load(fsys fs.FS) error {
+func (fi *Filesystem) Load(fsys fs.FS) error {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot read config.json")
 	}
-	if err := json.Unmarshal(data, extFS.FilesystemConfig); err != nil {
+	if err := json.Unmarshal(data, fi.FilesystemConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal FilesystemConfig '%s'", string(data))
 	}
-	if extFS.Compress == "" {
-		extFS.Compress = "none"
+	if fi.Compress == "" {
+		fi.Compress = "none"
 	}
 	return nil
 }
 
-func (extFS *Filesystem) Terminate() error {
+func (fi *Filesystem) Terminate() error {
 	return nil
 }
 
-func (extFS *Filesystem) GetConfig() any {
-	return extFS.FilesystemConfig
+func (fi *Filesystem) GetConfig() any {
+	return fi.FilesystemConfig
 }
 
-func (extFS *Filesystem) AddFileBefore(object object.VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
+func (fi *Filesystem) AddFileBefore(object object.VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileBefore(object object.VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error {
+func (fi *Filesystem) UpdateFileBefore(object object.VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error {
 	return nil
 }
 
-func (extFS *Filesystem) DeleteFileBefore(versionWriter object.VersionWriter, dest string, area string) error {
+func (fi *Filesystem) DeleteFileBefore(versionWriter object.VersionWriter, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) AddFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
-	if isDir && extFS.Folders == "" {
+func (fi *Filesystem) AddFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error {
+	if isDir && fi.Folders == "" {
 		return nil
 	}
 
@@ -130,7 +130,7 @@ func (extFS *Filesystem) AddFileAfter(versionWriter object.VersionWriter, source
 	var err error
 	var emptyChecksum string
 	var emptyExists bool
-	if isDir && extFS.Folders != "" {
+	if isDir && fi.Folders != "" {
 		emptyChecksum, err = checksum.Checksum(bytes.NewReader([]byte{}), inventory.GetDigestAlgorithm())
 		if err != nil {
 			return errors.Wrap(err, "cannot calculate checksum for empty file")
@@ -146,12 +146,12 @@ func (extFS *Filesystem) AddFileAfter(versionWriter object.VersionWriter, source
 	}
 
 	head := inventory.GetHead().String()
-	if _, ok := extFS.buffer[head]; !ok {
-		extFS.buffer[head] = &bytes.Buffer{}
+	if _, ok := fi.buffer[head]; !ok {
+		fi.buffer[head] = &bytes.Buffer{}
 	}
-	if extFS.currentHead != head {
-		extFS.writer = brotli.NewWriter(extFS.buffer[head])
-		extFS.currentHead = head
+	if fi.currentHead != head {
+		fi.writer = brotli.NewWriter(fi.buffer[head])
+		fi.currentHead = head
 	}
 
 	for _, src := range source {
@@ -177,7 +177,7 @@ func (extFS *Filesystem) AddFileAfter(versionWriter object.VersionWriter, source
 		}
 
 		if isDir {
-			newEmptyFile := filepath.ToSlash(filepath.Join(src, extFS.Folders))
+			newEmptyFile := filepath.ToSlash(filepath.Join(src, fi.Folders))
 			if !emptyExists {
 				if _, err := versionWriter.AddReader(io.NopCloser(bytes.NewReader([]byte{})), []string{newEmptyFile}, area, true, false); err != nil {
 					return errors.Wrapf(err, "cannot add empty file '%s'", newEmptyFile)
@@ -208,33 +208,33 @@ func (extFS *Filesystem) AddFileAfter(versionWriter object.VersionWriter, source
 		if err != nil {
 			return errors.Errorf("cannot marshal result %v", fsLine)
 		}
-		if _, err := extFS.writer.Write(append(data, []byte("\n")...)); err != nil {
+		if _, err := fi.writer.Write(append(data, []byte("\n")...)); err != nil {
 			return errors.Errorf("cannot brotli %s", string(data))
 		}
 	}
 	return nil
 }
 
-func (extFS *Filesystem) UpdateFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error {
+func (fi *Filesystem) UpdateFileAfter(versionWriter object.VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error {
 	return errors.WithStack(
-		extFS.AddFileAfter(versionWriter, sourceFS, []string{source}, "", "", area, isDir),
+		fi.AddFileAfter(versionWriter, sourceFS, []string{source}, "", "", area, isDir),
 	)
 
 }
 
-func (extFS *Filesystem) DeleteFileAfter(object object.VersionWriter, dest string, area string) error {
+func (fi *Filesystem) DeleteFileAfter(object object.VersionWriter, dest string, area string) error {
 	return nil
 }
 
-func (extFS *Filesystem) NeedNewVersion(object object.VersionWriter) (bool, error) {
+func (fi *Filesystem) NeedNewVersion(object object.VersionWriter) (bool, error) {
 	return false, nil
 }
 
-func (extFS *Filesystem) DoNewVersion(object object.VersionWriter) error {
+func (fi *Filesystem) DoNewVersion(object object.VersionWriter) error {
 	return nil
 }
 
-func (extFS *Filesystem) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
+func (fi *Filesystem) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]any, error) {
 	var err error
 	var result = map[string]map[string][]*FileSystemLine{}
 
@@ -248,7 +248,7 @@ func (extFS *Filesystem) GetMetadata(sourceFS fs.FS, obj object.Object) (map[str
 	}
 	for v := range inventory.GetVersions().GetVersionNumbers() {
 		var data []byte
-		if buf, ok := extFS.buffer[v.String()]; ok && buf.Len() > 0 {
+		if buf, ok := fi.buffer[v.String()]; ok && buf.Len() > 0 {
 			//		if v == inventory.GetHead() && sl.buffer.Len() > 0 {
 			// need a new reader on the buffer
 			reader := brotli.NewReader(bytes.NewBuffer(buf.Bytes()))
@@ -257,7 +257,7 @@ func (extFS *Filesystem) GetMetadata(sourceFS fs.FS, obj object.Object) (map[str
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(sourceFS, obj, v, "filesystem", extFS.FilesystemConfig.Compress, extFS.StorageType, extFS.StorageName)
+			data, err = ReadJsonL(fi.GetName(), sourceFS, obj, v, "filesystem", fi.FilesystemConfig.Compress, fi.StorageType, fi.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)
@@ -301,47 +301,47 @@ func (extFS *Filesystem) GetMetadata(sourceFS fs.FS, obj object.Object) (map[str
 	return retResult, nil
 }
 
-func (extFS *Filesystem) UpdateObjectBefore(object object.VersionWriter) error {
+func (fi *Filesystem) UpdateObjectBefore(object object.VersionWriter) error {
 	return nil
 }
 
-func (extFS *Filesystem) UpdateObjectAfter(object object.VersionWriter) error {
-	if extFS.writer == nil {
+func (fi *Filesystem) UpdateObjectAfter(object object.VersionWriter) error {
+	if fi.writer == nil {
 		return nil
 	}
-	if err := extFS.writer.Flush(); err != nil {
+	if err := fi.writer.Flush(); err != nil {
 		return errors.Wrap(err, "cannot flush brotli writer")
 	}
-	if err := extFS.writer.Close(); err != nil {
+	if err := fi.writer.Close(); err != nil {
 		return errors.Wrap(err, "cannot close brotli writer")
 	}
 	head := object.GetInventory().GetHead()
 	if !head.IsValid() {
 		return errors.Errorf("no head for object '%s'", object.GetID())
 	}
-	buffer, ok := extFS.buffer[head.String()]
+	buffer, ok := fi.buffer[head.String()]
 	if !ok {
 		return nil
 	}
 	if err := WriteJsonL(
-		nil,
+		fi.GetName(),
 		object,
 		"filesystem",
 		buffer.Bytes(),
-		extFS.FilesystemConfig.Compress,
-		extFS.StorageType,
-		extFS.StorageName,
+		fi.FilesystemConfig.Compress,
+		fi.StorageType,
+		fi.StorageName,
 	); err != nil {
 		return errors.Wrap(err, "cannot write jsonl")
 	}
 	return nil
 }
 
-func (extFS *Filesystem) SetParams(params map[string]string) error {
+func (fi *Filesystem) SetParams(params map[string]string) error {
 	return nil
 }
 
-func (extFS *Filesystem) WriteConfig(fsys appendfs.FS) error {
+func (fi *Filesystem) WriteConfig(fsys appendfs.FS) error {
 	configWriter, err := writefs.Create(fsys, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")
@@ -349,18 +349,18 @@ func (extFS *Filesystem) WriteConfig(fsys appendfs.FS) error {
 	defer configWriter.Close()
 	jenc := json.NewEncoder(configWriter)
 	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(extFS.FilesystemConfig); err != nil {
+	if err := jenc.Encode(fi.FilesystemConfig); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
 
 }
 
-func (extFS *Filesystem) IsRegistered() bool {
+func (fi *Filesystem) IsRegistered() bool {
 	return false
 }
 
-func (extFS *Filesystem) GetName() string {
+func (fi *Filesystem) GetName() string {
 	return FilesystemName
 }
 

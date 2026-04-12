@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"math/rand"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -105,8 +106,8 @@ type ThumbnailMap map[string]*ThumbnailTarget
 
 type Thumbnail struct {
 	*ThumbnailConfig
-	logger      ocfllogger.OCFLLogger
-	fsys        appendfs.FS
+	logger ocfllogger.OCFLLogger
+	//fsys        appendfs.FS
 	lastHead    string
 	thumbnail   *thumbnail.Thumbnail
 	buffer      map[string]*bytes.Buffer
@@ -150,10 +151,6 @@ func (thumb *Thumbnail) Terminate() error {
 	return nil
 }
 
-func (thumb *Thumbnail) GetFS() fs.FS {
-	return thumb.fsys
-}
-
 func (thumb *Thumbnail) GetConfig() any {
 	return thumb.ThumbnailConfig
 }
@@ -161,12 +158,6 @@ func (thumb *Thumbnail) GetConfig() any {
 func (thumb *Thumbnail) IsRegistered() bool { return false }
 
 func (thumb *Thumbnail) GetName() string { return ThumbnailName }
-
-func (thumb *Thumbnail) SetFS(fsys fs.FS, create bool) {
-	if sfs, ok := fsys.(appendfs.FS); ok {
-		thumb.fsys = sfs
-	}
-}
 
 func (thumb *Thumbnail) SetParams(map[string]string) error {
 	return nil
@@ -221,15 +212,24 @@ func (thumb *Thumbnail) storeThumbnail(obj object.VersionWriter, head *inventory
 		}
 		return targetname, digest, nil
 	case "extension":
-		fp, err := writefs.Create(thumb.fsys, targetName)
+		fsys := obj.GetFS()
+		extFS, err := writefs.Sub(fsys, path.Join("extensions", thumb.GetName()))
 		if err != nil {
-			return "", "", errors.Wrapf(err, "cannot create file '%s/%s'", thumb.fsys, targetName)
+			return "", "", errors.Wrapf(err, "cannot create subfs %v/%s", fsys, path.Join("extensions", thumb.GetName()))
+		}
+		fp, err := writefs.Create(extFS, targetName)
+		if err != nil {
+			return "", "", errors.Wrapf(err, "cannot create file '%s/%s'", fsys, targetName)
 		}
 		if _, err := io.Copy(fp, mFile); err != nil {
-			return "", "", errors.Wrapf(err, "cannot write file '%v/%s'", thumb.fsys, targetName)
+			err := fp.Close()
+			if err != nil {
+				thumb.logger.Error().Err(err).Msgf("cannot close file %v/%s", extFS, targetName)
+			}
+			return "", "", errors.Wrapf(err, "cannot write file '%v/%s'", extFS, targetName)
 		}
 		if err := fp.Close(); err != nil {
-			return "", "", errors.Wrapf(err, "cannot close file '%v/%s'", thumb.fsys, targetName)
+			return "", "", errors.Wrapf(err, "cannot close file '%v/%s'", fsys, targetName)
 		}
 		return targetName, "", nil
 	default:
@@ -396,16 +396,19 @@ func (thumb *Thumbnail) UpdateObjectAfter(obj object.VersionWriter) error {
 		}
 
 	}
-	thumb.writer.Flush()
-	thumb.writer.Close()
+	if err := thumb.writer.Flush(); err != nil {
+		thumb.logger.Error().Err(err).Msg("cannot flush thumbnail buffer")
+	}
+	if err := thumb.writer.Close(); err != nil {
+		thumb.logger.Error().Err(err).Msg("cannot close thumbnail writer")
+	}
 	thumb.writer = nil
 	buffer, ok := thumb.buffer[head.String()]
 	if !ok {
 		return nil
 	}
-
 	if err := WriteJsonL(
-		thumb.fsys,
+		thumb.GetName(),
 		obj,
 		"thumbnail",
 		buffer.Bytes(),
@@ -445,7 +448,7 @@ func (thumb *Thumbnail) GetMetadata(sourceFS fs.FS, obj object.Object) (map[stri
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(sourceFS, obj, v, "thumbnail", thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName)
+			data, err = ReadJsonL(thumb.GetName(), sourceFS, obj, v, "thumbnail", thumb.ThumbnailConfig.Compress, thumb.StorageType, thumb.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", obj.GetID(), v)

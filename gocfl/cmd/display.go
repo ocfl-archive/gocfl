@@ -15,7 +15,6 @@ import (
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/data/displaydata"
 	"github.com/ocfl-archive/gocfl/v2/gocfl/cmd/display"
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
@@ -131,15 +130,17 @@ func doDisplay(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	_destFS, err := fsFactory.Get(ocflPath, true)
+	destFS, err := fsFactory.Get(ocflPath, true)
 	if err != nil {
 		logger.Error().Err(err).Msgf("cannot get filesystem for '%s'", ocflPath)
 		return
 	}
-	destFS, ok := _destFS.(appendfs.FS)
-	if !ok {
-		logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", ocflPath)
-	}
+	/*
+		destFS, ok := _destFS.(appendfs.FS)
+		if !ok {
+			logger.Error().Err(err).Msgf("filesystem for '%s' is not writeable", ocflPath)
+		}
+	*/
 	defer func() {
 		if err := writefs.Close(destFS); err != nil {
 			logger.Error().Err(err).Msgf("cannot close filesystem for '%s'", destFS)
@@ -158,10 +159,7 @@ func doDisplay(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if !writefs.HasContent(destFS) {
-
-	}
-	storageRoot, err := LoadStorageRoot(ctx, destFS, extensionFactory, logger)
+	storageRoot, err := LoadStorageRootRO(ctx, destFS, extensionFactory, logger)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot load storage root")
 		return

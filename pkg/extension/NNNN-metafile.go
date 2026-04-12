@@ -140,31 +140,30 @@ func (sl *MetaFile) IsRegistered() bool {
 func (sl *MetaFile) SetParams(params map[string]string) error {
 	if params != nil {
 		name := fmt.Sprintf("ext-%s-%s", MetaFileName, "source")
-		if urlString, ok := params[name]; ok && urlString != "" {
-			urlString = strings.TrimSpace(urlString)
-			if urlString == "" {
-				return errors.Errorf("no value for parameter '%s'", name)
-			}
-			u, err := url.Parse(urlString)
-			if err != nil || u.Scheme == "" {
-				if urlString[0] == '/' {
-					u, err = url.Parse("file://" + urlString)
-					if err != nil {
-						return errors.Wrapf(err, "cannot parse '%s'", urlString)
-					}
-				} else {
-					d, err := os.Getwd()
-					if err != nil {
-						return errors.Wrap(err, "cannot get working directory")
-					}
-					u, err = url.Parse("file://" + filepath.ToSlash(filepath.Join(d, urlString)))
-					if err != nil {
-						return errors.Wrapf(err, "cannot parse '%s'", urlString)
-					}
+		urlString, ok := params[name]
+		urlString = strings.TrimSpace(urlString)
+		if !ok || urlString == "" {
+			return nil
+		}
+		u, err := url.Parse(urlString)
+		if err != nil || u.Scheme == "" {
+			if urlString[0] == '/' {
+				u, err = url.Parse("file://" + urlString)
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse '%s'", urlString)
+				}
+			} else {
+				d, err := os.Getwd()
+				if err != nil {
+					return errors.Wrap(err, "cannot get working directory")
+				}
+				u, err = url.Parse("file://" + filepath.ToSlash(filepath.Join(d, urlString)))
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse '%s'", urlString)
 				}
 			}
-			sl.metadataSource = u
 		}
+		sl.metadataSource = u
 	}
 	return nil
 }
@@ -341,7 +340,7 @@ func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
 			return errors.Wrapf(err, "cannot write '%s'", targetname)
 		}
 	case "extension":
-		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join(sl.StorageName, sl.MetaName)), "/")
+		targetname := strings.TrimLeft(filepath.ToSlash(filepath.Join("extensions", sl.GetName(), sl.StorageName, sl.MetaName)), "/")
 		if _, err := writefs.WriteFile(obj.GetFS(), targetname, infoData); err != nil {
 			return errors.Wrapf(err, "cannot write file '%v/%s'", obj.GetFS(), targetname)
 		}
@@ -399,7 +398,7 @@ func (sl *MetaFile) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]a
 		if metadata, ok = sl.info[ver.String()]; ok {
 			break
 		}
-		if metadata, err = ReadFile(sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
+		if metadata, err = ReadFile(sl.GetName(), sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
 			break
 		}
 	}

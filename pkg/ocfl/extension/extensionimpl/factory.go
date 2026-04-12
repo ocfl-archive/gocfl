@@ -7,7 +7,6 @@ import (
 
 	"emperror.dev/errors"
 	defaultobjectextensions "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
-	"github.com/ocfl-archive/gocfl/v2/info"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
@@ -120,7 +119,8 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 		if err != nil {
 			//errs = append(errs, errors.Wrapf(err, "cannot create extension %s", file.Name()))
 			// todo: check with a list of registered extensions against W013. gocfl does not support all registered extensions...
-			f.logger.ValidationError(validation.W013, "extension %s not supported by gocfl %s - %s", file.Name(), info.Version, err.Error())
+			return nil, errors.Wrapf(err, "cannot load extension '%s'", fName)
+			//f.logger.ValidationError(validation.W013, "extension %s not supported by gocfl %s - %s", file.Name(), info.Version, err.Error())
 		} else {
 			if !ext.IsRegistered() {
 				f.logger.ValidationError(validation.W013, "extension %s is not registered", ext.GetName())

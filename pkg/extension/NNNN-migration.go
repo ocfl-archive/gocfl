@@ -409,7 +409,7 @@ func (mi *Migration) DoNewVersion(obj object.VersionWriter) error {
 		return nil
 	}
 	if err := WriteJsonL(
-		obj.GetFS(),
+		mi.GetName(),
 		obj,
 		"migration",
 		buffer.Bytes(),
@@ -445,7 +445,7 @@ func (mi *Migration) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]
 				return nil, errors.Wrapf(err, "cannot read buffer for '%s' '%s'", obj.GetID(), v)
 			}
 		} else {
-			data, err = ReadJsonL(sourceFS, obj, v, "migration", mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
+			data, err = ReadJsonL(mi.GetName(), sourceFS, obj, v, "migration", mi.MigrationConfig.Compress, mi.StorageType, mi.StorageName)
 			if err != nil {
 				continue
 				// return nil, errors.Wrapf(err, "cannot read jsonl for '%s' version '%s'", object.GetID(), v)

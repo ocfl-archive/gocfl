@@ -451,6 +451,7 @@ func addObjectByPath(
 		}
 	}
 	if err := versionWriter.Close(); err != nil {
+		versionWriter = nil
 		return false, errors.Wrapf(err, "cannot close version writer for object %s", id)
 	}
 	versionWriter = nil

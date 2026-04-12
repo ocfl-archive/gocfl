@@ -1104,7 +1104,7 @@ func (s *Server) report(c *gin.Context) {
 
 	var infoBytes []byte
 	if metafileCfg.StorageType == "extension" {
-		fsys, err := fs.Sub(s.objectFS, path.Join("extension", extension.MetaFileName))
+		fsys, err := fs.Sub(s.objectFS, path.Join("extensions", extension.MetaFileName))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
