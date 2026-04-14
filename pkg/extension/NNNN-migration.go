@@ -13,13 +13,13 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
+	"github.com/ocfl-archive/gocfl/v2/pkg/util"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -251,7 +251,7 @@ func (mi *Migration) DoNewVersion(obj object.VersionWriter) error {
 	mi.writer = brotli.NewWriter(mi.buffer[head.String()])
 	//files := inv.GetFiles()
 
-	versions := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
+	versions := util.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	if len(versions) < 2 {
 		return errors.Errorf("cannot migrate files in object '%s' - no previous version", obj.GetID())
 	}

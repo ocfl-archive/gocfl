@@ -11,12 +11,12 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/uri"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	factorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/util"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -212,7 +212,7 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 		return errors.Wrap(err, "error finalizing fixity")
 	}
 	if i.Versions.GetVersion(i.Head) == nil {
-		i.logger.ValidationError(validation.E040, "head version '%s' is not in versions %v", i.Head, ocfl.SeqToSlice(i.Versions.GetVersionNumbers()))
+		i.logger.ValidationError(validation.E040, "head version '%s' is not in versions %v", i.Head, util.SeqToSlice(i.Versions.GetVersionNumbers()))
 	}
 
 	if !inCreation {

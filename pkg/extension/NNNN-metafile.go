@@ -18,12 +18,12 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/util"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"gopkg.in/yaml.v2"
 )
@@ -233,7 +233,7 @@ func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
 	}
 	if sl.metadataSource == nil {
 		// only a problem, if first version
-		if len(ocfl.SeqToSlice(inventory.GetVersions().GetVersionNumbers())) < 2 {
+		if len(util.SeqToSlice(inventory.GetVersions().GetVersionNumbers())) < 2 {
 			return errors.New("no metadata source configured")
 		}
 		return nil
