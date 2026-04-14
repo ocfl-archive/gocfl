@@ -259,7 +259,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, conf.Indexer, &conf.Migration, &conf.Thumbnail, logger); err != nil {
+	if err := RegisterComplexExtensions(fss, sourceFS, addr, localCache, conf.Indexer, &conf.Migration, conf.Thumbnail, logger); err != nil {
 		doNotClose = true
 		logger.Fatal().Err(err).Msg("cannot register complex extensions")
 	}

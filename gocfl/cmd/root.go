@@ -15,6 +15,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	version2 "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
+	indexerutil "github.com/ocfl-archive/indexer/v3/pkg/util"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -95,6 +98,8 @@ var persistenFlagS3AccessKeyID string
 var persistenFlagS3SecretAccessKey string
 var persistentFlagS3Region string
 
+var persistentFlagAutoconfig bool
+
 var flagObjectID string
 var flagStatInfo = []string{}
 
@@ -104,6 +109,12 @@ var ErrorFactory = archiveerror.NewFactory("gocfl")
 var areaPathRegexp = regexp.MustCompile("^([a-z]{2,}):(.*)$")
 
 var appname = "gocfl"
+
+var miniConfig = configutil.MiniConfig{}
+
+func GetMiniConfig() configutil.MiniConfig {
+	return miniConfig
+}
 
 var rootCmd = &cobra.Command{
 	Use:   appname,
@@ -183,6 +194,32 @@ func initConfig() {
 	if persistenFlagS3SecretAccessKey != "" {
 		conf.S3.AccessKey = configutil.EnvString(persistenFlagS3SecretAccessKey)
 	}
+	//todo: we do not see, whether there's an active false flag at cmd
+	if persistentFlagAutoconfig {
+		conf.Autoconfig = true
+		if conf.Indexer != nil {
+			conf.Indexer.Optimize = true
+		}
+	}
+
+	if conf.Autoconfig {
+		thumbMiniConfig, err := thumbnail.Autoconfig(conf.Thumbnail, map[string]string{}, new(zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr})))
+		if err != nil {
+			log.Fatal().Err(err).Msg("cannot autoconfig thumbnail")
+		}
+		for k, v := range thumbMiniConfig {
+			miniConfig["thumbnail."+k] = v
+		}
+	}
+	if conf.Indexer.Optimize {
+		indexerMiniConfig, err := indexerutil.OptimizeConfig(conf.Indexer, new(zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr})))
+		if err != nil {
+			log.Fatal().Err(err).Msg("cannot optimize indexer")
+		}
+		for k, v := range indexerMiniConfig {
+			miniConfig["indexer."+k] = v
+		}
+	}
 
 	var archiveErrs []*archiveerror.Error
 	if conf.ErrorConfig != "" {
@@ -238,6 +275,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3AccessKeyID, "s3-access-key-id", "", "Access Key ID for S3 Buckets")
 	rootCmd.PersistentFlags().StringVar(&persistenFlagS3SecretAccessKey, "s3-secret-access-key", "", "Secret Access Key for S3 Buckets")
 	rootCmd.PersistentFlags().StringVar(&persistentFlagS3Region, "s3-region", "", "Region for S3 Access")
+	rootCmd.PersistentFlags().BoolVar(&persistentFlagAutoconfig, "autoconfig", false, "enable automatic configuration")
 
 	initValidate()
 	initInit()

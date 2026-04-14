@@ -13,12 +13,12 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v2/pkg/util"
 )
 
 func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Checker {
@@ -99,7 +99,7 @@ func (obj *checker) Check() error {
 		}
 	}
 
-	invVersionCounter := len(ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers()))
+	invVersionCounter := len(util.SeqToSlice(inv.GetVersions().GetVersionNumbers()))
 	if versionCounter != invVersionCounter {
 		obj.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
 	}
@@ -109,7 +109,7 @@ func (obj *checker) Check() error {
 	}
 
 	dAlgs := []checksum.DigestAlgorithm{inv.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, ocfl.SeqToSlice(inv.GetFixity().GetDigestAlgorithms())...)
+	dAlgs = append(dAlgs, util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms())...)
 	return nil
 
 }
@@ -122,7 +122,7 @@ func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, str
 		return map[string]inventory.Inventory{}, "", nil
 	}
 
-	versionStrings := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
+	versionStrings := util.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 
 	// sort in ascending order
 	slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
@@ -174,7 +174,7 @@ func (obj *checker) checkFilesAndVersions() error {
 	//ocflVersion := inv.GetOCFLVersion()
 	// create list of version content directories
 	versionContents := map[string]string{}
-	versionStrings := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())
+	versionStrings := util.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	if len(versionStrings) > 1 {
 		slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
 			if a.Less(b) {
@@ -436,7 +436,7 @@ func (obj *checker) checkFilesAndVersions() error {
 		for inventoryVersion, versionInventory := range versionInventories {
 			inventoryVersionNumber := inventory.NewVersionNumber().WithString(inventoryVersion)
 			if objectContentVersionNumber.Less(inventoryVersionNumber) {
-				versionManifestFiles := ocfl.SeqToSlice(versionInventory.GetManifest().GetFilesFlat())
+				versionManifestFiles := util.SeqToSlice(versionInventory.GetManifest().GetFilesFlat())
 				for _, objectContentVersionFile := range objectContentVersionFiles {
 					// check all inventories which are less in version
 					if !slices.Contains(versionManifestFiles, objectContentVersionFile) {
@@ -447,7 +447,7 @@ func (obj *checker) checkFilesAndVersions() error {
 		}
 		rootVersion := inv.GetHead()
 		if objectContentVersionNumber.Less(rootVersion) {
-			rootManifestFiles := ocfl.SeqToSlice(inv.GetManifest().GetFilesFlat())
+			rootManifestFiles := util.SeqToSlice(inv.GetManifest().GetFilesFlat())
 			for _, objectContentVersionFile := range objectContentVersionFiles {
 				// check all inventories which are less in version
 				if !slices.Contains(rootManifestFiles, objectContentVersionFile) {
@@ -463,7 +463,7 @@ func (obj *checker) checkFilesAndVersions() error {
 func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	inv := obj.GetInventory()
 	// get all possible digest algs
-	digestAlgorithms := append(ocfl.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
+	digestAlgorithms := append(util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
 
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 	//	versionNumbers := ocfl.SeqToSlice(inv.GetVersions().GetVersionNumbers())

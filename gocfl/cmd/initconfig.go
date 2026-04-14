@@ -3,24 +3,21 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"emperror.dev/errors"
 	"github.com/BurntSushi/toml"
-	"github.com/ocfl-archive/gocfl/v2/config"
+	"github.com/je4/utils/v2/pkg/config"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	indexerutil "github.com/ocfl-archive/indexer/v3/pkg/util"
+	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
@@ -144,113 +141,24 @@ func doInitConfig(cmd *cobra.Command, args []string) {
 	if !filepath.IsAbs(extensionFolder) {
 		extensionFolder = filepath.ToSlash(filepath.Join(configFolder, extensionFolder))
 	}
+	if !filepath.IsAbs(scriptFolder) {
+		scriptFolder = filepath.ToSlash(filepath.Join(configFolder, scriptFolder))
+	}
 	logger.Info().Msgf("Extension Folder: %s", extensionFolder)
 	if !filepath.IsAbs(tomlPath) {
 		tomlPath = filepath.ToSlash(filepath.Join(configFolder, tomlPath))
 	}
 	logger.Info().Msgf("TOML File: %s", tomlPath)
 
-	scripts := []string{}
-	miniConfig := map[string]interface{}{
-		"loglevel": "info",
-		"update": map[string]interface{}{
-			"user":    conf.Update.User,
-			"message": conf.Update.Message,
-		},
+	//	scripts := []string{}
+	newMiniConfig := config.MiniConfig{
+		"log.level":      conf.Log.Level,
+		"add.user":       conf.Add.User,
+		"add.message":    conf.Add.Message,
+		"update.user":    conf.Update.User,
+		"update.message": conf.Update.Message,
 	}
 
-	// check ghostscript and image magick convert
-	gsPath, gsOK := indexerutil.CheckProgram(indexerutil.CheckProgramGhostscript, "")
-	if gsOK {
-		logger.Info().Msgf("ghostscript found as '%s'", gsPath)
-	} else {
-		logger.Error().Msgf("ghostscript not found")
-	}
-	convertPath, convertOK := indexerutil.CheckProgram(indexerutil.CheckProgramMagickConvert, "")
-	if convertOK {
-		logger.Info().Msgf("magick convert found as '%s'", convertPath)
-	} else {
-		logger.Error().Msgf("magick convert not found")
-	}
-	ffmpegPath, ffmpegOK := indexerutil.CheckProgram(indexerutil.CheckProgramFFMpeg, "")
-	if ffmpegOK {
-		logger.Info().Msgf("ffmpeg found as '%s'", ffmpegPath)
-	} else {
-		logger.Error().Msgf("ffmpeg not found")
-	}
-	convertParts := strings.Split(convertPath, " ")
-	ffmpegParts := strings.Split(ffmpegPath, " ")
-	gsParts := strings.Split(gsPath, " ")
-	doReplace := func(str string) string {
-		var params string
-		str = strings.Replace(str, "%%CONVERT%%", convertParts[0], -1)
-		params = ""
-		if len(convertParts) > 1 {
-			params = convertParts[1]
-		}
-		str = strings.Replace(str, "%%CONVERT_PARAMS%%", params, -1)
-
-		str = strings.Replace(str, "%%FFMPEG%%", ffmpegParts[0], -1)
-		params = ""
-		if len(ffmpegParts) > 1 {
-			params = ffmpegParts[1]
-		}
-		str = strings.Replace(str, "%%FFMPEG_PARAMS%%", params, -1)
-
-		str = strings.Replace(str, "%%GHOSTSCRIPT%%", gsParts[0], -1)
-		params = ""
-		if len(gsParts) > 1 {
-			params = gsParts[1]
-		}
-		str = strings.Replace(str, "%%GHOSTSCRIPT_PARAMS%%", params, -1)
-		return str
-	}
-	swAvailable := func(str string) bool {
-		if strings.Contains(str, "%%FFMPEG%%") && !ffmpegOK {
-			logger.Error().Msg("ffmpeg needed, but not found on machine")
-			return false
-		}
-		if strings.Contains(str, "%%CONVERT%%") && !convertOK {
-			logger.Error().Msg("image magick convert needed, but not found on machine")
-			return false
-		}
-		if strings.Contains(str, "%%GHOSTSCRIPT%%") && !gsOK {
-			logger.Error().Msg("ghostscript needed, but not found on machine")
-			return false
-		}
-		return true
-	}
-
-	if conf.InitConfig.Scripts {
-		files, err := fs.ReadDir(internal.InternalFS, "thumbnail/scripts")
-		if err != nil {
-			logger.Fatal().Err(err).Msg("cannot read internal:thumbnail/scripts")
-		}
-		if len(files) > 0 {
-			if err := os.MkdirAll(scriptFolder, 0755); err != nil {
-				logger.Fatal().Err(err).Msgf("cannot create script folder: %s", conf.InitConfig.ScriptFolder)
-			}
-		}
-		for _, f := range files {
-			script := f.Name()
-			contentBytes, err := fs.ReadFile(internal.InternalFS, path.Join("thumbnail/scripts", script))
-			if err != nil {
-				logger.Fatal().Err(err).Msgf("cannot read script %s", script)
-			}
-			contentStr := string(contentBytes)
-			if !swAvailable(contentStr) {
-				logger.Info().Msgf("ignoring script %s", script)
-				continue
-			}
-			contentStr = doReplace(contentStr)
-			logger.Info().Msgf("storing script %s", path.Join(scriptFolder, script))
-			if err := os.WriteFile(path.Join(scriptFolder, script), []byte(contentStr), 0755); err != nil {
-				logger.Error().Msgf("cannot write script file: %v", err)
-				continue
-			}
-			scripts = append(scripts, f.Name())
-		}
-	}
 	if conf.InitConfig.Extensions {
 		if err := os.MkdirAll(extensionFolder, 0755); err != nil {
 			logger.Fatal().Err(err).Msgf("cannot create extension folder: %s", extensionFolder)
@@ -298,47 +206,21 @@ func doInitConfig(cmd *cobra.Command, args []string) {
 		}); err != nil {
 			logger.Fatal().Err(err).Msg("cannot walk internal:extensions")
 		}
-		miniConfig["init"] = map[string]string{
-			"storagerootextensions": filepath.ToSlash(filepath.Join(extensionFolder, "storageroot")),
-		}
-		conf.Init.StorageRootExtensionFolder = filepath.ToSlash(filepath.Join(extensionFolder, "storageroot"))
 
-		miniConfig["add"] = map[string]any{
-			"objectextensions": filepath.ToSlash(filepath.Join(extensionFolder, "object")),
-			"user":             conf.Add.User,
-			"message":          conf.Add.Message,
-		}
+		conf.Init.StorageRootExtensionFolder = filepath.ToSlash(filepath.Join(extensionFolder, "storageroot"))
+		newMiniConfig["init.storagerootextensions"] = conf.Init.StorageRootExtensionFolder
+
 		conf.Add.ObjectExtensionFolder = filepath.ToSlash(filepath.Join(extensionFolder, "object"))
+		newMiniConfig["add.objectextensions"] = conf.Init.StorageRootExtensionFolder
 	}
-	thumbConf := config.Thumbnail{}
-	if _, err := toml.DecodeFS(internal.InternalFS, "thumbnail/thumbnail.toml", &thumbConf); err != nil {
-		logger.Fatal().Err(err).Msg("cannot decode internal:thumbnail/thumbnail.toml")
+	thumbConf, thumbMiniconfig, err := thumbnail.InitConfig(conf.Thumbnail, scriptFolder, logger.Logger())
+	if err != nil {
+		logger.Fatal().Err(err).Msg("cannot init thumbnail")
 	}
-	for key, fn := range thumbConf.Function {
-		if !swAvailable(fn.Command) {
-			logger.Info().Msgf("removing function %s", key)
-			delete(thumbConf.Function, key)
-			continue
-		}
-		var isScript bool
-		for _, script := range scripts {
-			if strings.HasPrefix(fn.Command, script) {
-				isScript = true
-				if runtime.GOOS == "windows" {
-					thumbConf.Function[key].Command = fmt.Sprintf("powershell -File \"%s\" %s", filepath.ToSlash(filepath.Join(scriptFolder, script)), fn.Command[len(script)+1:])
-				} else {
-					thumbConf.Function[key].Command = "bash -c " + quoteShellArg(fn.Command)
-				}
-			}
-		}
-		if !isScript && !strings.HasPrefix(fn.Command, "%%") {
-			logger.Info().Msgf("removing function %s - no script and no prefix %%", key)
-			delete(thumbConf.Function, key)
-			continue
-		}
-		thumbConf.Function[key].Command = doReplace(fn.Command)
+	for k, v := range thumbMiniconfig {
+		newMiniConfig["thumbnail."+k] = v
 	}
-	miniConfig["thumbnail"] = thumbConf
+
 	conf.Thumbnail = thumbConf
 	if err := os.MkdirAll(filepath.Dir(tomlPath), 0755); err != nil {
 		logger.Fatal().Err(err).Msgf("cannot create thumbnail directory: %s", filepath.Dir(tomlPath))
@@ -353,13 +235,22 @@ func doInitConfig(cmd *cobra.Command, args []string) {
 			logger.Error().Msgf("cannot close config file: %v", err)
 		}
 	}(fp)
-	tenc := toml.NewEncoder(fp)
-	tenc.Indent = "  "
-	var cfg any = miniConfig
-	if conf.InitConfig.FullConfig {
-		cfg = conf
+	for k, v := range newMiniConfig {
+		miniConfig[k] = v
 	}
-	if err := tenc.Encode(cfg); err != nil {
-		logger.Error().Msgf("cannot encode config: %v", err)
+	var buf []byte
+	if conf.InitConfig.FullConfig {
+		buf, err = toml.Marshal(conf)
+		if err != nil {
+			logger.Fatal().Msgf("cannot encode config: %v", err)
+		}
+	} else {
+		buf, err = toml.Marshal(miniConfig)
+		if err != nil {
+			logger.Fatal().Msgf("cannot encode config: %v", err)
+		}
+	}
+	if err := os.WriteFile(tomlPath, buf, 0644); err != nil {
+		logger.Fatal().Msgf("cannot write config file: %v", err)
 	}
 }

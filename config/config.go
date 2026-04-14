@@ -11,7 +11,6 @@ import (
 	"github.com/je4/utils/v2/pkg/stashconfig"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
-	indexerutil "github.com/ocfl-archive/indexer/v3/pkg/util"
 )
 
 const DefaultPath = "~/gocfl/gocfl.toml"
@@ -147,9 +146,10 @@ type GOCFLConfig struct {
 	ErrorTemplate string                       `toml:"errortemplate"`
 	ErrorConfig   string                       `toml:"errorconfig"`
 	AccessLog     string                       `toml:"accesslog"`
+	Autoconfig    bool                         `toml:"autoconfig"`
 	Extension     map[string]map[string]string `toml:"extension"`
 	Indexer       *indexer.IndexerConfig       `toml:"indexer"`
-	Thumbnail     Thumbnail                    `toml:"thumbnail"`
+	Thumbnail     *Thumbnail                   `toml:"thumbnail"`
 	Migration     Migration                    `toml:"migration"`
 	AES           AESConfig                    `toml:"aes"`
 	Init          InitConfig                   `toml:"init"`
@@ -171,7 +171,8 @@ type GOCFLConfig struct {
 func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
 	var err error
 	var conf = &GOCFLConfig{
-		Indexer: indexer.GetDefaultConfig(),
+		Indexer:   indexer.GetDefaultConfig(),
+		Thumbnail: &Thumbnail{},
 	}
 	if _, err := toml.Decode(defaultConfig, conf); err != nil {
 		return nil, errors.Wrap(err, "error decoding GOCFL default configuration")
@@ -190,11 +191,13 @@ func LoadGOCFLConfig(filename string) (*GOCFLConfig, error) {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", filename)
 		}
 	}
-	if conf.Indexer.Optimize {
-		err := indexerutil.OptimizeConfig(conf.Indexer, nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "error optimizing indexer")
+	/*
+		if conf.Indexer.Optimize {
+			err := indexerutil.OptimizeConfig(conf.Indexer, nil)
+			if err != nil {
+				return nil, errors.Wrap(err, "error optimizing indexer")
+			}
 		}
-	}
+	*/
 	return conf, nil
 }
