@@ -41,7 +41,7 @@ type indexerLine struct {
 	Indexer *ironmaiden.ResultV2
 }
 
-var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext", "xml"}
+var actions = []string{"siegfried", "ffprobe", "identify", "tika", "fulltext", "xml", "json", "checksum"}
 var compress = []string{"brotli", "gzip", "none"}
 
 func GetIndexerParams() ([]*extension.ExternalParam, error) {
