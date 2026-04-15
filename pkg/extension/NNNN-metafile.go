@@ -143,6 +143,7 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 		urlString, ok := params[name]
 		urlString = strings.TrimSpace(urlString)
 		if !ok || urlString == "" {
+			sl.metadataSource = nil
 			return nil
 		}
 		u, err := url.Parse(urlString)
@@ -171,6 +172,10 @@ func (sl *MetaFile) SetParams(params map[string]string) error {
 func (sl *MetaFile) GetName() string { return MetaFileName }
 
 func (sl *MetaFile) WriteConfig(fsys appendfs.FS) error {
+	if sl.metadataSource == nil {
+		sl.logger.Warn().Msg("metadata source is empty - no config file written")
+		return nil
+	}
 	if _, err := writefs.WriteFile(fsys, sl.MetaSchema, sl.schema); err != nil {
 		return errors.Wrapf(err, "cannot write schema to %v/%s", fsys, sl.MetaSchema)
 	}
@@ -219,7 +224,12 @@ func toStringKeys(val interface{}) (interface{}, error) {
 }
 
 func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
+	inventory := obj.GetInventory()
+	if inventory == nil {
+		return errors.New("no inventory available")
+	}
 	if sl.metadataSource == nil || sl.metadataSource.Path == "" {
+		sl.info[inventory.GetHead().String()] = nil
 		return nil
 	}
 	if sl.stored {
@@ -227,10 +237,6 @@ func (sl *MetaFile) UpdateObjectBefore(obj object.VersionWriter) error {
 	}
 	sl.stored = true
 	var err error
-	inventory := obj.GetInventory()
-	if inventory == nil {
-		return errors.New("no inventory available")
-	}
 	if sl.metadataSource == nil {
 		// only a problem, if first version
 		if len(util.SeqToSlice(inventory.GetVersions().GetVersionNumbers())) < 2 {
@@ -393,16 +399,22 @@ func (sl *MetaFile) GetMetadata(sourceFS fs.FS, obj object.Object) (map[string]a
 	})
 
 	var metadata []byte
+	var found bool
 	for _, ver := range versions {
 		var ok bool
 		if metadata, ok = sl.info[ver.String()]; ok {
+			found = true
 			break
 		}
 		if metadata, err = ReadFile(sl.GetName(), sourceFS, obj, sl.MetaName, ver, sl.StorageType, sl.StorageName); err == nil {
+			found = true
 			break
 		}
 	}
 	if metadata == nil {
+		if found {
+			return result, nil
+		}
 		return nil, errors.Wrapf(err, "cannot read %s", sl.MetaName)
 	}
 	var metaStruct = map[string]any{}
