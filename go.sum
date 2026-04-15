@@ -123,8 +123,8 @@ github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d h1:elX95ncLvCbNgkfD03
 github.com/je4/goffmpeg v0.0.0-20220114092308-33ab9986404d/go.mod h1:AU6NEns8+WYmI/UYzllN8CWM2jsIVO7jDz2FeCf7Ssw=
 github.com/je4/trustutil/v2 v2.0.31 h1:QUMfnE8LoyNlBLvhaMdSZFiq/UlOoHyPjJd+C6qT5PY=
 github.com/je4/trustutil/v2 v2.0.31/go.mod h1:76JX2f0YrNvxiI9kVufLdlc4qTVGXpk64BiThBxzWGs=
-github.com/je4/utils/v2 v2.0.66 h1:jUOt7VUNwwCgp4+Rp3YRCEPXI9mVcppLL4kTSFXJb1E=
-github.com/je4/utils/v2 v2.0.66/go.mod h1:yjXXEjHX0Yd10WbAbGmfbKKkFWPFMKcMUN1Is6v+9wU=
+github.com/je4/utils/v2 v2.0.68 h1:4S4jJsav7fr2LVFdOfvQgztin5cxYdXblsK6BUyznnM=
+github.com/je4/utils/v2 v2.0.68/go.mod h1:pOLO/mBuvvKo/MQ8o30aUPJknyWZdpFUEB829guF5MU=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/klauspost/compress v1.18.5 h1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=
