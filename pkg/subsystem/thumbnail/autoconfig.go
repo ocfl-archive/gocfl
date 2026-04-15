@@ -29,6 +29,10 @@ func quoteShellArg(s string) string {
 }
 
 func Autoconfig(conf *config.Thumbnail, scripts map[string]string, logger zLogger.ZLogger) (configutil.MiniConfig, error) {
+	if len(scripts) == 0 {
+		logger.Info().Msg("thumbnail: no scripts to autoconfig - do nothing")
+		return configutil.MiniConfig{}, nil
+	}
 	prgs := util.DetectPrg(logger)
 	if conf == nil {
 		conf = &config.Thumbnail{}
