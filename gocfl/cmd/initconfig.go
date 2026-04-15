@@ -211,7 +211,7 @@ func doInitConfig(cmd *cobra.Command, args []string) {
 		newMiniConfig["init.storagerootextensions"] = conf.Init.StorageRootExtensionFolder
 
 		conf.Add.ObjectExtensionFolder = filepath.ToSlash(filepath.Join(extensionFolder, "object"))
-		newMiniConfig["add.objectextensions"] = conf.Init.StorageRootExtensionFolder
+		newMiniConfig["add.objectextensions"] = conf.Add.ObjectExtensionFolder
 	}
 	thumbConf, thumbMiniconfig, err := thumbnail.InitConfig(conf.Thumbnail, scriptFolder, logger.Logger())
 	if err != nil {
