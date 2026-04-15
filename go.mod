@@ -22,7 +22,7 @@ require (
 	github.com/je4/utils/v2 v2.0.66
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/ocfl-archive/error v1.0.5
-	github.com/ocfl-archive/indexer/v3 v3.0.39
+	github.com/ocfl-archive/indexer/v3 v3.0.40
 	github.com/rs/zerolog v1.35.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/shirou/gopsutil/v4 v4.26.3
@@ -112,13 +112,13 @@ require (
 	github.com/tamerh/xml-stream-parser v1.5.0 // indirect
 	github.com/tamerh/xpath v1.0.0 // indirect
 	github.com/telkomdev/go-stash v1.0.6 // indirect
-	github.com/tinylib/msgp v1.6.3 // indirect
+	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/tobischo/argon2 v0.1.0 // indirect
 	github.com/tobischo/gokeepasslib/v3 v3.6.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
