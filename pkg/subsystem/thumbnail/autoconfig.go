@@ -73,13 +73,15 @@ func InitConfig(conf *config.Thumbnail, scriptFolder string, logger zLogger.ZLog
 	var scripts = map[string]string{}
 	miniConfig := configutil.MiniConfig{}
 
-	newConf := &config.Thumbnail{}
-	if _, err := toml.DecodeFS(internal.InternalFS, "thumbnail/thumbnail.toml", newConf); err != nil {
+	//newConf := &config.Thumbnail{Function: map[string]*config.ThumbnailFunction{}}
+	if _, err := toml.DecodeFS(internal.InternalFS, "thumbnail/thumbnail.toml", conf); err != nil {
 		logger.Error().Err(err).Msg("cannot decode thumbnail config")
 	}
-	for key, fn := range newConf.Function {
-		conf.Function[key] = fn
-	}
+	/*
+		for key, fn := range newConf.Function {
+			conf.Function[key] = fn
+		}
+	*/
 
 	// get all script files
 	files, err := fs.ReadDir(internal.InternalFS, "thumbnail/scripts")
