@@ -18,13 +18,13 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/dilcis/mets"
-	"github.com/ocfl-archive/gocfl/v3/pkg/dilcis/premis"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	ocflinventory "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
+	mets2 "github.com/ocfl-archive/gocfl/v3/pkg/subsystem/dilcis/mets"
+	premis2 "github.com/ocfl-archive/gocfl/v3/pkg/subsystem/dilcis/premis"
 	"github.com/ocfl-archive/gocfl/v3/pkg/subsystem/mets/specs"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
@@ -329,14 +329,14 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		internalRelativePathCurrentVersion += "../"
 	}
 
-	metsFiles := map[string][]*mets.FileType{
-		"schemas":  []*mets.FileType{},
-		"content":  []*mets.FileType{},
-		"metadata": []*mets.FileType{},
+	metsFiles := map[string][]*mets2.FileType{
+		"schemas":  []*mets2.FileType{},
+		"content":  []*mets2.FileType{},
+		"metadata": []*mets2.FileType{},
 	}
-	premisFiles := []*premis.File{}
-	premisEvents := []*premis.EventComplexType{}
-	dmdSecs := []*mets.MdSecType{}
+	premisFiles := []*premis2.File{}
+	premisEvents := []*premis2.EventComplexType{}
+	dmdSecs := []*mets2.MdSecType{}
 	fileGrpUUID := map[string]string{
 		"schemas":  uuid.NewString(),
 		"content":  uuid.NewString(),
@@ -359,7 +359,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 	for cName, _ := range contentSubPath {
 		//		structSemantical[cse.Description] = []string{}
 		structPhysical[cName] = []string{}
-		metsFiles[cName] = []*mets.FileType{}
+		metsFiles[cName] = []*mets2.FileType{}
 		fileGrpUUID[cName] = uuid.NewString()
 	}
 
@@ -408,9 +408,9 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 
 				}
 
-				metsFile := &mets.FileType{
+				metsFile := &mets2.FileType{
 					XMLName: xml.Name{},
-					FILECORE: &mets.FILECORE{
+					FILECORE: &mets2.FILECORE{
 						MIMETYPEAttr:     "application/octet-stream",
 						SIZEAttr:         size,
 						CREATEDAttr:      creationString,
@@ -419,78 +419,78 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					},
 					IDAttr:  uuidString,
 					USEAttr: "Datafile",
-					FLocat:  []*mets.FLocat{},
+					FLocat:  []*mets2.FLocat{},
 				}
 				for verString, _ := range metaFile.VersionName {
 					ver, ok := metadata.Versions[verString]
 					if !ok {
 						return errors.Errorf("cannot find version '%s'", verString)
 					}
-					premisEventPackage := &premis.EventComplexType{
+					premisEventPackage := &premis2.EventComplexType{
 						XMLName:     xml.Name{},
 						XmlIDAttr:   "",
 						VersionAttr: "",
-						EventIdentifier: &premis.EventIdentifierComplexType{
+						EventIdentifier: &premis2.EventIdentifierComplexType{
 							XMLName:              xml.Name{},
 							SimpleLinkAttr:       "",
-							EventIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+							EventIdentifierType:  premis2.NewStringPlusAuthority("uuid", "", "", ""),
 							EventIdentifierValue: "uuid-" + uuid.NewString(),
 						},
-						EventType:     premis.NewStringPlusAuthority("packing", "eventType", "https://id.loc.gov/vocabulary/preservation/eventType", "https://id.loc.gov/vocabulary/preservation/eventType/pac.html"),
+						EventType:     premis2.NewStringPlusAuthority("packing", "eventType", "https://id.loc.gov/vocabulary/preservation/eventType", "https://id.loc.gov/vocabulary/preservation/eventType/pac.html"),
 						EventDateTime: ver.Created.Format(time.RFC3339),
-						EventOutcomeInformation: []*premis.EventOutcomeInformationComplexType{
-							&premis.EventOutcomeInformationComplexType{
+						EventOutcomeInformation: []*premis2.EventOutcomeInformationComplexType{
+							&premis2.EventOutcomeInformationComplexType{
 								XMLName:      xml.Name{},
-								EventOutcome: premis.NewStringPlusAuthority("success", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/suc.html"),
+								EventOutcome: premis2.NewStringPlusAuthority("success", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/suc.html"),
 							},
 						},
-						LinkingAgentIdentifier: []*premis.LinkingAgentIdentifierComplexType{
-							&premis.LinkingAgentIdentifierComplexType{
+						LinkingAgentIdentifier: []*premis2.LinkingAgentIdentifierComplexType{
+							&premis2.LinkingAgentIdentifierComplexType{
 								XMLName:                     xml.Name{},
 								LinkAgentXmlIDAttr:          "",
 								SimpleLinkAttr:              "",
-								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierType:  premis2.NewStringPlusAuthority("local", "", "", ""),
 								LinkingAgentIdentifierValue: ver.Address,
 							},
-							&premis.LinkingAgentIdentifierComplexType{
+							&premis2.LinkingAgentIdentifierComplexType{
 								XMLName:                     xml.Name{},
 								LinkAgentXmlIDAttr:          "",
 								SimpleLinkAttr:              "",
-								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierType:  premis2.NewStringPlusAuthority("local", "", "", ""),
 								LinkingAgentIdentifierValue: metafileOrgAgentIdentifier,
 							},
-							&premis.LinkingAgentIdentifierComplexType{
+							&premis2.LinkingAgentIdentifierComplexType{
 								XMLName:                     xml.Name{},
 								LinkAgentXmlIDAttr:          "",
 								SimpleLinkAttr:              "",
-								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierType:  premis2.NewStringPlusAuthority("local", "", "", ""),
 								LinkingAgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 							},
 						},
-						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{
-							&premis.LinkingObjectIdentifierComplexType{
+						LinkingObjectIdentifier: []*premis2.LinkingObjectIdentifierComplexType{
+							&premis2.LinkingObjectIdentifierComplexType{
 								XMLName:                      xml.Name{},
-								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+								LinkingObjectIdentifierType:  premis2.NewStringPlusAuthority("uuid", "", "", ""),
 								LinkingObjectIdentifierValue: uuidString,
 							},
 						},
 					}
 					premisEvents = append(premisEvents, premisEventPackage)
 				}
-				premisFile := &premis.File{
+				premisFile := &premis2.File{
 					XMLName:   xml.Name{},
 					XSIType:   "file",
 					XmlIDAttr: uuidString,
-					ObjectIdentifier: []*premis.ObjectIdentifierComplexType{
-						&premis.ObjectIdentifierComplexType{
+					ObjectIdentifier: []*premis2.ObjectIdentifierComplexType{
+						&premis2.ObjectIdentifierComplexType{
 							XMLName:               xml.Name{},
-							ObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+							ObjectIdentifierType:  premis2.NewStringPlusAuthority("uuid", "", "", ""),
 							ObjectIdentifierValue: uuidString,
 						},
 					},
-					SignificantProperties: []*premis.SignificantPropertiesComplexType{},
-					ObjectCharacteristics: []*premis.ObjectCharacteristicsComplexType{},
-					Storage:               []*premis.StorageComplexType{},
+					SignificantProperties: []*premis2.SignificantPropertiesComplexType{},
+					ObjectCharacteristics: []*premis2.ObjectCharacteristicsComplexType{},
+					Storage:               []*premis2.StorageComplexType{},
 				}
 				var mimeType string
 				if ext, ok := metaFile.Extension[IndexerName]; ok {
@@ -499,21 +499,21 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 						return errors.Wrapf(err, "invalid type: %v", ext)
 					}
 					metsFile.FILECORE.MIMETYPEAttr = extIndexer.Mimetype
-					objectCharacter := &premis.ObjectCharacteristicsComplexType{
+					objectCharacter := &premis2.ObjectCharacteristicsComplexType{
 						XMLName:          xml.Name{},
 						CompositionLevel: nil,
-						Fixity: []*premis.FixityComplexType{
-							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl v3"),
+						Fixity: []*premis2.FixityComplexType{
+							premis2.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl v3"),
 						},
 						Size:   int64(extIndexer.Size),
-						Format: []*premis.FormatComplexType{},
+						Format: []*premis2.FormatComplexType{},
 					}
 					if extIndexer.Mimetype != "" {
-						objectCharacter.Format = append(objectCharacter.Format, &premis.FormatComplexType{
+						objectCharacter.Format = append(objectCharacter.Format, &premis2.FormatComplexType{
 							XMLName: xml.Name{},
-							FormatDesignation: &premis.FormatDesignationComplexType{
+							FormatDesignation: &premis2.FormatDesignationComplexType{
 								XMLName:    xml.Name{},
-								FormatName: premis.NewStringPlusAuthority(extIndexer.Mimetype, "", "", ""),
+								FormatName: premis2.NewStringPlusAuthority(extIndexer.Mimetype, "", "", ""),
 							},
 							FormatNote: []string{"IANA MIME-type"},
 						})
@@ -527,7 +527,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 								if !ok {
 									continue
 								}
-								fct := &premis.FormatComplexType{
+								fct := &premis2.FormatComplexType{
 									XMLName:    xml.Name{},
 									FormatNote: []string{"siegfried"},
 								}
@@ -543,19 +543,19 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 
 								if designationAny, ok := sfMap["Name"]; ok {
 									if designation, ok := designationAny.(string); ok {
-										fct.FormatDesignation = &premis.FormatDesignationComplexType{
+										fct.FormatDesignation = &premis2.FormatDesignationComplexType{
 											XMLName:    xml.Name{},
-											FormatName: premis.NewStringPlusAuthority(designation, "", "", ""),
+											FormatName: premis2.NewStringPlusAuthority(designation, "", "", ""),
 										}
 									}
 								}
 								if idAny, ok := sfMap["ID"]; ok {
 									if id, ok := idAny.(string); ok {
-										fct.FormatRegistry = &premis.FormatRegistryComplexType{
+										fct.FormatRegistry = &premis2.FormatRegistryComplexType{
 											XMLName:            xml.Name{},
-											FormatRegistryName: premis.NewStringPlusAuthority("PRONOM", "", "", ""),
-											FormatRegistryKey:  premis.NewStringPlusAuthority(id, "", "", ""),
-											FormatRegistryRole: premis.NewStringPlusAuthority(
+											FormatRegistryName: premis2.NewStringPlusAuthority("PRONOM", "", "", ""),
+											FormatRegistryKey:  premis2.NewStringPlusAuthority(id, "", "", ""),
+											FormatRegistryRole: premis2.NewStringPlusAuthority(
 												"specification",
 												"http://id.loc.gov/vocabulary/preservation/formatRegistryRole",
 												"http://id.loc.gov/vocabulary/preservation/formatRegistryRole",
@@ -570,21 +570,21 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					}
 					for digest, checksum := range metaFile.Checksums {
 						objectCharacter.Fixity = append(objectCharacter.Fixity,
-							premis.NewFixityComplexType(string(digest), checksum, "gocfl v3"),
+							premis2.NewFixityComplexType(string(digest), checksum, "gocfl v3"),
 						)
 					}
 					if extIndexer != nil {
 						if extIndexer.Width > 0 {
 							premisFile.SignificantProperties = append(premisFile.SignificantProperties,
-								premis.NewSignificantPropertiesComplexType("width", fmt.Sprintf("%v", extIndexer.Width)),
+								premis2.NewSignificantPropertiesComplexType("width", fmt.Sprintf("%v", extIndexer.Width)),
 							)
 							premisFile.SignificantProperties = append(premisFile.SignificantProperties,
-								premis.NewSignificantPropertiesComplexType("height", fmt.Sprintf("%v", extIndexer.Height)),
+								premis2.NewSignificantPropertiesComplexType("height", fmt.Sprintf("%v", extIndexer.Height)),
 							)
 						}
 						if extIndexer.Duration > 0 {
 							premisFile.SignificantProperties = append(premisFile.SignificantProperties,
-								premis.NewSignificantPropertiesComplexType("duration", fmt.Sprintf("%v", extIndexer.Duration)),
+								premis2.NewSignificantPropertiesComplexType("duration", fmt.Sprintf("%v", extIndexer.Duration)),
 							)
 						}
 						if extIndexer.Size > 0 {
@@ -594,17 +594,17 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					premisFile.ObjectCharacteristics = append(premisFile.ObjectCharacteristics, objectCharacter)
 				}
 				if len(premisFile.ObjectCharacteristics) == 0 {
-					premisFile.ObjectCharacteristics = append(premisFile.ObjectCharacteristics, &premis.ObjectCharacteristicsComplexType{
+					premisFile.ObjectCharacteristics = append(premisFile.ObjectCharacteristics, &premis2.ObjectCharacteristicsComplexType{
 						XMLName:          xml.Name{},
 						CompositionLevel: nil,
-						Fixity:           []*premis.FixityComplexType{},
+						Fixity:           []*premis2.FixityComplexType{},
 						Size:             size,
-						Format: []*premis.FormatComplexType{
-							&premis.FormatComplexType{
+						Format: []*premis2.FormatComplexType{
+							&premis2.FormatComplexType{
 								XMLName: xml.Name{},
-								FormatDesignation: &premis.FormatDesignationComplexType{
+								FormatDesignation: &premis2.FormatDesignationComplexType{
 									XMLName:    xml.Name{},
-									FormatName: premis.NewStringPlusAuthority("application/octet-stream", "", "", ""),
+									FormatName: premis2.NewStringPlusAuthority("application/octet-stream", "", "", ""),
 								},
 								FormatNote: []string{"IANA MIME-type"},
 							},
@@ -664,12 +664,12 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 						}
 					*/
 					href := intPath
-					metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
-						LOCATION: &mets.LOCATION{
+					metsFile.FLocat = append(metsFile.FLocat, &mets2.FLocat{
+						LOCATION: &mets2.LOCATION{
 							LOCTYPEAttr:      "OTHER",
 							OTHERLOCTYPEAttr: "URL:internal",
 						},
-						SimpleLink: &mets.SimpleLink{
+						SimpleLink: &mets2.SimpleLink{
 							//XMLName:          xml.Name{},
 							TypeAttr:      "simple",
 							XlinkHrefAttr: href,
@@ -726,11 +726,11 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					continue
 				}
 
-				metsFile.FLocat = append(metsFile.FLocat, &mets.FLocat{
-					LOCATION: &mets.LOCATION{
+				metsFile.FLocat = append(metsFile.FLocat, &mets2.FLocat{
+					LOCATION: &mets2.LOCATION{
 						LOCTYPEAttr: "URL",
 					},
-					SimpleLink: &mets.SimpleLink{
+					SimpleLink: &mets2.SimpleLink{
 						//XMLName:          xml.Name{},
 						TypeAttr: "simple",
 						XlinkHrefAttr:/* externalRelativePath + */ extPath,
@@ -773,30 +773,30 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					if !ok {
 						return errors.Wrapf(err, "invalid type for migration of '%s': %v", cs, migrationAny)
 					}
-					eventMigration := &premis.EventComplexType{
+					eventMigration := &premis2.EventComplexType{
 						XMLName:     xml.Name{},
 						XmlIDAttr:   "",
 						VersionAttr: "",
-						EventIdentifier: &premis.EventIdentifierComplexType{
+						EventIdentifier: &premis2.EventIdentifierComplexType{
 							XMLName:              xml.Name{},
-							EventIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+							EventIdentifierType:  premis2.NewStringPlusAuthority("uuid", "", "", ""),
 							EventIdentifierValue: "uuid-" + uuid.NewString(), //migration.ID,
 						},
-						EventType:               premis.NewStringPlusAuthority("migration", "eventType", "https://id.loc.gov/vocabulary/preservation/eventType", "https://id.loc.gov/vocabulary/preservation/eventType/mig.html"),
+						EventType:               premis2.NewStringPlusAuthority("migration", "eventType", "https://id.loc.gov/vocabulary/preservation/eventType", "https://id.loc.gov/vocabulary/preservation/eventType/mig.html"),
 						EventDateTime:           ver.Created.Format(time.RFC3339),
 						EventDetailInformation:  nil,
-						EventOutcomeInformation: []*premis.EventOutcomeInformationComplexType{},
-						LinkingAgentIdentifier: []*premis.LinkingAgentIdentifierComplexType{
-							&premis.LinkingAgentIdentifierComplexType{
+						EventOutcomeInformation: []*premis2.EventOutcomeInformationComplexType{},
+						LinkingAgentIdentifier: []*premis2.LinkingAgentIdentifierComplexType{
+							&premis2.LinkingAgentIdentifierComplexType{
 								XMLName:                     xml.Name{},
 								LinkAgentXmlIDAttr:          "",
 								SimpleLinkAttr:              "",
-								LinkingAgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+								LinkingAgentIdentifierType:  premis2.NewStringPlusAuthority("local", "", "", ""),
 								LinkingAgentIdentifierValue: migration.ID,
 								LinkingAgentRole:            nil,
 							},
 						},
-						LinkingObjectIdentifier: []*premis.LinkingObjectIdentifierComplexType{},
+						LinkingObjectIdentifier: []*premis2.LinkingObjectIdentifierComplexType{},
 					}
 					var sourcePath string
 					for intExtPath, val := range internalFiledata {
@@ -807,12 +807,12 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					}
 					if internal, ok := internalFiledata[sourcePath]; ok {
 						if internal.uuid != "" {
-							eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier, &premis.LinkingObjectIdentifierComplexType{
+							eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier, &premis2.LinkingObjectIdentifierComplexType{
 								XMLName:                      xml.Name{},
-								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+								LinkingObjectIdentifierType:  premis2.NewStringPlusAuthority("uuid", "", "", ""),
 								LinkingObjectIdentifierValue: internal.uuid,
-								LinkingObjectRole: []*premis.StringPlusAuthority{
-									premis.NewStringPlusAuthority("source", "eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole/sou.html"),
+								LinkingObjectRole: []*premis2.StringPlusAuthority{
+									premis2.NewStringPlusAuthority("source", "eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole/sou.html"),
 								},
 							})
 						}
@@ -820,24 +820,24 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 
 					if migration.Error == "" {
 						eventMigration.LinkingObjectIdentifier = append(eventMigration.LinkingObjectIdentifier,
-							&premis.LinkingObjectIdentifierComplexType{
+							&premis2.LinkingObjectIdentifierComplexType{
 								XMLName:                      xml.Name{},
-								LinkingObjectIdentifierType:  premis.NewStringPlusAuthority("uuid", "", "", ""),
+								LinkingObjectIdentifierType:  premis2.NewStringPlusAuthority("uuid", "", "", ""),
 								LinkingObjectIdentifierValue: uuidString,
-								LinkingObjectRole: []*premis.StringPlusAuthority{
-									premis.NewStringPlusAuthority("outcome", "eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole/out.html"),
+								LinkingObjectRole: []*premis2.StringPlusAuthority{
+									premis2.NewStringPlusAuthority("outcome", "eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole", "https://id.loc.gov/vocabulary/preservation/eventRelatedObjectRole/out.html"),
 								},
 							})
-						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
+						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis2.EventOutcomeInformationComplexType{
 							XMLName:      xml.Name{},
-							EventOutcome: premis.NewStringPlusAuthority("success", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/suc.html"),
+							EventOutcome: premis2.NewStringPlusAuthority("success", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/suc.html"),
 						})
 					} else {
-						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis.EventOutcomeInformationComplexType{
+						eventMigration.EventOutcomeInformation = append(eventMigration.EventOutcomeInformation, &premis2.EventOutcomeInformationComplexType{
 							XMLName:      xml.Name{},
-							EventOutcome: premis.NewStringPlusAuthority("fail", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/fai.html", "http://id.loc.gov/vocabulary/preservation/eventOutcome/fai"),
-							EventOutcomeDetail: []*premis.EventOutcomeDetailComplexType{
-								&premis.EventOutcomeDetailComplexType{
+							EventOutcome: premis2.NewStringPlusAuthority("fail", "eventOutcome", "https://id.loc.gov/vocabulary/preservation/eventOutcome/fai.html", "http://id.loc.gov/vocabulary/preservation/eventOutcome/fai"),
+							EventOutcomeDetail: []*premis2.EventOutcomeDetailComplexType{
+								&premis2.EventOutcomeDetailComplexType{
 									XMLName:                xml.Name{},
 									EventOutcomeDetailNote: migration.Error,
 								},
@@ -930,7 +930,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		// remove any existing mdSecs with the same checksum
 		// todo: do it for internal and external name separately
 		mdSecs2 := dmdSecs
-		dmdSecs = make([]*mets.MdSecType, 0, len(mdSecs2))
+		dmdSecs = make([]*mets2.MdSecType, 0, len(mdSecs2))
 		for i := 0; i < len(mdSecs2); i++ {
 			if mdSecs2[i].MdRef.CHECKSUMAttr != foundChecksum {
 				dmdSecs = append(dmdSecs, mdSecs2[i])
@@ -1008,7 +1008,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		agentIdentifier = v.GetUser().GetAddress()
 	}
 
-	premisStruct := &premis.PremisComplexType{
+	premisStruct := &premis2.PremisComplexType{
 		XMLName:           xml.Name{},
 		XMLNS:             "http://www.loc.gov/premis/v3",
 		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
@@ -1017,54 +1017,54 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		VersionAttr:       "3.0",
 		Object:            premisFiles,
 		Event:             premisEvents,
-		Agent: []*premis.AgentComplexType{
-			&premis.AgentComplexType{
+		Agent: []*premis2.AgentComplexType{
+			&premis2.AgentComplexType{
 				XMLName:     xml.Name{},
 				XmlIDAttr:   "",
 				VersionAttr: "",
-				AgentIdentifier: []*premis.AgentIdentifierComplexType{
-					&premis.AgentIdentifierComplexType{
+				AgentIdentifier: []*premis2.AgentIdentifierComplexType{
+					&premis2.AgentIdentifierComplexType{
 						XMLName:              xml.Name{},
 						SimpleLinkAttr:       "",
-						AgentIdentifierType:  premis.NewStringPlusAuthority("organization", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/org.html"),
+						AgentIdentifierType:  premis2.NewStringPlusAuthority("organization", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/org.html"),
 						AgentIdentifierValue: metafileOrgAgentIdentifier,
 					}},
-				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(metafileOrgAgentName, "", "", ""),
+				AgentName: []*premis2.StringPlusAuthority{
+					premis2.NewStringPlusAuthority(metafileOrgAgentName, "", "", ""),
 				},
 			},
-			&premis.AgentComplexType{
+			&premis2.AgentComplexType{
 				XMLName:     xml.Name{},
 				XmlIDAttr:   "",
 				VersionAttr: "",
-				AgentIdentifier: []*premis.AgentIdentifierComplexType{
-					&premis.AgentIdentifierComplexType{
+				AgentIdentifier: []*premis2.AgentIdentifierComplexType{
+					&premis2.AgentIdentifierComplexType{
 						XMLName:              xml.Name{},
 						SimpleLinkAttr:       "",
-						AgentIdentifierType:  premis.NewStringPlusAuthority("local", "", "", ""),
+						AgentIdentifierType:  premis2.NewStringPlusAuthority("local", "", "", ""),
 						AgentIdentifierValue: agentIdentifier,
 					}},
-				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(agentName, "", "", ""),
+				AgentName: []*premis2.StringPlusAuthority{
+					premis2.NewStringPlusAuthority(agentName, "", "", ""),
 				},
 			},
-			&premis.AgentComplexType{
+			&premis2.AgentComplexType{
 				XMLName:     xml.Name{},
 				XmlIDAttr:   "",
 				VersionAttr: "",
-				AgentIdentifier: []*premis.AgentIdentifierComplexType{
-					&premis.AgentIdentifierComplexType{
+				AgentIdentifier: []*premis2.AgentIdentifierComplexType{
+					&premis2.AgentIdentifierComplexType{
 						XMLName:              xml.Name{},
 						SimpleLinkAttr:       "",
-						AgentIdentifierType:  premis.NewStringPlusAuthority("software", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/sof.html"),
+						AgentIdentifierType:  premis2.NewStringPlusAuthority("software", "agentType", "https://id.loc.gov/vocabulary/preservation/agentType", "https://id.loc.gov/vocabulary/preservation/agentType/sof.html"),
 						AgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 					}},
-				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation ", "v3"), "", "", ""),
+				AgentName: []*premis2.StringPlusAuthority{
+					premis2.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation ", "v3"), "", "", ""),
 				},
 			},
 		},
-		Rights: []*premis.RightsComplexType{},
+		Rights: []*premis2.RightsComplexType{},
 	}
 
 	premisBytes, err := xml.MarshalIndent(premisStruct, "", "  ")
@@ -1074,14 +1074,14 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 
 	premisChecksum := fmt.Sprintf("%x", sha512.Sum512(premisBytes))
 
-	metsFileGrps := []*mets.FileGrp{}
+	metsFileGrps := []*mets2.FileGrp{}
 	for a, files := range metsFiles {
 		if len(files) == 0 {
 			continue
 		}
-		metsFileGrps = append(metsFileGrps, &mets.FileGrp{
+		metsFileGrps = append(metsFileGrps, &mets2.FileGrp{
 			XMLName: xml.Name{},
-			FileGrpType: &mets.FileGrpType{
+			FileGrpType: &mets2.FileGrpType{
 				XMLName: xml.Name{},
 				IDAttr:  "uuid-" + fileGrpUUID[a],
 				USEAttr: a,
@@ -1090,13 +1090,13 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		})
 	}
 
-	var amdSecs = []*mets.AmdSecType{}
+	var amdSecs = []*mets2.AmdSecType{}
 	if premisNames != nil {
 		id := "amdSec-int-uuid-" + uuid.NewString()
-		sec := &mets.AmdSecType{
+		sec := &mets2.AmdSecType{
 			XMLName: xml.Name{},
 			IDAttr:  "uuid-" + uuid.NewString(),
-			DigiprovMD: []*mets.MdSecType{
+			DigiprovMD: []*mets2.MdSecType{
 				newMDSec(
 					id,
 					"",
@@ -1134,40 +1134,40 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 
 	structMapPhysicalId := uuid.New()
 	structMapPhysicalIdString := "urn:uuid:" + structMapPhysicalId.String()
-	structMapPhysical := &mets.StructMapType{
+	structMapPhysical := &mets2.StructMapType{
 		XMLName:   xml.Name{},
 		IDAttr:    "",
 		TYPEAttr:  "physical",
 		LABELAttr: "AIP structMap",
-		Div: &mets.DivType{
+		Div: &mets2.DivType{
 			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
+			ORDERLABELS: &mets2.ORDERLABELS{
 				ORDERAttr:      0,
 				ORDERLABELAttr: "",
 				LABELAttr:      structMapPhysicalIdString,
 			},
 			IDAttr: "uuid-" + structMapPhysicalId.String() + "-structMap-div",
-			Div:    []*mets.DivType{},
+			Div:    []*mets2.DivType{},
 		},
 	}
 
-	structMaps := []*mets.StructMapType{}
+	structMaps := []*mets2.StructMapType{}
 
 	for area, fileList := range structPhysical {
 		if len(fileList) == 0 {
 			continue
 		}
 
-		div := &mets.DivType{
+		div := &mets2.DivType{
 			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
+			ORDERLABELS: &mets2.ORDERLABELS{
 				LABELAttr: area,
 			},
 			IDAttr: "uuid-" + uuid.New().String() + "-structMap-div",
-			Fptr:   make([]*mets.Fptr, 0),
+			Fptr:   make([]*mets2.Fptr, 0),
 		}
 		for _, u := range fileList {
-			div.Fptr = append(div.Fptr, &mets.Fptr{
+			div.Fptr = append(div.Fptr, &mets2.Fptr{
 				XMLName:    xml.Name{},
 				FILEIDAttr: u,
 			})
@@ -1180,17 +1180,17 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 	}
 	structMaps = append(structMaps, structMapPhysical)
 
-	structMapSemantical := &mets.StructMapType{
+	structMapSemantical := &mets2.StructMapType{
 		XMLName:   xml.Name{},
 		TYPEAttr:  "logical",
 		LABELAttr: "AIP Structure",
-		Div: &mets.DivType{
+		Div: &mets2.DivType{
 			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
+			ORDERLABELS: &mets2.ORDERLABELS{
 				LABELAttr: "Package Structure",
 			},
 			IDAttr: "uuid-" + uuid.New().String() + "-structMap-div",
-			Div:    []*mets.DivType{},
+			Div:    []*mets2.DivType{},
 		},
 	}
 
@@ -1210,16 +1210,16 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 				label = "Metadata Files"
 			}
 		}
-		div := &mets.DivType{
+		div := &mets2.DivType{
 			XMLName: xml.Name{},
-			ORDERLABELS: &mets.ORDERLABELS{
+			ORDERLABELS: &mets2.ORDERLABELS{
 				LABELAttr: label,
 			},
 			IDAttr: "uuid-" + uuid.NewString() + "-structMap-div",
-			Fptr:   make([]*mets.Fptr, 0),
+			Fptr:   make([]*mets2.Fptr, 0),
 		}
 		for _, u := range uuids {
-			div.Fptr = append(div.Fptr, &mets.Fptr{
+			div.Fptr = append(div.Fptr, &mets2.Fptr{
 				XMLName:    xml.Name{},
 				FILEIDAttr: u,
 			})
@@ -1234,41 +1234,41 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 		archivistAddress = v.GetUser().GetAddress()
 	}
 
-	m := &mets.Mets{
+	m := &mets2.Mets{
 		XMLNS:             "http://www.loc.gov/METS/",
 		XMLXLinkNS:        "http://www.w3.org/1999/xlink",
 		XMLNSXSI:          "http://www.w3.org/2001/XMLSchema-instance",
 		XSISchemaLocation: "http://www.loc.gov/METS/\nschemas/mets.xsd\nhttp://www.w3.org/1999/xlink\nschemas/xlink.xsd",
-		MetsType: &mets.MetsType{
+		MetsType: &mets2.MetsType{
 			XMLName:     xml.Name{},
 			OBJIDAttr:   metadata.ID,
 			LABELAttr:   fmt.Sprintf("METS Container for Object %s version %s - %s", metadata.ID, head, v.GetMessage()),
 			TYPEAttr:    "AIP",
 			PROFILEAttr: "http://www.ra.ee/METS/v01/IP.xml",
-			MetsHdr: &mets.MetsHdr{
+			MetsHdr: &mets2.MetsHdr{
 				XMLName:          xml.Name{},
 				CREATEDATEAttr:   v.GetCreated().Format("2006-01-02T15:04:05"),
 				RECORDSTATUSAttr: "NEW",
-				Agent: []*mets.Agent{
-					&mets.Agent{
+				Agent: []*mets2.Agent{
+					&mets2.Agent{
 						XMLName:       xml.Name{},
 						ROLEAttr:      "CREATOR",
 						TYPEAttr:      "OTHER",
 						OTHERTYPEAttr: "SOFTWARE",
 						Name:          "gocfl",
-						Note: []*mets.Note{
-							&mets.Note{
+						Note: []*mets2.Note{
+							&mets2.Note{
 								XMLName: xml.Name{},
 								Value:   fmt.Sprintf("Build %s", "v3"),
 							},
 						},
 					},
-					&mets.Agent{
+					&mets2.Agent{
 						XMLName:  xml.Name{},
 						ROLEAttr: "ARCHIVIST",
 						Name:     archivistName,
-						Note: []*mets.Note{
-							&mets.Note{
+						Note: []*mets2.Note{
+							&mets2.Note{
 								XMLName: xml.Name{},
 								Value:   archivistAddress,
 							},
@@ -1276,14 +1276,14 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					},
 				},
 				AltRecordID: nil,
-				MetsDocumentID: &mets.MetsDocumentID{
+				MetsDocumentID: &mets2.MetsDocumentID{
 					XMLName: xml.Name{},
 					Value:   "mets.xml",
 				},
 			},
 			DmdSec: dmdSecs,
 			AmdSec: amdSecs,
-			FileSec: &mets.FileSec{
+			FileSec: &mets2.FileSec{
 				XMLName: xml.Name{},
 				IDAttr:  "uuid-" + uuid.NewString(),
 				FileGrp: metsFileGrps,
@@ -1372,18 +1372,18 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 	return nil
 }
 
-func newMDSec(id, groupid, href, loctype, otherloctype, mimetype, created string, size int64, mdType, othermdtype, checksum, checksumType string) *mets.MdSecType {
+func newMDSec(id, groupid, href, loctype, otherloctype, mimetype, created string, size int64, mdType, othermdtype, checksum, checksumType string) *mets2.MdSecType {
 	if mdType == "" {
 		mdType = "OTHER"
 	}
 	if mdType == "OTHER" && othermdtype == "" {
 		othermdtype = "UNKNOWN"
 	}
-	return &mets.MdSecType{
+	return &mets2.MdSecType{
 		IDAttr:      id,
 		GROUPIDAttr: groupid,
 		CREATEDAttr: time.Now().Format("2006-01-02T15:04:05"),
-		MdRef: &mets.MdRef{
+		MdRef: &mets2.MdRef{
 			XMLName:          xml.Name{},
 			TypeAttr:         "simple",
 			XlinkHrefAttr:    href,

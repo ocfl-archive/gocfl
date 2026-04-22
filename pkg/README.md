@@ -4,11 +4,11 @@ This directory contains the core packages of the `gocfl` project. Each sub-packa
 
 ## Overview of Packages
 
-### [dilcis](./dilcis/README.md)
+### [dilcis](subsystem/dilcis/README.md)
 Contains implementations for DILCIS standards, including EAD3, METS, and PREMIS, used for metadata handling.
-- [EAD3](./dilcis/ead3)
-- [METS](./dilcis/mets)
-- [PREMIS](./dilcis/premis)
+- [EAD3](subsystem/dilcis/ead3)
+- [METS](subsystem/dilcis/mets)
+- [PREMIS](subsystem/dilcis/premis)
 
 ### [ocfl](./ocfl)
 The main package for OCFL operations. It includes several sub-packages for different aspects of the OCFL specification.

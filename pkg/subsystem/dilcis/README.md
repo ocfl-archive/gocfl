@@ -9,7 +9,7 @@ Further information and tools can be found at: [https://earkaip.dilcis.eu/](http
 The packages provided here are used to marshal and unmarshal XML documents that follow the DILCIS specifications. They are essential for generating standardized metadata in the OCFL (Oxford Common File Layout) environment.
 
 For detailed documentation on the METS extension implementation, see:
-- **[NNNN-mets.md](../../docs/NNNN-mets.md)**: Documentation of the METS extension using these packages.
+- **[NNNN-mets.md](../../../docs/NNNN-mets.md)**: Documentation of the METS extension using these packages.
 
 ### Subpackages
 
@@ -33,7 +33,7 @@ The Go code in the subdirectories (e.g., `pkg/dilcis/mets/mets.go`) was largely 
 These packages are primarily used by the OCFL extensions to generate standards-compliant metadata. 
 
 Documentation of the implementation can be found in:
-- **[docs/NNNN-mets.md](../../docs/NNNN-mets.md)**: Detailed information about the METS extension which utilizes the `pkg/dilcis/mets` package to build and update METS documents during the OCFL object lifecycle. It maps internal OCFL state and file information to the METS structure defined in this package.
+- **[docs/NNNN-mets.md](../../../docs/NNNN-mets.md)**: Detailed information about the METS extension which utilizes the `pkg/dilcis/mets` package to build and update METS documents during the OCFL object lifecycle. It maps internal OCFL state and file information to the METS structure defined in this package.
 
 ## Maintenance
 
