@@ -12,7 +12,6 @@ import (
 	"github.com/BurntSushi/toml"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/util"
 )
@@ -28,14 +27,14 @@ func quoteShellArg(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'"'"'`) + "'"
 }
 
-func Autoconfig(conf *config.Thumbnail, scripts map[string]string, logger zLogger.ZLogger) (configutil.MiniConfig, error) {
+func Autoconfig(conf *ConfigThumbnail, scripts map[string]string, logger zLogger.ZLogger) (configutil.MiniConfig, error) {
 	if len(scripts) == 0 {
 		logger.Info().Msg("thumbnail: no scripts to autoconfig - do nothing")
 		return configutil.MiniConfig{}, nil
 	}
 	prgs := util.DetectPrg(logger)
 	if conf == nil {
-		conf = &config.Thumbnail{}
+		conf = &ConfigThumbnail{}
 	}
 	miniConfig := configutil.MiniConfig{}
 
@@ -68,7 +67,7 @@ func Autoconfig(conf *config.Thumbnail, scripts map[string]string, logger zLogge
 	return miniConfig, nil
 }
 
-func InitConfig(conf *config.Thumbnail, scriptFolder string, logger zLogger.ZLogger) (*config.Thumbnail, configutil.MiniConfig, error) {
+func InitConfig(conf *ConfigThumbnail, scriptFolder string, logger zLogger.ZLogger) (*ConfigThumbnail, configutil.MiniConfig, error) {
 	prgs := util.DetectPrg(logger)
 	var scripts = map[string]string{}
 	miniConfig := configutil.MiniConfig{}

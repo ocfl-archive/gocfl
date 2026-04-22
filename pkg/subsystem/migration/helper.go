@@ -10,11 +10,10 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/google/shlex"
-	"github.com/ocfl-archive/gocfl/v2/config"
-	object "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 )
 
-func GetMigrations(conf *config.Migration) (*Migration, error) {
+func GetMigrations(conf *ConfigMigration) (*Migration, error) {
 	m := &Migration{
 		Functions: map[string]*Function{},
 	}

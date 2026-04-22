@@ -6,29 +6,30 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	defaultobjectextensions "github.com/ocfl-archive/gocfl/v2/data/defaultextensions/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
 )
 
-type Factory struct {
-	creators           map[string]extension.CreatorFunc
-	defaultStorageRoot []extension.Extension
-	defaultObject      []extension.Extension
-	extensionParams    map[string]string
-	logger             ocfllogger.OCFLLogger
-}
-
-func NewFactory(extensionParams map[string]string, logger ocfllogger.OCFLLogger) (*Factory, error) {
+func NewFactory(extensionParams map[string]string, defaultObjectExtensionFS fs.FS, logger ocfllogger.OCFLLogger) (*Factory, error) {
 	m := &Factory{
-		creators:        map[string]extension.CreatorFunc{},
-		extensionParams: extensionParams,
-		logger:          logger.With("module", "extensionimpl.Factory"),
+		creators:                 map[string]extension.CreatorFunc{},
+		extensionParams:          extensionParams,
+		logger:                   logger.With("module", "extensionimpl.Factory"),
+		defaultObjectExtensionFS: defaultObjectExtensionFS,
 	}
 	extension.RegisterWithFactory(m, m.logger)
 	return m, nil
+}
+
+type Factory struct {
+	creators                 map[string]extension.CreatorFunc
+	defaultStorageRoot       []extension.Extension
+	defaultObject            []extension.Extension
+	extensionParams          map[string]string
+	logger                   ocfllogger.OCFLLogger
+	defaultObjectExtensionFS fs.FS
 }
 
 func (f *Factory) AddCreator(name string, creator extension.CreatorFunc) {
@@ -197,7 +198,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 			if !ok {
 				return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
 			}
-			initialFS, _ := fs.Sub(defaultobjectextensions.DefaultObjectExtensionFS, extension.DefaultExtensionInitialName)
+			initialFS, _ := fs.Sub(f.defaultObjectExtensionFS, extension.DefaultExtensionInitialName)
 			initialExt, err := initialCreator(initialFS)
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
@@ -213,7 +214,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 		if !ok {
 			return nil, errors.Errorf("no default extension manager (%s) found", extension.DefaultExtensionManagerName)
 		}
-		extensionManagerFS, _ := fs.Sub(defaultobjectextensions.DefaultObjectExtensionFS, extension.DefaultExtensionManagerName)
+		extensionManagerFS, _ := fs.Sub(f.defaultObjectExtensionFS, extension.DefaultExtensionManagerName)
 		ext, err := creator(extensionManagerFS)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)

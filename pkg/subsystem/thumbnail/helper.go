@@ -7,10 +7,9 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/google/shlex"
-	"github.com/ocfl-archive/gocfl/v2/config"
 )
 
-func GetThumbnails(conf *config.Thumbnail) (*Thumbnail, error) {
+func GetThumbnails(conf *ConfigThumbnail) (*Thumbnail, error) {
 	if conf == nil {
 		return nil, errors.New("thumbnail configuration is nil")
 	}
