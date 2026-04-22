@@ -4,11 +4,11 @@ This directory contains the core packages of the `gocfl` project. Each sub-packa
 
 ## Overview of Packages
 
-### [dilcis](subsystem/dilcis/README.md)
+### [dilcis](../../gocfl-extensions/subsystem/dilcis/README.md)
 Contains implementations for DILCIS standards, including EAD3, METS, and PREMIS, used for metadata handling.
-- [EAD3](subsystem/dilcis/ead3)
-- [METS](subsystem/dilcis/mets)
-- [PREMIS](subsystem/dilcis/premis)
+- [EAD3](../../gocfl-extensions/subsystem/dilcis/ead3)
+- [METS](../../gocfl-extensions/subsystem/dilcis/mets)
+- [PREMIS](../../gocfl-extensions/subsystem/dilcis/premis)
 
 ### [ocfl](./ocfl)
 The main package for OCFL operations. It includes several sub-packages for different aspects of the OCFL specification.
@@ -25,12 +25,12 @@ A specialized logger package used throughout the `gocfl` project to ensure consi
 ### [appendfs](./appendfs/README.md)
 Provides an extended file system interface (`FS`) that supports both read and write operations, abstracting the underlying storage (e.g., local FS, S3).
 
-### [subsystem](./subsystem/README.md)
+### [subsystem](../../gocfl-extensions/subsystem/README.md)
 Contains various subsystems used by `gocfl` for processing content.
-- [migration](./subsystem/migration/README.md): Subsystem for file format migrations.
-- [thumbnail](./subsystem/thumbnail/README.md): Subsystem for generating thumbnails.
+- [migration](../../gocfl-extensions/subsystem/migration/README.md): Subsystem for file format migrations.
+- [thumbnail](../../gocfl-extensions/subsystem/thumbnail/README.md): Subsystem for generating thumbnails.
 
-### [extension](./extension)
+### [extension](../../gocfl-extensions/extension)
 General extension mechanisms used in the project.
 
 ---

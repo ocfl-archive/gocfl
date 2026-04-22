@@ -32,7 +32,7 @@ The `Object` interface provides methods to manage and retrieve the [Extension Ma
 - `WithExtensionManager(manager ExtensionManager) Object`
 - `GetExtensionManager() ExtensionManager`
 
-Extensions allow the library to support additional functionality like custom checksums, storage layouts, or metadata handling, as defined in the [OCFL Extensions Specification](https://ocfl.io/extensions/). Die Standardimplementierung des `ExtensionManager` ist der [`GOCFLExtensionManager`](../../../extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`).
+Extensions allow the library to support additional functionality like custom checksums, storage layouts, or metadata handling, as defined in the [OCFL Extensions Specification](https://ocfl.io/extensions/). Die Standardimplementierung des `ExtensionManager` ist der [`GOCFLExtensionManager`](../../../../../gocfl-extensions/extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`).
 
 ---
 - [Back to Object Overview](../README.md)

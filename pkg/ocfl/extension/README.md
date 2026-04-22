@@ -25,7 +25,7 @@ The extension system interacts closely with other core components:
 - **Objects**: The [Object](../object/docs/OBJECT.md) interface uses a Manager to apply extensions that affect object structure or metadata.
 - **Inventories**: Extensions can influence how [Inventories](../inventory/README.md) are handled, particularly regarding fixity or custom metadata fields.
 - **Storage Roots**: Extensions like `0002-flat-direct-storage-layout` or `0003-hash-and-id-direct-storage-layout` define how objects are organized within a [Storage Root](../storageroot/README.md).
-- **Implementations**: Concrete extension implementations are located in [`pkg/extension`](../../extension). See the [Extensions Directory](../../../docs/README.md#extensions) (or individual files in [`/docs`](../../../docs)) for their documentation.
+- **Implementations**: Concrete extension implementations are located in [`pkg/extension`](../../../../gocfl-extensions/extension). See the [Extensions Directory](../../../docs/README.md#extensions) (or individual files in [`/docs`](../../../docs)) for their documentation.
 
 ---
 - [Back to Object Documentation](../object/docs/OBJECT.md)

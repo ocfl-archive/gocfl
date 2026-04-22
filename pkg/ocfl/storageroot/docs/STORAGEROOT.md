@@ -31,7 +31,7 @@ The `StorageRoot` interface includes the following key areas:
 
 ## Extension Manager
 
-The storage root uses a specialized `ExtensionManager` (`pkg/ocfl/storageroot/storagerootExtensionManager.go`) to coordinate extensions. Die Standardimplementierung ist der [`GOCFLExtensionManager`](../../../extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`).
+The storage root uses a specialized `ExtensionManager` (`pkg/ocfl/storageroot/storagerootExtensionManager.go`) to coordinate extensions. Die Standardimplementierung ist der [`GOCFLExtensionManager`](../../../../../gocfl-extensions/extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`).
 
 ### ExtensionManager Interface
 

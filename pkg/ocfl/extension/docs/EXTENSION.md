@@ -17,11 +17,11 @@ Key methods of the `Extension` interface:
 
 ## Usage
 
-Each extension should implement this interface. Common implementations in this library (located in [`pkg/extension`](../../../extension)) include:
-- **Storage layout extensions**: (e.g., [`0002-flat-direct-storage-layout`](../../../extension/0002-flat-direct-storage-layout.go) - [Doc](../../../../docs/0011-direct-clean-path-layout.md)). These are used within [Storage Roots](../../storageroot/README.md) to determine object placement.
-- **Fixity extensions**: For additional checksums (e.g., [`0001-digest-algorithms`](../../../extension/0001-digest-algorithms.go)).
-- **Metadata extensions**: For custom descriptive or technical metadata (e.g., [`NNNN-mets`](../../../extension/NNNN-mets.go) - [Doc](../../../../docs/NNNN-mets.md)).
-- **Custom functional extensions**: (e.g., [`NNNN-thumbnail`](../../../extension/NNNN-thumbnail.go) - [Doc](../../../../docs/NNNN-thumbnail.md)).
+Each extension should implement this interface. Common implementations in this library (located in [`pkg/extension`](../../../../../gocfl-extensions/extension)) include:
+- **Storage layout extensions**: (e.g., [`0002-flat-direct-storage-layout`](../../../../../gocfl-extensions/extension/0002-flat-direct-storage-layout.go) - [Doc](../../../../docs/0011-direct-clean-path-layout.md)). These are used within [Storage Roots](../../storageroot/README.md) to determine object placement.
+- **Fixity extensions**: For additional checksums (e.g., [`0001-digest-algorithms`](../../../../../gocfl-extensions/extension/0001-digest-algorithms.go)).
+- **Metadata extensions**: For custom descriptive or technical metadata (e.g., [`NNNN-mets`](../../../../../gocfl-extensions/extension/NNNN-mets.go) - [Doc](../../../../docs/NNNN-mets.md)).
+- **Custom functional extensions**: (e.g., [`NNNN-thumbnail`](../../../../../gocfl-extensions/extension/NNNN-thumbnail.go) - [Doc](../../../../docs/NNNN-thumbnail.md)).
 
 Extensions are typically managed by a [Manager](MANAGER.md) (either for [Objects](../../object/docs/OBJECT.md) or [Storage Roots](../../storageroot/docs/STORAGEROOT.md)) and created by a [Factory](FACTORY.md).
 

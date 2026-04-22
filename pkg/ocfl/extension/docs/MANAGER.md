@@ -39,7 +39,7 @@ In the `object` package, a more specialized interface `ExtensionManager` is defi
 
 This allows the [Object](../../object/docs/OBJECT.md) to interact with extensions at various stages of their lifecycle (e.g., during file addition, version creation, or metadata extraction).
 
-Die primäre Implementierung dieses erweiterten Interface ist [`GOCFLExtensionManager`](../../../extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`, siehe [Doc](../../../../docs/NNNN-gocfl-extension-manager.md)).
+Die primäre Implementierung dieses erweiterten Interface ist [`GOCFLExtensionManager`](../../../../../gocfl-extensions/extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`, siehe [Doc](../../../../docs/NNNN-gocfl-extension-manager.md)).
 
 ### Storage Root-Specific Manager
 
