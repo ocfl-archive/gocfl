@@ -5,10 +5,10 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewLoader(ctx context.Context, logger ocfllogger.OCFLLogger) *Loader {

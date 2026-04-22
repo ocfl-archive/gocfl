@@ -3,7 +3,7 @@ package inventorytest
 import (
 	"testing"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
 func Test_VersionsJSONMarshal20(t *testing.T) {

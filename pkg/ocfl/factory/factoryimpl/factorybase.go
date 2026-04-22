@@ -4,16 +4,16 @@ import (
 	"context"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory/inventoryimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object/objectimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot/storagerootimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory/inventoryimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object/objectimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot/storagerootimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewFactoryBase(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) factory.Factory {

@@ -10,7 +10,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/google/shlex"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 )
 
 func GetMigrations(conf *ConfigMigration) (*Migration, error) {

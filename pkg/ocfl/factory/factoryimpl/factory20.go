@@ -1,11 +1,11 @@
 package factoryimpl
 
 import (
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension/extensionimpl"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewFactory20(extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) factory.Factory {

@@ -12,8 +12,8 @@ import (
 	"github.com/BurntSushi/toml"
 	configutil "github.com/je4/utils/v2/pkg/config"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/internal"
-	"github.com/ocfl-archive/gocfl/v2/pkg/util"
+	"github.com/ocfl-archive/gocfl/v3/internal"
+	"github.com/ocfl-archive/gocfl/v3/pkg/util"
 )
 
 func quoteCmdArg(s string) string {

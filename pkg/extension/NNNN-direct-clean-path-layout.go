@@ -7,9 +7,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 // fallback for object with unregigered naming

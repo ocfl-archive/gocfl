@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	objecttypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 

@@ -14,12 +14,12 @@ import (
 	"github.com/andybalholm/brotli"
 	"github.com/je4/filesystem/v3/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	inventorytypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	inventorytypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"golang.org/x/exp/slices"
 )
 

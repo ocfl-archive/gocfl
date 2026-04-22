@@ -6,10 +6,10 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewFactory(extensionParams map[string]string, defaultObjectExtensionFS fs.FS, logger ocfllogger.OCFLLogger) (*Factory, error) {

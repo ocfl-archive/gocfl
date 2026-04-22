@@ -9,8 +9,8 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 )
 
 func NewInitialDummyFS(fsys fs.FS) (extension.Extension, error) {

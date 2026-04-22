@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/util"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/util"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewManifestBase(logger ocfllogger.OCFLLogger) *ManifestBase {

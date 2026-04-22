@@ -5,9 +5,9 @@ import (
 	"io/fs"
 	"net/url"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 const LoggingIndexerName = "NNNN-indexer-logging-object"

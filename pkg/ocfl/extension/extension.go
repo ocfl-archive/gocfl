@@ -3,8 +3,8 @@ package extension
 import (
 	"io/fs"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 type ExtensionConfig struct {

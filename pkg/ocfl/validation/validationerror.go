@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
 type ErrorCode string

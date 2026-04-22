@@ -11,7 +11,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/davidbyttow/govips/v2/vips"
-	objecttypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	objecttypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 )
 
 func (thumb *Thumbnail) StreamObject(object objecttypes.Object, reader io.Reader, stateFiles []string, dest string) error {

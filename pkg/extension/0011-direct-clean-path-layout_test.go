@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 )
 
 func TestFlatCleanDirectoryWithoutUTFEncode(t *testing.T) {

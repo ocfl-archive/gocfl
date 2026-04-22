@@ -3,7 +3,7 @@ package inventoryimpl
 import (
 	"fmt"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
 )
 
 type ValidationError struct {

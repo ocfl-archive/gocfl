@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 
 	"io/fs"
 	"os/exec"

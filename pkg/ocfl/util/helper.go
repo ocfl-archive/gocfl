@@ -12,8 +12,8 @@ import (
 
 	"emperror.dev/emperror"
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/ocflerrors"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflerrors"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 )

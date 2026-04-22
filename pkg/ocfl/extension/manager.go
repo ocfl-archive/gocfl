@@ -3,7 +3,7 @@ package extension
 import (
 	"io/fs"
 
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 )
 
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"

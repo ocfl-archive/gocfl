@@ -2,7 +2,7 @@ package inventory
 
 import (
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
 type StateFileCallback func(internal []string, external []string, digest string) error

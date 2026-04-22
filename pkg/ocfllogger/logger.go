@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/validation"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/rs/zerolog"
 	"golang.org/x/exp/maps"
 )

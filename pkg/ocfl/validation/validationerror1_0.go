@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/je4/utils/v2/pkg/errorDetails"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
 var OCFLValidationErrorMapping1_0 = map[ErrorCode]ErrorCode{

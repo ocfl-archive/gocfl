@@ -17,16 +17,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v2/info"
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/mets"
-	"github.com/ocfl-archive/gocfl/v2/pkg/dilcis/premis"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
-	ocflinventory "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfllogger"
-	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/mets/specs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/dilcis/mets"
+	"github.com/ocfl-archive/gocfl/v3/pkg/dilcis/premis"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	ocflinventory "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
+	"github.com/ocfl-archive/gocfl/v3/pkg/subsystem/mets/specs"
 	"github.com/ocfl-archive/indexer/v3/pkg/indexer"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -504,7 +503,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 						XMLName:          xml.Name{},
 						CompositionLevel: nil,
 						Fixity: []*premis.FixityComplexType{
-							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl "+info.Version),
+							premis.NewFixityComplexType(string(metadata.DigestAlgorithm), cs, "gocfl v3"),
 						},
 						Size:   int64(extIndexer.Size),
 						Format: []*premis.FormatComplexType{},
@@ -571,7 +570,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 					}
 					for digest, checksum := range metaFile.Checksums {
 						objectCharacter.Fixity = append(objectCharacter.Fixity,
-							premis.NewFixityComplexType(string(digest), checksum, "gocfl "+info.Version),
+							premis.NewFixityComplexType(string(digest), checksum, "gocfl v3"),
 						)
 					}
 					if extIndexer != nil {
@@ -1061,7 +1060,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 						AgentIdentifierValue: "https://github.com/ocfl-archive/gocfl",
 					}},
 				AgentName: []*premis.StringPlusAuthority{
-					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation", info.Version), "", "", ""),
+					premis.NewStringPlusAuthority(fmt.Sprintf("gocfl %s - Go OCFL implementation ", "v3"), "", "", ""),
 				},
 			},
 		},
@@ -1260,7 +1259,7 @@ func (me *Mets) UpdateObjectAfter(obj object.VersionWriter) error {
 						Note: []*mets.Note{
 							&mets.Note{
 								XMLName: xml.Name{},
-								Value:   fmt.Sprintf("Build %s", info.Version),
+								Value:   fmt.Sprintf("Build %s", "v3"),
 							},
 						},
 					},

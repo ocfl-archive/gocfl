@@ -14,7 +14,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/nfnt/resize"
-	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	_ "golang.org/x/image/bmp"
 	_ "golang.org/x/image/tiff"
 	_ "golang.org/x/image/vp8"

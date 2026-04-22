@@ -1,8 +1,8 @@
 package storageroot
 
 import (
-	"github.com/ocfl-archive/gocfl/v2/pkg/appendfs"
-	extensiontypes "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 )
 
 type ExtensionStorageRootPath interface {
