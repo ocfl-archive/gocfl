@@ -11,12 +11,16 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
 )
 
+// NamessStruct provides a mechanism to record the logical and virtual
+// state of paths within an OCFL object.
 type NamesStruct struct {
 	ExternalPaths []string
 	InternalPath  string
 	ManifestPath  string
 }
 
+// VersionWriter is the interface that defines read/write operations
+// across different versions of an OCFL object.
 type VersionWriter interface {
 	Object
 	AddFolder(sourceFS fs.FS, checkDuplicate bool, area string) error
@@ -33,18 +37,27 @@ type VersionWriter interface {
 	BuildNames(files []string, area string) (*NamesStruct, error)
 }
 
+// Checker is the interface that defines rudimentary validation
+// operations that should be availabnle to baseline OCFL objects
+// in memory.
 type Checker interface {
 	Check() error
 	WithObject(obj Object) Checker
 	WithFS(objectFS fs.FS) Checker
 }
 
+// Initializer is the interface that defines operations for initializing
+// a brand-new OCFL object handling the initial folder structure
+// creation and the generation of the base inventory.json.
 type Initializer interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	WithObject(o Object) Initializer
 	WithFS(objectFS appendfs.FS) Initializer
 }
 
+// Loader is the interface that defines methods for loading an OCFL
+// object into memory including its extensions and inventories if
+// available to a version.
 type Loader interface {
 	Object
 	Load() error
@@ -54,6 +67,8 @@ type Loader interface {
 	WithExtensionFactory(factory extension.Factory) Loader
 }
 
+// Extractor is the interface that defines methods for extracting
+// information from an OCFL object.
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	WithObject(o Object) Extractor
@@ -63,6 +78,8 @@ type Extractor interface {
 	GetMetadata() (*inventory.Metadata, error)
 }
 
+// Object is the interface that defines the core characteristics and
+// operations available to an OCFL object.
 type Object interface {
 	GetExtractor(objectFS fs.FS, destFS appendfs.FS) Extractor
 	GetInitializer(objectFS appendfs.FS) Initializer
