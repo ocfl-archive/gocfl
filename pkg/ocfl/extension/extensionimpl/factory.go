@@ -7,12 +7,16 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	extensionimpldata "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl/data"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewFactory(extensionParams map[string]string, defaultObjectExtensionFS fs.FS, logger ocfllogger.OCFLLogger) (*Factory, error) {
+	if defaultObjectExtensionFS == nil {
+		defaultObjectExtensionFS = extensionimpldata.DefaultInitial
+	}
 	m := &Factory{
 		creators:                 map[string]extension.CreatorFunc{},
 		extensionParams:          extensionParams,
@@ -96,12 +100,16 @@ func (f *Factory) LoadExtensionData(fsys fs.FS, data []byte) (extension.Extensio
 
 func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error) {
 	var errs = []error{}
-	files, err := fs.ReadDir(fsys, ".")
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			files = []fs.DirEntry{}
-		} else {
-			return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
+	var err error
+	var files []fs.DirEntry
+	if fsys != nil {
+		files, err = fs.ReadDir(fsys, ".")
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				files = []fs.DirEntry{}
+			} else {
+				return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
+			}
 		}
 	}
 	var result = []extension.Extension{}
