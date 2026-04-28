@@ -104,17 +104,13 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 		fsys = &util.EmptyFS{}
 	}
 	var errs = []error{}
-	var err error
-	var files []fs.DirEntry
-	if fsys != nil {
-		files, err = fs.ReadDir(fsys, ".")
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				files = []fs.DirEntry{}
-			} else {
-				return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
-			}
+
+	files, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, errors.Wrapf(err, "cannot read folder %v", fsys)
 		}
+		files = []fs.DirEntry{}
 	}
 	var result = []extension.Extension{}
 	for _, file := range files {
@@ -185,24 +181,16 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 	result = result2
 
 	if initial == nil {
-		configData := []byte(fmt.Sprintf(`{"extensionName": "initial", "extension": "%s"}`, extension.DefaultExtensionManagerName))
+		configData := []byte(fmt.Sprintf(`{"extensionName": "%s", "extension": "%s"}`, extension.DefaultExtensionInitialName, extension.DefaultExtensionManagerName))
 		ext, err := f.LoadExtensionData(configData)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot load default initial extension")
 		}
-		initialCreator, ok := f.creators[extension.DefaultExtensionInitialName]
-		if !ok {
-			return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
-		}
-		initialExt, err := initialCreator(configData)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
-		}
-		initial, ok = initialExt.(extension.Initial)
+		var ok bool
+		initial, ok = ext.(extension.Initial)
 		if !ok {
 			return nil, errors.Errorf("'%s' extension is not an initial extension", extension.DefaultExtensionInitialName)
 		}
-		initial.SetExtension(ext.GetName())
 	}
 	result2 = []extension.Extension{}
 	extManagerName := initial.GetExtension()
@@ -223,25 +211,19 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 
 	// something bad had happened. create functional extension manager structure
 	if manager == nil {
-		//errs = append(errs, errors.Errorf("manager extension %s found", initial.GetExtension()))
-
-		// create default extension manager
-		creator, ok := f.creators[extension.DefaultExtensionManagerName]
-		if !ok {
-			return nil, errors.Errorf("no default extension manager (%s) found", extension.DefaultExtensionManagerName)
-		}
 		data, err := fs.ReadFile(f.defaultObjectExtensionFS, fmt.Sprintf("%s/config.json", extension.DefaultExtensionManagerName))
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				data = []byte(fmt.Sprintf(`{"extensionName": "%s"}`, extension.DefaultExtensionManagerName))
-			} else {
+			if !errors.Is(err, fs.ErrNotExist) {
 				return nil, errors.Wrapf(err, "cannot read %v/config.json", f.defaultObjectExtensionFS)
 			}
+			data = []byte(fmt.Sprintf(`{"extensionName": "%s"}`, extension.DefaultExtensionManagerName))
 		}
-		ext, err := creator(data)
+
+		ext, err := f.LoadExtensionData(data)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)
 		}
+		var ok bool
 		manager, ok = ext.(object.ExtensionManager)
 		if !ok {
 			return nil, errors.Errorf("default extension manager is not a manager extension")
