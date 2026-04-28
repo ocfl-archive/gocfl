@@ -1,7 +1,7 @@
 package extension
 
 import (
-	"io/fs"
+	"encoding/json"
 
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -14,7 +14,7 @@ type ExtensionConfig struct {
 type Extension interface {
 	WithLogger(logger ocfllogger.OCFLLogger) Extension
 	GetName() string
-	Load(fsys fs.FS) error
+	Load(data json.RawMessage) error
 	SetParams(params map[string]string) error
 	WriteConfig(fsys appendfs.FS) error
 	GetConfig() any

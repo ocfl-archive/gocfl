@@ -10,7 +10,6 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
-	extensionimpldata "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl/data"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot/storagerootimpl"
@@ -49,7 +48,7 @@ func TestStorageRootInit(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 2. Initialisierung der OCFL Komponenten
-	extFactory, err := extensionimpl.NewFactory(nil, extensionimpldata.DefaultInitial, logger)
+	extFactory, err := extensionimpl.NewFactory(nil, nil, logger)
 	assert.NoError(t, err)
 
 	ocflVer := version.Version1_1

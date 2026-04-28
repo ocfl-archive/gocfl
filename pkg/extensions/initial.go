@@ -1,10 +1,8 @@
-package extensionimpl
+package extensions
 
 import (
 	"encoding/json"
 	"fmt"
-
-	"io/fs"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -65,12 +63,7 @@ func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension 
 	return sl
 }
 
-func (sl *Initial) Load(fsys fs.FS) error {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return errors.Wrap(err, "cannot read config.json")
-	}
-
+func (sl *Initial) Load(data json.RawMessage) error {
 	if err := json.Unmarshal(data, sl.InitialConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal InitialConfig '%s'", string(data))
 	}

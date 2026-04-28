@@ -1,6 +1,7 @@
 package extension
 
 import (
+	"encoding/json"
 	"io/fs"
 )
 
@@ -14,7 +15,7 @@ type Factory interface {
 	AddObjectDefaultExtension(ext Extension)
 
 	LoadExtensionFile(fsys fs.FS) (Extension, error)
-	LoadExtensionData(fsys fs.FS, data []byte) (Extension, error)
+	LoadExtensionData(data json.RawMessage) (Extension, error)
 
 	LoadExtensionManager(fsys fs.FS) (ManagerCore, error)
 }

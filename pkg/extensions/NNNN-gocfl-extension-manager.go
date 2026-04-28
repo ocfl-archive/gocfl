@@ -1,4 +1,4 @@
-package extensionimpl
+package extensions
 
 import (
 	"bufio"
@@ -71,12 +71,7 @@ func (manager *GOCFLExtensionManager) WithLogger(logger ocfllogger.OCFLLogger) e
 	return manager
 }
 
-func (manager *GOCFLExtensionManager) Load(fsys fs.FS) error {
-	data, err := fs.ReadFile(fsys, "config.json")
-	if err != nil {
-		return errors.Wrap(err, "cannot read config.json")
-	}
-
+func (manager *GOCFLExtensionManager) Load(data json.RawMessage) error {
 	if err := json.Unmarshal(data, manager.ManagerConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal ExtensionManagerConfig '%s'", string(data))
 	}
