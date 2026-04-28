@@ -55,20 +55,20 @@ func TestObjectAdd(t *testing.T) {
 	ocflVer := version.Version1_1
 	fact := factoryimpl.NewFactory(ocflVer, extFactory, logger)
 
-	sr := storagerootimpl.NewStorageRootBase(ctx, fact, ocflVer, extFactory, logger)
-	sr.WithWriteFS(srFS)
-	sr.WithDigestAlgorithm(checksum.DigestSHA512)
-
 	extManager0, err := extFactory.LoadExtensionManager(nil)
 	assert.NoError(t, err)
 	extManager, ok := extManager0.(storageroot.ExtensionManager)
 	assert.True(t, ok, "extension manager should implement storageroot.ExtensionManager")
-	sr.WithExtensionManager(extManager)
+
+	sr := storagerootimpl.NewStorageRootBase(ctx, fact, ocflVer, extFactory, logger).
+		WithWriteFS(srFS).
+		WithDigestAlgorithm(checksum.DigestSHA512).
+		WithExtensionManager(extManager)
 
 	// 3. Storage Root Initialisierung
-	initializer := sr.GetInitializer()
+	initializer := sr.GetInitializer().
+		WithFS(srFS)
 	assert.NotNil(t, initializer)
-	initializer.WithFS(srFS)
 
 	err = initializer.Init()
 	assert.NoError(t, err)
@@ -87,7 +87,7 @@ func TestObjectAdd(t *testing.T) {
 	objExtManager, ok := objExtManager0.(object.ExtensionManager)
 	assert.True(t, ok)
 
-	obj, err := sr.CreateObject(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{}, extFactory, objExtManager)
+	obj, err := sr.CreateObject(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{}, objExtManager)
 	assert.NoError(t, err)
 
 	// Objekt initialisieren
