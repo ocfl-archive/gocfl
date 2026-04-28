@@ -2,33 +2,42 @@
 
 set shell := ["bash", "-uc"]
 
-# Get help
+# get help
 help:
   @just -l
 
-# Fix imports
+# fix imports
 imports:
   goimports -w ./...
 
-# Snapshot
+# run tests
+test:
+  go test ./...
+
+# clear test cache
+rm-test-cache:
+  go clean -testcache
+
+# snapshot
 snapshot:
   goreleaser build --snapshot --single-target --clean -f .goreleaser.yml
 
-# Version
+# version
 version:
   dist/*/gocfl --version
 
-# Release
+# release
 release:
   goreleaser release --skip=publish --clean -f .goreleaser.yml
 
-# Single-target release
+# single-target release
 target:
   goreleaser build --single-target --clean -f .goreleaser.yml
 
 # docs
 docs:
   godoc -http=localhost:6060
+
 # init-submodules
 init-sub:
   git submodule update --init --recursive.
