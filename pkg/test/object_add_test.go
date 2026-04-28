@@ -120,4 +120,41 @@ func TestObjectAdd(t *testing.T) {
 	// Überprüfe ob Inhaltsdatei existiert (standardmäßig in v1/content/)
 	_, err = vfs.Stat("vfs://testmem/" + objFolder + "/v1/content/" + testFileName)
 	assert.NoError(t, err, "Content file should exist")
+
+	// 7. Objekt laden und Inventory prüfen
+	// Erstelle ein neues leeres Objekt-Objekt
+	loadedObj := fact.NewObject(ctx)
+
+	// Loader erstellen und konfigurieren
+	loader := fact.NewLoader(ctx).
+		WithObject(loadedObj).
+		WithFS(objFS).
+		WithExtensionFactory(extFactory)
+
+	// Objekt laden
+	err = loader.Load()
+	assert.NoError(t, err)
+
+	// Inventory abrufen
+	inv := loadedObj.GetInventory()
+	assert.NotNil(t, inv)
+
+	// Prüfe ID
+	assert.Equal(t, objID, inv.GetID())
+
+	// Prüfe Head (sollte v1 sein)
+	assert.Equal(t, "v1", inv.GetHead().String())
+
+	// Prüfe Datei im State von v1
+	foundTest := false
+	err = inv.IterateFiles(inv.GetHead(), func(internal []string, external []string, digest string) error {
+		for _, ext := range external {
+			if ext == testFileName {
+				foundTest = true
+			}
+		}
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.True(t, foundTest, "test.txt should be in v1 state")
 }
