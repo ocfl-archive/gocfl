@@ -358,3 +358,119 @@ func TestAddFileChecksumErrors(t *testing.T) {
 		addFileTestChecksumError(t, test)
 	}
 }
+
+var inventoryEx4 = `
+{
+   "id": "ex:1",
+   "type": "https://ocfl.io/1.1/spec/#inventory",
+   "digestAlgorithm": "sha512",
+   "head": "v1",
+   "manifest": {
+      "1a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": [
+         "v1/content/test.file1"
+      ],
+      "2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": [
+         "v1/content/test.file2"
+      ]
+   },
+   "fixity": {}
+}
+`
+
+var inventoryTestVersionErrors = []inventoryTest{
+	// Try adding a duplicate file but the version doesn't exist in
+	// the base inventory.
+	{
+		testData: inventoryEx1,
+		fileData: fileData{
+			stateFilename:    []string{"test.file2"},
+			manifestFilename: "v1/content/test.file2",
+			checksumData: map[checksum.DigestAlgorithm]string{
+				checksum.DigestSHA512: "2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea",
+			},
+		},
+		modified: false,
+		expectedError: errors.New(
+			"cannot add for duplicate of '[test.file2]' [2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea]: checksum for version  does not exist",
+		),
+	},
+}
+
+func addFileTestVersionErrors(t *testing.T, test inventoryTest) {
+	ctx := context.TODO()
+	zerologger := zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger()
+	var zlogger zLogger.ZLogger = &zerologger
+	var logger = ocfllogger.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
+
+	// Initial state.
+	testState := &stateBase{
+		State: map[string][]string{
+			"1a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": []string{"test.file1"},
+			"2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": []string{"test.file2"},
+		},
+	}
+
+	vers := &inventory.VersionNumber{}
+	vers.Init(99, "v1")
+
+	testVersion := &versionBase{
+		version: vers,
+		Created: inventory.NewOCFLTime(time.Now()),
+		Message: inventory.NewOCFLString(""),
+		State:   testState,
+	}
+
+	testVersions := &versionsBase{
+		// It is unclear why it isn't possible to load the JSON version
+		// into memory so we do it manually.
+		versions:    map[int]inventory.Version{0: testVersion},
+		versionInts: map[string]int{"v1": 0},
+	}
+
+	testInventory := InventoryBase{
+		Manifest: &ManifestBase{
+			manifest: map[string][]string{},
+		},
+		Versions: testVersions,
+		Fixity: &FixityBase{
+			fixity: map[checksum.DigestAlgorithm]map[string][]string{},
+		},
+	}
+
+	err := json.Unmarshal([]byte(test.testData), &testInventory)
+	if err != nil {
+		t.Fatal("error unmarshalling JSON from test:", err)
+	}
+
+	testInventory.logger = logger
+	err = testInventory.AddFile(
+		test.fileData.stateFilename,
+		test.fileData.manifestFilename,
+		test.fileData.checksumData,
+	)
+	if err == nil {
+		t.Errorf("error is nil but we expect an error")
+	}
+
+	if err.Error() != test.expectedError.Error() {
+		t.Errorf(
+			"error '%s' is not expected error '%s'",
+			err.Error(),
+			test.expectedError.Error(),
+		)
+	}
+
+	if testInventory.modified != test.modified {
+		t.Errorf(
+			"modified state incorrectly updated as '%t', expected: '%t'",
+			testInventory.modified,
+			test.modified,
+		)
+	}
+}
+
+func TestAddFileVersionErrors(t *testing.T) {
+	for _, test := range inventoryTestVersionErrors {
+		addFileTestVersionErrors(t, test)
+	}
+}
