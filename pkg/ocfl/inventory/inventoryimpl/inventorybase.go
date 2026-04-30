@@ -467,14 +467,24 @@ func (i *InventoryBase) CopyFile(dest string, digest string) error {
 	return nil
 }
 
-func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error {
-	i.logger.Debug().Msgf("[%s] adding '%s' -> '%s'", i.GetID(), stateFilenames, manifestFilename)
+func retrieveDigestForFile(
+	i *InventoryBase,
+	checksums map[checksum.DigestAlgorithm]string,
+) (string, error) {
 	digest, ok := checksums[i.GetDigestAlgorithm()]
 	if !ok {
-		return errors.Errorf("no digest for '%s' in checksums", i.GetDigestAlgorithm())
+		return "", errors.Errorf("no digest for '%s' in checksums", i.GetDigestAlgorithm())
 	}
 	digest = strings.ToLower(digest) // paranoia
+	return digest, nil
+}
 
+func addToFixityManifest(
+	i *InventoryBase,
+	digest string,
+	manifestFilename string,
+	checksums map[checksum.DigestAlgorithm]string,
+) (bool, error) {
 	fixitydigests := map[checksum.DigestAlgorithm]string{}
 	for alg, cs := range checksums {
 		if alg == i.GetDigestAlgorithm() {
@@ -484,55 +494,127 @@ func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string
 	}
 	modified, err := i.Fixity.AddFile(manifestFilename, fixitydigests)
 	if err != nil {
-		return errors.Wrapf(err, "cannot add fixity '%s' to '%s'", digest, manifestFilename)
+		return false, errors.Wrapf(err, "cannot add fixity '%s' to '%s'", digest, manifestFilename)
+	}
+	return modified, err
+}
+
+func addToManifest(
+	i *InventoryBase,
+	digest string,
+	manifestFilename string,
+) (bool, error) {
+	modified, err := i.Manifest.AddFile(manifestFilename, digest)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot add manifest '%s' to '%s'", digest, manifestFilename)
+	}
+	return modified, nil
+}
+
+func checkDuplicate(
+	i *InventoryBase,
+	virtualFilename string,
+	digest string,
+	stateFilenames []string,
+) (bool, error) {
+	dup, err := i.AlreadyExists(virtualFilename, digest)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot add for duplicate of '%s' [%s]", stateFilenames, digest)
+	}
+	if dup {
+		i.logger.Debug().Msgf("'%s' is a duplicate", stateFilenames)
+	}
+	return dup, nil
+}
+
+func addVirtualFile(
+	i *InventoryBase,
+	virtualFilename string,
+	digest string,
+) (bool, error) {
+	modified, err := i.Versions.AddFile(virtualFilename, digest)
+	if err != nil {
+		return modified, errors.Wrapf(err, "cannot add state '%s' to '%s'", digest, virtualFilename)
+	}
+	return modified, nil
+}
+
+func updateIfUpdate(
+	i *InventoryBase,
+	virtualFilename string,
+	digest string,
+	stateFilenames []string,
+) (bool, error) {
+	upd, err := i.IsUpdate(virtualFilename, digest)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot check for update of '%s' [%s]", stateFilenames, digest)
+	}
+	if upd {
+		i.logger.Debug().Msgf("'%s' is an update - removing old version", stateFilenames)
+		if err := i.DeleteFile(virtualFilename); err != nil {
+			return false, errors.Wrapf(err, "cannot delete old version of '%s' [%s]", stateFilenames, digest)
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func addIfNotDuplicate(
+	i *InventoryBase,
+	virtualFilename string,
+	digest string,
+	stateFilenames []string,
+) (bool, error) {
+	modified, err := i.Versions.AddFile(virtualFilename, digest)
+	if err != nil {
+		return false, errors.Wrapf(err, "cannot add version of '%s' [%s]", stateFilenames, digest)
+	}
+	return modified, nil
+}
+
+// AddFile checks whether a file exists in the 'virtual' inventory or
+// can be added and modifies the inventory data accordingly.
+func (i *InventoryBase) AddFile(stateFilenames []string, manifestFilename string, checksums map[checksum.DigestAlgorithm]string) error {
+	i.logger.Debug().Msgf("[%s] adding '%s' -> '%s'", i.GetID(), stateFilenames, manifestFilename)
+	digest, err := retrieveDigestForFile(i, checksums)
+	if err != nil {
+		return err
+	}
+	modified, err := addToFixityManifest(i, digest, manifestFilename, checksums)
+	if err != nil {
+		return err
 	}
 	i.modified = i.modified || modified
-
-	if manifestFilename != "" {
-		modified, err := i.Manifest.AddFile(manifestFilename, digest)
+	if manifestFilename != "" { // if manifest is "" do we want to return an error?
+		modified, err = addToManifest(i, digest, manifestFilename)
 		if err != nil {
-			return errors.Wrapf(err, "cannot add manifest '%s' to '%s'", digest, manifestFilename)
+			return err
 		}
 		i.modified = i.modified || modified
 	}
-
 	for _, virtualFilename := range stateFilenames {
-		dup, err := i.AlreadyExists(virtualFilename, digest)
+		dup, err := checkDuplicate(i, virtualFilename, digest, stateFilenames)
 		if err != nil {
-			return errors.Wrapf(err, "cannot add for duplicate of '%s' [%s]", stateFilenames, digest)
+			return err
 		}
-		if dup {
-			i.logger.Debug().Msgf("'%s' is a duplicate", stateFilenames)
-			// return nil
-		}
-
-		modfied, err := i.Versions.AddFile(virtualFilename, digest)
+		modified, err = addVirtualFile(i, virtualFilename, digest)
 		if err != nil {
-			return errors.Wrapf(err, "cannot add state '%s' to '%s'", digest, virtualFilename)
+			return err
 		}
-		i.modified = i.modified || modfied
-
-		upd, err := i.IsUpdate(virtualFilename, digest)
+		i.modified = i.modified || modified
+		modified, err = updateIfUpdate(i, virtualFilename, digest, stateFilenames)
 		if err != nil {
-			return errors.Wrapf(err, "cannot check for update of '%s' [%s]", stateFilenames, digest)
+			return err
 		}
-		if upd {
-			i.logger.Debug().Msgf("'%s' is an update - removing old version", stateFilenames)
-			if err := i.DeleteFile(virtualFilename); err != nil {
-				return errors.Wrapf(err, "cannot delete old version of '%s' [%s]", stateFilenames, digest)
-			}
-			i.modified = true
-		}
-
+		i.modified = i.modified || modified
 		if !dup {
-			modified, err := i.Versions.AddFile(virtualFilename, digest)
+			modified, err = addIfNotDuplicate(i, virtualFilename, digest, stateFilenames)
 			if err != nil {
-				return errors.Wrapf(err, "cannot add version of '%s' [%s]", stateFilenames, digest)
+				return err
 			}
 			i.modified = i.modified || modified
 		}
 	}
-
 	return nil
 }
 
