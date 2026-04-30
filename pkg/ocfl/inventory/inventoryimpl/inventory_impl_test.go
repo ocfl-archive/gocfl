@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
@@ -35,7 +36,8 @@ type inventoryTest struct {
 	expectedFilesFlat []string
 	// Brittle and prone to break with i18n but might be useful in
 	// these early tests to discuss.
-	manifestText string
+	manifestText  string
+	expectedError error
 }
 
 // Basic inventory that can be partially loaded into memory. Ideally
@@ -215,5 +217,144 @@ func addFileTest(t *testing.T, test inventoryTest) {
 func TestAddFile(t *testing.T) {
 	for _, test := range inventoryTests {
 		addFileTest(t, test)
+	}
+}
+
+var inventoryEx2 = `
+{
+   "id": "ex:1",
+   "type": "https://ocfl.io/1.1/spec/#inventory",
+   "digestAlgorithm": "sha512",
+   "head": "v1",
+   "manifest": {
+      "1a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": [
+         "v1/content/test.file1"
+      ],
+      "2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": [
+         "v1/content/test.file2"
+      ]
+   },
+   "fixity": {}
+}
+`
+
+var inventoryEx3 = `
+{
+   "id": "ex:1",
+   "type": "https://ocfl.io/1.1/spec/#inventory",
+   "digestAlgorithm": "md5",
+   "head": "v1",
+   "manifest": {
+      "1a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": [
+         "v1/content/test.file1"
+      ],
+      "2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": [
+         "v1/content/test.file2"
+      ]
+   },
+   "fixity": {}
+}
+`
+
+const DigestFake checksum.DigestAlgorithm = "UnknownDigest"
+
+var inventoryTestsChecksumError = []inventoryTest{
+	// Uses an unknown checksum type. NB. also an invalid checkum string.
+	{
+		testData: inventoryEx2,
+		fileData: fileData{
+			stateFilename:    []string{""},
+			manifestFilename: "",
+			checksumData: map[checksum.DigestAlgorithm]string{
+				DigestFake: "checksum123",
+			},
+		},
+		modified:      false,
+		expectedError: errors.New("no digest for 'sha512' in checksums"),
+	},
+	// Tries to add SHA512 checksum to MD5 manifest. NB. also an
+	// invalid checkum string.
+	{
+		testData: inventoryEx3,
+		fileData: fileData{
+			stateFilename:    []string{""},
+			manifestFilename: "",
+			checksumData: map[checksum.DigestAlgorithm]string{
+				checksum.DigestSHA512: "checksumSHA512",
+			},
+		},
+		modified:      false,
+		expectedError: errors.New("no digest for 'md5' in checksums"),
+	},
+}
+
+func addFileTestChecksumError(t *testing.T, test inventoryTest) {
+	ctx := context.TODO()
+	zerologger := zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger()
+	var zlogger zLogger.ZLogger = &zerologger
+	var logger = ocfllogger.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
+
+	// Initial state.
+	testState := &stateBase{
+		State: map[string][]string{
+			"1a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": []string{"test.file1"},
+			"2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea": []string{"test.file2"},
+		},
+	}
+
+	testVersion := &versionBase{
+		Created: inventory.NewOCFLTime(time.Now()),
+		Message: inventory.NewOCFLString(""),
+		State:   testState,
+	}
+
+	testVersions := &versionsBase{
+		// It is unclear why it isn't possible to load the JSON version
+		// into memory so we do it manually.
+		versions:    map[int]inventory.Version{0: testVersion},
+		versionInts: map[string]int{"v1": 0},
+	}
+
+	testInventory := InventoryBase{
+		Manifest: &ManifestBase{
+			manifest: map[string][]string{},
+		},
+		Versions: testVersions,
+		Fixity: &FixityBase{
+			fixity: map[checksum.DigestAlgorithm]map[string][]string{},
+		},
+	}
+
+	err := json.Unmarshal([]byte(test.testData), &testInventory)
+	if err != nil {
+		t.Fatal("error unmarshalling JSON from test:", err)
+	}
+
+	testInventory.logger = logger
+	err = testInventory.AddFile(
+		test.fileData.stateFilename,
+		test.fileData.manifestFilename,
+		test.fileData.checksumData,
+	)
+	if err == nil {
+		t.Fatal("error is nil, expected a checksum validation error")
+	}
+
+	if testInventory.modified != test.modified {
+		t.Fatalf(
+			"inventory modified incorrectly: '%t', expected: '%t'",
+			testInventory.modified,
+			test.modified,
+		)
+	}
+
+	if err.Error() != test.expectedError.Error() {
+		t.Fatalf("expectedd error '%s', got '%s'", err, test.expectedError)
+	}
+}
+
+func TestAddFileChecksumErrors(t *testing.T) {
+	for _, test := range inventoryTestsChecksumError {
+		addFileTestChecksumError(t, test)
 	}
 }
