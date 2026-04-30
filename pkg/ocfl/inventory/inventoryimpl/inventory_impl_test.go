@@ -394,6 +394,23 @@ var inventoryTestVersionErrors = []inventoryTest{
 			"cannot add for duplicate of '[test.file2]' [2a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea]: checksum for version  does not exist",
 		),
 	},
+	// Checksum for a new version does not exist.
+	{
+		testData: inventoryEx1,
+		fileData: fileData{
+			stateFilename:    []string{"test.file2"},
+			manifestFilename: "v1/content/test.file2",
+			checksumData: map[checksum.DigestAlgorithm]string{
+				checksum.DigestSHA512: "9a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea",
+			},
+		},
+		// TODO: This looks like an invalid condition as we get an error
+		// and it is marked as modified which it is.
+		modified: true,
+		expectedError: errors.New(
+			"cannot add for duplicate of '[test.file2]' [9a873f7ee602d253faa48a3fb64dde4202194611264f5f33541daaec4400a808c2100b90cda575c1f1a8b0465fa1f8d8c8c4336decd6845d26fbb904060937ea]: checksum for version  does not exist",
+		),
+	},
 }
 
 func addFileTestVersionErrors(t *testing.T, test inventoryTest) {
