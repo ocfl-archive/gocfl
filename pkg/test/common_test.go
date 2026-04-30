@@ -92,10 +92,12 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	assert.NoError(t, err)
 	readSRFS := fs.FS(readSRFS_append)
 
-	// Den alten Storage Root verwerfen und einen neuen erstellen, der geladen wird
+	// Den alten Storage Root verwerfen und einen neuen erstellen, der geladen wird.
+	// Wichtig: Nach der Initialisierung (Schreiben) muss der Storage Root neu geladen werden,
+	// da das Schreib-Dateisystem (appendfs) evtl. keine Lese-Operationen unterstützt (z.B. ZIP).
 	sr = storagerootimpl.NewStorageRootBase(ctx, fact, ocflVer, extFactory, logger)
 	sr.WithReadFS(readSRFS)
-	sr.WithWriteFS(srFS) // Auch das Schreib-FS wieder mitgeben, falls benötigt
+	sr.WithWriteFS(srFS) // Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 
 	// Jetzt den Loader verwenden, um die Erweiterungen etc. aus dem Lese-FS zu laden
 	loader := sr.GetLoader(extFactory)
