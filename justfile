@@ -14,6 +14,10 @@ imports:
 test:
   go test ./...
 
+# run tests with coverage (requires version alignment)
+test-cov:
+  go test -coverprofile= ./...
+
 # clear test cache
 rm-test-cache:
   go clean -testcache
