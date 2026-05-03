@@ -108,13 +108,16 @@ func (obj *checker) Check() error {
 		return errors.WithStack(err)
 	}
 
-	dAlgs := []checksum.DigestAlgorithm{inv.GetDigestAlgorithm()}
-	dAlgs = append(dAlgs, util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms())...)
+	//todo: is there something missing?
+	/*
+		dAlgs := []checksum.DigestAlgorithm{inv.GetDigestAlgorithm()}
+		dAlgs = append(dAlgs, util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms())...)
+	*/
 	return nil
 
 }
 
-var allowedFilesRegexp = regexp.MustCompile("^(inventory.json(\\.sha512|\\.sha384|\\.sha256|\\.sha1|\\.md5)?|0=ocfl_object_[0-9]+\\.[0-9]+)$")
+var allowedFilesRegexp = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
 
 func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, string, error) {
 	inv := obj.GetInventory()
@@ -230,13 +233,13 @@ func (obj *checker) checkFilesAndVersions() error {
 					if strings.HasPrefix(path, versionContent) {
 						objectContentFiles[ver] = append(objectContentFiles[ver], path)
 						objectContentFilesFlat = append(objectContentFilesFlat, path)
-					} else {
-						/*
+					} /* else {
+
 							if !strings.HasPrefix(path, inventoryFile) {
 								obj.AddValidationWarning(W002, "extra file '%s' in version '%s'", path, ver)
 							}
-						*/
-					}
+
+					}*/
 				}
 				return nil
 			},
@@ -487,7 +490,10 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 			obj.objectFS,
 			//fmt.Sprintf("%s/%s", version, inv.GetContentDir()),
 			path.Join(versionNumber.String(), inv.GetContentDir()),
-			func(path string, d fs.DirEntry, err error) error {
+			func(path string, d fs.DirEntry, dirErr error) error {
+				if dirErr != nil {
+					return errors.Wrapf(dirErr, "error walking into %s", path)
+				}
 				//obj.logger.Debug(path)
 				if d == nil || d.IsDir() {
 					return nil
