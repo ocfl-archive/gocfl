@@ -90,18 +90,18 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 	for alg := range fixity.GetDigestAlgorithms() {
 		algs = append(algs, string(alg))
 	}
-	fmt.Fprintf(w, "[%s] Fixity: %s\n", objectBase.i.GetID(), strings.Join(algs, ", "))
+	_, _ = fmt.Fprintf(w, "[%s] Fixity: %s\n", objectBase.i.GetID(), strings.Join(algs, ", "))
 	manifest := i.GetManifest()
 	cnt := 0
-	for _, fs := range manifest.Iterate() {
-		cnt += len(fs)
+	for _, files := range manifest.Iterate() {
+		cnt += len(files)
 	}
 
 	var uniqueFileCount int
 	for _, _ = range manifest.Iterate() {
 		uniqueFileCount++
 	}
-	fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", objectBase.i.GetID(), cnt, uniqueFileCount)
+	_, _ = fmt.Fprintf(w, "[%s] Manifest: %v files (%v unique files)\n", objectBase.i.GetID(), cnt, uniqueFileCount)
 	if slices.Contains(statInfo, object.StatObjectVersions) || len(statInfo) == 0 {
 		for vString, ver := range i.GetVersions().Iterate() {
 			fmt.Fprintf(w, "[%s] Version %s\n", objectBase.i.GetID(), vString)
@@ -148,7 +148,7 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 
 func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.DigestAlgorithm, fixityAlgs []checksum.DigestAlgorithm) (inventory.Inventory, error) {
 	fixity := objectBase.factory.NewFixity(objectBase.ctx).WithAlgorithms(fixityAlgs...)
-	inventory := objectBase.factory.NewInventory(objectBase.ctx).
+	inv := objectBase.factory.NewInventory(objectBase.ctx).
 		WithID(id).
 		WithDigestAlgorithm(digestAlg).
 		WithFixity(fixity)
@@ -165,7 +165,7 @@ func (objectBase *ObjectBase) CreateInventory(id string, digestAlg checksum.Dige
 		}
 	*/
 
-	return inventory, inventory.Finalize(true)
+	return inv, inv.Finalize(true)
 }
 
 func (objectBase *ObjectBase) GetInventory() inventory.Inventory {
