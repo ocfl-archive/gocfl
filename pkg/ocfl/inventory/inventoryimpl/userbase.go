@@ -46,11 +46,11 @@ func (u *userBase) Check(version *inventory.VersionNumber) error {
 		}
 	} else {
 		if !mailtoUriRegexp.MatchString(uAddr) {
-			url, err := url.Parse(uAddr)
+			addrUrl, err := url.Parse(uAddr)
 			if err != nil {
 				u.logger.ValidationError(validation.W009, "cannot parse user address '%s' in Version %s: %s", uAddr, version, err.Error())
 			} else {
-				if url.Scheme == "" {
+				if addrUrl.Scheme == "" {
 					u.logger.ValidationError(validation.W009, "cannot parse user address '%s' in Version %s", uAddr, version)
 				}
 			}
