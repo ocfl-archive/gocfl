@@ -32,7 +32,7 @@ func GetInitialParams() ([]*extension.ExternalParam, error) {
 }
 
 func init() {
-	extension.RegisterExtension(InitialName, NewInitial, GetInitialParams)
+	extension.RegisterExtension(InitialName, NewInitial, GetInitialParams, &InitialDoc)
 }
 
 func NewInitial() (extension.Extension, error) {
@@ -60,14 +60,6 @@ type InitialConfig struct {
 type Initial struct {
 	*InitialConfig
 	logger ocfllogger.OCFLLogger
-}
-
-func (sl *Initial) GetDescription() string {
-	return InitialDescription
-}
-
-func (sl *Initial) GetDocumentation() string {
-	return InitialDoc
 }
 
 func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {
