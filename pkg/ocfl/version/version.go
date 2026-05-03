@@ -1,6 +1,7 @@
 package version
 
 import (
+	_ "embed"
 	"regexp"
 	"slices"
 )
@@ -28,6 +29,13 @@ var FloatVersions = map[OCFLVersion]float64{
 }
 
 const Default = Version1_1
+
+//go:embed ocfl_spec_1.1.md
+var OCFLSpec1_1 string
+
+var Spec = map[OCFLVersion]string{
+	Version1_1: OCFLSpec1_1,
+}
 
 var OCFLStorageRootVersionNamasteRegexp = regexp.MustCompile("^0=ocfl_([0-9]+\\.[0-9]+)$")
 var ObjectVersionRegexp = regexp.MustCompile("^0=ocfl_object_([0-9]+\\.[0-9]+)$")
