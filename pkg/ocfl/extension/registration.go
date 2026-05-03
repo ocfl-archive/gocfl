@@ -15,15 +15,12 @@ var registration = map[string]*registrationStruct{}
 
 // RegisterExtension registers an extension with a given name, builder function, and external parameter function. if func is nil, it is ignored.
 func RegisterExtension(name string, builder BuilderFunc, externalParamFunc ExternalParamFunc, doc *string) {
-	reg, ok := registration[name]
-	if !ok {
-		reg = &registrationStruct{
-			documentation:     doc,
-			builder:           builder,
-			externalParamFunc: externalParamFunc,
-		}
-		registration[name] = reg
+	reg := &registrationStruct{
+		documentation:     doc,
+		builder:           builder,
+		externalParamFunc: externalParamFunc,
 	}
+	registration[name] = reg
 }
 
 // RegisterWithFactory registers all extensions with the provided factory if they have a valid builder function.

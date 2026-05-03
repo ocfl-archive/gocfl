@@ -122,8 +122,7 @@ var inventoryTests = []inventoryTest{
 
 func addFileTest(t *testing.T, test inventoryTest) {
 	ctx := context.TODO()
-	zerologger := zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger()
-	var zlogger zLogger.ZLogger = &zerologger
+	var zlogger zLogger.ZLogger = new(zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger())
 	var logger = ocfllogger.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
 
 	// Initial state.
@@ -291,8 +290,7 @@ var inventoryTestsChecksumError = []inventoryTest{
 
 func addFileTestChecksumError(t *testing.T, test inventoryTest) {
 	ctx := context.TODO()
-	zerologger := zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger()
-	var zlogger zLogger.ZLogger = &zerologger
+	var zlogger zLogger.ZLogger = new(zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger())
 	var logger = ocfllogger.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
 
 	// Initial state.
@@ -416,8 +414,7 @@ var inventoryTestVersionErrors = []inventoryTest{
 
 func addFileTestVersionErrors(t *testing.T, test inventoryTest) {
 	ctx := context.TODO()
-	zerologger := zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger()
-	var zlogger zLogger.ZLogger = &zerologger
+	var zlogger zLogger.ZLogger = new(zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger())
 	var logger = ocfllogger.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
 
 	// Initial state.

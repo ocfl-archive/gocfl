@@ -20,33 +20,47 @@ func NewFactory(extensionParams map[string]string, defaultObjectExtensionFS fs.F
 		defaultObjectExtensionFS = &util.EmptyFS{}
 	}
 	m := &Factory{
-		creators:                 map[string]extension.CreatorFunc{},
+		//creators:                 map[string]extension.CreatorFunc{},
 		extensionParams:          extensionParams,
 		logger:                   logger.With("module", "extensionimpl.Factory"),
 		defaultObjectExtensionFS: defaultObjectExtensionFS,
-		documentations:           map[string]*string{},
+		extension:                map[string]*extensionData{},
+		//	documentations:           map[string]*string{},
 	}
 	extension.RegisterWithFactory(m, m.logger)
 	return m, nil
 }
 
+type extensionData struct {
+	creator       extension.CreatorFunc
+	documentation *string
+}
 type Factory struct {
-	creators                 map[string]extension.CreatorFunc
+	extension map[string]*extensionData
+	//	creators                 map[string]extension.CreatorFunc
 	defaultStorageRoot       []extension.Extension
 	defaultObject            []extension.Extension
 	extensionParams          map[string]string
 	logger                   ocfllogger.OCFLLogger
 	defaultObjectExtensionFS fs.FS
-	documentations           map[string]*string
+	//	documentations           map[string]*string
 }
 
 func (f *Factory) GetExtensionDocs() map[string]*string {
-	return f.documentations
+	docs := map[string]*string{}
+	for name, ext := range f.extension {
+		docs[name] = ext.documentation
+	}
+	return docs
 }
 
 func (f *Factory) AddCreator(name string, creator extension.CreatorFunc, documentation *string) {
-	f.creators[name] = creator
-	f.documentations[name] = documentation
+	//f.creators[name] = creator
+	//f.documentations[name] = documentation
+	f.extension[name] = &extensionData{
+		creator:       creator,
+		documentation: documentation,
+	}
 }
 
 func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc, documentation *string) {
@@ -93,11 +107,14 @@ func (f *Factory) LoadExtensionData(data json.RawMessage) (extension.Extension, 
 	if !ok {
 		return nil, errors.Errorf("field 'extensionName' is not a string in config '%s'", string(data))
 	}
-	creator, ok := f.creators[name]
+	extData, ok := f.extension[name]
 	if !ok {
 		return nil, errors.Errorf("unknown extension '%s'", name)
 	}
-	ext, err := creator(data)
+	if extData.creator == nil {
+		return nil, errors.Errorf("extension '%s' not initialized - no creator", name)
+	}
+	ext, err := extData.creator(data)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load extension '%s'", name)
 	}
@@ -149,15 +166,18 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 			}
 			// we have the initial folder, but the extension is not initial. let's create the initial extension
 			if fName == "initial" && ext.GetName() != "initial" {
-				initialCreator, ok := f.creators[extension.DefaultExtensionInitialName]
+				extData, ok := f.extension["initial"]
 				if !ok {
-					return nil, errors.Errorf("no initial extension creator (%s) found", extension.DefaultExtensionInitialName)
+					return nil, errors.Errorf("no initial extension found")
+				}
+				if extData.creator == nil {
+					return nil, errors.Errorf("no initial extension creator found")
 				}
 				data, err := fs.ReadFile(sub, "config.json")
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot read %v/config.json", sub)
 				}
-				initialExt, err := initialCreator(data)
+				initialExt, err := extData.creator(data)
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
 				}
