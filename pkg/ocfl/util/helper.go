@@ -56,8 +56,8 @@ import (
  * https://www.dwheeler.com/essays/fixing-unix-linux-filenames.html
  */
 func FixFilename(fname string) string {
-	rule_1_5 := regexp.MustCompile("[\x00-\x1F\x7F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;]")
-	rule_2_4_6 := regexp.MustCompile("^[\\s\\-~]*(.*?)\\s*$")
+	rule_1_5 := regexp.MustCompile("[\u0000-\u001F\u007F\n\r\t*?:\\[\\]\"<>|(){}&'!;]")
+	rule_2_4_6 := regexp.MustCompile(`^[\s\-~]*(.*?)\s*$`)
 
 	fname = strings.ToValidUTF8(fname, "")
 
@@ -86,7 +86,7 @@ func CheckPrefix(list []string, suffix string, f func(str1, str2 string) bool) {
 		prefix := strings.TrimSuffix(list[j], suffix) + suffix
 		prefix2 := strings.TrimSuffix(list[j+1], suffix) + suffix
 		if strings.HasPrefix(prefix2, prefix) {
-			if f(list[j], list[j+1]) == false {
+			if !f(list[j], list[j+1]) {
 				return
 			}
 		}
@@ -123,7 +123,7 @@ func Fullpath(path string) (string, error) {
 	return filepath.ToSlash(filepath.Join(currdir, path)), nil
 }
 
-// deep copy map of string slices
+// CopyMapStringSlice deep copy map of string slices
 func CopyMapStringSlice(dest, src map[string][]string) {
 	for key, val := range src {
 		dest[key] = make([]string, len(val))
@@ -215,7 +215,7 @@ func validVersion(ctx context.Context, fsys fs.FS, ver version.OCFLVersion, fold
 	return v == ver
 }
 
-// Contains reports whether vs is present in s
+// SliceContains Contains reports whether vs is present in s
 func SliceContains[E comparable](s []E, vs []E) bool {
 	for _, v := range vs {
 		if !slices.Contains(s, v) {
@@ -291,7 +291,7 @@ func sliceInsertAt[E comparable](data []E, i int, v E) []E {
  * https://www.dwheeler.com/essays/fixing-unix-linux-filenames.html
  */
 var rule_1_5 = regexp.MustCompile("[\x00-\x1F\x7F\n\r\t*?:\\[\\]\"<>|(){}&'!\\;#@]")
-var rule_2_4_6 = regexp.MustCompile("^[\\s\\-~]*(.*?)\\s*$")
+var rule_2_4_6 = regexp.MustCompile(`^[\s\-~]*(.*?)\s*$`)
 
 var ErrFilenameTooLong = errors.New("filename too long")
 var ErrPathnameTooLong = errors.New("pathname too long")
