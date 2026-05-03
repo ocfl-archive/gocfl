@@ -5,30 +5,30 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/docs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
 func NewInitializer(ctx context.Context, factory factory.Factory, extensionFactory extension.Factory, logger ocfllogger.OCFLLogger) storageroot.Initializer {
 	return &initializer{
-		ctx:             ctx,
-		factory:         factory,
-		extensionFactor: extensionFactory,
-		logger:          logger.With("task", "storage root initializer"),
+		ctx:              ctx,
+		factory:          factory,
+		extensionFactory: extensionFactory,
+		logger:           logger.With("task", "storage root initializer"),
 	}
 }
 
 type initializer struct {
 	storageroot.StorageRoot
-	storageRootFS   appendfs.FS
-	logger          ocfllogger.OCFLLogger
-	ctx             context.Context
-	factory         factory.Factory
-	extensionFactor extension.Factory
+	storageRootFS    appendfs.FS
+	logger           ocfllogger.OCFLLogger
+	ctx              context.Context
+	factory          factory.Factory
+	extensionFactory extension.Factory
 }
 
 func (init *initializer) Close() error {
@@ -66,22 +66,21 @@ func (init *initializer) Init() error {
 		return errors.Wrapf(err, "cannot write extension config to %v", subFS)
 	}
 
-	extDocs, err := docs.ExtensionDocs.ReadDir(".")
-	if err != nil {
-		return errors.Wrap(err, "cannot read extension docs")
-	}
-	for _, extDoc := range extDocs {
-		if extDoc.IsDir() {
+	for name, doc := range init.extensionFactory.GetExtensionDocs() {
+		if doc == nil {
 			continue
 		}
-		extDocFileContent, err := docs.ExtensionDocs.ReadFile(extDoc.Name())
-		if err != nil {
-			return errors.Wrapf(err, "cannot open extension doc %s", extDoc.Name())
-		}
-		if _, err := writefs.WriteFile(init.storageRootFS, extDoc.Name(), extDocFileContent); err != nil {
-			return errors.Wrapf(err, "cannot write extension doc %v/%s", init.storageRootFS, extDoc.Name())
+		if _, err := writefs.WriteFile(init.storageRootFS, name+".md", []byte(*doc)); err != nil {
+			return errors.Wrapf(err, "cannot write extension doc %v/%s", init.storageRootFS, name)
 		}
 	}
+	if spec, ok := version.Spec[init.GetVersion()]; ok {
+		specName := "ocfl_spec_" + init.GetVersion().String() + ".md"
+		if _, err := writefs.WriteFile(init.storageRootFS, specName, []byte(spec)); err != nil {
+			return errors.Wrapf(err, "cannot write extension doc %v/%s", init.storageRootFS, specName)
+		}
+	}
+
 	if err := init.GetExtensionManager().StoreRootLayout(init.storageRootFS); err != nil {
 		return errors.Wrap(err, "cannot store ocfl layout")
 	}
