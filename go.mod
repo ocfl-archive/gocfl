@@ -6,7 +6,7 @@ require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.1
 	github.com/google/uuid v1.6.0
-	github.com/je4/filesystem/v3 v3.0.53
+	github.com/je4/filesystem/v3 v3.0.54
 	github.com/je4/utils/v2 v2.0.68
 	github.com/ocfl-archive/indexer/v3 v3.0.42
 	github.com/rs/zerolog v1.35.1
