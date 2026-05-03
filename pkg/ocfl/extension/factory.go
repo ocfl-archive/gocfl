@@ -9,8 +9,8 @@ type BuilderFunc func() (Extension, error)
 type ExternalParamFunc func() ([]*ExternalParam, error)
 
 type Factory interface {
-	AddCreator(name string, creator CreatorFunc)
-	RegisterExtension(name string, builder BuilderFunc)
+	AddCreator(name string, creator CreatorFunc, documentation *string)
+	RegisterExtension(name string, builder BuilderFunc, documentation *string)
 	AddStorageRootDefaultExtension(ext Extension)
 	AddObjectDefaultExtension(ext Extension)
 
@@ -18,4 +18,5 @@ type Factory interface {
 	LoadExtensionData(data json.RawMessage) (Extension, error)
 
 	LoadExtensionManager(fsys fs.FS) (ManagerCore, error)
+	GetExtensionDocs() map[string]*string
 }
