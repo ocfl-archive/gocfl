@@ -102,7 +102,6 @@ func (osr *StorageRootBase) GetInitializer() storageroot.Initializer {
 	return osr.factory.NewStorageRootInitializer(osr.ctx).WithStorageRoot(osr).WithFS(osr.GetWriteFS())
 }
 
-// var rootConformanceDeclaration = fmt.Sprintf("0=ocfl_%s", VERSION)
 func (osr *StorageRootBase) WithExtensionManager(extensionManager storageroot.ExtensionManager) storageroot.StorageRoot {
 	osr.extensionManager = extensionManager
 	return osr

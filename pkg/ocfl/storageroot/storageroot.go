@@ -37,10 +37,8 @@ type StorageRoot interface {
 	GetReadFS() fs.FS
 	WithWriteFS(appendFS appendfs.FS) StorageRoot
 	GetWriteFS() appendfs.FS
-	//WithFS(fsys fs.FS) StorageRoot
 	WithExtensionManager(extensionManager ExtensionManager) StorageRoot
 	GetExtensionManager() ExtensionManager
-	//GetFS() fs.FS
 	GetDigest() checksum.DigestAlgorithm
 	SetDigest(digest checksum.DigestAlgorithm)
 	GetFolders() ([]string, error)
