@@ -6,7 +6,8 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	_ "github.com/ocfl-archive/gocfl/v3/pkg/extensions"
+	_ "github.com/ocfl-archive/gocfl/v3/pkg/extensions/ext_NNNN_gocfl_extension_manager"
+	_ "github.com/ocfl-archive/gocfl/v3/pkg/extensions/ext_initial"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
@@ -23,6 +24,7 @@ func NewFactory(extensionParams map[string]string, defaultObjectExtensionFS fs.F
 		extensionParams:          extensionParams,
 		logger:                   logger.With("module", "extensionimpl.Factory"),
 		defaultObjectExtensionFS: defaultObjectExtensionFS,
+		documentations:           map[string]*string{},
 	}
 	extension.RegisterWithFactory(m, m.logger)
 	return m, nil
@@ -35,13 +37,19 @@ type Factory struct {
 	extensionParams          map[string]string
 	logger                   ocfllogger.OCFLLogger
 	defaultObjectExtensionFS fs.FS
+	documentations           map[string]*string
 }
 
-func (f *Factory) AddCreator(name string, creator extension.CreatorFunc) {
+func (f *Factory) GetExtensionDocs() map[string]*string {
+	return f.documentations
+}
+
+func (f *Factory) AddCreator(name string, creator extension.CreatorFunc, documentation *string) {
 	f.creators[name] = creator
+	f.documentations[name] = documentation
 }
 
-func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc) {
+func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc, documentation *string) {
 	f.logger.Debug().Msgf("adding creator for extension %s", name)
 	f.AddCreator(name, func(data json.RawMessage) (extension.Extension, error) {
 		ext, err := builder()
@@ -53,7 +61,7 @@ func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc) 
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot load extension %s", name))
 		}
 		return ext, nil
-	})
+	}, documentation)
 }
 
 func (f *Factory) AddStorageRootDefaultExtension(ext extension.Extension) {

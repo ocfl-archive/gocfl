@@ -8,22 +8,21 @@ import (
 type registrationStruct struct {
 	builder           BuilderFunc
 	externalParamFunc ExternalParamFunc
+	documentation     *string
 }
 
 var registration = map[string]*registrationStruct{}
 
 // RegisterExtension registers an extension with a given name, builder function, and external parameter function. if func is nil, it is ignored.
-func RegisterExtension(name string, builder BuilderFunc, externalParamFunc ExternalParamFunc) {
+func RegisterExtension(name string, builder BuilderFunc, externalParamFunc ExternalParamFunc, doc *string) {
 	reg, ok := registration[name]
 	if !ok {
-		reg = &registrationStruct{}
+		reg = &registrationStruct{
+			documentation:     doc,
+			builder:           builder,
+			externalParamFunc: externalParamFunc,
+		}
 		registration[name] = reg
-	}
-	if builder != nil {
-		reg.builder = builder
-	}
-	if externalParamFunc != nil {
-		reg.externalParamFunc = externalParamFunc
 	}
 }
 
@@ -34,7 +33,7 @@ func RegisterWithFactory(fact Factory, logger ocfllogger.OCFLLogger) {
 			logger.Debug().Msgf("extension %s has no builder func", name)
 			continue
 		}
-		fact.RegisterExtension(name, reg.builder)
+		fact.RegisterExtension(name, reg.builder, reg.documentation)
 	}
 }
 
