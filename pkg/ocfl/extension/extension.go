@@ -14,6 +14,8 @@ type ExtensionConfig struct {
 type Extension interface {
 	WithLogger(logger ocfllogger.OCFLLogger) Extension
 	GetName() string
+	GetDescription() string
+	GetDocumentation() string
 	Load(data json.RawMessage) error
 	SetParams(params map[string]string) error
 	WriteConfig(fsys appendfs.FS) error
