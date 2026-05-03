@@ -24,7 +24,6 @@ type ManagerCore interface {
 	Add(ext Extension) error
 	Finalize()
 	GetConfigName(extName string) (any, error)
-	//GetFSName(extName string) (fs.FS, error)
 	StoreRootLayout(fsys appendfs.FS) error
 	SetInitial(initial Initial)
 }

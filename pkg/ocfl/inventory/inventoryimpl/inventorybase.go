@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"emperror.dev/errors"
@@ -215,13 +214,13 @@ func (i *InventoryBase) Finalize(inCreation bool) (err error) {
 		i.logger.ValidationError(validation.E040, "head version '%s' is not in versions %v", i.Head, util.SeqToSlice(i.Versions.GetVersionNumbers()))
 	}
 
-	if !inCreation {
-		/*
-			if err := i.check(); err != nil {
-				return errors.WithStack(err)
-			}
-		*/
-	}
+	/*
+		if !inCreation {
+				if err := i.check(); err != nil {
+					return errors.WithStack(err)
+				}
+		}
+	*/
 	return nil
 }
 
@@ -418,7 +417,7 @@ func (i *InventoryBase) BuildManifestNameVersion(stateFilename string, version *
 	return filepath.ToSlash(filepath.Clean(filepath.Join(version.String(), i.GetContentDir(), stateFilename)))
 }
 
-var vRegexp *regexp.Regexp = regexp.MustCompile("^v(\\d+)$")
+//var vRegexp *regexp.Regexp = regexp.MustCompile("^v(\\d+)$")
 
 func (i *InventoryBase) AlreadyExists(stateFilename, checksum string) (bool, error) {
 	return i.Versions.FileExists(stateFilename, checksum)
