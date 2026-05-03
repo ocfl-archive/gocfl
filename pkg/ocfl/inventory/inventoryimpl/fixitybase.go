@@ -117,7 +117,6 @@ func (f *FixityBase) Iterate(alg checksum.DigestAlgorithm) func(yield func(diges
 				return
 			}
 		}
-		return
 	}
 }
 
@@ -220,8 +219,9 @@ func (f *FixityBase) Check(fileManifest map[checksum.DigestAlgorithm]map[string]
 			}
 		}
 		// check consistency and format
+		//todo: what happens with digests?
+		digests := []string{}
 		for digest, files := range fixity {
-			digests := []string{}
 			lowerDigest := strings.ToLower(digest)
 			if _, found := slices.BinarySearch(digests, lowerDigest); found {
 				f.logger.ValidationError(validation.E097, "fixity '%s' digest '%s' is duplicate", digestAlg, digest)
