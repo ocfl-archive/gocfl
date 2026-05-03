@@ -1,8 +1,9 @@
-package extensions
+package ext_NNNN_gocfl_extension_manager
 
 import (
 	"bufio"
 	"cmp"
+	_ "embed"
 	"encoding/json"
 	"io"
 	"io/fs"
@@ -22,6 +23,9 @@ import (
 
 const GOCFLExtensionManagerName = "NNNN-gocfl-extension-manager"
 const GOCFLExtensionManagerDescription = "initial extension for sorted exclusion and sorted execution"
+
+//go:embed NNNN-gocfl-extension-manager.go
+var GOCFLExtensionManagerDoc string
 
 func init() {
 	extension2.RegisterExtension(GOCFLExtensionManagerName, NewGOCFLExtensionManager, nil)
@@ -64,6 +68,14 @@ type GOCFLExtensionManager struct {
 	newVersion         []object.ExtensionNewVersion
 	initial            extension2.Initial
 	logger             ocfllogger.OCFLLogger
+}
+
+func (manager *GOCFLExtensionManager) GetDescription() string {
+	return GOCFLExtensionManagerDescription
+}
+
+func (manager *GOCFLExtensionManager) GetDocumentation() string {
+	return GOCFLExtensionManagerDoc
 }
 
 func (manager *GOCFLExtensionManager) WithLogger(logger ocfllogger.OCFLLogger) extension2.Extension {
@@ -293,7 +305,7 @@ func (manager *GOCFLExtensionManager) WriteConfig(fsys appendfs.FS) error {
 	return nil
 }
 
-// StorageRootPath
+// StoreRootLayout StorageRootPath
 func (manager *GOCFLExtensionManager) StoreRootLayout(fsys appendfs.FS) error {
 	for _, ext := range manager.storageRootPath {
 		if err := ext.WriteLayout(fsys); err != nil {

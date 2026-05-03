@@ -1,6 +1,7 @@
-package extensions
+package ext_initial
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 
@@ -13,6 +14,9 @@ import (
 
 const InitialName = "initial"
 const InitialDescription = "initial extension defines the name of the extension manager"
+
+//go:embed initial.md
+var InitialDoc string
 
 func GetInitialParams() ([]*extension.ExternalParam, error) {
 	return []*extension.ExternalParam{
@@ -56,6 +60,14 @@ type InitialConfig struct {
 type Initial struct {
 	*InitialConfig
 	logger ocfllogger.OCFLLogger
+}
+
+func (sl *Initial) GetDescription() string {
+	return InitialDescription
+}
+
+func (sl *Initial) GetDocumentation() string {
+	return InitialDoc
 }
 
 func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension {
