@@ -15,7 +15,7 @@ type Factory interface {
 	AddObjectDefaultExtension(ext Extension)
 
 	LoadExtensionFile(fsys fs.FS) (Extension, error)
-	LoadExtensionData(data json.RawMessage) (Extension, error)
+	LoadExtensionData(data json.RawMessage, extFS fs.FS) (Extension, error)
 
 	LoadExtensionManager(fsys fs.FS) (ManagerCore, error)
 	GetExtensionDocs() map[string]*string

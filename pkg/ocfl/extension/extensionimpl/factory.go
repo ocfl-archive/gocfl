@@ -15,17 +15,11 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/util"
 )
 
-func NewFactory(extensionParams map[string]string, defaultObjectExtensionFS fs.FS, logger ocfllogger.OCFLLogger) (*Factory, error) {
-	if defaultObjectExtensionFS == nil {
-		defaultObjectExtensionFS = &util.EmptyFS{}
-	}
+func NewFactory(extensionParams map[string]string, logger ocfllogger.OCFLLogger) (*Factory, error) {
 	m := &Factory{
-		//creators:                 map[string]extension.CreatorFunc{},
-		extensionParams:          extensionParams,
-		logger:                   logger.With("module", "extensionimpl.Factory"),
-		defaultObjectExtensionFS: defaultObjectExtensionFS,
-		extension:                map[string]*extensionData{},
-		//	documentations:           map[string]*string{},
+		extensionParams: extensionParams,
+		logger:          logger.With("module", "extensionimpl.Factory"),
+		extension:       map[string]*extensionData{},
 	}
 	extension.RegisterWithFactory(m, m.logger)
 	return m, nil
@@ -36,14 +30,11 @@ type extensionData struct {
 	documentation *string
 }
 type Factory struct {
-	extension map[string]*extensionData
-	//	creators                 map[string]extension.CreatorFunc
-	defaultStorageRoot       []extension.Extension
-	defaultObject            []extension.Extension
-	extensionParams          map[string]string
-	logger                   ocfllogger.OCFLLogger
-	defaultObjectExtensionFS fs.FS
-	//	documentations           map[string]*string
+	extension          map[string]*extensionData
+	defaultStorageRoot []extension.Extension
+	defaultObject      []extension.Extension
+	extensionParams    map[string]string
+	logger             ocfllogger.OCFLLogger
 }
 
 func (f *Factory) GetExtensionDocs() map[string]*string {
@@ -65,13 +56,13 @@ func (f *Factory) AddCreator(name string, creator extension.CreatorFunc, documen
 
 func (f *Factory) RegisterExtension(name string, builder extension.BuilderFunc, documentation *string) {
 	f.logger.Debug().Msgf("adding creator for extension %s", name)
-	f.AddCreator(name, func(data json.RawMessage) (extension.Extension, error) {
+	f.AddCreator(name, func(data json.RawMessage, extFS fs.FS) (extension.Extension, error) {
 		ext, err := builder()
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot create extension %s", name))
 		}
 		ext = ext.WithLogger(f.logger)
-		if err := ext.Load(data); err != nil {
+		if err := ext.Load(data, extFS); err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot load extension %s", name))
 		}
 		return ext, nil
@@ -91,10 +82,10 @@ func (f *Factory) LoadExtensionFile(fsys fs.FS) (extension.Extension, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
 	}
-	return f.LoadExtensionData(data)
+	return f.LoadExtensionData(data, fsys)
 }
 
-func (f *Factory) LoadExtensionData(data json.RawMessage) (extension.Extension, error) {
+func (f *Factory) LoadExtensionData(data json.RawMessage, extFS fs.FS) (extension.Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
@@ -114,7 +105,7 @@ func (f *Factory) LoadExtensionData(data json.RawMessage) (extension.Extension, 
 	if extData.creator == nil {
 		return nil, errors.Errorf("extension '%s' not initialized - no creator", name)
 	}
-	ext, err := extData.creator(data)
+	ext, err := extData.creator(data, extFS)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load extension '%s'", name)
 	}
@@ -177,7 +168,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot read %v/config.json", sub)
 				}
-				initialExt, err := extData.creator(data)
+				initialExt, err := extData.creator(data, sub)
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionInitialName)
 				}
@@ -210,7 +201,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 
 	if initial == nil {
 		configData := []byte(fmt.Sprintf(`{"extensionName": "%s", "extension": "%s"}`, extension.DefaultExtensionInitialName, extension.DefaultExtensionManagerName))
-		ext, err := f.LoadExtensionData(configData)
+		ext, err := f.LoadExtensionData(configData, nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot load default initial extension")
 		}
@@ -239,23 +230,26 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 
 	// something bad had happened. create functional extension manager structure
 	if manager == nil {
-		data, err := fs.ReadFile(f.defaultObjectExtensionFS, fmt.Sprintf("%s/config.json", extension.DefaultExtensionManagerName))
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return nil, errors.Wrapf(err, "cannot read %v/config.json", f.defaultObjectExtensionFS)
+		return nil, errors.Wrap(errors.Combine(errs...), "failed to initialize extension manager")
+		/*
+			data, err := fs.ReadFile(f.defaultObjectExtensionFS, fmt.Sprintf("%s/config.json", extension.DefaultExtensionManagerName))
+			if err != nil {
+				if !errors.Is(err, fs.ErrNotExist) {
+					return nil, errors.Wrapf(err, "cannot read %v/config.json", f.defaultObjectExtensionFS)
+				}
+				data = []byte(fmt.Sprintf(`{"extensionName": "%s"}`, extension.DefaultExtensionManagerName))
 			}
-			data = []byte(fmt.Sprintf(`{"extensionName": "%s"}`, extension.DefaultExtensionManagerName))
-		}
 
-		ext, err := f.LoadExtensionData(data)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)
-		}
-		var ok bool
-		manager, ok = ext.(object.ExtensionManager)
-		if !ok {
-			return nil, errors.Errorf("default extension manager is not a manager extension")
-		}
+			ext, err := f.LoadExtensionData(data, nil)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot initialize extension %s", extension.DefaultExtensionManagerName)
+			}
+			var ok bool
+			manager, ok = ext.(object.ExtensionManager)
+			if !ok {
+				return nil, errors.Errorf("default extension manager is not a manager extension")
+			}
+		*/
 	}
 	for _, ext := range result {
 		if err := manager.Add(ext); err != nil {
