@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v3/pkg/writefs"
@@ -67,7 +68,7 @@ func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension 
 	return sl
 }
 
-func (sl *Initial) Load(data json.RawMessage) error {
+func (sl *Initial) Load(data json.RawMessage, _ fs.FS) error {
 	if err := json.Unmarshal(data, sl.InitialConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal InitialConfig '%s'", string(data))
 	}

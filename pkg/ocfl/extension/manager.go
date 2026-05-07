@@ -2,6 +2,7 @@ package extension
 
 import (
 	"encoding/json"
+	"io/fs"
 
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 )
@@ -9,7 +10,7 @@ import (
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
 const DefaultExtensionInitialName = "initial"
 
-type CreatorFunc func(data json.RawMessage) (Extension, error)
+type CreatorFunc func(data json.RawMessage, extFS fs.FS) (Extension, error)
 
 type Initial interface {
 	Extension

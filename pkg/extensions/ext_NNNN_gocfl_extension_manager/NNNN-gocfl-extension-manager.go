@@ -75,7 +75,7 @@ func (manager *GOCFLExtensionManager) WithLogger(logger ocfllogger.OCFLLogger) e
 	return manager
 }
 
-func (manager *GOCFLExtensionManager) Load(data json.RawMessage) error {
+func (manager *GOCFLExtensionManager) Load(data json.RawMessage, _ fs.FS) error {
 	if err := json.Unmarshal(data, manager.ManagerConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal ExtensionManagerConfig '%s'", string(data))
 	}
