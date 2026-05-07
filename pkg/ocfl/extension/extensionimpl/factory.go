@@ -230,6 +230,7 @@ func (f *Factory) LoadExtensionManager(fsys fs.FS) (extension.ManagerCore, error
 
 	// something bad had happened. create functional extension manager structure
 	if manager == nil {
+		errs = append(errs, errors.Errorf("no manager extension loaded"))
 		return nil, errors.Wrap(errors.Combine(errs...), "failed to initialize extension manager")
 		/*
 			data, err := fs.ReadFile(f.defaultObjectExtensionFS, fmt.Sprintf("%s/config.json", extension.DefaultExtensionManagerName))
