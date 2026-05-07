@@ -62,7 +62,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	srFS, err := appendfs.Sub(destFS, "vfs://testmem/")
 	assert.NoError(t, err)
 
-	extFactory, err := extensionimpl.NewFactory(nil, nil, logger)
+	extFactory, err := extensionimpl.NewFactory(nil, logger)
 	assert.NoError(t, err)
 
 	ocflVer := version.Version1_1
