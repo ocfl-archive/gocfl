@@ -13,7 +13,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewInitializer(ctx context.Context, factory factory.Factory, extensionFactory extension.Factory, logger ocfllogger.OCFLLogger) storageroot.Initializer {
+func NewInitializer(ctx context.Context, factory factory.FactoryStorageRoot, extensionFactory extension.Factory[storageroot.ExtensionManager], logger ocfllogger.OCFLLogger) storageroot.Initializer {
 	return &initializer{
 		ctx:              ctx,
 		factory:          factory,
@@ -27,8 +27,8 @@ type initializer struct {
 	storageRootFS    appendfs.FS
 	logger           ocfllogger.OCFLLogger
 	ctx              context.Context
-	factory          factory.Factory
-	extensionFactory extension.Factory
+	factory          factory.FactoryStorageRoot
+	extensionFactory extension.Factory[storageroot.ExtensionManager]
 }
 
 func (init *initializer) Close() error {

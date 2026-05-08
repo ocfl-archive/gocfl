@@ -21,7 +21,7 @@ func NewLoader(ctx context.Context, logger ocfllogger.OCFLLogger) *Loader {
 type Loader struct {
 	storageroot.StorageRoot
 	ctx              context.Context
-	extensionFactory extension.Factory
+	extensionFactory extension.Factory[storageroot.ExtensionManager]
 	sourceFS         fs.FS
 	logger           ocfllogger.OCFLLogger
 }
@@ -38,7 +38,7 @@ func (loader *Loader) Load() error {
 	return nil
 }
 
-func (loader *Loader) WithExtensionFactory(factory extension.Factory) storageroot.Loader {
+func (loader *Loader) WithExtensionFactory(factory extension.Factory[storageroot.ExtensionManager]) storageroot.Loader {
 	loader.extensionFactory = factory
 	return loader
 }

@@ -20,7 +20,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func NewInventoryBase(ctx context.Context, f factorytypes.Factory, version version.OCFLVersion, spec inventory.InventorySpec, logger ocfllogger.OCFLLogger) *InventoryBase {
+func NewInventoryBase(ctx context.Context, f factorytypes.FactoryObject, version version.OCFLVersion, spec inventory.InventorySpec, logger ocfllogger.OCFLLogger) *InventoryBase {
 	i := &InventoryBase{
 		ctx:     ctx,
 		factory: f,
@@ -42,7 +42,7 @@ func NewInventoryBase(ctx context.Context, f factorytypes.Factory, version versi
 }
 
 type InventoryBase struct {
-	factory factorytypes.Factory
+	factory factorytypes.FactoryObject
 	ctx     context.Context
 	//folder  string
 	//object                 ocfl.Object

@@ -8,7 +8,7 @@ import (
 type BuilderFunc func() (Extension, error)
 type ExternalParamFunc func() ([]*ExternalParam, error)
 
-type Factory interface {
+type Factory[T ManagerCore[T]] interface {
 	AddCreator(name string, creator CreatorFunc, documentation *string)
 	RegisterExtension(name string, builder BuilderFunc, documentation *string)
 	AddStorageRootDefaultExtension(ext Extension)
@@ -17,6 +17,6 @@ type Factory interface {
 	LoadExtensionFile(fsys fs.FS) (Extension, error)
 	LoadExtensionData(data json.RawMessage, extFS fs.FS) (Extension, error)
 
-	LoadExtensionManager(fsys fs.FS) (ManagerCore, error)
+	LoadExtensionManager(fsys fs.FS) (T, error)
 	GetExtensionDocs() map[string]*string
 }

@@ -24,14 +24,14 @@ type Loader interface {
 	Load() error
 	WithStorageRoot(sr StorageRoot) Loader
 	WithFS(sourceFS fs.FS) Loader
-	WithExtensionFactory(factory extension.Factory) Loader
+	WithExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
 	Close() error
 }
 
 type StorageRoot interface {
 	fmt.Stringer
 	IsWriteable() bool
-	GetLoader(extensionFactor extension.Factory) Loader
+	GetLoader(extensionFactor extension.Factory[ExtensionManager]) Loader
 	GetInitializer() Initializer
 	WithReadFS(sourceFS fs.FS) StorageRoot
 	GetReadFS() fs.FS
@@ -49,9 +49,7 @@ type StorageRoot interface {
 	IsModified() bool
 	SetModified()
 	GetVersion() version.OCFLVersion
-	//Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 	GetOCFLVersion() version.OCFLVersion
 	Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 	WithDigestAlgorithm(digest checksum.DigestAlgorithm) StorageRoot
-	CreateObject(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionManager object.ExtensionManager) (object.Object, error)
 }

@@ -51,7 +51,7 @@ type Loader interface {
 	WithObject(o Object) Loader
 	WithFS(sourceFS fs.FS) Loader
 	GetFS() fs.FS
-	WithExtensionFactory(factory extension.Factory) Loader
+	WithExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
 }
 
 type Extractor interface {
@@ -66,7 +66,7 @@ type Extractor interface {
 type Object interface {
 	GetExtractor(objectFS fs.FS, destFS appendfs.FS) Extractor
 	GetInitializer(objectFS appendfs.FS) Initializer
-	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader
+	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory[ExtensionManager]) Loader
 	WithInventory(inv inventory.Inventory) Object
 	WithExtensionManager(manager ExtensionManager) Object
 	StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)

@@ -21,7 +21,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/util"
 )
 
-func NewObjectBaseChecker(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Checker {
+func NewObjectBaseChecker(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) object.Checker {
 	return &checker{
 		ctx:     ctx,
 		factory: factory,
@@ -33,7 +33,7 @@ type checker struct {
 	object.Object
 	ctx      context.Context
 	objectFS fs.FS
-	factory  factory.Factory
+	factory  factory.FactoryObject
 	logger   ocfllogger.OCFLLogger
 }
 

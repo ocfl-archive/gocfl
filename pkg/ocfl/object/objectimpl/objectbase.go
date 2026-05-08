@@ -22,7 +22,13 @@ import (
 )
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory *extensionimpl.Factory, logger ocfllogger.OCFLLogger) *ObjectBase {
+func NewObjectBase(
+	ctx context.Context,
+	fact factory.FactoryObject,
+	defaultVersion version.OCFLVersion,
+	extensionFactory *extensionimpl.Factory[object.ExtensionManager],
+	logger ocfllogger.OCFLLogger,
+) *ObjectBase {
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
 		//extensionManager: extensionManager.(object.ExtensionManager),
@@ -44,7 +50,7 @@ func NewObjectBase(ctx context.Context, fact factory.Factory, defaultVersion ver
 
 type ObjectBase struct {
 	//	storageRoot        storageroot.StorageRoot
-	extensionFactory *extensionimpl.Factory
+	extensionFactory *extensionimpl.Factory[object.ExtensionManager]
 	extensionManager object.ExtensionManager
 	ctx              context.Context
 	//fsys             fs.FS
@@ -58,10 +64,10 @@ type ObjectBase struct {
 	echo        bool
 	updateFiles []string
 	area        string
-	factory     factory.Factory
+	factory     factory.FactoryObject
 }
 
-func (objectBase *ObjectBase) GetFactory() factory.Factory {
+func (objectBase *ObjectBase) GetFactory() factory.FactoryObject {
 	return objectBase.factory
 }
 
@@ -204,7 +210,7 @@ func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 	return objectBase.factory.GetVersion()
 }
 
-func (objectBase *ObjectBase) GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) object.Loader {
+func (objectBase *ObjectBase) GetLoader(sourceFS fs.FS, extensionFactory extension.Factory[object.ExtensionManager]) object.Loader {
 	return objectBase.factory.NewLoader(objectBase.ctx).WithObject(objectBase).WithFS(sourceFS).WithExtensionFactory(extensionFactory)
 }
 

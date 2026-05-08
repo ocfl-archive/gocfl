@@ -23,8 +23,13 @@ import (
 )
 
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersion version.OCFLVersion, extensionFactory extension.Factory, logger ocfllogger.OCFLLogger) *StorageRootBase {
-	var err error
+func NewStorageRootBase(
+	ctx context.Context,
+	fact factory.FactoryStorageRoot,
+	defaultVersion version.OCFLVersion,
+	extensionFactory extension.Factory[storageroot.ExtensionManager],
+	logger ocfllogger.OCFLLogger,
+) *StorageRootBase {
 	ocfl := &StorageRootBase{
 		ctx:     ctx,
 		factory: fact,
@@ -34,21 +39,18 @@ func NewStorageRootBase(ctx context.Context, fact factory.Factory, defaultVersio
 		//extensionManager: extensionManager,
 		logger: logger,
 	}
-	if err != nil {
-		return nil
-	}
 	return ocfl
 }
 
 type StorageRootBase struct {
 	ctx              context.Context
-	extensionFactory extension.Factory
+	extensionFactory extension.Factory[storageroot.ExtensionManager]
 	extensionManager storageroot.ExtensionManager
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
 	digest           checksum.DigestAlgorithm
 	modified         bool
-	factory          factory.Factory
+	factory          factory.FactoryStorageRoot
 	sourceFS         fs.FS
 	appendFS         appendfs.FS
 }
@@ -94,7 +96,7 @@ func (osr *StorageRootBase) GetOCFLVersion() version.OCFLVersion {
 	return osr.factory.GetVersion()
 }
 
-func (osr *StorageRootBase) GetLoader(extensionFactor extension.Factory) storageroot.Loader {
+func (osr *StorageRootBase) GetLoader(extensionFactor extension.Factory[storageroot.ExtensionManager]) storageroot.Loader {
 	return osr.factory.NewStorageRootLoader(osr.ctx).WithStorageRoot(osr).WithExtensionFactory(extensionFactor).WithFS(osr.GetReadFS())
 }
 
@@ -220,26 +222,6 @@ func (osr *StorageRootBase) GetObjectFolders() ([]string, error) {
 func (osr *StorageRootBase) IdToFolder(id string) (folder string, err error) {
 	folder, err = osr.extensionManager.BuildStorageRootPath(osr, id)
 	return folder, errors.WithStack(err)
-}
-
-func (osr *StorageRootBase) CreateObject(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, objectExtensionManager object.ExtensionManager) (object.Object, error) {
-	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
-	subfs, err := appendfs.Sub(osr.appendFS, folder)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create sub fs of %v for '%s'", osr.appendFS, folder)
-	}
-
-	obj := osr.factory.NewObject(osr.ctx).WithExtensionManager(objectExtensionManager)
-	initializer := obj.GetInitializer(subfs)
-	if err := initializer.Init(id, digest, fixity); err != nil {
-		return nil, errors.Wrap(err, "cannot initialize object")
-	}
-
-	if id != "" && obj.GetID() != id {
-		return nil, fmt.Errorf("id mismatch. '%s' != '%s'", id, obj.GetID())
-	}
-
-	return obj, nil
 }
 
 //

@@ -13,7 +13,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewInitializer(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Initializer {
+func NewInitializer(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) object.Initializer {
 	return &initializer{
 		ctx:     ctx,
 		factory: factory,
@@ -26,7 +26,7 @@ type initializer struct {
 	objectFS appendfs.FS
 	logger   ocfllogger.OCFLLogger
 	ctx      context.Context
-	factory  factory.Factory
+	factory  factory.FactoryObject
 }
 
 func (initializer *initializer) WithObject(o object.Object) object.Initializer {

@@ -23,7 +23,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewLoader(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) *Loader {
+func NewLoader(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) *Loader {
 	return &Loader{
 		ctx:     ctx,
 		factory: factory,
@@ -34,10 +34,10 @@ func NewLoader(ctx context.Context, factory factory.Factory, logger ocfllogger.O
 type Loader struct {
 	object.Object
 	ctx              context.Context
-	extensionFactory extension.Factory
+	extensionFactory extension.Factory[object.ExtensionManager]
 	objectFS         fs.FS
 	logger           ocfllogger.OCFLLogger
-	factory          factory.Factory
+	factory          factory.FactoryObject
 }
 
 func (loader *Loader) GetFS() fs.FS {
@@ -54,7 +54,7 @@ func (loader *Loader) Load() error {
 	return nil
 }
 
-func (loader *Loader) WithExtensionFactory(factory extension.Factory) object.Loader {
+func (loader *Loader) WithExtensionFactory(factory extension.Factory[object.ExtensionManager]) object.Loader {
 	loader.extensionFactory = factory
 	return loader
 }
@@ -111,7 +111,7 @@ func (loader *Loader) findInventoryFile() (string, error) {
 	return p, nil
 }
 
-func unmarshalInventoryData(ctx context.Context, data []byte, ver version.OCFLVersion, fact factory.Factory, logger ocfllogger.OCFLLogger) (inventory.Inventory, error) {
+func unmarshalInventoryData(ctx context.Context, data []byte, ver version.OCFLVersion, fact factory.FactoryObject, logger ocfllogger.OCFLLogger) (inventory.Inventory, error) {
 	anyMap := map[string]any{}
 	if err := json.Unmarshal(data, &anyMap); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal json '%s'", string(data))
@@ -201,7 +201,7 @@ func (loader *Loader) loadInventoryFile(filename string) (inventory.Inventory, e
 	}
 	return inv, nil
 }
-func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver version.OCFLVersion, fact factory.Factory, logger ocfllogger.OCFLLogger) (inventory.Inventory, string, error) {
+func loadInventoryFile(ctx context.Context, objectFS fs.FS, filename string, ver version.OCFLVersion, fact factory.FactoryObject, logger ocfllogger.OCFLLogger) (inventory.Inventory, string, error) {
 	// load inventory file
 	inventoryBytes, err := fs.ReadFile(objectFS, filename)
 	if err != nil {

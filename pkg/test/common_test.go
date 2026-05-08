@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"testing"
@@ -19,19 +20,22 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type TestEnv struct {
-	DestFS           vfsrw.VFSRW
-	SourceFS         appendfs.FS
-	ReadSRFS         fs.FS
-	ExtFactory       extension.Factory
-	OCFLFactory      factory.Factory
-	StorageRoot      storageroot.StorageRoot
-	Logger           zLogger.ZLogger
-	OCFLLogger       ocfllogger.OCFLLogger
-	ExtensionManager storageroot.ExtensionManager
+	DestFS                vfsrw.VFSRW
+	SourceFS              appendfs.FS
+	ReadSRFS              fs.FS
+	ObjectExtFactory      extension.Factory[object.ExtensionManager]
+	StorageRootExtFactory extension.Factory[storageroot.ExtensionManager]
+	StorageRootFactory    factory.FactoryStorageRoot
+	ObjectFactory         factory.FactoryObject
+	StorageRoot           storageroot.StorageRoot
+	Logger                zLogger.ZLogger
+	OCFLLogger            ocfllogger.OCFLLogger
+	ExtensionManager      storageroot.ExtensionManager
+	ObjectExtManager      object.ExtensionManager
 }
 
 func SetupTestEnv(t *testing.T) *TestEnv {
@@ -52,7 +56,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	}
 
 	vfs, err := vfsrw.NewFS(cfg, _zlogger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = vfs.Close()
 	})
@@ -60,97 +64,98 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	destFS := appendfs.FS(vfs)
 
 	srFS, err := appendfs.Sub(destFS, "vfs://testmem/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	extFactory, err := extensionimpl.NewFactory(nil, logger)
-	assert.NoError(t, err)
+	storageRootExtFactory, err := extensionimpl.NewFactory[storageroot.ExtensionManager](nil, logger)
+	require.NoError(t, err)
+	storageRootExtManager, err := storageRootExtFactory.LoadExtensionManager(nil)
+	require.NoError(t, err)
+
+	objectExtFactory, err := extensionimpl.NewFactory[object.ExtensionManager](nil, logger)
+	require.NoError(t, err)
+	objectExtManager, err := objectExtFactory.LoadExtensionManager(nil)
+	require.NoError(t, err)
 
 	ocflVer := version.Version1_1
-	fact := factoryimpl.NewFactory(ocflVer, extFactory, logger)
+	storageRootFact := factoryimpl.NewFactoryStorageRoot(ocflVer, storageRootExtFactory, logger)
+	objectFact := factoryimpl.NewFactoryObject(ocflVer, objectExtFactory, logger)
 
-	sr := storagerootimpl.NewStorageRootBase(ctx, fact, ocflVer, extFactory, logger)
+	sr := storagerootimpl.NewStorageRootBase(ctx, storageRootFact, ocflVer, storageRootExtFactory, logger)
 	sr.WithWriteFS(srFS)
 	sr.WithDigestAlgorithm(checksum.DigestSHA512)
 
-	extManager0, err := extFactory.LoadExtensionManager(nil)
-	assert.NoError(t, err)
-	extManager, ok := extManager0.(storageroot.ExtensionManager)
-	assert.True(t, ok, "extension manager should implement storageroot.ExtensionManager")
-	sr.WithExtensionManager(extManager)
+	sr.WithExtensionManager(storageRootExtManager)
 
 	initializer := sr.GetInitializer()
-	assert.NotNil(t, initializer)
+	require.NotNil(t, initializer)
 	initializer.WithFS(srFS)
 
 	err = initializer.Init()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Lese-Dateisystem für Storage Root (als fs.FS) neu laden
 	// Wir nutzen hier das ursprüngliche destFS, da es für In-Memory VFS okay ist.
 	// In echten Szenarien (ZIP) müsste das Dateisystem neu geöffnet werden.
 	readSRFS_append, err := appendfs.Sub(destFS, "vfs://testmem/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	readSRFS := fs.FS(readSRFS_append)
 
 	// Den alten Storage Root verwerfen und einen neuen erstellen, der geladen wird.
 	// Wichtig: Nach der Initialisierung (Schreiben) muss der Storage Root neu geladen werden,
 	// da das Schreib-Dateisystem (appendfs) evtl. keine Lese-Operationen unterstützt (z.B. ZIP).
-	sr = storagerootimpl.NewStorageRootBase(ctx, fact, ocflVer, extFactory, logger)
+	sr = storagerootimpl.NewStorageRootBase(ctx, storageRootFact, ocflVer, storageRootExtFactory, logger)
 	sr.WithReadFS(readSRFS)
 	sr.WithWriteFS(srFS) // Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 
 	// Jetzt den Loader verwenden, um die Erweiterungen etc. aus dem Lese-FS zu laden
-	loader := sr.GetLoader(extFactory)
+	loader := sr.GetLoader(storageRootExtFactory)
 	err = loader.Load()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return &TestEnv{
-		DestFS:           vfs,
-		SourceFS:         srFS,
-		ReadSRFS:         readSRFS,
-		ExtFactory:       extFactory,
-		OCFLFactory:      fact,
-		StorageRoot:      sr,
-		Logger:           _zlogger,
-		OCFLLogger:       logger,
-		ExtensionManager: sr.GetExtensionManager(),
+		DestFS:                vfs,
+		SourceFS:              srFS,
+		ReadSRFS:              readSRFS,
+		StorageRootFactory:    storageRootFact,
+		StorageRootExtFactory: storageRootExtFactory,
+		ObjectFactory:         objectFact,
+		ObjectExtFactory:      objectExtFactory,
+		ObjectExtManager:      objectExtManager,
+		StorageRoot:           sr,
+		Logger:                _zlogger,
+		OCFLLogger:            logger,
+		ExtensionManager:      storageRootExtManager,
 	}
 }
 
 func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, appendfs.FS) {
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	objFS, err := appendfs.Sub(env.SourceFS, objFolder)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	objExtManager0, err := env.ExtFactory.LoadExtensionManager(nil)
-	assert.NoError(t, err)
-	objExtManager, ok := objExtManager0.(object.ExtensionManager)
-	assert.True(t, ok)
-
-	obj, err := env.StorageRoot.CreateObject(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{}, objExtManager)
-	assert.NoError(t, err)
-
+	obj := env.ObjectFactory.NewObject(context.TODO()).WithExtensionManager(env.ObjectExtManager)
 	objInit := obj.GetInitializer(objFS)
+
 	err = objInit.Init(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return obj, objFS
 }
 
 func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.FS) {
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Wir nutzen env.ReadSRFS als Lese-Dateisystem
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	loadedObj := env.OCFLFactory.NewObject(t.Context())
-	loader := loadedObj.GetLoader(objFS, env.ExtFactory)
+	loadedObj := env.ObjectFactory.NewObject(t.Context())
+	loader := loadedObj.GetLoader(objFS, env.ObjectExtFactory)
 	err = loader.Load()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return loadedObj, objFS
 }

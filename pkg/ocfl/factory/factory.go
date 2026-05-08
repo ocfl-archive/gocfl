@@ -12,11 +12,17 @@ import (
 // For more details, see the [Unified Factory Documentation].
 //
 // [Unified Factory Documentation]: https://github.com/ocfl-archive/gocfl/blob/main/pkg/ocfl/factory/README.md
-type Factory interface {
-	inventory.Factory
+type FactoryObject interface {
 	object.Factory
+	inventory.Factory
+	GetVersion() version.OCFLVersion
+	WithNewVersion(version.OCFLVersion) FactoryObject
+	Copy() FactoryObject
+}
+
+type FactoryStorageRoot interface {
 	storageroot.Factory
 	GetVersion() version.OCFLVersion
-	WithNewVersion(version.OCFLVersion) Factory
-	Copy() Factory
+	WithNewVersion(version.OCFLVersion) FactoryStorageRoot
+	Copy() FactoryStorageRoot
 }

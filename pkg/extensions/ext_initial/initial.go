@@ -33,7 +33,8 @@ func GetInitialParams() ([]*extension.ExternalParam, error) {
 }
 
 func init() {
-	extension.RegisterExtension(InitialName, NewInitial, GetInitialParams, &InitialDoc)
+	extension.RegisterExtensionStorageRoot(InitialName, NewInitial, GetInitialParams, &InitialDoc)
+	extension.RegisterExtensionObject(InitialName, NewInitial, GetInitialParams, &InitialDoc)
 }
 
 func NewInitial() (extension.Extension, error) {

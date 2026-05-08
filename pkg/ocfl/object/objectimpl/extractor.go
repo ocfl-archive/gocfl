@@ -22,7 +22,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewExtractor(ctx context.Context, factory factory.Factory, logger ocfllogger.OCFLLogger) object.Extractor {
+func NewExtractor(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) object.Extractor {
 	return &extractor{
 		ctx:     ctx,
 		factory: factory,
@@ -35,7 +35,7 @@ type extractor struct {
 	objectFS fs.FS
 	destFS   appendfs.FS
 	ctx      context.Context
-	factory  factory.Factory
+	factory  factory.FactoryObject
 	logger   ocfllogger.OCFLLogger
 }
 

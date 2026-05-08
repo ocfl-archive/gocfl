@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"io/fs"
 
+	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 )
 
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
 const DefaultExtensionInitialName = "initial"
+
+var ExtensionManagerTypeAssertionError = errors.New("cannot convert manager to type")
 
 type CreatorFunc func(data json.RawMessage, extFS fs.FS) (Extension, error)
 
@@ -18,7 +21,7 @@ type Initial interface {
 	SetExtension(ext string)
 }
 
-type ManagerCore interface {
+type ManagerCore[T any] interface {
 	Extension
 	GetConfig() any
 	GetExtensions() []Extension
