@@ -6,7 +6,7 @@ require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.1
 	github.com/google/uuid v1.6.0
-	github.com/je4/filesystem/v4 v4.0.2
+	github.com/je4/filesystem/v4 v4.0.3
 	github.com/je4/utils/v2 v2.0.68
 	github.com/ocfl-archive/indexer/v3 v3.0.44
 	github.com/rs/zerolog v1.35.1
@@ -62,6 +62,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/tamerh/xml-stream-parser v1.5.0 // indirect
 	github.com/tamerh/xpath v1.0.0 // indirect
+	github.com/tink-crypto/tink-go/v2 v2.6.0 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
