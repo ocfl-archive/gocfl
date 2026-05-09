@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/je4/filesystem/v3/pkg/vfsrw"
+	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
