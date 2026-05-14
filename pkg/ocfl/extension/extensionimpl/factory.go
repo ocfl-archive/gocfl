@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"reflect"
 
 	"emperror.dev/errors"
 	_ "github.com/ocfl-archive/gocfl/v3/pkg/extensions/ext_NNNN_gocfl_extension_manager"
@@ -55,7 +56,7 @@ func (f *Factory[T]) AddCreator(name string, creator extension.CreatorFunc, docu
 }
 
 func (f *Factory[T]) RegisterExtension(name string, builder extension.BuilderFunc, documentation *string) {
-	f.logger.Debug().Msgf("adding creator for extension %s", name)
+	f.logger.Debug().Msgf("adding creator for extension %s to %v", name, reflect.TypeFor[T]())
 	f.AddCreator(name, func(data json.RawMessage, extFS fs.FS) (extension.Extension, error) {
 		ext, err := builder()
 		if err != nil {
