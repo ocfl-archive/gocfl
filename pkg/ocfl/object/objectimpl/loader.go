@@ -45,6 +45,9 @@ func (loader *Loader) GetFS() fs.FS {
 }
 
 func (loader *Loader) Load() error {
+	if loader.objectFS == nil {
+		return errors.New("objectFS is nil. initialize Loader with WithFS() first")
+	}
 	if err := loader.loadExtensionManager(); err != nil {
 		return errors.Wrap(err, "loading extension manager")
 	}
@@ -64,7 +67,7 @@ func (loader *Loader) SetObject(o object.Object) object.Loader {
 	return loader
 }
 
-func (loader *Loader) SetFS(sourceFS fs.FS) object.Loader {
+func (loader *Loader) WithFS(sourceFS fs.FS) object.Loader {
 	loader.objectFS = sourceFS
 	return loader
 }

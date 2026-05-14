@@ -234,7 +234,7 @@ func (ext *extractor) SetObject(o object.Object) object.Extractor {
 	return ext
 }
 
-func (ext *extractor) SetFS(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
+func (ext *extractor) WithFS(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
 	ext.objectFS = objectFS
 	ext.destFS = destFS
 	return ext

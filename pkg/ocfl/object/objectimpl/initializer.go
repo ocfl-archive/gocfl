@@ -34,7 +34,7 @@ func (initializer *initializer) SetObject(o object.Object) object.Initializer {
 	return initializer
 }
 
-func (initializer *initializer) SetFS(objectFS appendfs.FS) object.Initializer {
+func (initializer *initializer) WithFS(objectFS appendfs.FS) object.Initializer {
 	initializer.objectFS = objectFS
 	return initializer
 }

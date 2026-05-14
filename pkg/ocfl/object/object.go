@@ -42,14 +42,14 @@ type Checker interface {
 type Initializer interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	SetObject(o Object) Initializer
-	SetFS(objectFS appendfs.FS) Initializer
+	WithFS(objectFS appendfs.FS) Initializer
 }
 
 type Loader interface {
 	Object
 	Load() error
 	SetObject(o Object) Loader
-	SetFS(sourceFS fs.FS) Loader
+	WithFS(sourceFS fs.FS) Loader
 	GetFS() fs.FS
 	SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
 }
@@ -57,7 +57,7 @@ type Loader interface {
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	SetObject(o Object) Extractor
-	SetFS(objectFS fs.FS, destFS appendfs.FS) Extractor
+	WithFS(objectFS fs.FS, destFS appendfs.FS) Extractor
 	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
 	GetFileReader(name string) (io.ReadCloser, int64, string, error)
 	GetMetadata() (*inventory.Metadata, error)

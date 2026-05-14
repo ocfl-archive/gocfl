@@ -135,7 +135,7 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, 
 	require.NoError(t, err)
 
 	obj := env.ObjectFactory.NewObject(context.TODO()).WithExtensionManager(env.ObjectExtManager)
-	objInit := obj.GetInitializer().SetFS(objFS)
+	objInit := obj.GetInitializer().WithFS(objFS)
 
 	err = objInit.Init(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{})
 	require.NoError(t, err)
@@ -152,7 +152,7 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	require.NoError(t, err)
 
 	loadedObj := env.ObjectFactory.NewObject(t.Context())
-	loader := loadedObj.GetLoader().SetFS(objFS)
+	loader := loadedObj.GetLoader().WithFS(objFS)
 	err = loader.Load()
 	require.NoError(t, err)
 
