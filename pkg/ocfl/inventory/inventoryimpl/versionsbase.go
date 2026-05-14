@@ -187,7 +187,7 @@ func (v *versionsBase) FileExists(path, digest string) (bool, error) {
 	}
 
 	// check whether the latest version is the correct file
-	return lastChecksum == digest, nil
+	return digest == "" || lastChecksum == digest, nil
 }
 
 func (v *versionsBase) GetVersionNumbers() iter.Seq[*inventory.VersionNumber] {
