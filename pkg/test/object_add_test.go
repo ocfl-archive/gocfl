@@ -12,7 +12,7 @@ func TestObjectAdd(t *testing.T) {
 	obj, objFS := CreateTestObject(t, env, objID)
 
 	// 5. Version hinzufügen
-	vw, err := obj.StartUpdate(objFS, "initial version", "Junie", "junie@jetbrains.com", false)
+	vw, err := obj.StartUpdate(objFS, "initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	assert.NoError(t, err)
 
 	testFileName := "test.txt"
