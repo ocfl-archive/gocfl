@@ -107,10 +107,10 @@ func main() {
 		logger.Fatal().Err(err).Msgf("failed to create subfs for object folder '%s'", objFolder)
 	}
 	// Instantiate and configure the Object.
-	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager)
+	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager).WithReadFS(objFS)
 
 	// Load the existing object.
-	loader := obj.GetLoader().WithFS(objFS)
+	loader := obj.GetLoader()
 	if err := loader.Load(); err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
@@ -128,7 +128,7 @@ func main() {
 	}
 
 	// B: Get the extractor for the object and specify the source (objFS) and destination (destFS) filesystems.
-	extractor := obj.GetExtractor().WithFS(objFS, destFS)
+	extractor := obj.GetExtractor().WithDestFS(destFS)
 
 	// C: Extract the head version of the object to the destination.
 	err = extractor.Extract(nil, false, "")

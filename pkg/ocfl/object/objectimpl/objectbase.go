@@ -220,27 +220,15 @@ func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 }
 
 func (objectBase *ObjectBase) GetLoader() object.Loader {
-	loader := objectBase.factory.NewLoader(objectBase.ctx).SetObject(objectBase).SetExtensionFactory(objectBase.extensionFactory)
-	if objectBase.readFS != nil {
-		loader.WithFS(objectBase.readFS)
-	}
-	return loader
+	return objectBase.factory.NewLoader(objectBase.ctx).SetObject(objectBase).SetExtensionFactory(objectBase.extensionFactory).WithFS(objectBase.readFS)
 }
 
 func (objectBase *ObjectBase) GetInitializer() object.Initializer {
-	initializer := objectBase.factory.NewInitializer(objectBase.ctx).SetObject(objectBase)
-	if objectBase.writeFS != nil {
-		initializer.WithFS(objectBase.writeFS)
-	}
-	return initializer
+	return objectBase.factory.NewInitializer(objectBase.ctx).SetObject(objectBase).WithFS(objectBase.writeFS)
 }
 
 func (objectBase *ObjectBase) GetExtractor() object.Extractor {
-	extractor := objectBase.factory.NewExtractor(objectBase.ctx).SetObject(objectBase)
-	if objectBase.readFS != nil || objectBase.writeFS != nil {
-		extractor.WithFS(objectBase.readFS, objectBase.writeFS)
-	}
-	return extractor
+	return objectBase.factory.NewExtractor(objectBase.ctx).SetObject(objectBase).WithFS(objectBase.writeFS)
 }
 
 /*

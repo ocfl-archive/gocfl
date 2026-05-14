@@ -116,7 +116,7 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
-	extractor := o.GetExtractor().WithFS(objFsys, destFS)
+	extractor := o.GetExtractor().WithFS(objFsys).WithDestFS(destFS)
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
 	}
@@ -133,6 +133,6 @@ func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory 
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
 	defer logger.Debug().Msgf("extraction done")
-	extractor := obj.GetExtractor().WithFS(objFsys, nil)
+	extractor := obj.GetExtractor().WithFS(objFsys).WithDestFS(nil)
 	return extractor.GetMetadata()
 }

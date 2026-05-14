@@ -9,9 +9,9 @@ The `Object` interface (`pkg/ocfl/object/object.go`) is the central abstraction 
 The `Object` interface includes the following key methods:
 
 ### Operational Accessors
-- `GetInitializer(objectFS appendfs.FS) Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new object.
-- `GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader`: Returns a [Loader](LOADER.md) to load an existing object.
-- `GetExtractor(objectFS fs.FS, destFS appendfs.FS) Extractor`: Returns an [Extractor](EXTRACTOR.md) to retrieve files and versions from the object.
+- `GetInitializer() Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new object.
+- `GetLoader() Loader`: Returns a [Loader](LOADER.md) to load an existing object.
+- `GetExtractor() Extractor`: Returns an [Extractor](EXTRACTOR.md) to retrieve files and versions from the object.
 - `GetChecker() Checker`: Returns a [Checker](CHECKER.md) to validate the object's integrity and OCFL compliance.
 - `StartUpdate(...) (VersionWriter, error)`: Begins a new version update using a [VersionWriter](VERSION_WRITER.md).
 

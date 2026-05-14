@@ -145,6 +145,15 @@ func (ext *extractor) GetExtensionFileReader(extensionName string, path string) 
 }
 
 func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
+	if ext.objectFS == nil {
+		ext.objectFS = ext.GetReadFS()
+	}
+	if ext.objectFS == nil {
+		return errors.New("object FS is not set")
+	}
+	if ext.destFS == nil {
+		return errors.New("destination FS is not set")
+	}
 	var manifest strings.Builder
 	var err error
 	var inv = ext.GetInventory()
@@ -234,8 +243,12 @@ func (ext *extractor) SetObject(o object.Object) object.Extractor {
 	return ext
 }
 
-func (ext *extractor) WithFS(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
+func (ext *extractor) WithFS(objectFS fs.FS) object.Extractor {
 	ext.objectFS = objectFS
+	return ext
+}
+
+func (ext *extractor) WithDestFS(destFS appendfs.FS) object.Extractor {
 	ext.destFS = destFS
 	return ext
 }

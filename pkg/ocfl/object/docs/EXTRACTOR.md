@@ -12,14 +12,15 @@ The `Extractor` interface provides methods for retrieving and extracting object 
 - `GetFileReader(name string) (io.ReadCloser, int64, string, error)`: Retrieves an `io.ReadCloser` for a specific logical file, along with its size and digest.
 - `GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)`: Provides access to files stored within object extensions.
 - `SetObject(o Object) Extractor`: Associates the extractor with an [Object](OBJECT.md) instance.
-- `SetFS(sourceFS fs.FS, objectFS appendfs.FS) Extractor`: Configures the source and target filesystems for extraction.
+- `WithFS(objectFS fs.FS) Extractor`: Configures the source filesystem for extraction.
+- `WithDestFS(destFS appendfs.FS) Extractor`: Configures the destination filesystem for extraction.
 
 ## Usage Example
 
 The extractor is accessed via the [Object](OBJECT.md) interface:
 
 ```go
-extractor := obj.GetExtractor(objectFS)
+extractor := obj.GetExtractor().WithDestFS(destFS)
 if err := extractor.Extract(version, true, ""); err != nil {
     // handle extraction error
 }
