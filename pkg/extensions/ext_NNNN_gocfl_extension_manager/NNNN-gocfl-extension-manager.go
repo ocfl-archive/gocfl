@@ -282,6 +282,9 @@ func (manager *GOCFLExtensionManager[T]) GetName() string {
 	return GOCFLExtensionManagerName
 }
 func (manager *GOCFLExtensionManager[T]) WriteConfig(fsys appendfs.FS) error {
+	if len(manager.extensions) == 0 {
+		return nil
+	}
 	if manager.initial == nil {
 		return errors.New("no extension manager initial")
 	}
