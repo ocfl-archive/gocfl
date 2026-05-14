@@ -19,6 +19,7 @@ type NamesStruct struct {
 
 type VersionWriter interface {
 	Object
+	WithFS(objectFS appendfs.FS) VersionWriter
 	AddFolder(sourceFS fs.FS, checkDuplicate bool, area string) error
 	AddFile(sourceFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error

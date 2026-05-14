@@ -48,6 +48,11 @@ func (versionWriter *versionWriter) GetFS() appendfs.FS {
 	return versionWriter.objectFS
 }
 
+func (versionWriter *versionWriter) WithFS(objectFS appendfs.FS) object.VersionWriter {
+	versionWriter.objectFS = objectFS
+	return versionWriter
+}
+
 func (versionWriter *versionWriter) BeginArea(area string) {
 	versionWriter.area = area
 	versionWriter.updateFiles = []string{}
@@ -115,6 +120,9 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 
 	if objectRoot {
+		if versionWriter.objectFS == nil {
+			return errors.New("objectFS is nil. initialize VersionWriter with WithFS() first")
+		}
 		iWriter, err := writefs.Create(versionWriter.objectFS, iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inventory.json")
@@ -179,6 +187,9 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 func (versionWriter *versionWriter) storeExtensions() error {
 	versionWriter.logger.Debug()
 
+	if versionWriter.objectFS == nil {
+		return errors.New("objectFS is nil. initialize VersionWriter with WithFS() first")
+	}
 	subFS, err := appendfs.Sub(versionWriter.objectFS, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create sub filesystem %v/extensions", versionWriter.objectFS)
@@ -423,6 +434,9 @@ func (versionWriter *versionWriter) addReader(r io.ReadCloser, names *object.Nam
 		digestAlgorithms = append(digestAlgorithms, inv.GetDigestAlgorithm())
 	}
 
+	if versionWriter.objectFS == nil {
+		return "", errors.New("objectFS is nil. initialize VersionWriter with WithFS() first")
+	}
 	writer, err := writefs.Create(versionWriter.objectFS, names.ManifestPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot create '%s'", names.ManifestPath)
