@@ -149,7 +149,7 @@ func main() {
 		log.Fatalf("failed to start update for object '%s': %v", objID, err)
 	}
 
-	// B: Rename an existing file (from object_add demo).
+	// B: Rename an existing file (from object_add example).
 	// RenameFile(source, destination, digest) - passing empty string for digest to match by path.
 	if err := vw.RenameFile("file1.txt", "README.txt", ""); err != nil {
 		log.Fatalf("failed to rename file: %v", err)

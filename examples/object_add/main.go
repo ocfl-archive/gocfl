@@ -147,7 +147,7 @@ func main() {
 	// --- Step 7: Add Files to the Object ---
 	// A: Start a new version update for the object.
 	// This returns a VersionWriter which allows adding, deleting, or renaming files.
-	vw, err := obj.StartUpdate(objFS, "Initial version with three demo files", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	vw, err := obj.StartUpdate(objFS, "Initial version with three files", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	if err != nil {
 		log.Fatalf("failed to start update for object '%s': %v", objID, err)
 	}

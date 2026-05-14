@@ -1,4 +1,4 @@
-# OCFL Demo Examples
+# OCFL Examples
 
 This directory contains runnable Go examples for common OCFL operations using the `gocfl` library. These examples are based on the [Quickstart Guide](../docs/quickstart.md).
 
@@ -21,19 +21,19 @@ Each example is a self-contained Go program that uses the local filesystem. You 
 
 ```bash
 # 1. Initialize a Storage Root
-go run github.com/ocfl-archive/gocfl/v3/demo/storageroot_init/main.go@latest -path ./my-storage-root
+go run github.com/ocfl-archive/gocfl/v3/examples/storageroot_init/main.go@latest -path ./my-storage-root
 
 # 2. Create an Object
-go run github.com/ocfl-archive/gocfl/v3/demo/object_add/main.go@latest -path ./my-storage-root -id my-object-1
+go run github.com/ocfl-archive/gocfl/v3/examples/object_add/main.go@latest -path ./my-storage-root -id my-object-1
 
 # 3. Add and Update Content
-go run github.com/ocfl-archive/gocfl/v3/demo/object_upd/main.go@latest -path ./my-storage-root -id my-object-1
+go run github.com/ocfl-archive/gocfl/v3/examples/object_upd/main.go@latest -path ./my-storage-root -id my-object-1
 
 # 4. Validate an Object
-go run github.com/ocfl-archive/gocfl/v3/demo/object_validate/main.go@latest -path ./my-storage-root -id my-object-1
+go run github.com/ocfl-archive/gocfl/v3/examples/object_validate/main.go@latest -path ./my-storage-root -id my-object-1
 
 # 5. Extract an Object
-go run github.com/ocfl-archive/gocfl/v3/demo/object_extract/main.go@latest -path ./my-storage-root -id my-object-1 -dest ./extraction-dir
+go run github.com/ocfl-archive/gocfl/v3/examples/object_extract/main.go@latest -path ./my-storage-root -id my-object-1 -dest ./extraction-dir
 ```
 
 ## Parameters
