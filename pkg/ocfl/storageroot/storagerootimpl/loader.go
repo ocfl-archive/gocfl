@@ -32,24 +32,23 @@ func (loader *Loader) Close() error {
 }
 
 func (loader *Loader) Load() error {
+	loader.sourceFS = loader.GetReadFS()
+	if loader.sourceFS == nil {
+		return errors.New("sourceFS is nil. initialize StorageRoot with WithReadFS() first")
+	}
 	if err := loader.loadExtensionManager(); err != nil {
 		return errors.Wrap(err, "loading extension manager")
 	}
 	return nil
 }
 
-func (loader *Loader) WithExtensionFactory(factory extension.Factory[storageroot.ExtensionManager]) storageroot.Loader {
+func (loader *Loader) SetExtensionFactory(factory extension.Factory[storageroot.ExtensionManager]) storageroot.Loader {
 	loader.extensionFactory = factory
 	return loader
 }
 
-func (loader *Loader) WithStorageRoot(sr storageroot.StorageRoot) storageroot.Loader {
+func (loader *Loader) SetStorageRoot(sr storageroot.StorageRoot) storageroot.Loader {
 	loader.StorageRoot = sr
-	return loader
-}
-
-func (loader *Loader) WithFS(sourceFS fs.FS) storageroot.Loader {
-	loader.sourceFS = sourceFS
 	return loader
 }
 

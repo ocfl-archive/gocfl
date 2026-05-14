@@ -11,8 +11,8 @@ The `Extractor` interface provides methods for retrieving and extracting object 
 - `Extract(version *inventory.VersionNumber, withManifest bool, area string) error`: Extracts all files from a specific [Version](../../inventory/docs/VERSION.md) of the object to a target filesystem.
 - `GetFileReader(name string) (io.ReadCloser, int64, string, error)`: Retrieves an `io.ReadCloser` for a specific logical file, along with its size and digest.
 - `GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)`: Provides access to files stored within object extensions.
-- `WithObject(o Object) Extractor`: Associates the extractor with an [Object](OBJECT.md) instance.
-- `WithFS(sourceFS fs.FS, objectFS appendfs.FS) Extractor`: Configures the source and target filesystems for extraction.
+- `SetObject(o Object) Extractor`: Associates the extractor with an [Object](OBJECT.md) instance.
+- `SetFS(sourceFS fs.FS, objectFS appendfs.FS) Extractor`: Configures the source and target filesystems for extraction.
 
 ## Usage Example
 

@@ -196,23 +196,23 @@ func (objectBase *ObjectBase) GetID() string {
 }
 
 func (objectBase *ObjectBase) GetChecker(sourceFS fs.FS) object.Checker {
-	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase).WithFS(sourceFS)
+	return objectBase.factory.NewChecker(objectBase.ctx).SetObject(objectBase).SetFS(sourceFS)
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 	return objectBase.factory.GetVersion()
 }
 
-func (objectBase *ObjectBase) GetLoader(sourceFS fs.FS, extensionFactory extension.Factory[object.ExtensionManager]) object.Loader {
-	return objectBase.factory.NewLoader(objectBase.ctx).WithObject(objectBase).WithFS(sourceFS).WithExtensionFactory(extensionFactory)
+func (objectBase *ObjectBase) GetLoader() object.Loader {
+	return objectBase.factory.NewLoader(objectBase.ctx).SetObject(objectBase).SetExtensionFactory(objectBase.extensionFactory)
 }
 
-func (objectBase *ObjectBase) GetInitializer(objectFS appendfs.FS) object.Initializer {
-	return objectBase.factory.NewInitializer(objectBase.ctx).WithObject(objectBase).WithFS(objectFS)
+func (objectBase *ObjectBase) GetInitializer() object.Initializer {
+	return objectBase.factory.NewInitializer(objectBase.ctx).SetObject(objectBase)
 }
 
-func (objectBase *ObjectBase) GetExtractor(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
-	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase).WithFS(objectFS, destFS)
+func (objectBase *ObjectBase) GetExtractor() object.Extractor {
+	return objectBase.factory.NewExtractor(objectBase.ctx).SetObject(objectBase)
 }
 
 /*

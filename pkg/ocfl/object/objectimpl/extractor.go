@@ -229,12 +229,12 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 
 }
 
-func (ext *extractor) WithObject(o object.Object) object.Extractor {
+func (ext *extractor) SetObject(o object.Object) object.Extractor {
 	ext.Object = o
 	return ext
 }
 
-func (ext *extractor) WithFS(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
+func (ext *extractor) SetFS(objectFS fs.FS, destFS appendfs.FS) object.Extractor {
 	ext.objectFS = objectFS
 	ext.destFS = destFS
 	return ext

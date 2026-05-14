@@ -35,38 +35,38 @@ type VersionWriter interface {
 
 type Checker interface {
 	Check() error
-	WithObject(obj Object) Checker
-	WithFS(objectFS fs.FS) Checker
+	SetObject(obj Object) Checker
+	SetFS(objectFS fs.FS) Checker
 }
 
 type Initializer interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
-	WithObject(o Object) Initializer
-	WithFS(objectFS appendfs.FS) Initializer
+	SetObject(o Object) Initializer
+	SetFS(objectFS appendfs.FS) Initializer
 }
 
 type Loader interface {
 	Object
 	Load() error
-	WithObject(o Object) Loader
-	WithFS(sourceFS fs.FS) Loader
+	SetObject(o Object) Loader
+	SetFS(sourceFS fs.FS) Loader
 	GetFS() fs.FS
-	WithExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
+	SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
 }
 
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
-	WithObject(o Object) Extractor
-	WithFS(objectFS fs.FS, destFS appendfs.FS) Extractor
+	SetObject(o Object) Extractor
+	SetFS(objectFS fs.FS, destFS appendfs.FS) Extractor
 	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
 	GetFileReader(name string) (io.ReadCloser, int64, string, error)
 	GetMetadata() (*inventory.Metadata, error)
 }
 
 type Object interface {
-	GetExtractor(objectFS fs.FS, destFS appendfs.FS) Extractor
-	GetInitializer(objectFS appendfs.FS) Initializer
-	GetLoader(sourceFS fs.FS, extensionFactory extension.Factory[ExtensionManager]) Loader
+	GetExtractor() Extractor
+	GetInitializer() Initializer
+	GetLoader() Loader
 	WithInventory(inv inventory.Inventory) Object
 	WithExtensionManager(manager ExtensionManager) Object
 	StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)

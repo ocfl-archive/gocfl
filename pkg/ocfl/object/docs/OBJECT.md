@@ -11,7 +11,7 @@ The `Object` interface includes the following key methods:
 ### Operational Accessors
 - `GetInitializer(objectFS appendfs.FS) Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new object.
 - `GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader`: Returns a [Loader](LOADER.md) to load an existing object.
-- `GetExtractor(objectFS fs.FS) Extractor`: Returns an [Extractor](EXTRACTOR.md) to retrieve files and versions from the object.
+- `GetExtractor(objectFS fs.FS, destFS appendfs.FS) Extractor`: Returns an [Extractor](EXTRACTOR.md) to retrieve files and versions from the object.
 - `GetChecker(sourceFS fs.FS) Checker`: Returns a [Checker](CHECKER.md) to validate the object's integrity and OCFL compliance.
 - `StartUpdate(...) (VersionWriter, error)`: Begins a new version update using a [VersionWriter](VERSION_WRITER.md).
 

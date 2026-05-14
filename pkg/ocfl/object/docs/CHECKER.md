@@ -10,8 +10,8 @@ The `Checker` module is responsible for performing comprehensive validation and 
 The `Checker` interface includes several key methods for configuring and executing validation:
 
 - `Check() error`: Executes the validation process. It checks the presence of required files, validates the [Inventory](../../inventory/README.md) against its digests, and ensures that the physical file layout matches the inventory.
-- `WithObject(obj Object) Checker`: Associates the checker with an [Object](OBJECT.md) instance.
-- `WithFS(objectFS fs.FS) Checker`: Sets the filesystem where the OCFL object to be checked is located.
+- `SetObject(obj Object) Checker`: Associates the checker with an [Object](OBJECT.md) instance.
+- `SetFS(objectFS fs.FS) Checker`: Sets the filesystem where the OCFL object to be checked is located.
 
 ## Usage Example
 

@@ -10,8 +10,8 @@ The `Initializer` module is responsible for creating a new OCFL storage root on 
 The `Initializer` interface provides several key methods for configuring and executing the creation process:
 
 - `Init() error`: Performs the actual initialization, creating the `0=ocfl_1.1` marker, the `extensions` directory, and the storage layout configuration.
-- `WithStorageRoot(sr StorageRoot) Initializer`: Associates the initializer with a [StorageRoot](STORAGEROOT.md) instance.
- - `WithFS(objectFS appendfs.FS) Initializer`: Sets the destination filesystem where the storage root will be created.
+- `SetStorageRoot(sr StorageRoot) Initializer`: Associates the initializer with a [StorageRoot](STORAGEROOT.md) instance.
+- `SetFS(objectFS appendfs.FS) Initializer`: Sets the destination filesystem where the storage root will be created.
 - `Close() error`: Finalizes the initialization process.
 
 ## Usage Example
@@ -19,7 +19,7 @@ The `Initializer` interface provides several key methods for configuring and exe
 Typically, the initializer is accessed via the [StorageRoot](STORAGEROOT.md) interface:
 
 ```go
-initializer := sr.GetInitializer().WithFS(appendFS)
+initializer := sr.GetInitializer(appendFS)
 if err := initializer.Init(); err != nil {
     // handle error
 }

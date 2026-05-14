@@ -10,8 +10,8 @@ The `Initializer` module is used to set up a brand-new OCFL object on a target f
 The `Initializer` interface includes methods for configuring and performing the initialization:
 
 - `Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error`: Performs the initialization, including setting the object identifier, primary digest algorithm (e.g., `sha512`), and any additional [Fixity](../../inventory/docs/FIXITY.md) algorithms.
-- `WithObject(o Object) Initializer`: Associates the initializer with an [Object](OBJECT.md) instance.
-- `WithFS(objectFS appendfs.FS) Initializer`: Sets the target [append-capable filesystem](../../appendfs/README.md) for initialization.
+- `SetObject(o Object) Initializer`: Associates the initializer with an [Object](OBJECT.md) instance.
+- `SetFS(objectFS appendfs.FS) Initializer`: Sets the target [append-capable filesystem](../../appendfs/README.md) for initialization.
 
 ## Usage Example
 

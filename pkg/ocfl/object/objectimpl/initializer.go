@@ -29,12 +29,12 @@ type initializer struct {
 	factory  factory.FactoryObject
 }
 
-func (initializer *initializer) WithObject(o object.Object) object.Initializer {
+func (initializer *initializer) SetObject(o object.Object) object.Initializer {
 	initializer.Object = o
 	return initializer
 }
 
-func (initializer *initializer) WithFS(objectFS appendfs.FS) object.Initializer {
+func (initializer *initializer) SetFS(objectFS appendfs.FS) object.Initializer {
 	initializer.objectFS = objectFS
 	return initializer
 }

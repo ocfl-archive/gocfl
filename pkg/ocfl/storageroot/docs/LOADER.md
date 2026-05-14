@@ -10,9 +10,9 @@ The `Loader` module is responsible for reading and parsing an existing OCFL stor
 The `Loader` interface provides the following methods to configure and execute the loading process:
 
 - `Load() error`: Performs the discovery and reading of the storage root structure from the filesystem.
-- `WithStorageRoot(sr StorageRoot) Loader`: Associates the loader with a [StorageRoot](STORAGEROOT.md) instance.
-- `WithFS(sourceFS fs.FS) Loader`: Sets the source filesystem where the storage root is located.
-- `WithExtensionFactory(factory extension.Factory) Loader`: Configures the [Extension Factory](../../extension/docs/FACTORY.md) to use for instantiating extensions during the load process.
+- `SetStorageRoot(sr StorageRoot) Loader`: Associates the loader with a [StorageRoot](STORAGEROOT.md) instance.
+- `SetFS(sourceFS fs.FS) Loader`: Sets the source filesystem where the storage root is located.
+- `SetExtensionFactory(factory extension.Factory) Loader`: Configures the [Extension Factory](../../extension/docs/FACTORY.md) to use for instantiating extensions during the load process.
 - `Close() error`: Finalizes the loading process and releases resources.
 
 ## Usage Example
@@ -20,7 +20,7 @@ The `Loader` interface provides the following methods to configure and execute t
 Typically, the loader is accessed via the [StorageRoot](STORAGEROOT.md) interface:
 
 ```go
-loader := sr.GetLoader(extensionFactory).WithFS(sourceFS)
+loader := sr.GetLoader(sourceFS, extensionFactory)
 if err := loader.Load(); err != nil {
     // handle error
 }

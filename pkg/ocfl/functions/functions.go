@@ -9,8 +9,8 @@ import (
 	"github.com/je4/filesystem/v4/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflerrors"
@@ -21,8 +21,8 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory *extensionimpl.Factory[object.ExtensionManager], manager object.ExtensionManager, fsys appendfs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
-	f := factoryimpl.NewFactoryObject(ver, extensionFactory, logger)
+func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory extension.Factory[object.ExtensionManager], manager object.ExtensionManager, fsys appendfs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
+	f := initocfl.NewFactoryObject(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithExtensionManager(manager)
 	initializer := obj.GetInitializer(fsys)
 
@@ -37,7 +37,7 @@ func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, diges
 	return obj, nil
 }
 
-func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.Factory[object.ExtensionManager], id string, logger ocfllogger.OCFLLogger) (object.Object, error) {
+func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory extension.Factory[object.ExtensionManager], id string, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	folder, err := sr.IdToFolder(id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object %s", id)
@@ -57,7 +57,7 @@ func LoadObjectByID(sr storageroot.StorageRoot, extensionFactory *extensionimpl.
 	return obj, nil
 }
 
-func LoadObjectFS(ctx context.Context, objectFS fs.FS, extensionFactory *extensionimpl.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) (object.Object, error) {
+func LoadObjectFS(ctx context.Context, objectFS fs.FS, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) (object.Object, error) {
 	// get the version of the object
 	ver, err := util.GetObjectVersion(objectFS)
 	if err != nil {
@@ -75,7 +75,7 @@ func LoadObjectFS(ctx context.Context, objectFS fs.FS, extensionFactory *extensi
 	}
 	// logger needs to know the new version
 	logger.WithVersion(ver)
-	fact := factoryimpl.NewFactoryObject(ver, extensionFactory, logger)
+	fact := initocfl.NewFactoryObject(ver, extensionFactory, logger)
 	obj := fact.NewObject(ctx)
 	loader := obj.GetLoader(objectFS, extensionFactory)
 	// load the object
@@ -86,7 +86,7 @@ func LoadObjectFS(ctx context.Context, objectFS fs.FS, extensionFactory *extensi
 	return obj, nil
 }
 
-func CheckObject(ctx context.Context, objectFS fs.FS, extensionFactory *extensionimpl.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) error {
+func CheckObject(ctx context.Context, objectFS fs.FS, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) error {
 	fmt.Printf("object folder '%v'\n", objectFS)
 	obj, err := LoadObjectFS(ctx, objectFS, extensionFactory, logger)
 	if err != nil {
@@ -100,7 +100,7 @@ func CheckObject(ctx context.Context, objectFS fs.FS, extensionFactory *extensio
 	return nil
 }
 
-func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory *extensionimpl.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) error {
+func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path string, version *inventory.VersionNumber, withManifest bool, area string, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) error {
 	if !version.IsValid() {
 		version = inventory.NewVersionNumber().WithLatest()
 	}
@@ -125,7 +125,7 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 	return nil
 }
 
-func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory *extensionimpl.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) (*inventory.Metadata, error) {
+func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) (*inventory.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
 	obj, err := LoadObjectFS(ctx, objFsys, extensionFactory, logger)

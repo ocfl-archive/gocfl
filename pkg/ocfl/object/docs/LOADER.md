@@ -9,9 +9,9 @@ The `Loader` module is responsible for reading and parsing an existing OCFL obje
 The `Loader` interface includes several key methods for configuring and executing the loading process:
 
 - `Load() error`: Performs the actual reading of the object structure from the filesystem, including parsing the [Inventory](../../inventory/README.md) and discovering available extensions.
-- `WithObject(o Object) Loader`: Associates the loader with an [Object](OBJECT.md) instance.
-- `WithFS(sourceFS fs.FS) Loader`: Sets the source filesystem where the OCFL object is located.
-- `WithExtensionFactory(factory extension.Factory) Loader`: Configures the [Extension Factory](../../extension/README.md) to use for instantiating extensions during the load process.
+- `SetObject(o Object) Loader`: Associates the loader with an [Object](OBJECT.md) instance.
+- `SetFS(sourceFS fs.FS) Loader`: Sets the source filesystem where the OCFL object is located.
+- `SetExtensionFactory(factory extension.Factory) Loader`: Configures the [Extension Factory](../../extension/README.md) to use for instantiating extensions during the load process.
 - `GetFS() fs.FS`: Returns the filesystem associated with the loader.
 
 ## Usage Example

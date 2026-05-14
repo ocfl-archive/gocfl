@@ -35,17 +35,16 @@ func (init *initializer) Close() error {
 	return nil
 }
 
-func (init *initializer) WithStorageRoot(sr storageroot.StorageRoot) storageroot.Initializer {
+func (init *initializer) SetStorageRoot(sr storageroot.StorageRoot) storageroot.Initializer {
 	init.StorageRoot = sr
 	return init
 }
 
-func (init *initializer) WithFS(storageRootFS appendfs.FS) storageroot.Initializer {
-	init.storageRootFS = storageRootFS
-	return init
-}
-
 func (init *initializer) Init() error {
+	init.storageRootFS = init.GetWriteFS()
+	if init.storageRootFS == nil {
+		return errors.New("storageRootFS is nil. initialize StorageRoot with WithWriteFS() first")
+	}
 	extensionManager := init.GetExtensionManager()
 	if extensionManager == nil {
 		return errors.New("extension manager is nil. initialize with WithExtensionManager() first")

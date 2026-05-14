@@ -66,7 +66,7 @@ func (osr *StorageRootBase) WithDigestAlgorithm(digest checksum.DigestAlgorithm)
 
 func (osr *StorageRootBase) GetReadFS() fs.FS {
 	if osr.sourceFS == nil {
-		osr.logger.Panic().Msg("source fs is not set")
+		osr.logger.Panic().Msg("source fs is not set. set it with WithReadFS() before calling GetReadFS() or use GetWriteFS() instead of GetReadFS() to get the write fs")
 	}
 	return osr.sourceFS
 }
@@ -96,12 +96,12 @@ func (osr *StorageRootBase) GetOCFLVersion() version.OCFLVersion {
 	return osr.factory.GetVersion()
 }
 
-func (osr *StorageRootBase) GetLoader(extensionFactor extension.Factory[storageroot.ExtensionManager]) storageroot.Loader {
-	return osr.factory.NewStorageRootLoader(osr.ctx).WithStorageRoot(osr).WithExtensionFactory(extensionFactor).WithFS(osr.GetReadFS())
+func (osr *StorageRootBase) GetLoader() storageroot.Loader {
+	return osr.factory.NewStorageRootLoader(osr.ctx).SetStorageRoot(osr).SetExtensionFactory(osr.extensionFactory)
 }
 
 func (osr *StorageRootBase) GetInitializer() storageroot.Initializer {
-	return osr.factory.NewStorageRootInitializer(osr.ctx).WithStorageRoot(osr).WithFS(osr.GetWriteFS())
+	return osr.factory.NewStorageRootInitializer(osr.ctx).SetStorageRoot(osr)
 }
 
 func (osr *StorageRootBase) WithExtensionManager(extensionManager storageroot.ExtensionManager) storageroot.StorageRoot {

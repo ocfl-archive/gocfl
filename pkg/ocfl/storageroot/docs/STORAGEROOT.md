@@ -9,8 +9,8 @@ The `StorageRoot` interface (`pkg/ocfl/storageroot/storageroot.go`) is the centr
 The `StorageRoot` interface includes the following key areas:
 
 ### Functional Modules
-- `GetLoader(extensionFactory extension.Factory) Loader`: Returns a [Loader](LOADER.md) to load an existing storage root.
-- `GetInitializer() Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new storage root.
+- `GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader`: Returns a [Loader](LOADER.md) to load an existing storage root.
+- `GetInitializer(objectFS appendfs.FS) Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new storage root.
 
 ### Filesystem and State
 - `WithReadFS(sourceFS fs.FS) StorageRoot` / `GetReadFS() fs.FS`: Handles the read-only filesystem where the storage root is located.

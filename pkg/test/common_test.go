@@ -13,7 +13,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot/storagerootimpl"
@@ -77,8 +77,8 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	require.NoError(t, err)
 
 	ocflVer := version.Version1_1
-	storageRootFact := factoryimpl.NewFactoryStorageRoot(ocflVer, storageRootExtFactory, logger)
-	objectFact := factoryimpl.NewFactoryObject(ocflVer, objectExtFactory, logger)
+	storageRootFact := initocfl.NewFactoryStorageRoot(ocflVer, storageRootExtFactory, logger)
+	objectFact := initocfl.NewFactoryObject(ocflVer, objectExtFactory, logger)
 
 	sr := storagerootimpl.NewStorageRootBase(ctx, storageRootFact, ocflVer, storageRootExtFactory, logger)
 	sr.WithWriteFS(srFS)
@@ -88,7 +88,6 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 
 	initializer := sr.GetInitializer()
 	require.NotNil(t, initializer)
-	initializer.WithFS(srFS)
 
 	err = initializer.Init()
 	require.NoError(t, err)
@@ -108,7 +107,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	sr.WithWriteFS(srFS) // Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 
 	// Jetzt den Loader verwenden, um die Erweiterungen etc. aus dem Lese-FS zu laden
-	loader := sr.GetLoader(storageRootExtFactory)
+	loader := sr.GetLoader()
 	err = loader.Load()
 	require.NoError(t, err)
 
@@ -136,7 +135,7 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, 
 	require.NoError(t, err)
 
 	obj := env.ObjectFactory.NewObject(context.TODO()).WithExtensionManager(env.ObjectExtManager)
-	objInit := obj.GetInitializer(objFS)
+	objInit := obj.GetInitializer().SetFS(objFS)
 
 	err = objInit.Init(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{})
 	require.NoError(t, err)
@@ -153,7 +152,7 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	require.NoError(t, err)
 
 	loadedObj := env.ObjectFactory.NewObject(t.Context())
-	loader := loadedObj.GetLoader(objFS, env.ObjectExtFactory)
+	loader := loadedObj.GetLoader().SetFS(objFS)
 	err = loader.Load()
 	require.NoError(t, err)
 

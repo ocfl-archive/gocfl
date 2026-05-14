@@ -37,12 +37,12 @@ type checker struct {
 	logger   ocfllogger.OCFLLogger
 }
 
-func (obj *checker) WithObject(obj2 object.Object) object.Checker {
+func (obj *checker) SetObject(obj2 object.Object) object.Checker {
 	obj.Object = obj2
 	return obj
 }
 
-func (obj *checker) WithFS(objectFS fs.FS) object.Checker {
+func (obj *checker) SetFS(objectFS fs.FS) object.Checker {
 	obj.objectFS = objectFS
 	return obj
 }

@@ -54,17 +54,17 @@ func (loader *Loader) Load() error {
 	return nil
 }
 
-func (loader *Loader) WithExtensionFactory(factory extension.Factory[object.ExtensionManager]) object.Loader {
+func (loader *Loader) SetExtensionFactory(factory extension.Factory[object.ExtensionManager]) object.Loader {
 	loader.extensionFactory = factory
 	return loader
 }
 
-func (loader *Loader) WithObject(o object.Object) object.Loader {
+func (loader *Loader) SetObject(o object.Object) object.Loader {
 	loader.Object = o
 	return loader
 }
 
-func (loader *Loader) WithFS(sourceFS fs.FS) object.Loader {
+func (loader *Loader) SetFS(sourceFS fs.FS) object.Loader {
 	loader.objectFS = sourceFS
 	return loader
 }

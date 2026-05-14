@@ -15,23 +15,21 @@ import (
 type Initializer interface {
 	StorageRoot
 	Init() error
-	WithStorageRoot(sr StorageRoot) Initializer
-	WithFS(objectFS appendfs.FS) Initializer
+	SetStorageRoot(sr StorageRoot) Initializer
 	Close() error
 }
 
 type Loader interface {
 	Load() error
-	WithStorageRoot(sr StorageRoot) Loader
-	WithFS(sourceFS fs.FS) Loader
-	WithExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
+	SetStorageRoot(sr StorageRoot) Loader
+	SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
 	Close() error
 }
 
 type StorageRoot interface {
 	fmt.Stringer
 	IsWriteable() bool
-	GetLoader(extensionFactor extension.Factory[ExtensionManager]) Loader
+	GetLoader() Loader
 	GetInitializer() Initializer
 	WithReadFS(sourceFS fs.FS) StorageRoot
 	GetReadFS() fs.FS
