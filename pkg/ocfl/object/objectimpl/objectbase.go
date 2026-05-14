@@ -13,7 +13,6 @@ import (
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
@@ -22,13 +21,7 @@ import (
 )
 
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(
-	ctx context.Context,
-	fact factory.FactoryObject,
-	defaultVersion version.OCFLVersion,
-	extensionFactory *extensionimpl.Factory[object.ExtensionManager],
-	logger ocfllogger.OCFLLogger,
-) *ObjectBase {
+func NewObjectBase(ctx context.Context, fact factory.FactoryObject, defaultVersion version.OCFLVersion, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) *ObjectBase {
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
 		//extensionManager: extensionManager.(object.ExtensionManager),
@@ -50,7 +43,7 @@ func NewObjectBase(
 
 type ObjectBase struct {
 	//	storageRoot        storageroot.StorageRoot
-	extensionFactory *extensionimpl.Factory[object.ExtensionManager]
+	extensionFactory extension.Factory[object.ExtensionManager]
 	extensionManager object.ExtensionManager
 	ctx              context.Context
 	//fsys             fs.FS

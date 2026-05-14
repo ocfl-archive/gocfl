@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory/inventoryimpl"
@@ -14,12 +14,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewFactoryBaseObject(
-	version version.OCFLVersion,
-	spec inventory.InventorySpec,
-	extensionFactory *extensionimpl.Factory[object.ExtensionManager],
-	logger ocfllogger.OCFLLogger,
-) factory.FactoryObject {
+func NewFactoryBaseObject(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) factory.FactoryObject {
 	return &FactoryBaseObject{
 		logger:           logger,
 		version:          version,
@@ -32,7 +27,7 @@ type FactoryBaseObject struct {
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
-	extensionFactory *extensionimpl.Factory[object.ExtensionManager]
+	extensionFactory extension.Factory[object.ExtensionManager]
 }
 
 func (f *FactoryBaseObject) WithNewVersion(ocflVersion version.OCFLVersion) factory.FactoryObject {

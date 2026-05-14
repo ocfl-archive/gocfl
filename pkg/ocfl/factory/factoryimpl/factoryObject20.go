@@ -1,7 +1,7 @@
 package factoryimpl
 
 import (
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
@@ -9,7 +9,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewFactoryObject20(extensionFactory *extensionimpl.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) factory.FactoryObject {
+func NewFactoryObject20(extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) factory.FactoryObject {
 	return &factoryObject20{
 		FactoryObject: NewFactoryBaseObject(version.Version2_0, inventory.InventorySpec2_0, extensionFactory, logger),
 	}
