@@ -24,7 +24,7 @@ import (
 func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory extension.Factory[object.ExtensionManager], manager object.ExtensionManager, fsys appendfs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	f := initocfl.NewFactoryObject(ver, extensionFactory, logger)
 	obj := f.NewObject(ctx).WithExtensionManager(manager)
-	initializer := obj.GetInitializer(fsys)
+	initializer := obj.GetInitializer().WithFS(fsys)
 
 	if err := initializer.Init(id, digest, fixity); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
@@ -77,7 +77,7 @@ func LoadObjectFS(ctx context.Context, objectFS fs.FS, extensionFactory extensio
 	logger.WithVersion(ver)
 	fact := initocfl.NewFactoryObject(ver, extensionFactory, logger)
 	obj := fact.NewObject(ctx)
-	loader := obj.GetLoader(objectFS, extensionFactory)
+	loader := obj.GetLoader().WithFS(objectFS)
 	// load the object
 	if err := loader.Load(); err != nil {
 		return nil, errors.Wrapf(err, "cannot load object from fsys '%v'", objectFS)
@@ -116,7 +116,7 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
-	extractor := o.GetExtractor(objFsys, destFS)
+	extractor := o.GetExtractor().WithFS(objFsys, destFS)
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
 	}
@@ -133,6 +133,6 @@ func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory 
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
 	defer logger.Debug().Msgf("extraction done")
-	extractor := obj.GetExtractor(objFsys, nil)
+	extractor := obj.GetExtractor().WithFS(objFsys, nil)
 	return extractor.GetMetadata()
 }

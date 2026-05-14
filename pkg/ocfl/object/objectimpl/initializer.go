@@ -41,7 +41,15 @@ func (initializer *initializer) WithFS(objectFS appendfs.FS) object.Initializer 
 
 func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
 	initializer.logger.Debug().Msgf("%s", id)
-
+	if empty, err := writefs.IsEmpty(initializer.objectFS, ""); err != nil {
+		if errors.Is(err, writefs.ErrNotImplemented) {
+			initializer.logger.Warn().Msgf("cannot check whether %v is empty", initializer.objectFS)
+		} else {
+			return errors.Wrapf(err, "cannot check whether %v is empty", initializer.objectFS)
+		}
+	} else if !empty {
+		return errors.Errorf("cannot create object '%s'. '%v' is not empty", id, initializer.objectFS)
+	}
 	objectConformanceDeclaration := "ocfl_object_" + string(initializer.factory.GetVersion())
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 	/*
