@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/je4/filesystem/v4/pkg/vfsrw"
+	"github.com/je4/filesystem/v4/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
@@ -21,99 +22,115 @@ import (
 )
 
 func main() {
-	// 1. Parse command line parameters
+	// --- Step 1: Command Line Parameter Parsing ---
+	// Define and parse the parameters for the OCFL Storage Root and the Object to be extracted.
 	pathPtr := flag.String("path", "", "Path to the OCFL Storage Root")
 	destPtr := flag.String("dest", "", "Destination path for extraction")
 	idPtr := flag.String("id", "my-object-id", "OCFL Object ID")
+	objectPathPtr := flag.String("objectpath", "", "Path to the OCFL Object")
 	flag.Parse()
 
-	if *pathPtr == "" || *destPtr == "" {
+	if (*pathPtr == "" || *destPtr == "") && *objectPathPtr == "" {
 		fmt.Println("Usage: go run main.go -path <storage_root_path> -dest <destination_path> [-id <object_id>]")
+		fmt.Println("   or: go run main.go -objectpath <object_path> -dest <destination_path> [-id <object_id>]")
 		os.Exit(1)
 	}
 	srPath := *pathPtr
 	destPath := *destPtr
 	objID := *idPtr
 
-	// 2. Setup Environment
+	// --- Step 2: Logging Infrastructure Setup ---
+	// Initialize a context and a logger using zerolog and the OCFL-specific logger wrapper.
 	ctx := context.Background()
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
 	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
-	cfg := vfsrw.Config{
-		"local": &vfsrw.VFS{
-			Name: "local",
-			Type: "os",
-			OS: &vfsrw.OS{
-				BaseDir: srPath,
-			},
-		},
-	}
+	// --- Step 3: Virtual Filesystem (VFS) Configuration ---
+	// OCFL operations are performed via a filesystem abstraction layer.
+	cfg := vfsrw.Config{}
 	vfs, err := vfsrw.NewFS(cfg, _zlogger)
 	if err != nil {
 		log.Fatalf("failed to create vfs: %v", err)
 	}
 	defer vfs.Close()
 
-	fsys := appendfs.FS(vfs)
+	// Register the local filesystem (OS-specific root) to the VFS.
+	if err := vfsrw.AddLocal(vfs, nil); err != nil {
+		logger.Fatal().Err(err).Msg("failed to add local filesystem")
+	}
 
-	// 3. Setup Factories
+	// Define the filesystem for the Storage Root or Object directory.
+	// We use appendfs here because it is required for OCFL operations,
+	// providing the necessary functionality to access the OCFL structure.
+	var storageRootFS fs.FS
+	var objFolder string
+	if *objectPathPtr != "" {
+		objFolder = writefs.RealPath(vfs, *objectPathPtr)
+	} else {
+		storageRootFS, err = fs.Sub(vfs, writefs.RealPath(vfs, *pathPtr))
+		if err != nil {
+			log.Fatalf("failed to create subfs for storage root '%s': %v", *pathPtr, err)
+		}
+	}
+
+	// --- Step 4: OCFL Version and Factory Setup ---
 	ocflVer := version.Version1_1
+	// Setup Storage Root Factory and Extension Manager.
 	_, srExtFactory, _ := initocfl.SetupExtensionManager[storageroot.ExtensionManager](nil, nil, logger)
 	srFactory := initocfl.NewFactoryStorageRoot(ocflVer, srExtFactory, logger)
 
+	// Setup Object Factory and Extension Manager.
 	objExtManager, objExtFactory, _ := initocfl.SetupExtensionManager[object.ExtensionManager](nil, nil, logger)
 	objFactory := initocfl.NewFactoryObject(ocflVer, objExtFactory, logger)
 
-	// 4. Initialize Storage Root and Create an Object with content (if not exists)
-	sr := srFactory.NewStorageRoot(ctx).
-		WithWriteFS(fsys).
-		WithDigestAlgorithm(checksum.DigestSHA512)
-	_ = sr.GetInitializer().Init()
+	// --- Step 5: Storage Root and Object Loading ---
+	// If a Storage Root is provided, we determine the Object's folder.
+	if storageRootFS != nil {
+		sr := srFactory.NewStorageRoot(ctx).
+			WithReadFS(storageRootFS).
+			WithDigestAlgorithm(checksum.DigestSHA512)
 
-	objFolder, _ := sr.IdToFolder(objID)
-	objFS, _ := appendfs.Sub(fsys, objFolder)
+		// Determine the folder path for the given Object ID within the Storage Root.
+		objFolder, err = sr.IdToFolder(objID)
+		if err != nil {
+			log.Fatalf("failed to get folder for id '%s': %v", objID, err)
+		}
+		// Prepend storage root path to objFolder to get the absolute path.
+		objFolder = writefs.RealPath(vfs, *pathPtr+"/"+objFolder)
+	}
+
+	// Create a sub-filesystem for the target object directory.
+	objFS, err := fs.Sub(vfs, objFolder)
+	if err != nil {
+		logger.Fatal().Err(err).Msgf("failed to create subfs for object folder '%s'", objFolder)
+	}
+	// Instantiate and configure the Object.
 	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager)
 
-	// Try to initialize. If it fails, we assume it exists and we'll try to load it.
-	if err := obj.GetInitializer().WithFS(objFS).Init(objID, checksum.DigestSHA512, nil); err == nil {
-		vw, _ := obj.StartUpdate(objFS, "initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
-		_ = vw.AddData([]byte("Hello OCFL extraction"), "extract-me.txt", false, "", false, false)
-		_ = vw.Close()
-	}
-
-	// --- Extracting Objects ---
-
-	// Prepare destination filesystem (local)
-	destCfg := vfsrw.Config{
-		"dest": &vfsrw.VFS{
-			Name: "dest",
-			Type: "os",
-			OS: &vfsrw.OS{
-				BaseDir: destPath,
-			},
-		},
-	}
-	destVFS, err := vfsrw.NewFS(destCfg, _zlogger)
-	if err != nil {
-		log.Fatalf("failed to create destination vfs: %v", err)
-	}
-	defer destVFS.Close()
-	destFS := appendfs.FS(destVFS)
-
-	// Reload the object for reading
-	readObjFS := fs.FS(objFS)
-	loader := obj.GetLoader().WithFS(readObjFS)
+	// Load the existing object.
+	loader := obj.GetLoader().WithFS(objFS)
 	if err := loader.Load(); err != nil {
-		log.Fatalf("failed to load object: %v", err)
+		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
 
-	// Get extractor
-	extractor := obj.GetExtractor().WithFS(readObjFS, destFS)
+	// --- Step 6: Extracting the OCFL Object ---
+	// The objFS is used twice here for different purposes:
+	// 1. In Step 5, the Loader used objFS to read the OCFL metadata (inventory, sidecar) to understand the object's structure.
+	// 2. Here in Step 6, the Extractor uses objFS as the source to access the actual content files stored within the OCFL versions.
 
-	// Extract the head version
+	// A: Prepare destination filesystem (local) where the object will be extracted to.
+	destRealPath := writefs.RealPath(vfs, *destPtr)
+	destFS, err := appendfs.Sub(vfs, destRealPath)
+	if err != nil {
+		log.Fatalf("failed to create destination fs: %v", err)
+	}
+
+	// B: Get the extractor for the object and specify the source (objFS) and destination (destFS) filesystems.
+	extractor := obj.GetExtractor().WithFS(objFS, destFS)
+
+	// C: Extract the head version of the object to the destination.
 	err = extractor.Extract(nil, false, "")
 	if err != nil {
 		log.Fatalf("failed to extract object: %v", err)
@@ -121,11 +138,7 @@ func main() {
 
 	fmt.Printf("Object '%s' (head version) from '%s' successfully extracted to '%s'.\n", objID, srPath, destPath)
 
-	// Verify extraction
-	_, err = fs.Stat(destFS, "extract-me.txt")
-	if err != nil {
-		fmt.Printf("Verification failed: %v\n", err)
-	} else {
-		fmt.Println("Verification: 'extract-me.txt' found in destination.")
-	}
+	// --- Step 7: Verification (Optional) ---
+	// In a real scenario, you would check if the extracted files exist in destPath.
+	fmt.Println("Extraction completed.")
 }
