@@ -46,7 +46,10 @@ func (init *initializer) WithFS(storageRootFS appendfs.FS) storageroot.Initializ
 }
 
 func (init *initializer) Init() error {
-
+	extensionManager := init.GetExtensionManager()
+	if extensionManager == nil {
+		return errors.New("extension manager is nil. initialize with WithExtensionManager() first")
+	}
 	objectConformanceDeclaration := "ocfl_" + string(init.factory.GetVersion())
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
 	if _, err := writefs.WriteFile(init.storageRootFS, objectConformanceDeclarationFile, []byte(objectConformanceDeclaration+"\n")); err != nil {

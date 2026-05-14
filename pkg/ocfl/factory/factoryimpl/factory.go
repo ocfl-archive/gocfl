@@ -1,6 +1,7 @@
 package factoryimpl
 
 import (
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
 	factorytypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
@@ -23,7 +24,11 @@ func NewFactoryObject(ver version.OCFLVersion, extensionFactory *extensionimpl.F
 	}
 }
 
-func NewFactoryStorageRoot(ver version.OCFLVersion, extensionFactory *extensionimpl.Factory[storageroot.ExtensionManager], logger ocfllogger.OCFLLogger) factorytypes.FactoryStorageRoot {
+func NewFactoryStorageRoot(
+	ver version.OCFLVersion,
+	extensionFactory extension.Factory[storageroot.ExtensionManager],
+	logger ocfllogger.OCFLLogger,
+) factorytypes.FactoryStorageRoot {
 	switch ver {
 	case version.Version1_0:
 		return NewFactoryStorageRoot10(extensionFactory, logger)

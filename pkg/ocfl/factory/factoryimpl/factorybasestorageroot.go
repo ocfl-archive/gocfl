@@ -3,7 +3,7 @@ package factoryimpl
 import (
 	"context"
 
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot/storagerootimpl"
@@ -11,11 +11,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewFactoryBaseStorageRoot(
-	version version.OCFLVersion,
-	extensionFactory *extensionimpl.Factory[storageroot.ExtensionManager],
-	logger ocfllogger.OCFLLogger,
-) factory.FactoryStorageRoot {
+func NewFactoryBaseStorageRoot(version version.OCFLVersion, extensionFactory extension.Factory[storageroot.ExtensionManager], logger ocfllogger.OCFLLogger) factory.FactoryStorageRoot {
 	return &FactoryBaseStorageRoot{
 		logger:           logger,
 		version:          version,
@@ -26,7 +22,7 @@ func NewFactoryBaseStorageRoot(
 type FactoryBaseStorageRoot struct {
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
-	extensionFactory *extensionimpl.Factory[storageroot.ExtensionManager]
+	extensionFactory extension.Factory[storageroot.ExtensionManager]
 }
 
 func (f *FactoryBaseStorageRoot) WithNewVersion(ocflVersion version.OCFLVersion) factory.FactoryStorageRoot {

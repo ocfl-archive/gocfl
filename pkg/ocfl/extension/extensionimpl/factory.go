@@ -14,13 +14,14 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/util"
 )
 
-func NewFactory[T extension.ManagerCore[T]](extensionParams map[string]string, logger ocfllogger.OCFLLogger) (*Factory[T], error) {
+func NewFactory[T extension.ManagerCore[T]](extensionParams map[string]string, logger ocfllogger.OCFLLogger) (extension.Factory[T], error) {
 	m := &Factory[T]{
 		extensionParams: extensionParams,
 		logger:          logger.With("module", "extensionimpl.Factory"),
 		extension:       map[string]*extensionData{},
 	}
 	extension.RegisterWithFactory(m, m.logger)
+
 	return m, nil
 }
 
