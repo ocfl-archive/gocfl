@@ -69,6 +69,8 @@ type Object interface {
 	GetLoader() Loader
 	WithInventory(inv inventory.Inventory) Object
 	WithExtensionManager(manager ExtensionManager) Object
+	WithReadFS(fsys fs.FS) Object
+	WithWriteFS(fsys appendfs.FS) Object
 	StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
 	GetID() string
 	GetInventory() inventory.Inventory

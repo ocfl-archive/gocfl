@@ -46,8 +46,9 @@ type ObjectBase struct {
 	extensionFactory extension.Factory[object.ExtensionManager]
 	extensionManager object.ExtensionManager
 	ctx              context.Context
-	//fsys             fs.FS
-	i inventory.Inventory
+	readFS           fs.FS
+	writeFS          appendfs.FS
+	i                inventory.Inventory
 	//versionFolders     []string
 	versionInventories map[string]inventory.Inventory
 	changed            bool
@@ -71,6 +72,16 @@ func (objectBase *ObjectBase) WithInventory(inv inventory.Inventory) object.Obje
 
 func (objectBase *ObjectBase) WithExtensionManager(manager object.ExtensionManager) object.Object {
 	objectBase.extensionManager = manager
+	return objectBase
+}
+
+func (objectBase *ObjectBase) WithReadFS(fsys fs.FS) object.Object {
+	objectBase.readFS = fsys
+	return objectBase
+}
+
+func (objectBase *ObjectBase) WithWriteFS(fsys appendfs.FS) object.Object {
+	objectBase.writeFS = fsys
 	return objectBase
 }
 
@@ -179,6 +190,9 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 }
 
 func (objectBase *ObjectBase) StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
+	if objectFS == nil {
+		objectFS = objectBase.writeFS
+	}
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	// todo: check for using factory
 	vw, err := NewVersionWriter(objectBase, objectFS, echo, msg, UserName, UserAddress, objectBase.logger)
@@ -196,6 +210,9 @@ func (objectBase *ObjectBase) GetID() string {
 }
 
 func (objectBase *ObjectBase) GetChecker(sourceFS fs.FS) object.Checker {
+	if sourceFS == nil {
+		sourceFS = objectBase.readFS
+	}
 	return objectBase.factory.NewChecker(objectBase.ctx).SetObject(objectBase).SetFS(sourceFS)
 }
 
@@ -204,15 +221,27 @@ func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 }
 
 func (objectBase *ObjectBase) GetLoader() object.Loader {
-	return objectBase.factory.NewLoader(objectBase.ctx).SetObject(objectBase).SetExtensionFactory(objectBase.extensionFactory)
+	loader := objectBase.factory.NewLoader(objectBase.ctx).SetObject(objectBase).SetExtensionFactory(objectBase.extensionFactory)
+	if objectBase.readFS != nil {
+		loader.WithFS(objectBase.readFS)
+	}
+	return loader
 }
 
 func (objectBase *ObjectBase) GetInitializer() object.Initializer {
-	return objectBase.factory.NewInitializer(objectBase.ctx).SetObject(objectBase)
+	initializer := objectBase.factory.NewInitializer(objectBase.ctx).SetObject(objectBase)
+	if objectBase.writeFS != nil {
+		initializer.WithFS(objectBase.writeFS)
+	}
+	return initializer
 }
 
 func (objectBase *ObjectBase) GetExtractor() object.Extractor {
-	return objectBase.factory.NewExtractor(objectBase.ctx).SetObject(objectBase)
+	extractor := objectBase.factory.NewExtractor(objectBase.ctx).SetObject(objectBase)
+	if objectBase.readFS != nil || objectBase.writeFS != nil {
+		extractor.WithFS(objectBase.readFS, objectBase.writeFS)
+	}
+	return extractor
 }
 
 /*
