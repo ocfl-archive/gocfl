@@ -140,7 +140,10 @@ func (manifest *ManifestBase) Check(csFiles map[string][]string, versionDigests 
 		return true
 	})
 	slices.Sort(allPaths)
-	for _, paths := range csFiles {
+	for cs, paths := range csFiles {
+		if !slices.Contains(versionDigests, cs) {
+			continue
+		}
 		for _, path := range paths {
 			if strings.Count(path, "/") == 1 {
 				continue
