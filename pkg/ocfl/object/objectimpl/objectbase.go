@@ -189,10 +189,8 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 	return objectBase.i.GetDigestAlgorithm()
 }
 
-func (objectBase *ObjectBase) StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
-	if objectFS == nil {
-		objectFS = objectBase.writeFS
-	}
+func (objectBase *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
+	objectFS := objectBase.writeFS
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	// todo: check for using factory
 	vw, err := NewVersionWriter(objectBase, objectFS, echo, msg, UserName, UserAddress, objectBase.logger)
@@ -209,11 +207,12 @@ func (objectBase *ObjectBase) GetID() string {
 	return objectBase.i.GetID()
 }
 
-func (objectBase *ObjectBase) GetChecker(sourceFS fs.FS) object.Checker {
-	if sourceFS == nil {
-		sourceFS = objectBase.readFS
-	}
-	return objectBase.factory.NewChecker(objectBase.ctx).SetObject(objectBase).SetFS(sourceFS)
+func (objectBase *ObjectBase) GetReadFS() fs.FS {
+	return objectBase.readFS
+}
+
+func (objectBase *ObjectBase) GetChecker() object.Checker {
+	return objectBase.factory.NewChecker(objectBase.ctx).SetObject(objectBase).WithFS(objectBase.readFS)
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {

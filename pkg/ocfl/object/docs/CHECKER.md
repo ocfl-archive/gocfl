@@ -11,14 +11,14 @@ The `Checker` interface includes several key methods for configuring and executi
 
 - `Check() error`: Executes the validation process. It checks the presence of required files, validates the [Inventory](../../inventory/README.md) against its digests, and ensures that the physical file layout matches the inventory.
 - `SetObject(obj Object) Checker`: Associates the checker with an [Object](OBJECT.md) instance.
-- `SetFS(objectFS fs.FS) Checker`: Sets the filesystem where the OCFL object to be checked is located.
+- `WithFS(objectFS fs.FS) Checker`: Sets the filesystem where the OCFL object to be checked is located.
 
 ## Usage Example
 
 The checker is typically accessed via the [Object](OBJECT.md) interface:
 
 ```go
-checker := obj.GetChecker(sourceFS)
+checker := obj.GetChecker()
 if err := checker.Check(); err != nil {
     // handle validation errors
 }

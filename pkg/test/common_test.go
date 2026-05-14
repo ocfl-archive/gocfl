@@ -134,8 +134,8 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, 
 	objFS, err := appendfs.Sub(env.SourceFS, objFolder)
 	require.NoError(t, err)
 
-	obj := env.ObjectFactory.NewObject(context.TODO()).WithExtensionManager(env.ObjectExtManager)
-	objInit := obj.GetInitializer().WithFS(objFS)
+	obj := env.ObjectFactory.NewObject(context.TODO()).WithExtensionManager(env.ObjectExtManager).WithWriteFS(objFS)
+	objInit := obj.GetInitializer()
 
 	err = objInit.Init(objID, checksum.DigestSHA512, []checksum.DigestAlgorithm{})
 	require.NoError(t, err)
@@ -151,7 +151,7 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
 	require.NoError(t, err)
 
-	loadedObj := env.ObjectFactory.NewObject(t.Context())
+	loadedObj := env.ObjectFactory.NewObject(t.Context()).WithReadFS(objFS)
 	loader := loadedObj.GetLoader().WithFS(objFS)
 	err = loader.Load()
 	require.NoError(t, err)

@@ -116,8 +116,8 @@ func main() {
 		log.Fatalf("failed to create sub fs for object folder '%s': %v", objFolder, err)
 	}
 
-	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager)
-	loader := obj.GetLoader().WithFS(objFS)
+	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager).WithReadFS(objFS)
+	loader := obj.GetLoader()
 	if err := loader.Load(); err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
@@ -126,7 +126,7 @@ func main() {
 
 	// --- Step 7: Object Validation ---
 	fmt.Printf("Validating object '%s'...\n", objID)
-	checker := obj.GetChecker(objFS)
+	checker := obj.GetChecker()
 	err = checker.Check()
 
 	vErrors := logger.ValidationErrors()

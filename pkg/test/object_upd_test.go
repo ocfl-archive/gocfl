@@ -9,10 +9,10 @@ import (
 func TestObjectUpdate(t *testing.T) {
 	env := SetupTestEnv(t)
 	objID := "test-object"
-	obj, objFS := CreateTestObject(t, env, objID)
+	obj, _ := CreateTestObject(t, env, objID)
 
 	// 5. Erste Version hinzufügen (v1)
-	vw1, err := obj.StartUpdate(objFS, "initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	vw1, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	require.NoError(t, err)
 
 	testFileName1 := "test1.txt"
@@ -24,7 +24,7 @@ func TestObjectUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	// 6. Zweite Version hinzufügen (v2)
-	vw2, err := obj.StartUpdate(objFS, "second version", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	vw2, err := obj.StartUpdate("second version", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	require.NoError(t, err)
 
 	// Neue Datei hinzufügen
@@ -42,7 +42,7 @@ func TestObjectUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	// 7. Dritte Version hinzufügen (v3): Rename, Delete, Update
-	vw3, err := obj.StartUpdate(objFS, "third version", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	vw3, err := obj.StartUpdate("third version", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	require.NoError(t, err)
 
 	// Rename: test2.txt -> test2_renamed.txt
@@ -64,10 +64,10 @@ func TestObjectUpdate(t *testing.T) {
 
 	// 8. Verifizierung
 	// Wir laden das Objekt neu über ein Lese-Dateisystem
-	loadedObj, loadedFS := ReloadObject(t, env, objID)
+	loadedObj, _ := ReloadObject(t, env, objID)
 
 	// Validierung des Objekts
-	checker := loadedObj.GetChecker(loadedFS)
+	checker := loadedObj.GetChecker()
 	err = checker.Check()
 	require.NoError(t, err, "Object validation should pass")
 

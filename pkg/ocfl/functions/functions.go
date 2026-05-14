@@ -93,7 +93,7 @@ func CheckObject(ctx context.Context, objectFS fs.FS, extensionFactory extension
 		logger.ValidationError(validation.E001, "invalid fsys '%v': %v", objectFS, err)
 		return errors.Wrapf(err, "cannot load object from folder '%v'", objectFS)
 	}
-	checker := obj.GetChecker(objectFS)
+	checker := obj.GetChecker()
 	if err := checker.Check(); err != nil {
 		return errors.Wrapf(err, "cannot check object from folder '%v'", objectFS)
 	}

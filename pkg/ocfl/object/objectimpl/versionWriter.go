@@ -232,7 +232,7 @@ func (versionWriter *versionWriter) Close() error {
 	if needVersion, err := versionWriter.GetExtensionManager().NeedNewVersion(versionWriter); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
-		nextVersion, err := versionWriter.StartUpdate(versionWriter.objectFS, "automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false)
+		nextVersion, err := versionWriter.StartUpdate("automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false)
 		if err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}

@@ -37,7 +37,7 @@ type VersionWriter interface {
 type Checker interface {
 	Check() error
 	SetObject(obj Object) Checker
-	SetFS(objectFS fs.FS) Checker
+	WithFS(objectFS fs.FS) Checker
 }
 
 type Initializer interface {
@@ -72,12 +72,13 @@ type Object interface {
 	WithExtensionManager(manager ExtensionManager) Object
 	WithReadFS(fsys fs.FS) Object
 	WithWriteFS(fsys appendfs.FS) Object
-	StartUpdate(objectFS appendfs.FS, msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
+	StartUpdate(msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
 	GetID() string
 	GetInventory() inventory.Inventory
 	//GetAreaPath(area string) (string, error)
 	Stat(w io.Writer, statInfo []StatInfo) error
 	GetExtensionManager() ExtensionManager
 	GetOCFLVersion() version.OCFLVersion
-	GetChecker(sourceFS fs.FS) Checker
+	GetReadFS() fs.FS
+	GetChecker() Checker
 }

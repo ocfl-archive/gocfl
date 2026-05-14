@@ -27,7 +27,7 @@ The `VersionWriter` provides comprehensive methods for object updates:
 ## Usage Example
 
 ```go
-writer, err := obj.StartUpdate(objectFS, "New version message", "User Name", "user@example.com", false)
+writer, err := obj.StartUpdate("New version message", "User Name", "user@example.com", false)
 if err != nil {
     // handle error
 }

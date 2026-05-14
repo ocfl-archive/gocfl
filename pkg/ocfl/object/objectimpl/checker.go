@@ -42,12 +42,15 @@ func (obj *checker) SetObject(obj2 object.Object) object.Checker {
 	return obj
 }
 
-func (obj *checker) SetFS(objectFS fs.FS) object.Checker {
+func (obj *checker) WithFS(objectFS fs.FS) object.Checker {
 	obj.objectFS = objectFS
 	return obj
 }
 
 func (obj *checker) Check() error {
+	if obj.objectFS == nil {
+		obj.objectFS = obj.GetReadFS()
+	}
 	if obj.objectFS == nil {
 		obj.logger.Panic().Msg("object FS is not set")
 	}

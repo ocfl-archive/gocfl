@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 
@@ -125,16 +126,20 @@ func main() {
 	// --- Step 6: OCFL Object Loading ---
 	// A: Create a sub-filesystem for the target object directory.
 	// Again, appendfs is used to enable write operations within this sub-filesystem.
-	objFS, err := appendfs.Sub(vfs, objFolder)
+	objWriteFS, err := appendfs.Sub(vfs, objFolder)
+	objReadFS, err := fs.Sub(vfs, objFolder)
+	if err != nil {
+		logger.Fatal().Err(err).Msgf("failed to create subfs for object folder '%s'", objFolder)
+	}
 	if err != nil {
 		log.Fatalf("failed to create sub fs for object folder '%s': %v", objFolder, err)
 	}
 
 	// B: Instantiate and configure the Object.
-	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager)
+	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager).WithReadFS(objReadFS).WithWriteFS(objWriteFS)
 
 	// C: Load the existing object instead of initializing it.
-	loader := obj.GetLoader().WithFS(objFS)
+	loader := obj.GetLoader()
 	if err := loader.Load(); err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
@@ -144,7 +149,7 @@ func main() {
 	// --- Step 7: Update the Object with a New Version ---
 	// A: Start a new version update for the object.
 	// This returns a VersionWriter which allows adding, deleting, or renaming files.
-	vw, err := obj.StartUpdate(objFS, "Updating object: renaming, removing, and adding files", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	vw, err := obj.StartUpdate("Updating object: renaming, removing, and adding files", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	if err != nil {
 		log.Fatalf("failed to start update for object '%s': %v", objID, err)
 	}

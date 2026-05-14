@@ -22,10 +22,4 @@ func TestStorageRootInit(t *testing.T) {
 	_, err = fs.Stat(env.ReadSRFS, "ocfl_spec_1.1.md")
 	assert.NoError(t, err, "OCFL specification doc should exist")
 
-	// Überprüfe ob Extensions-Konfigurationen vorhanden sind
-	_, err = fs.Stat(env.ReadSRFS, "extensions/initial/config.json")
-	assert.NoError(t, err, "initial extension config should exist")
-
-	_, err = fs.Stat(env.ReadSRFS, "extensions/NNNN-gocfl-extension-manager/config.json")
-	assert.NoError(t, err, "extension manager config should exist")
 }

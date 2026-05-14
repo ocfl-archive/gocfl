@@ -9,10 +9,10 @@ import (
 func TestObjectAdd(t *testing.T) {
 	env := SetupTestEnv(t)
 	objID := "test-object"
-	obj, objFS := CreateTestObject(t, env, objID)
+	obj, _ := CreateTestObject(t, env, objID)
 
 	// 5. Version hinzufügen
-	vw, err := obj.StartUpdate(objFS, "initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	vw, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
 	assert.NoError(t, err)
 
 	testFileName := "test.txt"
