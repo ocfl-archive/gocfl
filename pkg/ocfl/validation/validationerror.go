@@ -209,9 +209,9 @@ func (ve *Error) AppendContext(format string, a ...any) *Error {
 
 func (verr *Error) Error() string {
 	if len(verr.Code) > 0 && verr.Code[0] == 'W' {
-		return fmt.Sprintf("[%s] Validation Warning #%s - %s (%s) [%s]", verr.Context, verr.Code, verr.Description, verr.Ref, verr.Description2)
+		return fmt.Sprintf("Warning #%s [%s]  %s (%s) [%s]", verr.Code, verr.Context, verr.Description, verr.Ref, verr.Description2)
 	} else {
-		return fmt.Sprintf("[%s] Validation Error #%s - %s (%s) [%s]", verr.Context, verr.Code, verr.Description, verr.Ref, verr.Description2)
+		return fmt.Sprintf("Error #%s [%s] %s (%s) [%s]", verr.Code, verr.Context, verr.Description, verr.Ref, verr.Description2)
 	}
 }
 
