@@ -45,6 +45,15 @@ func (init *initializer) Init() error {
 	if init.storageRootFS == nil {
 		return errors.New("storageRootFS is nil. initialize StorageRoot with WithWriteFS() first")
 	}
+	if empty, err := writefs.IsEmpty(init.storageRootFS, ""); err != nil {
+		if errors.Is(err, writefs.ErrNotImplemented) {
+			init.logger.Warn().Msgf("cannot check whether %v is empty", init.storageRootFS)
+		} else {
+			return errors.Wrapf(err, "cannot check whether %v is empty", init.storageRootFS)
+		}
+	} else if !empty {
+		return errors.Errorf("cannot create storage root. '%v' is not empty", init.storageRootFS)
+	}
 	extensionManager := init.GetExtensionManager()
 	if extensionManager == nil {
 		return errors.New("extension manager is nil. initialize with WithExtensionManager() first")
