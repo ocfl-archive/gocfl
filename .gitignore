@@ -11,3 +11,4 @@ go.work.sum
 /data/temp/
 dist/*
 /data/migration/srgb.icc
+*.exe
