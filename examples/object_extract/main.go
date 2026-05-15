@@ -92,6 +92,11 @@ func main() {
 			WithReadFS(storageRootFS).
 			WithDigestAlgorithm(checksum.DigestSHA512)
 
+		loader := sr.GetLoader()
+		if err := loader.Load(); err != nil {
+			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
+		}
+
 		// Determine the folder path for the given Object ID within the Storage Root.
 		objFolder, err = sr.IdToFolder(objID)
 		if err != nil {

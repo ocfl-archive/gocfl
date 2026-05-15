@@ -61,6 +61,10 @@ type ObjectBase struct {
 	factory     factory.FactoryObject
 }
 
+func (objectBase *ObjectBase) GetWriteFS() appendfs.FS {
+	return objectBase.writeFS
+}
+
 func (objectBase *ObjectBase) GetFactory() factory.FactoryObject {
 	return objectBase.factory
 }
@@ -190,14 +194,13 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 }
 
 func (objectBase *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
-	objectFS := objectBase.writeFS
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
 	// todo: check for using factory
-	vw, err := NewVersionWriter(objectBase, objectFS, echo, msg, UserName, UserAddress, objectBase.logger)
+	vw, err := NewVersionWriter(objectBase, echo, msg, UserName, UserAddress, objectBase.logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create version writer")
 	}
-	return vw, nil
+	return vw.WithObject(objectBase), nil
 }
 
 func (objectBase *ObjectBase) GetID() string {
@@ -212,7 +215,7 @@ func (objectBase *ObjectBase) GetReadFS() fs.FS {
 }
 
 func (objectBase *ObjectBase) GetChecker() object.Checker {
-	return objectBase.factory.NewChecker(objectBase.ctx).SetObject(objectBase).WithFS(objectBase.readFS)
+	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase)
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
@@ -220,15 +223,15 @@ func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
 }
 
 func (objectBase *ObjectBase) GetLoader() object.Loader {
-	return objectBase.factory.NewLoader(objectBase.ctx).SetObject(objectBase).SetExtensionFactory(objectBase.extensionFactory).WithFS(objectBase.readFS)
+	return objectBase.factory.NewLoader(objectBase.ctx).WithObject(objectBase).SetExtensionFactory(objectBase.extensionFactory)
 }
 
 func (objectBase *ObjectBase) GetInitializer() object.Initializer {
-	return objectBase.factory.NewInitializer(objectBase.ctx).SetObject(objectBase).WithFS(objectBase.writeFS)
+	return objectBase.factory.NewInitializer(objectBase.ctx).WithObject(objectBase)
 }
 
 func (objectBase *ObjectBase) GetExtractor() object.Extractor {
-	return objectBase.factory.NewExtractor(objectBase.ctx).SetObject(objectBase).WithFS(objectBase.writeFS)
+	return objectBase.factory.NewExtractor(objectBase.ctx).WithObject(objectBase)
 }
 
 /*

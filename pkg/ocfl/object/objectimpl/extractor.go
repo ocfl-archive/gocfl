@@ -32,11 +32,10 @@ func NewExtractor(ctx context.Context, factory factory.FactoryObject, logger ocf
 
 type extractor struct {
 	object.Object
-	objectFS fs.FS
-	destFS   appendfs.FS
-	ctx      context.Context
-	factory  factory.FactoryObject
-	logger   ocfllogger.OCFLLogger
+	destFS  appendfs.FS
+	ctx     context.Context
+	factory factory.FactoryObject
+	logger  ocfllogger.OCFLLogger
 }
 
 func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
@@ -71,7 +70,7 @@ func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
 		ib, _ := strconv.Atoi(b)
 		return cmp.Compare(ia, ib)
 	})
-	extensionMetadata, err := ext.GetExtensionManager().GetMetadata(ext.objectFS, ext)
+	extensionMetadata, err := ext.GetExtensionManager().GetMetadata(ext.GetReadFS(), ext)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get extension metadata for object '%s'", inv.GetID())
 	}
@@ -119,7 +118,7 @@ func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
 }
 
 func (ext *extractor) GetFileReader(pathStr string) (io.ReadCloser, int64, string, error) {
-	fp, err := ext.objectFS.Open(pathStr)
+	fp, err := ext.GetReadFS().Open(pathStr)
 	if err != nil {
 		return nil, 0, "", errors.Wrapf(err, "cannot open file %s", pathStr)
 	}
@@ -145,11 +144,8 @@ func (ext *extractor) GetExtensionFileReader(extensionName string, path string) 
 }
 
 func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
-	if ext.objectFS == nil {
-		ext.objectFS = ext.GetReadFS()
-	}
-	if ext.objectFS == nil {
-		return errors.New("object FS is not set")
+	if ext.GetReadFS() == nil {
+		return errors.New("object read FS is nil")
 	}
 	if ext.destFS == nil {
 		return errors.New("destination FS is not set")
@@ -173,14 +169,14 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 					return errors.Errorf("no internal paths for '%v'", externals)
 				}
 				internal := internals[0]
-				src, err := ext.objectFS.Open(internal)
+				src, err := ext.GetReadFS().Open(internal)
 				if err != nil {
-					return errors.Wrapf(err, "cannot open '%v/%s'", ext.objectFS, internal)
+					return errors.Wrapf(err, "cannot open '%v/%s'", ext.GetReadFS(), internal)
 				}
 				defer func(src fs.File) {
 					err := src.Close()
 					if err != nil {
-						ext.logger.Error().Err(err).Msgf("cannot close '%v/%s'", ext.objectFS, internal)
+						ext.logger.Error().Err(err).Msgf("cannot close '%v/%s'", ext.GetReadFS(), internal)
 					}
 				}(src)
 				target, err := writefs.Create(ext.destFS, external)
@@ -193,10 +189,10 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 						ext.logger.Error().Err(err).Msgf("cannot close '%v'", target)
 					}
 				}(target)
-				ext.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", ext.objectFS, internal, ext.destFS, external)
+				ext.logger.Debug().Msgf("writing '%v/%s' -> '%v/%s'", ext.GetReadFS(), internal, ext.destFS, external)
 				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 				if err != nil {
-					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", ext.objectFS, internal, ext.destFS, external)
+					return errors.Wrapf(err, "error copying '%v/%s' -> '%v/%s'", ext.GetReadFS(), internal, ext.destFS, external)
 				}
 				copyDigest, ok := copyDigests[digestAlg]
 				if !ok {
@@ -238,13 +234,8 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 
 }
 
-func (ext *extractor) SetObject(o object.Object) object.Extractor {
+func (ext *extractor) WithObject(o object.Object) object.Extractor {
 	ext.Object = o
-	return ext
-}
-
-func (ext *extractor) WithFS(objectFS fs.FS) object.Extractor {
-	ext.objectFS = objectFS
 	return ext
 }
 

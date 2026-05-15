@@ -152,7 +152,7 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	require.NoError(t, err)
 
 	loadedObj := env.ObjectFactory.NewObject(t.Context()).WithReadFS(objFS)
-	loader := loadedObj.GetLoader().WithFS(objFS)
+	loader := loadedObj.GetLoader()
 	err = loader.Load()
 	require.NoError(t, err)
 

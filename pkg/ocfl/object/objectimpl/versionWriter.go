@@ -19,10 +19,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewVersionWriter(obj object.Object, objectFS appendfs.FS, echo bool, msg string, name string, address string, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
+func NewVersionWriter(obj object.Object, echo bool, msg string, name string, address string, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
 	vw := &versionWriter{
-		Object:      obj,
-		objectFS:    objectFS,
+		obj:         obj,
 		logger:      logger,
 		echo:        echo,
 		updateFiles: []string{},
@@ -34,8 +33,7 @@ func NewVersionWriter(obj object.Object, objectFS appendfs.FS, echo bool, msg st
 }
 
 type versionWriter struct {
-	object.Object
-	objectFS appendfs.FS
+	obj object.Object
 	//versionFS   appendfs.FS
 	ver         *inventory.VersionNumber
 	logger      ocfllogger.OCFLLogger
@@ -44,13 +42,13 @@ type versionWriter struct {
 	area        string
 }
 
-func (versionWriter *versionWriter) GetFS() appendfs.FS {
-	return versionWriter.objectFS
+func (versionWriter *versionWriter) WithObject(obj object.Object) object.VersionWriter {
+	versionWriter.obj = obj
+	return versionWriter
 }
 
-func (versionWriter *versionWriter) WithFS(objectFS appendfs.FS) object.VersionWriter {
-	versionWriter.objectFS = objectFS
-	return versionWriter
+func (versionWriter *versionWriter) GetFS() appendfs.FS {
+	return versionWriter.obj.GetWriteFS()
 }
 
 func (versionWriter *versionWriter) BeginArea(area string) {
@@ -70,7 +68,7 @@ func (versionWriter *versionWriter) EndArea() error {
 }
 
 func (versionWriter *versionWriter) init(msg string, name string, address string) error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	if err := inv.GetVersions().NewVersion(msg, name, address); err != nil {
 		return errors.Wrap(err, "cannot create new inventory version")
 	}
@@ -87,16 +85,15 @@ func (versionWriter *versionWriter) init(msg string, name string, address string
 				return errors.Wrap(err, "failed to store extensions")
 			}
 		}
-
 	*/
-	if err := versionWriter.GetExtensionManager().UpdateObjectBefore(versionWriter); err != nil {
+	if err := versionWriter.obj.GetExtensionManager().UpdateObjectBefore(versionWriter); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectBefore()")
 	}
 	return nil
 }
 
 func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool) error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 
 	// check whether object filesystem is writeable
 	if !inv.IsWriteable() {
@@ -120,10 +117,10 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 
 	if objectRoot {
-		if versionWriter.objectFS == nil {
-			return errors.New("objectFS is nil. initialize VersionWriter with WithFS() first")
+		if versionWriter.obj.GetWriteFS() == nil {
+			return errors.New("object write FS is nil")
 		}
-		iWriter, err := writefs.Create(versionWriter.objectFS, iFileName)
+		iWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inventory.json")
 		}
@@ -134,26 +131,26 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrap(err, "cannot write to inventory.json")
 		}
 		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.objectFS, iFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), iFileName)
 		}
 		csFileName := fmt.Sprintf("inventory.json.%s", string(inv.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(versionWriter.objectFS, csFileName)
+		iCSWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), csFileName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.objectFS, csFileName)
+			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
 		}
 		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 			if err := iCSWriter.Close(); err != nil {
 				versionWriter.logger.Error().Err(err).Msg("cannot close iCSWriter writer")
 			}
-			return errors.Wrapf(err, "cannot write to '%v/%s'", versionWriter.objectFS, csFileName)
+			return errors.Wrapf(err, "cannot write to '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
 		}
 		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.objectFS, csFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
 		}
 	}
 	if version {
 		iFileName = fmt.Sprintf("%s/inventory.json", inv.GetHead())
-		iWriter, err := writefs.Create(versionWriter.objectFS, iFileName)
+		iWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inventory.json")
 		}
@@ -164,12 +161,12 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrap(err, "cannot write to inventory.json")
 		}
 		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.objectFS, iFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), iFileName)
 		}
 		csFileName := fmt.Sprintf("%s/inventory.json.%s", inv.GetHead(), string(inv.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(versionWriter.objectFS, csFileName)
+		iCSWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), csFileName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.objectFS, csFileName)
+			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
 		}
 		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 			if err := iCSWriter.Close(); err != nil {
@@ -178,7 +175,7 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrapf(err, "cannot write to '%s'", csFileName)
 		}
 		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.objectFS, csFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
 		}
 	}
 	return nil
@@ -187,14 +184,14 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 func (versionWriter *versionWriter) storeExtensions() error {
 	versionWriter.logger.Debug()
 
-	if versionWriter.objectFS == nil {
-		return errors.New("objectFS is nil. initialize VersionWriter with WithFS() first")
+	if versionWriter.obj.GetWriteFS() == nil {
+		return errors.New("object write FS is nil")
 	}
-	subFS, err := appendfs.Sub(versionWriter.objectFS, "extensions")
+	subFS, err := appendfs.Sub(versionWriter.obj.GetWriteFS(), "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create sub filesystem %v/extensions", versionWriter.objectFS)
+		return errors.Wrapf(err, "cannot create sub filesystem %v/extensions", versionWriter.obj.GetWriteFS())
 	}
-	if err := versionWriter.GetExtensionManager().WriteConfig(subFS); err != nil {
+	if err := versionWriter.obj.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}
 	return nil
@@ -202,7 +199,7 @@ func (versionWriter *versionWriter) storeExtensions() error {
 }
 
 func (versionWriter *versionWriter) Close() error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	versionWriter.logger.Info().Msgf("Closing Version %s of object '%s'", versionWriter.ver.String(), inv.GetID())
 	if !(inv.IsWriteable()) {
 		return nil
@@ -219,7 +216,7 @@ func (versionWriter *versionWriter) Close() error {
 
 	//object.storageRoot.setModified()
 
-	if err := versionWriter.GetExtensionManager().UpdateObjectAfter(versionWriter); err != nil {
+	if err := versionWriter.obj.GetExtensionManager().UpdateObjectAfter(versionWriter); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.UpdateObjectAfter()")
 	}
 	if err := inv.Clean(); err != nil {
@@ -229,14 +226,14 @@ func (versionWriter *versionWriter) Close() error {
 	if err := versionWriter.storeInventory(true, true); err != nil {
 		return errors.Wrap(err, "cannot store inventory")
 	}
-	if needVersion, err := versionWriter.GetExtensionManager().NeedNewVersion(versionWriter); err != nil {
+	if needVersion, err := versionWriter.obj.GetExtensionManager().NeedNewVersion(versionWriter); err != nil {
 		return errors.Wrapf(err, "cannot execute ext.NeedNewVersion()")
 	} else if needVersion {
-		nextVersion, err := versionWriter.StartUpdate("automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false)
+		nextVersion, err := versionWriter.obj.StartUpdate("automated version", "gocfl", "https://github.com/ocfl-archive/gocfl", false)
 		if err != nil {
 			return errors.Wrap(err, "cannot create new version")
 		}
-		if err := versionWriter.GetExtensionManager().DoNewVersion(nextVersion); err != nil {
+		if err := versionWriter.obj.GetExtensionManager().DoNewVersion(nextVersion); err != nil {
 			return errors.Wrapf(err, "cannot execute ext.DoNewVersion()")
 		}
 		if err := nextVersion.Close(); err != nil {
@@ -251,7 +248,7 @@ func (versionWriter *versionWriter) BuildNames(files []string, area string) (*ob
 	result := &object.NamesStruct{
 		ExternalPaths: []string{},
 	}
-	extensionManager := versionWriter.GetExtensionManager()
+	extensionManager := versionWriter.obj.GetExtensionManager()
 	for _, file := range files {
 		externalPath, err := extensionManager.BuildObjectStatePath(file, area)
 		if err != nil {
@@ -263,15 +260,15 @@ func (versionWriter *versionWriter) BuildNames(files []string, area string) (*ob
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create manifest path for '%s'", files[0])
 	}
-	result.ManifestPath = versionWriter.GetInventory().BuildManifestName(result.InternalPath)
+	result.ManifestPath = versionWriter.obj.GetInventory().BuildManifestName(result.InternalPath)
 	return result, nil
 }
 
 func (versionWriter *versionWriter) echoDelete() error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	slices.Sort(versionWriter.updateFiles)
 	versionWriter.updateFiles = slices.Compact(versionWriter.updateFiles)
-	basePath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(".", "")
+	basePath, err := versionWriter.obj.GetExtensionManager().BuildObjectStatePath(".", "")
 	if err != nil {
 		return errors.Wrap(err, "cannot build external path for '.'")
 	}
@@ -312,7 +309,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 	*/
 
 	path = filepath.ToSlash(path)
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	if !inv.IsWriteable() {
 		return errors.New("object inventory not writeable")
 	}
@@ -336,7 +333,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 		if err != nil {
 			return errors.Wrapf(err, "cannot open file '%v/%s'", sourceFS, path)
 		}
-		newPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(path, area)
+		newPath, err := versionWriter.obj.GetExtensionManager().BuildObjectStatePath(path, area)
 		if err != nil {
 			if err := file.Close(); err != nil {
 				versionWriter.logger.Error().Err(err).Msgf("cannot close file '%s'", path)
@@ -395,7 +392,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 			}
 		}
 		if !noExtensionHook {
-			if err := versionWriter.GetExtensionManager().AddFileBefore(versionWriter, nil, path, names.InternalPath, area, isDir); err != nil {
+			if err := versionWriter.obj.GetExtensionManager().AddFileBefore(versionWriter, nil, path, names.InternalPath, area, isDir); err != nil {
 				return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 			}
 		}
@@ -410,7 +407,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 		}
 
 		if !noExtensionHook {
-			if err := versionWriter.GetExtensionManager().AddFileAfter(versionWriter, sourceFS, []string{path}, targetFilename, digest, area, isDir); err != nil {
+			if err := versionWriter.obj.GetExtensionManager().AddFileAfter(versionWriter, sourceFS, []string{path}, targetFilename, digest, area, isDir); err != nil {
 				return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 			}
 		}
@@ -420,7 +417,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 }
 
 func (versionWriter *versionWriter) addReader(r io.ReadCloser, names *object.NamesStruct, noExtensionHook bool) (string, error) {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	digestAlgorithms := []checksum.DigestAlgorithm{}
 	for alg := range inv.GetFixity().GetDigestAlgorithms() {
 		digestAlgorithms = append(digestAlgorithms, alg)
@@ -434,10 +431,10 @@ func (versionWriter *versionWriter) addReader(r io.ReadCloser, names *object.Nam
 		digestAlgorithms = append(digestAlgorithms, inv.GetDigestAlgorithm())
 	}
 
-	if versionWriter.objectFS == nil {
-		return "", errors.New("objectFS is nil. initialize VersionWriter with WithFS() first")
+	if versionWriter.obj.GetWriteFS() == nil {
+		return "", errors.New("object write FS is nil")
 	}
-	writer, err := writefs.Create(versionWriter.objectFS, names.ManifestPath)
+	writer, err := writefs.Create(versionWriter.obj.GetWriteFS(), names.ManifestPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot create '%s'", names.ManifestPath)
 	}
@@ -456,7 +453,7 @@ func (versionWriter *versionWriter) addReader(r io.ReadCloser, names *object.Nam
 		extErrors := make(chan error, 1)
 		go func() {
 			defer wg.Done()
-			if err := versionWriter.GetExtensionManager().StreamObject(versionWriter, pr, names.ExternalPaths, names.InternalPath); err != nil {
+			if err := versionWriter.obj.GetExtensionManager().StreamObject(versionWriter, pr, names.ExternalPaths, names.InternalPath); err != nil {
 				extErrors <- err
 			}
 		}()
@@ -495,7 +492,7 @@ func (versionWriter *versionWriter) addReader(r io.ReadCloser, names *object.Nam
 }
 
 func (versionWriter *versionWriter) AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	if !inv.IsWriteable() {
 		return errors.New("object not writeable")
 	}
@@ -519,7 +516,7 @@ func (versionWriter *versionWriter) AddData(data []byte, path string, checkDupli
 
 	versionWriter.logger.Info().Msgf("adding file %s:%s", area, path)
 
-	newPath, err := versionWriter.GetExtensionManager().BuildObjectStatePath(path, area)
+	newPath, err := versionWriter.obj.GetExtensionManager().BuildObjectStatePath(path, area)
 	if err != nil {
 		return errors.Wrapf(err, "cannot map external path '%s'", path)
 	}
@@ -561,7 +558,7 @@ func (versionWriter *versionWriter) AddData(data []byte, path string, checkDupli
 	}
 
 	if !noExtensionHook {
-		if err := versionWriter.GetExtensionManager().AddFileBefore(versionWriter, nil, path, names.InternalPath, area, false); err != nil {
+		if err := versionWriter.obj.GetExtensionManager().AddFileBefore(versionWriter, nil, path, names.InternalPath, area, false); err != nil {
 			return errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
@@ -575,7 +572,7 @@ func (versionWriter *versionWriter) AddData(data []byte, path string, checkDupli
 	}
 
 	if !noExtensionHook {
-		if err := versionWriter.GetExtensionManager().AddFileAfter(versionWriter, nil, names.ExternalPaths, names.ManifestPath, digest, area, isDir); err != nil {
+		if err := versionWriter.obj.GetExtensionManager().AddFileAfter(versionWriter, nil, names.ExternalPaths, names.ManifestPath, digest, area, isDir); err != nil {
 			return errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
@@ -584,7 +581,7 @@ func (versionWriter *versionWriter) AddData(data []byte, path string, checkDupli
 }
 
 func (versionWriter *versionWriter) AddReader(r io.ReadCloser, files []string, area string, noExtensionHook bool, isDir bool) (string, error) {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	if len(files) == 0 {
 		return "", errors.New("no files given")
 	}
@@ -597,7 +594,7 @@ func (versionWriter *versionWriter) AddReader(r io.ReadCloser, files []string, a
 	versionWriter.logger.Info().Msgf("adding file %s:%v", area, files)
 
 	if !noExtensionHook {
-		if err := versionWriter.GetExtensionManager().AddFileBefore(versionWriter, nil, path, names.InternalPath, area, false); err != nil {
+		if err := versionWriter.obj.GetExtensionManager().AddFileBefore(versionWriter, nil, path, names.InternalPath, area, false); err != nil {
 			return "", errors.Wrapf(err, "error on AddFileBefore() extension hook")
 		}
 	}
@@ -613,7 +610,7 @@ func (versionWriter *versionWriter) AddReader(r io.ReadCloser, files []string, a
 	}
 
 	if !noExtensionHook {
-		if err := versionWriter.GetExtensionManager().AddFileAfter(versionWriter, nil, names.ExternalPaths, names.ManifestPath, digest, area, isDir); err != nil {
+		if err := versionWriter.obj.GetExtensionManager().AddFileAfter(versionWriter, nil, names.ExternalPaths, names.ManifestPath, digest, area, isDir); err != nil {
 			return "", errors.Wrapf(err, "error on AddFileAfter() extension hook")
 		}
 	}
@@ -622,7 +619,7 @@ func (versionWriter *versionWriter) AddReader(r io.ReadCloser, files []string, a
 }
 
 func (versionWriter *versionWriter) DeleteFile(virtualFilename string, digest string) error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	ver := inv.GetVersions().GetVersion(inv.GetVersions().LatestVersionNumber())
 	if ver == nil {
 		return errors.Errorf("version %s not found", inv.GetHead())
@@ -651,7 +648,7 @@ func (versionWriter *versionWriter) DeleteFile(virtualFilename string, digest st
 }
 
 func (versionWriter *versionWriter) RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error {
-	inv := versionWriter.GetInventory()
+	inv := versionWriter.obj.GetInventory()
 	ver := inv.GetVersions().GetVersion(inv.GetHead())
 	if ver == nil {
 		return errors.Errorf("version %s not found", inv.GetHead())
@@ -672,11 +669,16 @@ func (versionWriter *versionWriter) RenameFile(virtualFilenameSource, virtualFil
 		versionWriter.logger.Debug().Msgf("'%s' [%s] not in archive - ignoring", virtualFilenameSource, digest)
 		return nil
 	}
+	versionWriter.logger.Debug().Msgf("renaming '%s' to '%s'", virtualFilenameSource, virtualFilenameDest)
 	if _, err := ver.RenameFile(virtualFilenameSource, virtualFilenameDest); err != nil {
 		return errors.Wrapf(err, "cannot delete '%s'", virtualFilenameSource)
 	}
 	return nil
 
+}
+
+func (versionWriter *versionWriter) GetID() string {
+	return versionWriter.obj.GetID()
 }
 
 var _ object.VersionWriter = (*versionWriter)(nil)

@@ -23,32 +23,26 @@ func NewInitializer(ctx context.Context, factory factory.FactoryObject, logger o
 
 type initializer struct {
 	object.Object
-	objectFS appendfs.FS
-	logger   ocfllogger.OCFLLogger
-	ctx      context.Context
-	factory  factory.FactoryObject
+	logger  ocfllogger.OCFLLogger
+	ctx     context.Context
+	factory factory.FactoryObject
 }
 
-func (initializer *initializer) SetObject(o object.Object) object.Initializer {
+func (initializer *initializer) WithObject(o object.Object) object.Initializer {
 	initializer.Object = o
-	return initializer
-}
-
-func (initializer *initializer) WithFS(objectFS appendfs.FS) object.Initializer {
-	initializer.objectFS = objectFS
 	return initializer
 }
 
 func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
 	initializer.logger.Debug().Msgf("%s", id)
-	if empty, err := writefs.IsEmpty(initializer.objectFS, ""); err != nil {
+	if empty, err := writefs.IsEmpty(initializer.GetWriteFS(), ""); err != nil {
 		if errors.Is(err, writefs.ErrNotImplemented) {
-			initializer.logger.Warn().Msgf("cannot check whether %v is empty", initializer.objectFS)
+			initializer.logger.Warn().Msgf("cannot check whether %v is empty", initializer.GetWriteFS())
 		} else {
-			return errors.Wrapf(err, "cannot check whether %v is empty", initializer.objectFS)
+			return errors.Wrapf(err, "cannot check whether %v is empty", initializer.GetWriteFS())
 		}
 	} else if !empty {
-		return errors.Errorf("cannot create object '%s'. '%v' is not empty", id, initializer.objectFS)
+		return errors.Errorf("cannot create object '%s'. '%v' is not empty", id, initializer.GetWriteFS())
 	}
 	objectConformanceDeclaration := "ocfl_object_" + string(initializer.factory.GetVersion())
 	objectConformanceDeclarationFile := "0=" + objectConformanceDeclaration
@@ -72,16 +66,16 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 			return fmt.Errorf("'%v/%s' is not empty", ".", initializer.initializer.destFS)
 		}
 	*/
-	if _, err := writefs.WriteFile(initializer.objectFS, objectConformanceDeclarationFile, []byte(objectConformanceDeclaration+"\n")); err != nil {
-		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.objectFS, objectConformanceDeclarationFile)
+	if _, err := writefs.WriteFile(initializer.GetWriteFS(), objectConformanceDeclarationFile, []byte(objectConformanceDeclaration+"\n")); err != nil {
+		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.GetWriteFS(), objectConformanceDeclarationFile)
 	}
 
-	if err := writefs.MkDir(initializer.objectFS, "extensions"); err != nil {
-		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.objectFS, "extensions")
+	if err := writefs.MkDir(initializer.GetWriteFS(), "extensions"); err != nil {
+		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.GetWriteFS(), "extensions")
 	}
-	subFS, err := appendfs.Sub(initializer.objectFS, "extensions")
+	subFS, err := appendfs.Sub(initializer.GetWriteFS(), "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", initializer.objectFS, "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", initializer.GetWriteFS(), "extensions")
 	}
 	if err := initializer.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrapf(err, "cannot write extension config to %v", subFS)

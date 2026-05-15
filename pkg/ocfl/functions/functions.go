@@ -23,8 +23,8 @@ import (
 
 func CreateObject(ctx context.Context, id string, ver version.OCFLVersion, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm, extensionFactory extension.Factory[object.ExtensionManager], manager object.ExtensionManager, fsys appendfs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	f := initocfl.NewFactoryObject(ver, extensionFactory, logger)
-	obj := f.NewObject(ctx).WithExtensionManager(manager)
-	initializer := obj.GetInitializer().WithFS(fsys)
+	obj := f.NewObject(ctx).WithExtensionManager(manager).WithWriteFS(fsys)
+	initializer := obj.GetInitializer()
 
 	if err := initializer.Init(id, digest, fixity); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
@@ -76,8 +76,8 @@ func LoadObjectFS(ctx context.Context, objectFS fs.FS, extensionFactory extensio
 	// logger needs to know the new version
 	logger.WithVersion(ver)
 	fact := initocfl.NewFactoryObject(ver, extensionFactory, logger)
-	obj := fact.NewObject(ctx)
-	loader := obj.GetLoader().WithFS(objectFS)
+	obj := fact.NewObject(ctx).WithReadFS(objectFS)
+	loader := obj.GetLoader()
 	// load the object
 	if err := loader.Load(); err != nil {
 		return nil, errors.Wrapf(err, "cannot load object from fsys '%v'", objectFS)
@@ -116,7 +116,7 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
-	extractor := o.GetExtractor().WithFS(objFsys).WithDestFS(destFS)
+	extractor := o.GetExtractor().WithDestFS(destFS)
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
 	}
@@ -133,6 +133,6 @@ func ExtractMeta(ctx context.Context, fsys fs.FS, path string, extensionFactory 
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
 	defer logger.Debug().Msgf("extraction done")
-	extractor := obj.GetExtractor().WithFS(objFsys).WithDestFS(nil)
+	extractor := obj.GetExtractor().WithDestFS(nil)
 	return extractor.GetMetadata()
 }

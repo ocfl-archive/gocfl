@@ -18,8 +18,6 @@ type NamesStruct struct {
 }
 
 type VersionWriter interface {
-	Object
-	WithFS(objectFS appendfs.FS) VersionWriter
 	AddFolder(sourceFS fs.FS, checkDuplicate bool, area string) error
 	AddFile(sourceFS fs.FS, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
 	AddData(data []byte, path string, checkDuplicate bool, area string, noExtensionHook bool, isDir bool) error
@@ -32,33 +30,30 @@ type VersionWriter interface {
 	BeginArea(area string)
 	EndArea() error
 	BuildNames(files []string, area string) (*NamesStruct, error)
+	WithObject(obj Object) VersionWriter
 }
 
 type Checker interface {
 	Check() error
-	SetObject(obj Object) Checker
-	WithFS(objectFS fs.FS) Checker
+	WithObject(obj Object) Checker
 }
 
 type Initializer interface {
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
-	SetObject(o Object) Initializer
-	WithFS(objectFS appendfs.FS) Initializer
+	WithObject(o Object) Initializer
 }
 
 type Loader interface {
 	Object
 	Load() error
-	SetObject(o Object) Loader
-	WithFS(sourceFS fs.FS) Loader
+	WithObject(o Object) Loader
 	GetFS() fs.FS
 	SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
 }
 
 type Extractor interface {
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
-	SetObject(o Object) Extractor
-	WithFS(objectFS fs.FS) Extractor
+	WithObject(o Object) Extractor
 	WithDestFS(destFS appendfs.FS) Extractor
 	GetExtensionFileReader(extensionName string, path string) (io.ReadCloser, int64, string, error)
 	GetFileReader(name string) (io.ReadCloser, int64, string, error)
@@ -73,6 +68,8 @@ type Object interface {
 	WithExtensionManager(manager ExtensionManager) Object
 	WithReadFS(fsys fs.FS) Object
 	WithWriteFS(fsys appendfs.FS) Object
+	GetReadFS() fs.FS
+	GetWriteFS() appendfs.FS
 	StartUpdate(msg string, UserName string, UserAddress string, echo bool) (VersionWriter, error)
 	GetID() string
 	GetInventory() inventory.Inventory
@@ -80,6 +77,5 @@ type Object interface {
 	Stat(w io.Writer, statInfo []StatInfo) error
 	GetExtensionManager() ExtensionManager
 	GetOCFLVersion() version.OCFLVersion
-	GetReadFS() fs.FS
 	GetChecker() Checker
 }
