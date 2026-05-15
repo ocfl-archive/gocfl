@@ -42,6 +42,10 @@ type versionWriter struct {
 	area        string
 }
 
+func (versionWriter versionWriter) GetObject() object.Object {
+	return versionWriter.obj
+}
+
 func (versionWriter *versionWriter) WithObject(obj object.Object) object.VersionWriter {
 	versionWriter.obj = obj
 	return versionWriter

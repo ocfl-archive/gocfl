@@ -31,6 +31,7 @@ type VersionWriter interface {
 	EndArea() error
 	BuildNames(files []string, area string) (*NamesStruct, error)
 	WithObject(obj Object) VersionWriter
+	GetObject() Object
 }
 
 type Checker interface {
