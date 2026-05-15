@@ -1,12 +1,11 @@
 package test
 
 import (
-	"os"
-	"path/filepath"
+	"io/fs"
 	"testing"
 
-	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,18 +62,12 @@ func TestObjectExtract(t *testing.T) {
 	inv := loadedObj.GetInventory()
 	require.NotNil(t, inv)
 
-	vfs, err := vfsrw.NewFS(vfsrw.Config{}, env.Logger)
-	require.NoError(t, err)
-	err = vfsrw.AddLocal(vfs, nil)
-	require.NoError(t, err)
+	vfs := env.DestFS
 
 	for vNum := range inv.GetVersions().GetVersionNumbers() {
 		t.Run(vNum.String(), func(t *testing.T) {
-			tempDir, err := os.MkdirTemp("", "gocfl_extract_test_"+vNum.String())
-			require.NoError(t, err)
-			defer os.RemoveAll(tempDir)
-
-			destFS, err := appendfs.Sub(appendfs.FS(vfs), filepath.ToSlash(tempDir))
+			extractPath := "vfs://testmem/extract_" + vNum.String()
+			destFS, err := appendfs.Sub(appendfs.FS(vfs), extractPath)
 			require.NoError(t, err)
 
 			extractor := loadedObj.GetExtractor().WithDestFS(destFS)
@@ -84,32 +77,60 @@ func TestObjectExtract(t *testing.T) {
 			// Verifizierung basierend auf der Versionsnummer
 			switch vNum.String() {
 			case "v1":
-				require.FileExists(t, filepath.Join(tempDir, testFileName1))
-				content, _ := os.ReadFile(filepath.Join(tempDir, testFileName1))
-				require.Equal(t, testContent1, content)
-				require.NoFileExists(t, filepath.Join(tempDir, testFileName2))
-				require.NoFileExists(t, filepath.Join(tempDir, testFileName1Renamed))
+				// testFileName1
+				_, err = fs.Stat(destFS, testFileName1)
+				assert.NoError(t, err)
+				content, err := fs.ReadFile(destFS, testFileName1)
+				assert.NoError(t, err)
+				assert.Equal(t, testContent1, content)
+
+				// testFileName2 (should not exist)
+				_, err = fs.Stat(destFS, testFileName2)
+				assert.Error(t, err)
+
+				// testFileName1Renamed (should not exist)
+				_, err = fs.Stat(destFS, testFileName1Renamed)
+				assert.Error(t, err)
+
 			case "v2":
-				require.FileExists(t, filepath.Join(tempDir, testFileName1Renamed))
-				content1, _ := os.ReadFile(filepath.Join(tempDir, testFileName1Renamed))
-				require.Equal(t, testContent1, content1)
+				// testFileName1Renamed
+				_, err = fs.Stat(destFS, testFileName1Renamed)
+				assert.NoError(t, err)
+				content1, err := fs.ReadFile(destFS, testFileName1Renamed)
+				assert.NoError(t, err)
+				assert.Equal(t, testContent1, content1)
 
-				require.FileExists(t, filepath.Join(tempDir, testFileName2))
-				content2, _ := os.ReadFile(filepath.Join(tempDir, testFileName2))
-				require.Equal(t, testContent2, content2)
+				// testFileName2
+				_, err = fs.Stat(destFS, testFileName2)
+				assert.NoError(t, err)
+				content2, err := fs.ReadFile(destFS, testFileName2)
+				assert.NoError(t, err)
+				assert.Equal(t, testContent2, content2)
 
-				require.NoFileExists(t, filepath.Join(tempDir, testFileName1))
+				// testFileName1 (should not exist)
+				_, err = fs.Stat(destFS, testFileName1)
+				assert.Error(t, err)
+
 			case "v3":
-				require.FileExists(t, filepath.Join(tempDir, testFileName1Renamed))
-				require.FileExists(t, filepath.Join(tempDir, testFileName3))
-				content3, _ := os.ReadFile(filepath.Join(tempDir, testFileName3))
-				require.Equal(t, testContent3, content3)
+				// testFileName1Renamed
+				_, err = fs.Stat(destFS, testFileName1Renamed)
+				assert.NoError(t, err)
 
-				require.NoFileExists(t, filepath.Join(tempDir, testFileName2))
+				// testFileName3
+				_, err = fs.Stat(destFS, testFileName3)
+				assert.NoError(t, err)
+				content3, err := fs.ReadFile(destFS, testFileName3)
+				assert.NoError(t, err)
+				assert.Equal(t, testContent3, content3)
+
+				// testFileName2 (should not exist)
+				_, err = fs.Stat(destFS, testFileName2)
+				assert.Error(t, err)
 			}
 
 			// Verifizierung des Manifests
-			require.FileExists(t, filepath.Join(tempDir, "manifest.sha512"))
+			_, err = fs.Stat(destFS, "manifest.sha512")
+			assert.NoError(t, err)
 		})
 	}
 }
