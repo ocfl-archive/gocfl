@@ -10,11 +10,8 @@ import (
 
 	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/je4/filesystem/v4/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -66,7 +63,7 @@ func main() {
 		}
 	}
 
-	// --- Step 4: OCFL Version and Factory Setup ---
+	// --- Step 4: OCFL Version Determination ---
 	var ocflVer version.OCFLVersion
 	if storageRootFS != nil {
 		ocflVer, err = util.GetStorageRootVersion(storageRootFS)
@@ -77,27 +74,11 @@ func main() {
 		ocflVer = version.Default
 	}
 
-	_, srExtFactory, err := initocfl.SetupExtensionManager[storageroot.ExtensionManager](nil, nil, logger)
-	if err != nil {
-		log.Fatalf("failed to setup storage root extension manager: %v", err)
-	}
-	srFactory := initocfl.NewFactoryStorageRoot(ocflVer, srExtFactory, logger)
-
-	objExtManager, objExtFactory, err := initocfl.SetupExtensionManager[object.ExtensionManager](nil, nil, logger)
-	if err != nil {
-		log.Fatalf("failed to setup object extension manager: %v", err)
-	}
-	objFactory := initocfl.NewFactoryObject(ocflVer, objExtFactory, logger)
-
 	// --- Step 5: Object Path Determination ---
 	var objID = *idPtr
 	if storageRootFS != nil {
-		sr := srFactory.NewStorageRoot(ctx).
-			WithDigestAlgorithm(checksum.DigestSHA512).
-			WithReadFS(storageRootFS)
-
-		loader := sr.GetLoader()
-		if err := loader.Load(); err != nil {
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, ocflVer, logger)
+		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
 
@@ -116,9 +97,8 @@ func main() {
 		log.Fatalf("failed to create sub fs for object folder '%s': %v", objFolder, err)
 	}
 
-	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager).WithReadFS(objFS)
-	loader := obj.GetLoader()
-	if err := loader.Load(); err != nil {
+	obj, err := initocfl.LoadObject(ctx, objFS, ocflVer, logger)
+	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
 

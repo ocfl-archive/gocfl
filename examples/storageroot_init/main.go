@@ -9,11 +9,9 @@ import (
 
 	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/je4/filesystem/v4/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
@@ -65,26 +63,9 @@ func main() {
 	// Define the target OCFL version.
 	ocflVer := version.Version1_1
 
-	// A: Setup the Extension Manager to handle OCFL extensions.
-	extManager, extFactory, err := initocfl.SetupExtensionManager[storageroot.ExtensionManager](nil, nil, logger)
-	if err != nil {
-		log.Fatalf("failed to create extension factory: %v", err)
-	}
-
-	// B: Create a Storage Root factory for the specified OCFL version.
-	srFactory := initocfl.NewFactoryStorageRoot(ocflVer, extFactory, logger)
-
-	// C: Instantiate and configure the Storage Root object.
-	// We associate it with our filesystem, extension manager, and preferred digest algorithm.
-	sr := srFactory.NewStorageRoot(ctx).
-		WithWriteFS(storageRootFS).
-		WithExtensionManager(extManager).
-		WithDigestAlgorithm(checksum.DigestSHA512)
-
-	// D: Execute the initialization process.
+	// Execute the initialization process using the helper function.
 	// This creates the necessary OCFL structure (e.g., ocfl_layout.json, namaste file) on disk.
-	initializer := sr.GetInitializer()
-	err = initializer.Init()
+	_, err = initocfl.InitStorageRoot(ctx, storageRootFS, ocflVer, logger)
 	if err != nil {
 		log.Fatalf("failed to initialize storage root at '%s': %v", srPath, err)
 	}

@@ -10,12 +10,9 @@ import (
 
 	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/je4/filesystem/v4/pkg/writefs"
-	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
@@ -75,25 +72,14 @@ func main() {
 		}
 	}
 
-	// --- Step 4: OCFL Version and Factory Setup ---
+	// --- Step 4: OCFL Version and Loading ---
 	ocflVer := version.Version1_1
-	// Setup Storage Root Factory and Extension Manager.
-	_, srExtFactory, _ := initocfl.SetupExtensionManager[storageroot.ExtensionManager](nil, nil, logger)
-	srFactory := initocfl.NewFactoryStorageRoot(ocflVer, srExtFactory, logger)
-
-	// Setup Object Factory and Extension Manager.
-	objExtManager, objExtFactory, _ := initocfl.SetupExtensionManager[object.ExtensionManager](nil, nil, logger)
-	objFactory := initocfl.NewFactoryObject(ocflVer, objExtFactory, logger)
 
 	// --- Step 5: Storage Root and Object Loading ---
 	// If a Storage Root is provided, we determine the Object's folder.
 	if storageRootFS != nil {
-		sr := srFactory.NewStorageRoot(ctx).
-			WithReadFS(storageRootFS).
-			WithDigestAlgorithm(checksum.DigestSHA512)
-
-		loader := sr.GetLoader()
-		if err := loader.Load(); err != nil {
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, ocflVer, logger)
+		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
 
@@ -111,12 +97,10 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("failed to create subfs for object folder '%s'", objFolder)
 	}
-	// Instantiate and configure the Object.
-	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager).WithReadFS(objFS)
 
 	// Load the existing object.
-	loader := obj.GetLoader()
-	if err := loader.Load(); err != nil {
+	obj, err := initocfl.LoadObject(ctx, objFS, ocflVer, logger)
+	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
 

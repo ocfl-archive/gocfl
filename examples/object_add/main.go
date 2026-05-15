@@ -13,8 +13,6 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -72,7 +70,7 @@ func main() {
 		}
 	}
 
-	// --- Step 4: OCFL Version and Factory Setup ---
+	// --- Step 4: OCFL Version Determination ---
 	var ocflVer version.OCFLVersion
 	if storageRootFS != nil {
 		// A: If an existing Storage Root exists, we read the OCFL version from it.
@@ -86,31 +84,12 @@ func main() {
 		ocflVer = version.Default
 	}
 
-	// B: Setup Storage Root Factory and Extension Manager.
-	_, srExtFactory, err := initocfl.SetupExtensionManager[storageroot.ExtensionManager](nil, nil, logger)
-	if err != nil {
-		log.Fatalf("failed to setup storage root extension manager: %v", err)
-	}
-	srFactory := initocfl.NewFactoryStorageRoot(ocflVer, srExtFactory, logger)
-
-	// C: Setup Object Factory and Extension Manager.
-	objExtManager, objExtFactory, err := initocfl.SetupExtensionManager[object.ExtensionManager](nil, nil, logger)
-	if err != nil {
-		log.Fatalf("failed to setup object extension manager: %v", err)
-	}
-	objFactory := initocfl.NewFactoryObject(ocflVer, objExtFactory, logger)
-
 	// --- Step 5: Object Path Determination ---
 	var objID = *idPtr
 	if storageRootFS != nil {
 		// A: Load existing Storage Root.
-		sr := srFactory.NewStorageRoot(ctx).
-			WithWriteFS(storageRootFS).
-			WithDigestAlgorithm(checksum.DigestSHA512).
-			WithReadFS(storageRootFS)
-
-		loader := sr.GetLoader()
-		if err := loader.Load(); err != nil {
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, ocflVer, logger)
+		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
 
@@ -131,13 +110,9 @@ func main() {
 		log.Fatalf("failed to create sub fs for object folder '%s': %v", objFolder, err)
 	}
 
-	// B: Instantiate and configure the Object.
-	obj := objFactory.NewObject(ctx).WithExtensionManager(objExtManager).WithWriteFS(objFS)
-	initializer := obj.GetInitializer()
-
-	// C: Execute the initialization process.
+	// B: Initialize the OCFL object using the helper function.
 	// This creates the OCFL object structure (inventory.json, namaste file, etc.) on disk.
-	err = initializer.Init(objID, checksum.DigestSHA512, nil)
+	obj, err := initocfl.InitObject(ctx, objFS, ocflVer, objID, checksum.DigestSHA512, logger)
 	if err != nil {
 		log.Fatalf("failed to initialize object '%s' at '%s': %v", objID, objFolder, err)
 	}
