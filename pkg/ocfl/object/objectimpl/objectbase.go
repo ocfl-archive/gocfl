@@ -195,12 +195,13 @@ func (objectBase *ObjectBase) GetDigestAlgorithm() checksum.DigestAlgorithm {
 
 func (objectBase *ObjectBase) StartUpdate(msg string, UserName string, UserAddress string, echo bool) (object.VersionWriter, error) {
 	objectBase.logger.Debug().Msgf("'%s' / '%s' / '%s'", msg, UserName, UserAddress)
-	// todo: check for using factory
-	vw, err := NewVersionWriter(objectBase, echo, msg, UserName, UserAddress, objectBase.logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot create version writer")
+	vw := objectBase.factory.NewVersionWriter(objectBase.ctx).
+		WithObject(objectBase).
+		WithEcho(echo)
+	if err := vw.Init(msg, UserName, UserAddress); err != nil {
+		return nil, errors.Wrap(err, "cannot initialize version writer")
 	}
-	return vw.WithObject(objectBase), nil
+	return vw, nil
 }
 
 func (objectBase *ObjectBase) GetID() string {

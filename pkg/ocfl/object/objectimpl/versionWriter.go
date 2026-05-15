@@ -2,6 +2,7 @@ package objectimpl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"github.com/je4/filesystem/v4/pkg/writefs"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -26,10 +28,17 @@ func NewVersionWriter(obj object.Object, echo bool, msg string, name string, add
 		echo:        echo,
 		updateFiles: []string{},
 	}
-	if err := vw.init(msg, name, address); err != nil {
+	if err := vw.Init(msg, name, address); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize version writer")
 	}
 	return vw, nil
+}
+
+func NewVersionWriterBase(ctx context.Context, fact factory.FactoryObject, logger ocfllogger.OCFLLogger) object.VersionWriter {
+	return &versionWriter{
+		logger:      logger,
+		updateFiles: []string{},
+	}
 }
 
 type versionWriter struct {
@@ -48,6 +57,11 @@ func (versionWriter versionWriter) GetObject() object.Object {
 
 func (versionWriter *versionWriter) WithObject(obj object.Object) object.VersionWriter {
 	versionWriter.obj = obj
+	return versionWriter
+}
+
+func (versionWriter *versionWriter) WithEcho(echo bool) object.VersionWriter {
+	versionWriter.echo = echo
 	return versionWriter
 }
 
@@ -71,7 +85,10 @@ func (versionWriter *versionWriter) EndArea() error {
 	return nil
 }
 
-func (versionWriter *versionWriter) init(msg string, name string, address string) error {
+func (versionWriter *versionWriter) Init(msg string, name string, address string) error {
+	if versionWriter.obj == nil {
+		return errors.New("object is nil. Use versionWriter.WithObject()")
+	}
 	inv := versionWriter.obj.GetInventory()
 	if err := inv.GetVersions().NewVersion(msg, name, address); err != nil {
 		return errors.Wrap(err, "cannot create new inventory version")

@@ -14,4 +14,5 @@ type Factory interface {
 	NewInitializer(ctx context.Context) Initializer
 	NewChecker(ctx context.Context) Checker
 	NewExtractor(ctx context.Context) Extractor
+	NewVersionWriter(ctx context.Context) VersionWriter
 }

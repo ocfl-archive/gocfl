@@ -63,6 +63,10 @@ func (f *FactoryBaseObject) NewExtractor(ctx context.Context) object.Extractor {
 	return objectimpl.NewExtractor(ctx, f, f.logger)
 }
 
+func (f *FactoryBaseObject) NewVersionWriter(ctx context.Context) object.VersionWriter {
+	return objectimpl.NewVersionWriterBase(ctx, f, f.logger)
+}
+
 func (f *FactoryBaseObject) NewObject(ctx context.Context) object.Object {
 	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.logger)
 }

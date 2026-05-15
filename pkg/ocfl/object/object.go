@@ -31,6 +31,8 @@ type VersionWriter interface {
 	EndArea() error
 	BuildNames(files []string, area string) (*NamesStruct, error)
 	WithObject(obj Object) VersionWriter
+	WithEcho(echo bool) VersionWriter
+	Init(msg string, name string, address string) error
 	GetObject() Object
 }
 
