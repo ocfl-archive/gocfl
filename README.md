@@ -2,9 +2,9 @@
 
 `gocfl` is a high-performance Go library for the [Oxford Common Filesystem Layout (OCFL)](https://ocfl.io/). It focuses on the creation, update, validation, and extraction of OCFL Storage Roots and Objects, with a strong emphasis on extensibility, I/O efficiency, and technical metadata indexing.
 
-For additional extensions, please refer to the [gocfl-extensions](https://github.com/ocfl-archive/gocfl-extensions) repository.
-
 > **Note**: This repository contains the `gocfl` library. For the command-line interface, please refer to the [gocfl-cli](https://github.com/ocfl-archive/gocfl-cli) repository.
+> 
+> For additional extensions, please refer to the [gocfl-extensions](https://github.com/ocfl-archive/gocfl-extensions) repository.
 
 ## Features
 
@@ -76,6 +76,16 @@ err := ocflactions.CheckObject(ctx, objFsys, logger)
 // Extract an object
 err := ocflactions.Extract(ctx, objectFS, destFS, "object_path", nil, true, "", logger)
 ```
+
+## Examples
+
+The [examples](./examples/README.md) directory contains runnable Go programs for common tasks:
+
+- **[Storage Root Initialization](./examples/storageroot_init/main.go)**: How to initialize a new OCFL Storage Root.
+- **[Object Creation](./examples/object_add/main.go)**: Creating and initializing a new OCFL Object.
+- **[Adding and Updating Content](./examples/object_upd/main.go)**: Adding files and creating new versions.
+- **[Object Validation](./examples/object_validate/main.go)**: Validating an existing OCFL Object.
+- **[Extracting Objects](./examples/object_extract/main.go)**: Extracting object content to a filesystem.
 
 ## Documentation
 
