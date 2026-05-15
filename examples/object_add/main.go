@@ -70,25 +70,23 @@ func main() {
 		}
 	}
 
-	// --- Step 4: OCFL Version Determination ---
-	var ocflVer version.OCFLVersion
+	// --- Step 4: OCFL Determination ---
+	var ocflVer = version.Default
 	if storageRootFS != nil {
 		// A: If an existing Storage Root exists, we read the OCFL version from it.
 		// This is necessary because the Storage Root and its objects must use the same OCFL version.
+		var err error
 		ocflVer, err = util.GetStorageRootVersion(storageRootFS)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to get storage root version")
 		}
-	} else {
-		// Default to OCFL version 1.1 if no Storage Root is specified (e.g. when creating a standalone object)
-		ocflVer = version.Default
 	}
 
 	// --- Step 5: Object Path Determination ---
 	var objID = *idPtr
 	if storageRootFS != nil {
 		// A: Load existing Storage Root.
-		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, ocflVer, logger)
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}

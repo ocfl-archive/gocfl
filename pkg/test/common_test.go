@@ -66,7 +66,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	readSRFS := fs.FS(readsrfsAppend)
 
 	// Den Storage Root neu laden
-	sr, err := initocfl.LoadStorageRoot(ctx, readSRFS, ocflVer, logger)
+	sr, err := initocfl.LoadStorageRoot(ctx, readSRFS, logger)
 	require.NoError(t, err)
 	// Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 	sr = sr.WithWriteFS(srFS)
@@ -102,7 +102,7 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
 	require.NoError(t, err)
 
-	loadedObj, err := initocfl.LoadObject(t.Context(), objFS, env.StorageRoot.GetOCFLVersion(), env.OCFLLogger)
+	loadedObj, err := initocfl.LoadObject(t.Context(), objFS, env.OCFLLogger)
 	require.NoError(t, err)
 
 	return loadedObj, objFS

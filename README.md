@@ -2,6 +2,8 @@
 
 `gocfl` is a high-performance Go library for the [Oxford Common Filesystem Layout (OCFL)](https://ocfl.io/). It focuses on the creation, update, validation, and extraction of OCFL Storage Roots and Objects, with a strong emphasis on extensibility, I/O efficiency, and technical metadata indexing.
 
+For additional extensions, please refer to the [gocfl-extensions](https://github.com/ocfl-archive/gocfl-extensions) repository.
+
 > **Note**: This repository contains the `gocfl` library. For the command-line interface, please refer to the [gocfl-cli](https://github.com/ocfl-archive/gocfl-cli) repository.
 
 ## Features
@@ -29,28 +31,50 @@ go get github.com/ocfl-archive/gocfl/v3
 
 ## Basic Usage
 
-The library uses a **Unified Factory** pattern to ensure consistency across different OCFL versions.
+The library provides convenient functions in the `initocfl` and `functions` packages for common tasks.
 
-### Initializing a Storage Root
+### Initializing and Loading a Storage Root
 
 ```go
 import (
     "context"
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
-    "github.com/je4/filesystem/v3/pkg/vfs"
 )
 
 ctx := context.Background()
-logger := ocfllogger.NewNopLogger() // Replace with actual logger
+logger := ocfllogger.NewNopLogger()
 
-// Create a factory for OCFL 1.1
-fact := factoryimpl.NewFactory(version.Version1_1, nil, logger)
+// Initialize a new storage root (needs an appendfs.FS)
+sr, err := initocfl.InitStorageRoot(ctx, fsys, version.Version1_1, logger)
 
-// Initialize a storage root
-sr := fact.NewStorageRoot(ctx)
-// ... configure storage root with FS and extensions ...
+// Load an existing storage root (needs an fs.FS)
+sr, err := initocfl.LoadStorageRoot(ctx, fsys, logger)
+```
+
+### Working with Objects
+
+```go
+// Load an object from a filesystem
+obj, err := initocfl.LoadObject(ctx, objFsys, logger)
+
+// Add files to an object
+writer, err := obj.StartUpdate("initial commit", "user", "user@example.com", false)
+err = writer.AddFolder(sourceFS, true, "")
+err = writer.Close()
+```
+
+### Validation and Extraction
+
+```go
+import "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/functions"
+
+// Validate an object
+err := functions.CheckObject(ctx, objFsys, nil, logger)
+
+// Extract an object
+err := functions.Extract(ctx, objectFS, destFS, "object_path", nil, true, "", nil, logger)
 ```
 
 ## Supported Extensions

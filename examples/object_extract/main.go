@@ -72,13 +72,12 @@ func main() {
 		}
 	}
 
-	// --- Step 4: OCFL Version and Loading ---
-	ocflVer := version.Version1_1
+	// --- Step 4: OCFL Loading ---
 
 	// --- Step 5: Storage Root and Object Loading ---
 	// If a Storage Root is provided, we determine the Object's folder.
 	if storageRootFS != nil {
-		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, ocflVer, logger)
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
@@ -99,7 +98,7 @@ func main() {
 	}
 
 	// Load the existing object.
-	obj, err := initocfl.LoadObject(ctx, objFS, ocflVer, logger)
+	obj, err := initocfl.LoadObject(ctx, objFS, logger)
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
