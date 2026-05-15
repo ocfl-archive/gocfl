@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/je4/filesystem/v4/pkg/appendfs"
 	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"

@@ -5,8 +5,8 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
+	"github.com/je4/filesystem/v4/pkg/appendfs"
 	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"

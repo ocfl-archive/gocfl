@@ -4,7 +4,7 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/je4/filesystem/v4/pkg/appendfs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

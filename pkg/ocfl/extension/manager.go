@@ -5,7 +5,7 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/ocfl-archive/gocfl/v3/pkg/appendfs"
+	"github.com/je4/filesystem/v4/pkg/appendfs"
 )
 
 const DefaultExtensionManagerName = "NNNN-gocfl-extension-manager"
