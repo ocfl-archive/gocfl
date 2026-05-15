@@ -4,8 +4,6 @@ The OCFL extension system in this library is built around three core concepts: t
 
 ## Overview
 
-![Architecture Diagram](ARCHITECTURE.svg)
-
 ```mermaid
 graph TD
     Registry[(Extension Registry)]
