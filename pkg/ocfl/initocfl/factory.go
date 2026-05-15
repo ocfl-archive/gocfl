@@ -10,6 +10,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
+// NewFactoryObject returns a FactoryObject for the specified OCFL version.
 func NewFactoryObject(
 	ver version.OCFLVersion,
 	extensionFactory extension.Factory[object.ExtensionManager],
@@ -28,6 +29,7 @@ func NewFactoryObject(
 	}
 }
 
+// NewFactoryStorageRoot returns a FactoryStorageRoot for the specified OCFL version.
 func NewFactoryStorageRoot(
 	ver version.OCFLVersion,
 	extensionFactory extension.Factory[storageroot.ExtensionManager],

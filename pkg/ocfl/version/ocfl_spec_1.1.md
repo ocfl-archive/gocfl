@@ -1,9 +1,6 @@
----
-no_site_title: true
----
 <img src="https://avatars0.githubusercontent.com/u/35607965" alt="OCFL Hand-drive logo" style="float:right;width:307px;height:307px;"/>
+
 # Oxford Common File Layout Specification
-{:.no_toc}
 
 7 October 2022
 
@@ -48,7 +45,6 @@ License](https://creativecommons.org/licenses/by/4.0/). [OCFL logo:
 licensed under [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/).
 
 ## Introduction
-{:.no_toc #abstract}
 
 _This section is non-normative._
 
@@ -57,7 +53,6 @@ digital objects in a structured, transparent, and predictable manner. It is desi
 management of digital objects within digital repositories.
 
 ### Need
-{:.no_toc #need}
 
 The OCFL initiative began as a discussion amongst digital repository practitioners to identify well-defined, common, and
 application-independent file management for a digital repository's persisted objects and represents a specification of
@@ -65,7 +60,6 @@ the community’s collective recommendations addressing five primary requirement
 robustness, and storage diversity.
 
 #### Completeness
-{:.no_toc #completeness}
 
 The OCFL recommends storing metadata and the content it describes together so the OCFL object can be fully understood in
 the absence of original software. The OCFL does not make recommendations about what constitutes an object, nor does it
@@ -74,7 +68,6 @@ repository to another. However, it is recommended that when making this decision
 necessary to rebuild the objects from the files stored.
 
 #### Parsability
-{:.no_toc #parsability}
 
 One goal of the OCFL is to ensure objects remain fixed over time. This can be difficult as software and infrastructure
 change, and content is migrated. To combat this challenge, the OCFL ensures that both humans and machines can understand
@@ -84,16 +77,14 @@ software were to become obsolete, the OCFL could easily be understood by a light
 full feature repository that might have been used in the past.
 
 #### Versioning
-{:.no_toc #versioning}
 
 Another need expressed by the community was the need to update and change objects, either the content itself or the
-metadata associated with the object. The OCFL relies heavily on the prior art in the \[[Moab](#ref-moab)\] Design for
+metadata associated with the object. The OCFL relies heavily on the prior art in the [[Moab](#ref-moab)] Design for
 Digital Object Versioning which utilizes forward deltas to track the history of the object. Utilizing this schema allows
 implementers of the OCFL to easily recreate past versions of an OCFL object. Like with objects, the OCFL remains silent
 on when versioning should occur recognizing this may differ from implementation to implementation.
 
 #### Robustness
-{:.no_toc #robustness}
 
 The OCFL also fills the need for robustness against errors, corruption, and migration. The versioning schema ensures an
 OCFL object is robust enough to allow for the discovery of human errors. The fixity checking built into the OCFL via
@@ -102,17 +93,15 @@ interactions. The OCFL eases content migrations by providing a technology agnost
 have remained fixed.
 
 #### Storage diversity
-{:.no_toc #storage-diversity}
 
 Finally, the community expressed a need to store content on a wide variety of storage technologies. With that in mind,
 the OCFL was written with an eye toward various storage infrastructures including cloud object stores.
 
 ### Note
-{:.no_toc #note}
 
 This normative specification describes the nature of an OCFL Object (the "object-at-rest") and the arrangement of OCFL
 Objects under an OCFL Storage Root. A set of recommendations for how OCFL Objects should be acted upon (the
-"object-in-motion") can be found in the \[[OCFL-Implementation-Notes](#ref-ocfl-implementation-notes)\]. The OCFL
+"object-in-motion") can be found in the [[OCFL-Implementation-Notes](#ref-ocfl-implementation-notes)]. The OCFL
 editorial group recommends reading both the specification and the implementation notes in order to understand the full
 scope of the OCFL.
 
@@ -122,71 +111,100 @@ use in this specification since it is widely known. However, it may equally appl
 containers, and objects present a similar organization hierarchy to users.
 
 ## Table of Contents
-{:.no_toc #table-of-contents}
 
-* TOC placeholder (required by kramdown)
-  {:toc}
+1. [Conformance](#1-conformance)
+2. [Terminology](#2-terminology)
+3. [OCFL Object](#3-ocfl-object)
+    1. [Object Structure](#31-object-structure)
+    2. [Object Conformance Declaration](#32-object-conformance-declaration)
+    3. [Version Directories](#33-version-directories)
+        1. [Content Directory](#331-content-directory)
+    4. [Digests](#34-digests)
+    5. [Inventory](#35-inventory)
+        1. [Basic Structure](#351-basic-structure)
+        2. [Manifest](#352-manifest)
+        3. [Versions](#353-versions)
+            1. [Version](#3531-version)
+        4. [Fixity](#354-fixity)
+    6. [Inventory Digest](#36-inventory-digest)
+    7. [Version Inventory and Inventory Digest](#37-version-inventory-and-inventory-digest)
+        1. [Conformance of prior versions](#371-conformance-of-prior-versions)
+    8. [Logs Directory](#38-logs-directory)
+    9. [Object Extensions](#39-object-extensions)
+4. [OCFL Storage Root](#4-ocfl-storage-root)
+    1. [Root Structure](#41-root-structure)
+    2. [Root Conformance Declaration](#42-root-conformance-declaration)
+    3. [Storage Hierarchies](#43-storage-hierarchies)
+    4. [Storage Root Extensions](#44-storage-root-extensions)
+    5. [Documenting Local Extensions](#45-documenting-local-extensions)
+    6. [Filesystem features](#46-filesystem-features)
+5. [Examples](#5-examples)
+    1. [Minimal OCFL Object](#51-minimal-ocfl-object)
+    2. [Versioned OCFL Object](#52-versioned-ocfl-object)
+    3. [Different Logical and Content Paths in an OCFL Object](#53-different-logical-and-content-paths-in-an-ocfl-object)
+    4. [BagIt in an OCFL Object](#54-bagit-in-an-ocfl-object)
+    5. [Moab in an OCFL Object](#55-moab-in-an-ocfl-object)
+    6. [Example Extended OCFL Storage Root](#56-example-extended-ocfl-storage-root)
+    7. [Example Extended OCFL Object](#57-example-extended-ocfl-object)
+6. [References](#6-references)
+    1. [Normative References](#61-normative-references)
+    2. [Informative References](#62-informative-references)
 
 ## 1. Conformance
-{: #conformance}
 
 As well as sections marked as non-normative, all authoring guidelines, diagrams, examples, and notes in this
 specification are non-normative. Everything else in this specification is normative.
 
-The key words <span class="rfc2119">MAY</span>, <span class="rfc2119">MUST</span>, <span class="rfc2119">MUST
-NOT</span>, <span class="rfc2119">SHOULD</span>, and <span class="rfc2119">SHOULD NOT</span> are to be interpreted as
-described in \[[RFC2119](#ref-rfc2119)\].
+The key words *MAY*, *MUST*, *MUST NOT*, *SHOULD*, and *SHOULD NOT* are to be interpreted as described in [RFC 2119](#61-normative-references).
 
 ## 2. Terminology
-{: #terminology}
 
-* <a name="dfn-content-path"/>**Content Path:** The file path of a file on disk or in an object store, relative to the
+* **Content Path:** The file path of a file on disk or in an object store, relative to the
   [OCFL Object Root](#dfn-ocfl-object-root). Content paths are used in the [Manifest](#dfn-manifest) within an
   [Inventory](#dfn-inventory).
 
-* <a name="dfn-digest"/>**Digest:** An algorithmic characterization of the contents of a file conforming to a standard
+* **Digest:** An algorithmic characterization of the contents of a file conforming to a standard
   digest algorithm.
 
-* <a name="dfn-extension"/>**Extension:** Extensions are used to collaborate, review, and publish additional
+* **Extension:** Extensions are used to collaborate, review, and publish additional
   non-normative functions related to OCFL. Extensions are intended to be informational and cite-able, but outside the
   scope of the normal specification process. Registered extensions may be found in the [OCFL Extensions
   repository.](https://ocfl.github.io/extensions/)
 
-* <a name="dfn-inventory"/>**Inventory:** A file, expressed in JSON, that tracks the history and current state of an
+* **Inventory:** A file, expressed in JSON, that tracks the history and current state of an
   OCFL Object.
 
-* <a name="dfn-logical-path"/>**Logical Path:** A path that represents a file's location in the [logical
+* **Logical Path:** A path that represents a file's location in the [logical
   state](#dfn-logical-state) of an object. Logical paths are used in conjunction with a digest to represent the file name
   and path for a given bitstream at a given version.
 
-* <a name="dfn-logical-state"/>**Logical State:** A grouping of logical paths tied to their corresponding bitstreams
+* **Logical State:** A grouping of logical paths tied to their corresponding bitstreams
   that reflect the state of the object content for a given version.
 
-* <a name="dfn-logs-directory"/>**Logs Directory:** A directory for storing information about the content (e.g., actions
+* **Logs Directory:** A directory for storing information about the content (e.g., actions
   performed) that is not part of the content itself.
 
-* <a name="dfn-manifest"/>**Manifest:** A section of the [Inventory](#dfn-inventory) listing all files and their digests
+* **Manifest:** A section of the [Inventory](#dfn-inventory) listing all files and their digests
   within an OCFL Object.
 
-* <a name="dfn-ocfl-object"/>**OCFL Object:** A group of one or more content files and administrative information, that
+* **OCFL Object:** A group of one or more content files and administrative information, that
   together have a unique identifier. The object may contain a sequence of versions of the files that represent the
   evolution of the object's contents.
 
-* <a name="dfn-ocfl-object-root"/>**OCFL Object Root:** The base directory of an [OCFL Object](#dfn-ocfl-object),
-  identified by a \[[NAMASTE](#ref-namaste)\] file "0=ocfl_object_1.1".
+* **OCFL Object Root:** The base directory of an [OCFL Object](#dfn-ocfl-object),
+  identified by a [[NAMASTE](#ref-namaste)] file "0=ocfl_object_1.1".
 
-* <a name="dfn-ocfl-storage-root"/>**OCFL Storage Root:** A base directory used to store OCFL Objects, identified by a
-  \[[NAMASTE](#ref-namaste)\] file "0=ocfl_1.1".
+* **OCFL Storage Root:** A base directory used to store OCFL Objects, identified by a
+  [[NAMASTE](#ref-namaste)] file "0=ocfl_1.1".
 
-* <a name="dfn-ocfl-version"/>**OCFL Version:** The state of an [OCFL Object](#dfn-ocfl-object)'s content which is
+* **OCFL Version:** The state of an [OCFL Object](#dfn-ocfl-object)'s content which is
   constructed using the incremental changes recorded in the sequence of corresponding and prior version directories.
 
-* <a name="dfn-registered-extension-name"/>**Registered Extension Name:** The registered name of an extension is the
+* **Registered Extension Name:** The registered name of an extension is the
   name provided in the _Extension Name_ property of the extension's definition in the [OCFL Extensions
   repository](https://ocfl.github.io/extensions/).
 
 ## 3. OCFL Object
-{: #object-spec}
 
 An OCFL Object is a group of one or more content files and administrative information, that are together identified by a
 URI. The object may contain a sequence of versions of the files that represent the evolution of the object's contents.
@@ -209,7 +227,7 @@ An OCFL Object is therefore:
 
 A key goal of the OCFL is the rebuildability of a repository from an OCFL Storage Root without additional information
 resources. Consequently, a key implementation consideration should be to ensure that OCFL Objects contain all the data
-and metadata required to achieve this. With reference to the \[[OAIS](#ref-oais)\] model, this would include all the
+and metadata required to achieve this. With reference to the [[OAIS](#ref-oais)] model, this would include all the
 descriptive, administrative, structural, representation and preservation metadata relevant to the object.
 
 A central feature of the OCFL specification is support for versioning. This recognizes that digital objects will change
@@ -218,7 +236,6 @@ constitutes a version or a versionable action, but it is recommended that implem
 within their local storage policies.
 
 ### 3.1 Object Structure
-{: #object-structure}
 
 The OCFL Object structure organizes content files and administrative information in order to support content storage and
 object validation. The structure for an object with one version is shown in the following figure:
@@ -235,77 +252,73 @@ object validation. The structure for an object with one version is shown in the 
                └── ... content files ...
 ```
 
-The [OCFL Object Root](#dfn-ocfl-object-root) <span id="E001" class="rfc2119">MUST NOT</span> contain files or
+The [OCFL Object Root](#dfn-ocfl-object-root) MUST NOT contain files or
 directories other than those specified in the following sections.
 
 ### 3.2 Object Conformance Declaration
-{: #object-conformance-declaration}
 
-The OCFL specification version declaration <span id="E002" class="rfc2119">MUST</span> be formatted according to the
-\[[NAMASTE](#ref-namaste)\] specification. There <span id="E003" class="rfc2119">MUST</span> be exactly one version
+The OCFL specification version declaration MUST be formatted according to the
+[[NAMASTE](#ref-namaste)] specification. There MUST be exactly one version
 declaration file in the base directory of the [OCFL Object Root](#dfn-ocfl-object-root) giving the OCFL version in the
-filename. The filename <span id="E004" class="rfc2119">MUST</span> conform to the pattern `T=dvalue`, where `T` <span
-id="E005" class="rfc2119">MUST</span> be 0, and `dvalue` <span id="E006" class="rfc2119">MUST</span> be `ocfl_object_`,
+filename. The filename MUST conform to the pattern `T=dvalue`, where `T` <span
+id="E005" class="rfc2119">MUST be 0, and `dvalue` MUST be `ocfl_object_`,
 followed by the OCFL specification version number. The text contents of the file <span id="E007"
-class="rfc2119">MUST</span> be the same as `dvalue`, followed by a newline (`\n`).
+class="rfc2119">MUST be the same as `dvalue`, followed by a newline (`\n`).
 
 ### 3.3 Version Directories
-{: #version-directories}
 
-OCFL Object content <span id="E008" class="rfc2119">MUST</span> be stored as a sequence of one or more versions. Each
+OCFL Object content MUST be stored as a sequence of one or more versions. Each
 object version is stored in a version directory under the object root. Version directory names <span id="E104"
-class="rfc2119">MUST</span> be constructed by prepending `v` to the version number. The version number <span id="E105"
-class="rfc2119">MUST</span> be taken from the sequence of positive, base-ten integers: 1, 2, 3, etc.. The version number
-sequence <span id="E009" class="rfc2119">MUST</span> start at 1 and <span id="E010" class="rfc2119">MUST</span> be
+class="rfc2119">MUST be constructed by prepending `v` to the version number. The version number <span id="E105"
+class="rfc2119">MUST be taken from the sequence of positive, base-ten integers: 1, 2, 3, etc.. The version number
+sequence MUST start at 1 and MUST be
 continuous without missing integers.
 
-Implementations <span id="W001" class="rfc2119">SHOULD</span> use version directory names constructed without
+Implementations SHOULD use version directory names constructed without
 zero-padding the version number, ie. `v1`, `v2`, `v3`, etc..
 
-For compatibility with existing filesystem conventions, implementations <span class="rfc2119">MAY</span> use zero-padded
+For compatibility with existing filesystem conventions, implementations MAY use zero-padded
 version directory numbers, with the following restriction: If zero-padded version directory numbers are used then they
-<span id="E011" class="rfc2119">MUST</span> start with the prefix `v` and then a zero. For example, in an implementation
+MUST start with the prefix `v` and then a zero. For example, in an implementation
 that uses five digits for version directory names then `v00001` to `v09999` are allowed, `v10000` is not allowed.
 
 The first version of an object defines the naming convention for all version directories for the object. All version
-directories of an object <span id="E012" class="rfc2119">MUST</span> use the same naming convention: either a non-padded
+directories of an object MUST use the same naming convention: either a non-padded
 version directory number, or a zero-padded version directory number of consistent length. The version naming convention
-<span id="E013" class="rfc2119">MUST</span> be consistent across all versions. In all cases, references to files inside
-version directories from inventory files <span id="E014" class="rfc2119">MUST</span> use the actual version directory
+MUST be consistent across all versions. In all cases, references to files inside
+version directories from inventory files MUST use the actual version directory
 names.
 
-There <span id="E015" class="rfc2119">MUST</span> be no other files as children of a version directory, other than an
+There MUST be no other files as children of a version directory, other than an
 [inventory file](#inventory) and a [inventory digest](#inventory-digest). The version directory <span id="W002"
-class="rfc2119">SHOULD NOT</span> contain any directories other than the designated content sub-directory. Once created,
+class="rfc2119">SHOULD NOT contain any directories other than the designated content sub-directory. Once created,
 the contents of a version directory are expected to be immutable.
 
 #### 3.3.1 Content Directory
-{: #content-directory}
 
-Version directories <span id="E016" class="rfc2119">MUST</span> contain a designated content sub-directory if the
-version contains files to be preserved, and <span id="W003" class="rfc2119">SHOULD NOT</span> contain this sub-directory
-otherwise. The name of this designated sub-directory <span class="rfc2119">MAY</span> be defined in the [inventory
+Version directories MUST contain a designated content sub-directory if the
+version contains files to be preserved, and SHOULD NOT contain this sub-directory
+otherwise. The name of this designated sub-directory MAY be defined in the [inventory
 file](#inventory) using the key `contentDirectory` with the value being the chosen sub-directory name as a string,
-relative to the version directory. The `contentDirectory` value <span id="E108" class="rfc2119">MUST</span> represent a
+relative to the version directory. The `contentDirectory` value MUST represent a
 direct child directory of the version directory in which it is found. As such, the `contentDirectory` value <span
-id="E017" class="rfc2119">MUST NOT</span> contain the forward slash (`/`) path separator and <span id="E018"
-class="rfc2119">MUST NOT</span> be either one or two periods (`.` or `..`). If the key `contentDirectory` is set, it
-<span id="E019" class="rfc2119">MUST</span> be set in the first version of the object and <span id="E020"
-class="rfc2119">MUST NOT</span> change between versions of the same object.
+id="E017" class="rfc2119">MUST NOT contain the forward slash (`/`) path separator and <span id="E018"
+class="rfc2119">MUST NOT be either one or two periods (`.` or `..`). If the key `contentDirectory` is set, it
+MUST be set in the first version of the object and <span id="E020"
+class="rfc2119">MUST NOT change between versions of the same object.
 
 If the key `contentDirectory` is not present in the [inventory file](#inventory) then the name of the designated content
-sub-directory <span id="E021" class="rfc2119">MUST</span> be `content`. OCFL-compliant tools (including any validators)
-<span id="E022" class="rfc2119">MUST</span> ignore all directories in the object version directory except for the
+sub-directory MUST be `content`. OCFL-compliant tools (including any validators)
+MUST ignore all directories in the object version directory except for the
 designated content directory.
 
-Every file within a version's content directory <span id="E023" class="rfc2119">MUST</span> be referenced in the
-[manifest](#manifest) section of that version's inventory. There <span id="E024" class="rfc2119">MUST NOT</span> be
+Every file within a version's content directory MUST be referenced in the
+[manifest](#manifest) section of that version's inventory. There MUST NOT be
 empty directories within a version's content directory. A directory that would otherwise be empty <span
-class="rfc2119">MAY</span> be maintained by creating a file within it named according to local conventions, for example
+class="rfc2119">MAY be maintained by creating a file within it named according to local conventions, for example
 by making an empty `.keep` file.
 
 ### 3.4 Digests
-{: #digests}
 
 A [digest](#dfn-digest) plays two roles in an OCFL Object. The first is that digests allow for content-addressable
 reference to files within the OCFL Object. That is, the connection between a file's [content path](#dfn-content-path) on
@@ -315,26 +328,26 @@ content within an object, such as files that are unchanged from one version to t
 play is provide for fixity checks to determine whether a file has become corrupt, through hardware degradation or
 accident for example.
 
-For content-addressing, OCFL Objects <span id="E025" class="rfc2119">MUST</span> use either `sha512` or `sha256`, and
-<span id="W004" class="rfc2119">SHOULD</span> use `sha512`. The choice of the `sha512` digest algorithm as default
+For content-addressing, OCFL Objects MUST use either `sha512` or `sha256`, and
+SHOULD use `sha512`. The choice of the `sha512` digest algorithm as default
 recognizes that it has no known collision vulnerabilities and multiple implementations are available.
 
 For storage of additional fixity values, or to support legacy content migration, implementers <span id="E026"
-class="rfc2119">MUST</span> choose from the following controlled vocabulary of digest algorithms, or from a list of
-additional algorithms given in the \[[Digest-Algorithms-Extension](#ref-digest-algorithms-extension)\]. OCFL clients
-<span id="E027" class="rfc2119">MUST</span> support all fixity algorithms given in the table below, and <span
-class="rfc2119">MAY</span> support additional algorithms from the extensions. Optional fixity algorithms that are not
-supported by a client <span id="E028" class="rfc2119">MUST</span> be ignored by that client.
+class="rfc2119">MUST choose from the following controlled vocabulary of digest algorithms, or from a list of
+additional algorithms given in the [[Digest-Algorithms-Extension](#ref-digest-algorithms-extension)]. OCFL clients
+MUST support all fixity algorithms given in the table below, and <span
+class="rfc2119">MAY support additional algorithms from the extensions. Optional fixity algorithms that are not
+supported by a client MUST be ignored by that client.
 
 | Digest Algorithm Name | Note |
 | --- | --- |
-| `md5` | Insecure. Use only for legacy fixity values. MD5 algorithm and hex encoding defined by \[[RFC1321](#ref-rfc1321)\]. For example, the `md5` digest of a zero-length bitstream is `d41d8cd98f00b204e9800998ecf8427e`. |
-| `sha1` | Insecure. Use only for legacy fixity values. SHA-1 algorithm defined by \[[FIPS-180-4](#ref-fips-180-4)\] and <span id="E029" class="rfc2119">MUST</span> be encoded using hex (base16) encoding \[[RFC4648](#ref-rfc4648)\]. For example, the `sha1` digest of a zero-length bitstream is `da39a3ee5e6b4b0d3255bfef95601890afd80709`. |
-| `sha256` | Non-truncated form only; note performance implications. SHA-256 algorithm defined by \[[FIPS-180-4](#ref-fips-180-4)\] and <span id="E030" class="rfc2119">MUST</span> be encoded using hex (base16) encoding \[[RFC4648](#ref-rfc4648)\]. For example, the `sha256` digest of a zero-length bitstream starts `e3b0c44298fc1c149afbf4c8996fb92427ae41e4...` (64 hex digits long). |
-| `sha512` | Default choice. Non-truncated form only. SHA-512 algorithm defined by \[[FIPS-180-4](#ref-fips-180-4)\] and <span id="E031" class="rfc2119">MUST</span> be encoded using hex (base16) encoding \[[RFC4648](#ref-rfc4648)\]. For example, the `sha512` digest of a zero-length bitstream starts `cf83e1357eefb8bdf1542850d66d8007d620e405...` (128 hex digits long). |
-| `blake2b-512` | Full-length form only, using the 2B variant (64 bit) as defined by \[[RFC7693](#ref-rfc7693)\]. <span id="E032" class="rfc2119">MUST</span> be encoded using hex (base16) encoding \[[RFC4648](#ref-rfc4648)\]. For example, the `blake2b-512` digest of a zero-length bitstream starts `786a02f742015903c6c6fd852552d272912f4740...` (128 hex digits long). |
+| `md5` | Insecure. Use only for legacy fixity values. MD5 algorithm and hex encoding defined by [[RFC1321](#ref-rfc1321)]. For example, the `md5` digest of a zero-length bitstream is `d41d8cd98f00b204e9800998ecf8427e`. |
+| `sha1` | Insecure. Use only for legacy fixity values. SHA-1 algorithm defined by [[FIPS-180-4](#ref-fips-180-4)] and MUST be encoded using hex (base16) encoding [[RFC4648](#ref-rfc4648)]. For example, the `sha1` digest of a zero-length bitstream is `da39a3ee5e6b4b0d3255bfef95601890afd80709`. |
+| `sha256` | Non-truncated form only; note performance implications. SHA-256 algorithm defined by [[FIPS-180-4](#ref-fips-180-4)] and MUST be encoded using hex (base16) encoding [[RFC4648](#ref-rfc4648)]. For example, the `sha256` digest of a zero-length bitstream starts `e3b0c44298fc1c149afbf4c8996fb92427ae41e4...` (64 hex digits long). |
+| `sha512` | Default choice. Non-truncated form only. SHA-512 algorithm defined by [[FIPS-180-4](#ref-fips-180-4)] and MUST be encoded using hex (base16) encoding [[RFC4648](#ref-rfc4648)]. For example, the `sha512` digest of a zero-length bitstream starts `cf83e1357eefb8bdf1542850d66d8007d620e405...` (128 hex digits long). |
+| `blake2b-512` | Full-length form only, using the 2B variant (64 bit) as defined by [[RFC7693](#ref-rfc7693)]. MUST be encoded using hex (base16) encoding [[RFC4648](#ref-rfc4648)]. For example, the `blake2b-512` digest of a zero-length bitstream starts `786a02f742015903c6c6fd852552d272912f4740...` (128 hex digits long). |
 
-An OCFL Inventory <span class="rfc2119">MAY</span> contain a fixity section that can store one or more blocks containing
+An OCFL Inventory MAY contain a fixity section that can store one or more blocks containing
 fixity values using multiple digest algorithms. See the [section on fixity](#fixity) below for further details.
 
 > Non-normative note: Implementers may also store copies of their file digests in a system external to their OCFL Object
@@ -347,72 +360,69 @@ within the inventory. If string-based methods are used to work with digests and 
 common JSON libraries) then extra care must be taken to ensure case-insensitive comparisons are being made.
 
 ### 3.5 Inventory
-{: #inventory}
 
-An OCFL Object Inventory <span id="E033" class="rfc2119">MUST</span> follow the JSON (defined by
-\[[RFC8259](#ref-rfc8259)\]) structure described in this section with contents encoded in UTF-8, and <span id="E034"
-class="rfc2119">MUST</span> be named `inventory.json`. The order of entries in both the JSON objects and arrays used in
-inventory files has no significance. An OCFL Object Inventory <span id="E102" class="rfc2119">MUST NOT</span> contain
+An OCFL Object Inventory MUST follow the JSON (defined by
+[[RFC8259](#ref-rfc8259)]) structure described in this section with contents encoded in UTF-8, and <span id="E034"
+class="rfc2119">MUST be named `inventory.json`. The order of entries in both the JSON objects and arrays used in
+inventory files has no significance. An OCFL Object Inventory MUST NOT contain
 any keys not described in this specification.
 
-The forward slash (/) path separator <span id="E035" class="rfc2119">MUST</span> be used in content paths in the
+The forward slash (/) path separator MUST be used in content paths in the
 [manifest](#manifest) and [fixity](#fixity) blocks within the inventory. Implementations that target systems using other
 separators will need to translate paths appropriately.
 
-> Non-normative note: A \[[JSON-Schema](#ref-json-schema)\] for validating OCFL Object Inventory files is provided at
+> Non-normative note: A [[JSON-Schema](#ref-json-schema)] for validating OCFL Object Inventory files is provided at
 [inventory_schema.json](inventory_schema.json).
 
 #### 3.5.1 Basic Structure
-{: #inventory-structure}
 
-Every OCFL inventory <span id="E036" class="rfc2119">MUST</span> include the following keys:
+Every OCFL inventory MUST include the following keys:
 
-* `id`: A unique identifier for the OCFL Object. This <span id="E037" class="rfc2119">MUST</span> be unique in the local
-  context, <span id="E110" class="rfc2119">MUST NOT</span> change between versions of the same object, and <span id="W005"
-  class="rfc2119">SHOULD</span> be a URI \[[RFC3986](#ref-rfc3986)\]. There is no expectation that a URI used is
-  resolvable. For example, URNs \[[RFC8141](#ref-rfc8141)\] <span class="rfc2119">MAY</span> be used.
+* `id`: A unique identifier for the OCFL Object. This MUST be unique in the local
+  context, MUST NOT change between versions of the same object, and <span id="W005"
+  class="rfc2119">SHOULD be a URI [[RFC3986](#ref-rfc3986)]. There is no expectation that a URI used is
+  resolvable. For example, URNs [[RFC8141](#ref-rfc8141)] MAY be used.
 
 * `type`: A type for the inventory JSON object that also serves to document the OCFL specification version that the
-  inventory complies with. In the object root inventory this <span id="E038" class="rfc2119">MUST</span> be the URI of the
+  inventory complies with. In the object root inventory this MUST be the URI of the
   inventory section of the specification version matching the object conformance declaration. For the current
   specification version the value is `https://ocfl.io/1.1/spec/#inventory`.
 
 * `digestAlgorithm`: The digest algorithm used for calculating digests for content-addressing within the OCFL Object and
-  for the [Inventory Digest](#inventory-digest). This <span id="E039" class="rfc2119">MUST</span> be the algorithm used in
+  for the [Inventory Digest](#inventory-digest). This MUST be the algorithm used in
   the `manifest` and `state` blocks, see the [section on Digests](#digests) for more information about algorithms.
 
 * `head`: The version directory name of the most recent version of the object. This <span id="E040"
-  class="rfc2119">MUST</span> be the version directory name with the highest version number.
+  class="rfc2119">MUST be the version directory name with the highest version number.
 
-There <span class="rfc2119">MAY</span> be the following key:
+There MAY be the following key:
 
 * `contentDirectory`: The name of the designated content directory within the version directories. If not specified then
   the content directory name is `content`.
 
-In addition to these keys, there <span id="E041" class="rfc2119">MUST</span> be two other blocks present, `manifest` and
+In addition to these keys, there MUST be two other blocks present, `manifest` and
 `versions`, which are discussed in the next two sections.
 
 #### 3.5.2 Manifest
-{: #manifest}
 
-The value of the `manifest` key <span id="E106" class="rfc2119">MUST</span> be a JSON object, and each key <span
-id="E107" class="rfc2119">MUST</span> correspond to a digest value key found in one or more `state` blocks of the
+The value of the `manifest` key MUST be a JSON object, and each key <span
+id="E107" class="rfc2119">MUST correspond to a digest value key found in one or more `state` blocks of the
 current and/or previous `version` blocks of the [OCFL Object](#dfn-ocfl-object). The value for each key <span id="E092"
-class="rfc2119">MUST</span> be an array containing the [content path](#dfn-content-path)s of files in the OCFL Object
+class="rfc2119">MUST be an array containing the [content path](#dfn-content-path)s of files in the OCFL Object
 that have content with the given digest. As JSON keys are case sensitive, for digest algorithms with case insensitive
-digest values, there is an additional requirement that each digest value <span id="E096" class="rfc2119">MUST</span>
+digest values, there is an additional requirement that each digest value MUST
 occur only once in the manifest block for any digest algorithm, regardless of case. Content paths within a manifest
-block <span id="E042" class="rfc2119">MUST</span> be relative to the [OCFL Object Root](#dfn-ocfl-object-root). The
+block MUST be relative to the [OCFL Object Root](#dfn-ocfl-object-root). The
 following restrictions avoid ambiguity and provide path safety for clients processing the `manifest`.
 
-* The content path <span id="E098" class="rfc2119">MUST</span> be interpreted as a set of one or more path elements
+* The content path MUST be interpreted as a set of one or more path elements
   joined by a `/` path separator.
 
-* Path elements <span id="E099" class="rfc2119">MUST NOT</span> be `.`, `..`, or empty (`//`).
+* Path elements MUST NOT be `.`, `..`, or empty (`//`).
 
-* A content path <span id="E100" class="rfc2119">MUST NOT</span> begin or end with a forward slash (`/`).
+* A content path MUST NOT begin or end with a forward slash (`/`).
 
-* Within an inventory, content paths <span id="E101" class="rfc2119">MUST</span> be unique and non-conflicting, so the
+* Within an inventory, content paths MUST be unique and non-conflicting, so the
   content path for a file cannot appear as the initial part of another content path.
 
 > Non-normative note: If only one file is stored in the OCFL Object for each digest, fully de-duplicating the content,
@@ -430,29 +440,27 @@ paths for a given digest if the content was not entirely de-duplicated when cons
 > ```
 
 #### 3.5.3 Versions
-{: #versions}
 
-An OCFL Object Inventory <span id="E043" class="rfc2119">MUST</span> include a block for storing versions. This block
-<span id="E044" class="rfc2119">MUST</span> have the key of `versions` within the inventory, and it <span id="E045"
-class="rfc2119">MUST</span> be a JSON object. The keys of this object <span id="E046" class="rfc2119">MUST</span>
+An OCFL Object Inventory MUST include a block for storing versions. This block
+MUST have the key of `versions` within the inventory, and it <span id="E045"
+class="rfc2119">MUST be a JSON object. The keys of this object MUST
 correspond to the names of the [version directories](#version-directories) used. Each value <span id="E047"
-class="rfc2119">MUST</span> be another JSON object that characterizes the version, as described in the [3.5.3.1
+class="rfc2119">MUST be another JSON object that characterizes the version, as described in the [3.5.3.1
 Version](#version) section.
 
 ##### 3.5.3.1 Version
-{: #version}
 
-A JSON object to describe one [OCFL Version](#dfn-ocfl-version), which <span id="E048" class="rfc2119">MUST</span>
+A JSON object to describe one [OCFL Version](#dfn-ocfl-version), which MUST
 include the following keys:
 
 * `created`: The value of this key is the datetime of creation of this version. It <span id="E049"
-  class="rfc2119">MUST</span> be expressed in the Internet Date/Time Format defined by \[[RFC3339](#ref-rfc3339)\]. This
+  class="rfc2119">MUST be expressed in the Internet Date/Time Format defined by [[RFC3339](#ref-rfc3339)]. This
   format requires the inclusion of a timezone value or `Z` for UTC, and that the time component be granular to the second
   level (with optional fractional seconds).
 
 * `state`: The value of this key is a JSON object, containing a list of keys and values corresponding to the [logical
   state](#dfn-logical-state) of the object at that version. The keys of this JSON object are digest values, each of which
-  <span id="E050" class="rfc2119">MUST</span> exactly match a digest value key in the [manifest of the
+  MUST exactly match a digest value key in the [manifest of the
   inventory](#manifest). The value for each key is an array containing [logical path](#dfn-logical-path) names of files in
   the OCFL Object's logical state that have content with the given digest.
 
@@ -460,20 +468,20 @@ include the following keys:
 values, with the following restrictions to provide for path safety in the common case of the logical path value
 representing a file path.
 
-* The logical path <span id="E051" class="rfc2119">MUST</span> be interpreted as a set of one or more path elements
+* The logical path MUST be interpreted as a set of one or more path elements
   joined by a `/` path separator.
 
-* Path elements <span id="E052" class="rfc2119">MUST NOT</span> be `.`, `..`, or empty (`//`).
+* Path elements MUST NOT be `.`, `..`, or empty (`//`).
 
-* A logical path <span id="E053" class="rfc2119">MUST NOT</span> begin or end with a forward slash (`/`).
+* A logical path MUST NOT begin or end with a forward slash (`/`).
 
-* Within a version, logical paths <span id="E095" class="rfc2119">MUST</span> be unique and non-conflicting, so the
+* Within a version, logical paths MUST be unique and non-conflicting, so the
   logical path for a file cannot appear as the initial part of another logical path.
 
 > Non-normative note: The [logical state](#dfn-logical-state) of the object uses content-addressing to map logical paths
 to their bitstreams, as expressed in the manifest section of the inventory. Notably, the version state provides
 de-duplication of content within the OCFL Object by mapping multiple logical paths with the same content to the same
-digest in the manifest. See \[[OCFL-Implementation-Notes](#ref-ocfl-implementation-notes)\].
+digest in the manifest. See [[OCFL-Implementation-Notes](#ref-ocfl-implementation-notes)].
 >
 > An example `state` block is shown below:
 >
@@ -495,37 +503,36 @@ tree is thus:
 └── bar.xml
 > ```
 
-The JSON object describing an [OCFL Version](#dfn-ocfl-version), <span id="W007" class="rfc2119">SHOULD</span> include
+The JSON object describing an [OCFL Version](#dfn-ocfl-version), SHOULD include
 the following keys:
 
 * `message`: The value of this key is freeform text, used to record the rationale for creating this version. It <span
-  id="E094" class="rfc2119">MUST</span> be a JSON string.
+  id="E094" class="rfc2119">MUST be a JSON string.
 
 * `user`: The value of this key is a JSON object intended to identify the user or agent that created the current [OCFL
-  Version](#dfn-ocfl-version). The value of the `user` key <span id="E054" class="rfc2119">MUST</span> contain a user name
-  key, `name` and <span id="W008" class="rfc2119">SHOULD</span> contain an address key, `address`. The `name` value is any
+  Version](#dfn-ocfl-version). The value of the `user` key MUST contain a user name
+  key, `name` and SHOULD contain an address key, `address`. The `name` value is any
   readable name of the user, e.g., a proper name, user ID, agent ID. The `address` value <span id="W009"
-  class="rfc2119">SHOULD</span> be a URI: either a mailto URI \[[RFC6068](#ref-rfc6068)\] with the e-mail address of the
+  class="rfc2119">SHOULD be a URI: either a mailto URI [[RFC6068](#ref-rfc6068)] with the e-mail address of the
   user or a URL to a personal identifier, e.g., an ORCID iD.
 
 #### 3.5.4 Fixity
-{: #fixity}
 
-An OCFL Object inventory <span class="rfc2119">MAY</span> include a block for storing additional fixity information to
+An OCFL Object inventory MAY include a block for storing additional fixity information to
 supplement the complete set of digests in the [Manifest](#manifest), for example to support legacy digests from a
-content migration. If present, this block <span id="E055" class="rfc2119">MUST</span> have the key of `fixity` within
-the inventory, and its value <span id="E111" class="rfc2119">MUST</span> be a JSON object, which <span
-class="rfc2119">MAY</span> be empty.
+content migration. If present, this block MUST have the key of `fixity` within
+the inventory, and its value MUST be a JSON object, which <span
+class="rfc2119">MAY be empty.
 
-The keys within the `fixity` block <span id="E056" class="rfc2119">MUST</span> correspond to the controlled vocabulary
+The keys within the `fixity` block MUST correspond to the controlled vocabulary
 of [digest algorithm names](#digest-algorithms) listed in the [Digests](#digests) section, or in a table given in an
 [Extension](#dfn-extension). The value of the fixity block for a particular digest algorithm <span id="E057"
-class="rfc2119">MUST</span> follow the structure of the [3.5.2 Manifest](#manifest) block; that is, a key corresponding
+class="rfc2119">MUST follow the structure of the [3.5.2 Manifest](#manifest) block; that is, a key corresponding
 to the digest value, and an array of [content path](#dfn-content-path)s. The `fixity` block for any digest algorithm
-<span class="rfc2119">MAY</span> include digest values for any subset of content paths in the object. Where included,
-the digest values given <span id="E093" class="rfc2119">MUST</span> match the digests of the files at the corresponding
+MAY include digest values for any subset of content paths in the object. Where included,
+the digest values given MUST match the digests of the files at the corresponding
 content paths. As JSON keys are case sensitive, for digest algorithms with case insensitive digest values, there is an
-additional requirement that each digest value <span id="E097" class="rfc2119">MUST</span> occur only once in the
+additional requirement that each digest value MUST occur only once in the
 `fixity` block for any digest algorithm, regardless of case. There is no requirement that all content files have a value
 in the `fixity` block, or that fixity values provided in one version are carried forward to later versions.
 
@@ -549,15 +556,14 @@ only for version 1 content paths.
 > ```
 
 ### 3.6 Inventory Digest
-{: #inventory-digest}
 
-Every occurrence of an inventory file <span id="E058" class="rfc2119">MUST</span> have an accompanying sidecar file
+Every occurrence of an inventory file MUST have an accompanying sidecar file
 named `inventory.json.ALGORITHM` stating its digest, where `ALGORITHM` is the chosen digest algorithm for the object.
-The ALGORITHM <span id="E059" class="rfc2119">MUST</span> match the value given for the `digestAlgorithm` key in the
+The ALGORITHM MUST match the value given for the `digestAlgorithm` key in the
 inventory. An example might be `inventory.json.sha512`.
 
-The digest sidecar file <span id="E060" class="rfc2119">MUST</span> contain the digest of the inventory file. This <span
-id="E061" class="rfc2119">MUST</span> follow the format:
+The digest sidecar file MUST contain the digest of the inventory file. This <span
+id="E061" class="rfc2119">MUST follow the format:
 
 ```
 DIGEST inventory.json
@@ -566,46 +572,43 @@ DIGEST inventory.json
 One or more whitespace characters (spaces or tabs) must separate DIGEST from the string `inventory.json`; that is, the
 name of the inventory file in the same directory.
 
-The digest of the inventory <span id="E062" class="rfc2119">MUST</span> be computed only after all changes to the
+The digest of the inventory MUST be computed only after all changes to the
 inventory have been made, and thus writing the digest sidecar file is the last step in the versioning process.
 
 ### 3.7 Version Inventory and Inventory Digest
-{: #version-inventory}
 
-Every OCFL Object <span id="E063" class="rfc2119">MUST</span> have an inventory file within the OCFL Object Root,
+Every OCFL Object MUST have an inventory file within the OCFL Object Root,
 corresponding to the state of the OCFL Object at the current version. Additionally, every version directory <span
-id="W010" class="rfc2119">SHOULD</span> include an inventory file that is an [Inventory](#inventory) of all content for
+id="W010" class="rfc2119">SHOULD include an inventory file that is an [Inventory](#inventory) of all content for
 versions up to and including that particular version. Where an OCFL Object contains `inventory.json` in version
-directories, the inventory file in the OCFL Object Root <span id="E064" class="rfc2119">MUST</span> be the same as the
+directories, the inventory file in the OCFL Object Root MUST be the same as the
 file in the most recent version. See also requirements for the corresponding [Inventory Digest](#inventory-digest).
 
 In the case that prior version directories include an inventory file there will be multiple inventory files describing
 prior versions within the OCFL Object. Each `version` block in each prior inventory file <span id="E066"
-class="rfc2119">MUST</span> represent the same [logical state](#dfn-logical-state) as the corresponding `version` block
+class="rfc2119">MUST represent the same [logical state](#dfn-logical-state) as the corresponding `version` block
 in the current inventory file. Additionally, the values of the `created`, `message` and `user` keys in each `version`
-block in each prior inventory file <span id="W011" class="rfc2119">SHOULD</span> have the same values as the
+block in each prior inventory file SHOULD have the same values as the
 corresponding keys in the corresponding `version` block in the current inventory file.
 
 > Non-normative note: Storing an inventory for every version provides redundancy for this critical information in a way
 that is compatible with storage strategies that have immutable version directories.
 
 #### 3.7.1 Conformance of prior versions
-{: #conformance-of-prior-versions}
 
 Version directories in OCFL are intended to be immutable in that existing version directories do not change when a new
-version directory is added. Each version directory within an OCFL Object <span id="E103" class="rfc2119">MUST</span>
+version directory is added. Each version directory within an OCFL Object MUST
 conform to either the same or a later OCFL specification version as the preceding version directory. If inventories are
 stored in the version directories then the OCFL specification version for a given version directory is apparent from the
 `type` attribute in that [inventory](#inventory-structure).
 
 ### 3.8 Logs Directory
-{: #logs-directory}
 
-The base directory of an OCFL Object <span class="rfc2119">MAY</span> contain a directory named `logs`, which <span
-class="rfc2119">MAY</span> be empty. Implementers <span id="W012" class="rfc2119">SHOULD</span> use the [logs
+The base directory of an OCFL Object MAY contain a directory named `logs`, which <span
+class="rfc2119">MAY be empty. Implementers SHOULD use the [logs
 directory](#dfn-logs-directory) for storing files that contain a record of actions taken on the object. Since these logs
 may be subject to local standards requirements, the format of these logs is considered out-of-scope for the OCFL Object.
-Clients operating on the object <span class="rfc2119">MAY</span> log actions here that are not otherwise captured.
+Clients operating on the object MAY log actions here that are not otherwise captured.
 
 > Non-normative note: The purpose of the logs directory is to provide implementers with a location for storing local
 information about actions to the OCFL Object's content that is not part of the content itself.
@@ -615,12 +618,11 @@ may wish to store a log entry indicating that an audit was conducted, and nothin
 only store a log entry if an intervention was required.
 
 ### 3.9 Object Extensions
-{: #object-extensions}
 
-The base directory of an OCFL Object <span class="rfc2119">MAY</span> contain a directory named `extensions` for the
+The base directory of an OCFL Object MAY contain a directory named `extensions` for the
 purposes of extending the functionality of an OCFL Object. The `extensions` directory <span id="E067"
-class="rfc2119">MUST NOT</span> contain any files or sub-directories other than extension sub-directories.
-Extension sub-directories <span id="W013" class="rfc2119">SHOULD</span> be named according to a [registered extension
+class="rfc2119">MUST NOT contain any files or sub-directories other than extension sub-directories.
+Extension sub-directories SHOULD be named according to a [registered extension
 name](#dfn-registered-extension-name) in the [OCFL Extensions repository](https://ocfl.github.io/extensions/).
 
 > Non-normative note: Extension sub-directories should use the same name as a registered extension in order to both
@@ -629,44 +631,42 @@ facilitate the recognition of extensions by OCFL clients. See also [Documenting 
 Extensions](#documenting-local-extensions).
 
 ## 4. OCFL Storage Root
-{: #storage-root}
 
 An [OCFL Storage Root](#dfn-ocfl-storage-root) is the base directory of an OCFL storage layout.
 
 ### 4.1 Root Structure
-{: #root-structure}
 
-An OCFL Storage Root <span id="E069" class="rfc2119">MUST</span> contain a [Root Conformance
+An OCFL Storage Root MUST contain a [Root Conformance
 Declaration](#root-conformance-declaration) identifying it as such.
 
-An OCFL Storage Root <span class="rfc2119">MAY</span> contain other files as direct children. These might include a
+An OCFL Storage Root MAY contain other files as direct children. These might include a
 human-readable copy of the OCFL specification to make the storage root self-documenting, or files used to [document
 local extensions](#documenting-local-extensions). The source file for this specification document is in
-Markdown (described in \[[RFC7764](#ref-rfc7764)\], which is designed to be readable as plain text as well as for
+Markdown (described in [[RFC7764](#ref-rfc7764)], which is designed to be readable as plain text as well as for
 rendering as HTML, and thus makes it suitable for self-documentation. An OCFL validator <span id="E087"
-class="rfc2119">MUST</span> ignore any files in the storage root it does not understand.
+class="rfc2119">MUST ignore any files in the storage root it does not understand.
 
-An OCFL Storage Root <span id="E088" class="rfc2119">MUST NOT</span> contain directories or sub-directories other than
+An OCFL Storage Root MUST NOT contain directories or sub-directories other than
 as a directory hierarchy used to store OCFL Objects or for [storage root extensions](#storage-root-extensions). The
-directory hierarchy used to store OCFL Objects <span id="E072" class="rfc2119">MUST NOT</span> contain files that are
-not part of an OCFL Object. Empty directories <span id="E073" class="rfc2119">MUST NOT</span> appear under a storage
+directory hierarchy used to store OCFL Objects MUST NOT contain files that are
+not part of an OCFL Object. Empty directories MUST NOT appear under a storage
 root.
 
-An OCFL Storage Root <span class="rfc2119">MAY</span> contain a file named `ocfl_layout.json` to describe the
+An OCFL Storage Root MAY contain a file named `ocfl_layout.json` to describe the
 arrangement of directories and OCFL objects under the storage root. If present, `ocfl_layout.json` <span id="E070"
-class="rfc2119">MUST</span> be a JSON (defined by \[[RFC8259](#ref-rfc8259)\]) document encoded in UTF-8 and include the
+class="rfc2119">MUST be a JSON (defined by [[RFC8259](#ref-rfc8259)]) document encoded in UTF-8 and include the
 following two keys in the root JSON object:
 
 * `extension` - An extension name that identifies an arrangement of directories and OCFL objects under the storage root,
   i.e. how OCFL object identifiers are mapped to directory hierarchies. The value of the `extension` key <span id="E071"
-  class="rfc2119">MUST</span> be the [registered extension name](#dfn-registered-extension-name) for the extension
+  class="rfc2119">MUST be the [registered extension name](#dfn-registered-extension-name) for the extension
   defining the arrangement under the storage root.
 
 * `description` - A human readable description of the arrangement of directories and OCFL objects under the storage
   root.
 
 Although implementations may require multiple OCFL Storage Roots—that is, several logical or physical volumes, or
-multiple "buckets" in an object store—each OCFL Storage Root <span id="E074" class="rfc2119">MUST</span> be independent.
+multiple "buckets" in an object store—each OCFL Storage Root MUST be independent.
 
 The following example OCFL Storage Root represents the minimal set of files and folders:
 
@@ -678,56 +678,53 @@ The following example OCFL Storage Root represents the minimal set of files and 
 ```
 
 ### 4.2 Root Conformance Declaration
-{: #root-conformance-declaration}
 
-The OCFL version declaration <span id="E075" class="rfc2119">MUST</span> be formatted according to the
-\[[NAMASTE](#ref-namaste)\] specification. There <span id="E076" class="rfc2119">MUST</span> be exactly one version
+The OCFL version declaration MUST be formatted according to the
+[[NAMASTE](#ref-namaste)] specification. There MUST be exactly one version
 declaration file in the base directory of the [OCFL Storage Root](#dfn-ocfl-storage-root) giving the OCFL version in the
-filename. The filename <span id="E077" class="rfc2119">MUST</span> conform to the pattern `T=dvalue`, where `T` <span
-id="E078" class="rfc2119">MUST</span> be 0, and `dvalue` <span id="E079" class="rfc2119">MUST</span> be `ocfl_`,
+filename. The filename MUST conform to the pattern `T=dvalue`, where `T` <span
+id="E078" class="rfc2119">MUST be 0, and `dvalue` MUST be `ocfl_`,
 followed by the OCFL specification version number. The text contents of the file <span id="E080"
-class="rfc2119">MUST</span> be the same as `dvalue`, followed by a newline (`\n`).
+class="rfc2119">MUST be the same as `dvalue`, followed by a newline (`\n`).
 
 Root conformance indicates that the OCFL Storage Root conforms to this section (i.e. the OCFL Storage Root section) of
 the specification. OCFL Objects within the OCFL Storage Root also include a conformance declaration which <span
-id="E081" class="rfc2119">MUST</span> indicate OCFL Object conformance to the same or earlier version of the
+id="E081" class="rfc2119">MUST indicate OCFL Object conformance to the same or earlier version of the
 specification.
 
 ### 4.3 Storage Hierarchies
-{: #root-hierarchies}
 
-[OCFL Object Root](#dfn-ocfl-object-root)s <span id="E082" class="rfc2119">MUST</span> be stored either as the terminal
+[OCFL Object Root](#dfn-ocfl-object-root)s MUST be stored either as the terminal
 resource at the end of a directory storage hierarchy or as direct children of a containing [OCFL Storage
 Root](#dfn-ocfl-storage-root).
 
 A common practice is to use a unique identifier scheme to compose this storage hierarchy, typically arranged according
-to some form of the \[[PairTree](#ref-pairtree)\] specification. Irrespective of the pattern chosen for the storage
+to some form of the [[PairTree](#ref-pairtree)] specification. Irrespective of the pattern chosen for the storage
 hierarchies, the following restrictions apply:
 
-1. There <span id="E083" class="rfc2119">MUST</span> be a deterministic mapping from an object identifier to a unique
+1. There MUST be a deterministic mapping from an object identifier to a unique
    storage path
 
-2. Storage hierarchies <span id="E084" class="rfc2119">MUST NOT</span> include files within intermediate directories
+2. Storage hierarchies MUST NOT include files within intermediate directories
 
-3. Storage hierarchies <span id="E085" class="rfc2119">MUST</span> be terminated by OCFL Object Roots
+3. Storage hierarchies MUST be terminated by OCFL Object Roots
 
-4. Storage hierarchies within the same OCFL Storage Root <span id="W014" class="rfc2119">SHOULD</span> use just one
+4. Storage hierarchies within the same OCFL Storage Root SHOULD use just one
    layout pattern
 
-5. Storage hierarchies within the same OCFL Storage Root <span id="W015" class="rfc2119">SHOULD</span> consistently use
+5. Storage hierarchies within the same OCFL Storage Root SHOULD consistently use
    either a directory hierarchy of OCFL Objects or top-level OCFL Objects
 
 ### 4.4 Storage Root Extensions
-{: #storage-root-extensions}
 
 The behavior of the storage root may be extended to support features from other specifications.
 
-The base directory of an OCFL Storage Root <span class="rfc2119">MAY</span> contain a directory named `extensions` for
+The base directory of an OCFL Storage Root MAY contain a directory named `extensions` for
 the purposes of extending the functionality of an OCFL Storage Root. The guidelines and limitations for the storage
 root `extensions` directory are defined in alignment with those of the [object extensions](#object-extensions).
 
-The `extensions` directory <span id="E112" class="rfc2119">MUST NOT</span> contain any files or sub-directories
-other than extension sub-directories. Extension sub-directories <span id="W016" class="rfc2119">SHOULD</span> be named
+The `extensions` directory MUST NOT contain any files or sub-directories
+other than extension sub-directories. Extension sub-directories SHOULD be named
 according to a <a>registered extension name</a>.
 
 > Non-normative notes: Extension sub-directories should use the same name as a registered extension in order to both
@@ -739,43 +736,39 @@ Extensions](#documenting-local-extensions).
 hierarchy disposition when pairtree is in use, or additional human-readable text about the nature of the storage root.
 
 ### 4.5 Documenting Local Extensions
-{: #documenting-local-extensions}
 
 It is preferable that both [Object Extensions](#object-extensions) and [Storage Root
 Extenstions](#storage-root-extensions) are documented and registered in the [OCFL Extensions
-repository](https://ocfl.github.io/extensions/). However, local extensions <span class="rfc2119">MAY</span> be
+repository](https://ocfl.github.io/extensions/). However, local extensions MAY be
 documented by including a plain text document directly in the storage root, thus making the storage root
 self-documenting.
 
 ### 4.6 Filesystem features
-{: #filesystem-features}
 
 In order to maximize the compatibility of the OCFL with different filesystems, and thus improve the portability of OCFL
 Objects between different systems, some restrictions on the use of certain filesystem features are necessary. If the
-preservation of non-OCFL-compliant features is required then the content <span id="E089" class="rfc2119">MUST</span> be
+preservation of non-OCFL-compliant features is required then the content MUST be
 wrapped in a suitable disk or filesystem image format which OCFL can treat as a regular file.
 
 1. Filesystem metadata (e.g. permissions, access, and creation times) are not considered portable between filesystems or
    preservable through file transfer operations. These attributes also cannot be validated in terms of fixity in a
    consistent manner. As such, the OCFL does not support the portability of these attributes.
 
-2. Hard and soft (symbolic) links are not portable and <span id="E090" class="rfc2119">MUST NOT</span> be used within
+2. Hard and soft (symbolic) links are not portable and MUST NOT be used within
    OCFL Storage hierarchies. A common use case for links is storage deduplication. OCFL inventories provide a portable
    method of achieving the same effect by using digests to address content.
 
-3. File paths and filenames in the OCFL are case sensitive. Filesystems <span id="E091" class="rfc2119">MUST</span>
+3. File paths and filenames in the OCFL are case sensitive. Filesystems MUST
    preserve the case of OCFL filepaths and filenames.
 
 4. Transparent filesystem features such as compression and encryption should be effectively invisible to OCFL
    operations. Consequently, they should not be expected to be portable.
 
 ## 5. Examples
-{: #examples}
 
 _This section is non-normative._
 
 ### 5.1 Minimal OCFL Object
-{: #example-minimal-object}
 
 The following example OCFL Object has content that is a single file (`file.txt`), and just one version (`v1`):
 
@@ -819,7 +812,6 @@ The inventory for this OCFL Object, the same both at the top-level and in the `v
 ```
 
 ### 5.2 Versioned OCFL Object
-{: #example-versioned-object}
 
 The following example OCFL Object has three versions:
 
@@ -923,7 +915,6 @@ fixity information using `md5` and `sha1` digest algorithms, and minimal metadat
 ```
 
 ### 5.3 Different Logical and Content Paths in an OCFL Object
-{: #example-object-diff-paths}
 
 The following example OCFL Object inventory shows how content paths may differ from logical paths. The example object
 has just one version, `v1`, which has two files with logical paths `a file.wxy` and `another file.xyz` as shown in the
@@ -961,9 +952,8 @@ logical paths.
 ```
 
 ### 5.4 BagIt in an OCFL Object
-{: #example-bagit-in-ocfl}
 
-\[[BagIt](#ref-bagit)\] is a common file packaging specification, but unlike the OCFL it does not provide a mechanism
+[[BagIt](#ref-bagit)] is a common file packaging specification, but unlike the OCFL it does not provide a mechanism
 for content versioning. Using the OCFL it is possible to store a BagIt structure with content versioning, such that when
 the [logical state](#dfn-logical-state) is resolved, it creates a valid BagIt 'bag'. This example will illustrate one
 way this can be accomplished, using the [example of a basic
@@ -1090,9 +1080,8 @@ The OCFL Inventory for this object would be as follows:
 ```
 
 ### 5.5 Moab in an OCFL Object
-{: #example-moab-in-ocfl}
 
-\[[Moab](#ref-moab)\] is an archive information package format developed and used by Stanford University. Many of the
+[[Moab](#ref-moab)] is an archive information package format developed and used by Stanford University. Many of the
 ideas in Moab have been refined by the OCFL, and the OCFL is designed to give institutions currently using Moab an easy
 path to adoption.
 
@@ -1273,7 +1262,6 @@ the `manifests` directory, as we are not encapsulating the Moab object in an OCF
 ```
 
 ### 5.6 Example Extended OCFL Storage Root
-{: #example-extended-storage-root}
 
 The following example OCFL Storage Root has an extension containing custom content. The OCFL Storage Root itself remains
 valid.
@@ -1289,7 +1277,6 @@ valid.
 ```
 
 ### 5.7 Example Extended OCFL Object
-{: #example-extended-object}
 
 The following example OCFL Object has an extension containing custom content. The OCFL Object itself remains valid.
 
@@ -1309,67 +1296,64 @@ The following example OCFL Object has an extension containing custom content. Th
 ```
 
 ## 6. References
-{: #references}
 
 ### 6.1 Normative References
-{: #normative-references}
 
-<span id="ref-fips-180-4"/>**\[FIPS-180-4]** FIPS PUB 180-4 Secure Hash Standard. U.S. Department of Commerce/National
+**[FIPS-180-4]** FIPS PUB 180-4 Secure Hash Standard. U.S. Department of Commerce/National
 Institute of Standards and Technology. URL: <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>
 
-<span id="ref-namaste"/>**\[NAMASTE]** Directory Description with Namaste Tags. J. Kunze.9 November 2009. URL:
+**[NAMASTE]** Directory Description with Namaste Tags. J. Kunze.9 November 2009. URL:
 <https://confluence.ucop.edu/download/attachments/14254149/NamasteSpec.pdf>
 
-<span id="ref-rfc1321"/>**\[RFC1321]** The MD5 Message-Digest Algorithm. R. Rivest. IETF. April 1992. Informational.
+**[RFC1321]** The MD5 Message-Digest Algorithm. R. Rivest. IETF. April 1992. Informational.
 URL: <https://www.rfc-editor.org/rfc/rfc1321>
 
-<span id="ref-rfc2119"/>**\[RFC2119]** Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF.
+**[RFC2119]** Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF.
 March 1997. Best Current Practice. URL: <https://www.rfc-editor.org/rfc/rfc2119>
 
-<span id="ref-rfc3339"/>**\[RFC3339]** Date and Time on the Internet: Timestamps. G. Klyne; C. Newman. IETF. July 2002.
+**[RFC3339]** Date and Time on the Internet: Timestamps. G. Klyne; C. Newman. IETF. July 2002.
 Proposed Standard. URL: <https://www.rfc-editor.org/rfc/rfc3339>
 
-<span id="ref-rfc3986"/>**\[RFC3986]** Uniform Resource Identifier (URI): Generic Syntax. T. Berners-Lee; R. Fielding;
+**[RFC3986]** Uniform Resource Identifier (URI): Generic Syntax. T. Berners-Lee; R. Fielding;
 L. Masinter. IETF. January 2005. Internet Standard. URL: <https://www.rfc-editor.org/rfc/rfc3986>
 
-<span id="ref-rfc4648"/>**\[RFC4648]** The Base16, Base32, and Base64 Data Encodings. S. Josefsson. IETF. October 2006.
+**[RFC4648]** The Base16, Base32, and Base64 Data Encodings. S. Josefsson. IETF. October 2006.
 Proposed Standard. URL: <https://www.rfc-editor.org/rfc/rfc4648>
 
-<span id="ref-rfc7693"/>**\[RFC7693]** The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC). M-J.
+**[RFC7693]** The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC). M-J.
 Saarinen, Ed.; J-P. Aumasson. IETF. November 2015. Informational. URL: <https://www.rfc-editor.org/rfc/rfc7693>
 
-<span id="ref-rfc8259"/>**\[RFC8259]** The JavaScript Object Notation (JSON) Data Interchange Format. T. Bray, Ed..
+**[RFC8259]** The JavaScript Object Notation (JSON) Data Interchange Format. T. Bray, Ed..
 IETF. December 2017\. Internet Standard. URL: <https://www.rfc-editor.org/rfc/rfc8259>
 
 ### 6.2 Informative References
-{: #informative-references}
 
-<span id="ref-bagit"/>**\[BagIt]** The BagIt File Packaging Format (V1.0). J. Kunze; J. Littman; E. Madden; J.
+**[BagIt]** The BagIt File Packaging Format (V1.0). J. Kunze; J. Littman; E. Madden; J.
 Scancella; C. Adams. 17 September 2018. URL: <https://datatracker.ietf.org/doc/html/rfc8493>
 
-<span id="ref-digest-algorithms-extension"/>**\[Digest-Algorithms-Extension]** OCFL Community Extension 0001: Digest
+**[Digest-Algorithms-Extension]** OCFL Community Extension 0001: Digest
 Algorithms. OCFL Editors.URL: <https://ocfl.github.io/extensions/0001-digest-algorithms.html>
 
-<span id="ref-json-schema"/>**\[JSON-Schema]** JSON Schema Validation: A Vocabulary for Structural Validation of JSON.
+**[JSON-Schema]** JSON Schema Validation: A Vocabulary for Structural Validation of JSON.
 A. Wright; H Andrews.20 September 2018. URL: <https://json-schema.org/latest/json-schema-validation.html>
 
-<span id="ref-moab"/>**\[Moab]** The Moab Design for Digital Object Versioning. Richard Anderson.15 July 2013. URL:
+**[Moab]** The Moab Design for Digital Object Versioning. Richard Anderson.15 July 2013. URL:
 <https://journal.code4lib.org/articles/8482>
 
-<span id="ref-oais"/>**\[OAIS]** Reference Model for an Open Archival Information System (OAIS), Issue 2. June 2012.
+**[OAIS]** Reference Model for an Open Archival Information System (OAIS), Issue 2. June 2012.
 URL: <https://public.ccsds.org/pubs/650x0m2.pdf>
 
-<span id="ref-ocfl-implementation-notes"/>**\[OCFL-Implementation-Notes]** OCFL Implementation Notes v1.1. URL:
+**[OCFL-Implementation-Notes]** OCFL Implementation Notes v1.1. URL:
 <https://ocfl.io/1.1/implementation-notes>
 
-<span id="ref-pairtree"/>**\[PairTree]** Pairtrees for Object Storage. J. Kunze; M. Haye; E. Hetzner; M. Reyes; C.
+**[PairTree]** Pairtrees for Object Storage. J. Kunze; M. Haye; E. Hetzner; M. Reyes; C.
 Snavely. 12 August 2008\. URL: <https://confluence.ucop.edu/display/Curation/PairTree>
 
-<span id="ref-rfc6068"/>**\[RFC6068]** The 'mailto' URI Scheme. M. Duerst; L. Masinter; J. Zawinski. IETF. October 2010.
+**[RFC6068]** The 'mailto' URI Scheme. M. Duerst; L. Masinter; J. Zawinski. IETF. October 2010.
 Proposed Standard. URL: <https://www.rfc-editor.org/rfc/rfc6068>
 
-<span id="ref-rfc7764"/>**\[RFC7764]** Guidance on Markdown: Design Philosophies, Stability Strategies, and Select
+**[RFC7764]** Guidance on Markdown: Design Philosophies, Stability Strategies, and Select
 Registrations. S. Leonard. IETF. March 2016. URL:  <https://www.rfc-editor.org/rfc/rfc7764>
 
-<span id="ref-rfc8141"/>**\[RFC8141]** Uniform Resource Names (URNs). P. Saint-Andre; J. Klensin. IETF. April 2017.
+**[RFC8141]** Uniform Resource Names (URNs). P. Saint-Andre; J. Klensin. IETF. April 2017.
 Proposed Standard. URL: <https://www.rfc-editor.org/rfc/rfc8141>

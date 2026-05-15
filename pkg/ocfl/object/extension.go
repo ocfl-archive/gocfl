@@ -2,7 +2,7 @@
 package object
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"io/fs"
 
@@ -47,7 +47,7 @@ type ExtensionObjectContentPath interface {
 }
 
 // ExtensionObjectExtractPathWrongAreaError is returned when an invalid area is provided to an ObjectExtractPath extension.
-var ExtensionObjectExtractPathWrongAreaError = fmt.Errorf("invalid area")
+var ExtensionObjectExtractPathWrongAreaError = errors.New("invalid area")
 
 // ExtensionObjectExtractPath is an interface for extensions that can build object extract paths.
 type ExtensionObjectExtractPath interface {
@@ -74,6 +74,7 @@ type ExtensionArea interface {
 type ExtensionStream interface {
 	extension.Extension
 	// StreamObject streams an object's content.
+	// All registered StreamObject hooks are called in parallel, as the data stream is split using io.MultiWriter.
 	StreamObject(object VersionWriter, reader io.Reader, stateFiles []string, dest string) error
 }
 
@@ -124,11 +125,11 @@ type ExtensionVersionDone interface {
 	VersionDone(object Object) error
 }
 
-// ExtensionNewVersion is an interface for extensions that can determine if a new version is needed and perform actions for a new version.
+// ExtensionNewVersion is an interface for extensions that can determine if a new version is needed (e.g. for automatic metadata) and perform actions for this new version.
 type ExtensionNewVersion interface {
 	extension.Extension
-	// NeedNewVersion returns true if a new version is needed.
+	// NeedNewVersion returns true if a new version is needed. Called at the end of version Close().
 	NeedNewVersion(object VersionWriter) (bool, error)
-	// DoNewVersion performs actions for a new version.
+	// DoNewVersion performs actions for the automatically created new version.
 	DoNewVersion(object VersionWriter) error
 }

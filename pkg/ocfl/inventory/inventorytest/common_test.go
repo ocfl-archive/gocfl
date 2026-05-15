@@ -8,8 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
@@ -26,8 +25,8 @@ var logger = ocfllogger.NewOCFLLogger(
 	nil,
 )
 
-func getFactory(ver version.OCFLVersion) factory.Factory {
-	return factoryimpl.NewFactory(ver, nil, logger)
+func getFactory(ver version.OCFLVersion) inventory.Factory {
+	return initocfl.NewFactoryObject(ver, nil, logger)
 }
 
 func genericExampleState(ver version.OCFLVersion, cnt int, t *testing.T) inventory.State {
@@ -268,25 +267,21 @@ func genericUserInvalidJSON(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericUserInvalidAddressCheck(ver version.OCFLVersion, t *testing.T) {
-	ctx := validation.NewContextValidation(context.Background())
 	f := getFactory(ver)
-	user := f.NewUser(ctx).WithAddress("xxx")
+	user := f.NewUser(context.Background()).WithAddress("xxx")
 	if err := user.Check(inventory.NewVersionNumber().WithString("v1")); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
-	val, err := validation.GetValidationStatus(ctx)
-	if err != nil {
-		t.Fatalf("get validation status error: %v", err)
-	}
+	vErrors := logger.ValidationErrors()
 	var hasW009 bool
-	for _, w := range val.Errors {
+	for _, w := range vErrors {
 		if w.Code == validation.W009 {
 			hasW009 = true
 			break
 		}
 	}
 	if !hasW009 {
-		t.Errorf("no warning '%s' in %v", validation.W009, val.Errors)
+		t.Errorf("no warning '%s' in %v", validation.W009, vErrors)
 	}
 }
 
@@ -478,27 +473,23 @@ func genericVersionsInvalidJSON(ver version.OCFLVersion, t *testing.T) {
 }
 
 func genericVersionsCheck(ver version.OCFLVersion, t *testing.T) {
-	ctx := validation.NewContextValidation(context.Background())
 	f := getFactory(ver)
-	versions := f.NewVersions(ctx)
-	v := f.NewVersion(ctx).WithMessage("test")
+	versions := f.NewVersions(context.Background())
+	v := f.NewVersion(context.Background()).WithMessage("test")
 	versions.SetVersion(inventory.NewVersionNumber().WithString("v1"), v)
 
 	if err := versions.Check([]string{}); err != nil {
 		t.Fatalf("check error: %v", err)
 	}
-	val, err := validation.GetValidationStatus(ctx)
-	if err != nil {
-		t.Fatalf("get validation status error: %v", err)
-	}
+	vErrors := logger.ValidationErrors()
 	var hasE049 bool
-	for _, e := range val.Errors {
+	for _, e := range vErrors {
 		if e.Code == validation.E049 {
 			hasE049 = true
 			break
 		}
 	}
 	if hasE049 {
-		t.Errorf("unexpected error '%s' in %v", validation.E049, val.Errors)
+		t.Errorf("unexpected error '%s' in %v", validation.E049, vErrors)
 	}
 }

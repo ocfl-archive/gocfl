@@ -9,25 +9,31 @@ The `Loader` module is responsible for reading and parsing an existing OCFL obje
 The `Loader` interface includes several key methods for configuring and executing the loading process:
 
 - `Load() error`: Performs the actual reading of the object structure from the filesystem, including parsing the [Inventory](../../inventory/README.md) and discovering available extensions.
-- `SetObject(o Object) Loader`: Associates the loader with an [Object](OBJECT.md) instance.
-- `SetFS(sourceFS fs.FS) Loader`: Sets the source filesystem where the OCFL object is located.
-- `SetExtensionFactory(factory extension.Factory) Loader`: Configures the [Extension Factory](../../extension/README.md) to use for instantiating extensions during the load process.
+- `WithObject(o Object) Loader`: Associates the loader with an [Object](OBJECT.md) instance.
+- `SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader`: Configures the [Extension Factory](../../extension/README.md) to use for instantiating extensions during the load process.
 - `GetFS() fs.FS`: Returns the filesystem associated with the loader.
+
+> [!NOTE]
+> Parameters like the filesystem are now passed to the `Object` via `WithReadFS(fsys)` before calling `GetLoader()`.
 
 ## Usage Example
 
 Typically, the loader is accessed via the [Object](OBJECT.md) interface:
 
 ```go
-loader := obj.GetLoader(sourceFS, extensionFactory)
+// Configure the object with a filesystem
+obj.WithReadFS(sourceFS)
+
+// Get the loader and load the object
+loader := obj.GetLoader()
 if err := loader.Load(); err != nil {
     // handle error
 }
 ```
 
-Higher-level orchestration functions in [pkg/ocfl/functions](../../functions/README.md) like `LoadObject` wrap this logic for common use cases.
+The high-level function `initocfl.LoadObject` in [pkg/ocfl/initocfl](../../initocfl/README.md) is the recommended way to load existing objects as it handles version detection and extension setup automatically.
 
 ---
-- [Back to Object Overview](../README.md)
+- [Back to Object Documentation Overview](README.md)
 - [The Object Interface](OBJECT.md)
 - [Functional Modules Index](MODULES.md)

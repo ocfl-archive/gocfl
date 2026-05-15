@@ -20,7 +20,7 @@ inv.WithFixity(fixity)
 
 The fixity block is used to store additional checksums using algorithms other than the main `digestAlgorithm`.
 
-- **Specification**: [3.5.4 Fixity](../../../../data/specs/ocfl_1.1.md#354-fixity)
+- **Specification**: [3.5.4 Fixity](../../version/ocfl_spec_1.1.md#354-fixity)
 
 According to the OCFL specification, the `fixity` block is optional. It is a JSON object whose keys are the names of the used digest algorithms. Each of these keys points to an object that, in turn, maps digests to arrays of physical paths (similar to the manifest).
 

@@ -1,3 +1,6 @@
+// Package initocfl provides functions for loading and initializing OCFL storage roots and objects.
+// It acts as a high-level entry point for working with different OCFL versions
+// by orchestrating the creation of appropriate factories and managers.
 package initocfl
 
 import (
@@ -16,6 +19,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
+// LoadStorageRoot detects the OCFL version of the storage root at fsys,
+// initializes the extension manager, and loads the storage root structure.
+// It returns a storageroot.StorageRoot instance.
 func LoadStorageRoot(ctx context.Context, fsys fs.FS, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	ver, err := util.GetStorageRootVersion(fsys)
 	if err != nil {
@@ -54,6 +60,9 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, logger ocfllogger.OCFLLogg
 	return sr, nil
 }
 
+// LoadObject detects the OCFL version of the object at fsys,
+// initializes the extension manager, and loads the object structure.
+// It returns an object.Object instance.
 func LoadObject(ctx context.Context, fsys fs.FS, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	ver, err := util.GetObjectVersion(fsys)
 	if err != nil {

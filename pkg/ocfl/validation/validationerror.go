@@ -1,3 +1,8 @@
+// Package validation provides structures and functions for handling OCFL validation errors and warnings.
+//
+// It maps OCFL specification error codes to descriptive error objects and provides
+// a mechanism to collect these errors during the validation process.
+// Base error definitions are loaded from validationerror1_0.go and validationerror1_1.go.
 package validation
 
 import (
@@ -9,10 +14,11 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
+// ErrorCode represents an OCFL validation error or warning code (e.g., "E001", "W001").
 type ErrorCode string
 
 const (
-	E000 = ErrorCode("E000")
+	E000 = ErrorCode("E000") // Unknown error
 	E001 = ErrorCode("E001")
 	E002 = ErrorCode("E002")
 	E003 = ErrorCode("E003")
@@ -141,47 +147,55 @@ const (
 	W016 = ErrorCode("W016")
 )
 
+// Error represents a detailed OCFL validation issue.
 type Error struct {
-	Code         ErrorCode
-	Description  string
-	Ref          string
-	Description2 string
-	Context      string
-	Version      version.OCFLVersion
+	Code         ErrorCode           // The OCFL validation code (e.g., E001).
+	Description  string              // Official description from the OCFL specification.
+	Ref          string              // URL to the relevant section in the OCFL specification.
+	Description2 string              // Additional dynamic information about the specific occurrence.
+	Context      string              // Architectural context (e.g., "storage root", "object root").
+	Version      version.OCFLVersion // OCFL version the error refers to.
 }
 
+// NewStatus creates a new empty Status object.
 func NewStatus() *Status {
 	return &Status{
 		Errors: []*Error{},
 	}
 }
 
+// Status collects validation errors and warnings encountered during validation.
 type Status struct {
-	Errors []*Error
+	Errors []*Error // List of collected errors and warnings.
 }
 
-// removes duplicate errors
+// Compact removes duplicate errors from the Status and sorts them.
 func (status *Status) Compact() {
 	slices.SortFunc(status.Errors, validationSort)
 	status.Errors = slices.CompactFunc(status.Errors, func(E1, E2 *Error) bool {
 		return E1.Context == E2.Context && E1.Code == E2.Code && E1.Description2 == E2.Description2
 	})
-
 }
 
+// Add appends a validation error to the Status.
 func (status *Status) Add(validationError *Error) {
 	status.Errors = append(status.Errors, validationError)
 }
 
+// validationSort is a helper to sort Errors by context and code.
 func validationSort(E1, E2 *Error) int {
 	sr1 := strings.HasPrefix(E1.Context, "storage root")
 	sr2 := strings.HasPrefix(E2.Context, "storage root")
 	if sr1 != sr2 {
-		return -1 // sr1 && !sr2
+		if sr1 {
+			return -1
+		}
+		return 1
 	}
 	return cmp.Compare(E1.Context+string(E1.Code)+E1.Description2, E2.Context+string(E2.Code)+E2.Description2)
 }
 
+// AppendDescription creates a new Error with additional information appended to Description2.
 func (ve *Error) AppendDescription(format string, a ...any) *Error {
 	if format == "" {
 		return ve
@@ -191,9 +205,12 @@ func (ve *Error) AppendDescription(format string, a ...any) *Error {
 		Description:  ve.Description,
 		Ref:          ve.Ref,
 		Description2: strings.TrimSpace(ve.Description2 + " " + fmt.Sprintf(format, a...)),
+		Context:      ve.Context,
+		Version:      ve.Version,
 	}
 }
 
+// AppendContext creates a new Error with additional information appended to the Context.
 func (ve *Error) AppendContext(format string, a ...any) *Error {
 	if format == "" {
 		return ve
@@ -204,9 +221,11 @@ func (ve *Error) AppendContext(format string, a ...any) *Error {
 		Ref:          ve.Ref,
 		Description2: ve.Description2,
 		Context:      strings.TrimSpace(ve.Context + " " + fmt.Sprintf(format, a...)),
+		Version:      ve.Version,
 	}
 }
 
+// Error implements the error interface for the Error struct.
 func (verr *Error) Error() string {
 	if len(verr.Code) > 0 && verr.Code[0] == 'W' {
 		return fmt.Sprintf("Warning #%s [%s]  %s (%s) [%s]", verr.Code, verr.Context, verr.Description, verr.Ref, verr.Description2)
@@ -215,6 +234,7 @@ func (verr *Error) Error() string {
 	}
 }
 
+// DetailString returns a string representation of the error including OCFL version prefix.
 func (ve *Error) DetailString() string {
 	switch ve.Version {
 	case "1.1":
@@ -224,6 +244,8 @@ func (ve *Error) DetailString() string {
 	}
 }
 
+// GetValidationError returns a base Error object for a given OCFL version and error code.
+// If the code is not found for the version, it attempts to map it or returns an "unknown" error/warning.
 func GetValidationError(version version.OCFLVersion, errno ErrorCode) *Error {
 	var errlist map[ErrorCode]*Error
 	var mapping map[ErrorCode]ErrorCode

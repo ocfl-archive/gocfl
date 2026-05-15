@@ -7,11 +7,28 @@ The `ManagerCore` (`manager.go`) is responsible for coordinating multiple extens
 
 ## ManagerCore Interface
 
-Key features of the Manager:
-- **Aggregation**: Maintains a list of active extensions (`GetExtensions()`).
+Key methods of the `ManagerCore` interface:
+- **Aggregation**: Maintains a list of active extensions via `GetExtensions()` and allows adding new ones via `Add(ext Extension)`.
 - **Configuration Management**: Handles the storage and retrieval of configuration files for all managed extensions via `GetConfigName()`.
-- **Root Layout Support**: Specific methods for handling storage root layouts (`StoreRootLayout`).
-- **Initialization**: Support for an `Initial` extension that can define default behaviors.
+- **Finalization**: `Finalize()` method for completing manager setup.
+- **Root Layout Support**: Specific methods for handling storage root layouts via `StoreRootLayout(fsys appendfs.FS)`.
+- **Initialization**: Support for an `Initial` extension via `SetInitial(initial Initial)`.
+
+## Difference between Manager and Factory
+
+For a high-level comparison, see the [Extension Documentation README](README.md#core-concepts-manager-vs-factory).
+
+While both components deal with extensions, they have distinct responsibilities:
+
+| Feature | Extension Manager (`ManagerCore`) | Extension Factory (`Factory`) |
+| :--- | :--- | :--- |
+| **Role** | **Runtime Coordinator** | **Registry & Creator** |
+| **Lifecycle** | Manages extensions *during* their use in an object/root. | Handles the *instantiation* of extensions. |
+| **State** | Holds instances of active extensions. | Holds a registry of available extension types. |
+| **Interaction** | Decides which extension to call for a specific task. | Knows how to build an extension from JSON/Filesystem. |
+| **Persistence** | Responsible for writing configs to the `extensions/` folder. | Responsible for reading from the `extensions/` folder. |
+
+In short: The **Factory** *creates* the extensions (and the manager itself), and the **Manager** *uses* them to perform OCFL operations.
 
 ## Initial Extension
 
@@ -46,7 +63,7 @@ Die primäre Implementierung dieses erweiterten Interface ist [`GOCFLExtensionMa
 The `storageroot` package also defines a specialized `ExtensionManager` that coordinates [Storage Layouts](../../storageroot/docs/STORAGEROOT.md#extensionstoragerootpath) alongside standard extensions. For more details, see the [Storage Root Extension Manager](../../storageroot/docs/STORAGEROOT.md#extension-manager).
 
 ---
-- [Back to Extension Overview](../README.md)
+- [Back to Extension Overview](README.md)
 - [Extension Interface](EXTENSION.md)
 - [Initial Specification](../../../../docs/initial.md)
 - [Factory Interface](FACTORY.md)

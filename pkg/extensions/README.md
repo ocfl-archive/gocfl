@@ -8,6 +8,8 @@ They are implemented as extensions to allow for future flexibility, enabling the
 
 ### Initial (`initial`)
 
+[README](ext_initial/README.md)
+
 The `initial` extension is responsible for defining which extension manager should be used. It acts as a bootstrap mechanism to set up the extension management system.
 
 - **Name**: `initial`
@@ -15,6 +17,8 @@ The `initial` extension is responsible for defining which extension manager shou
 - **Behavior**: Provides a default extension manager name if none is configured.
 
 ### GOCFL Extension Manager (`NNNN-gocfl-extension-manager`)
+
+[README](ext_NNNN_gocfl_extension_manager/README.md)
 
 The `NNNN-gocfl-extension-manager` is the primary orchestrator for all other extensions in `gocfl`. It implements various OCFL extension hooks and manages the execution order and lifecycle of other extensions.
 

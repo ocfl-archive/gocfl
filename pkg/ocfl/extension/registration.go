@@ -16,7 +16,7 @@ type registrationStruct struct {
 
 var registration = map[string]*registrationStruct{}
 
-// RegisterExtension registers an extension with a given name, builder function, and external parameter function. if func is nil, it is ignored.
+// RegisterExtensionStorageRoot registers an extension for storage roots with a given name, builder function, and external parameter function.
 func RegisterExtensionStorageRoot(name string, builder BuilderFunc, externalParamFunc ExternalParamFunc, doc *string) {
 	reg := &registrationStruct{
 		documentation:     doc,
@@ -25,6 +25,8 @@ func RegisterExtensionStorageRoot(name string, builder BuilderFunc, externalPara
 	}
 	registration["storageroot.ExtensionManager."+name] = reg
 }
+
+// RegisterExtensionObject registers an extension for objects with a given name, builder function, and external parameter function.
 func RegisterExtensionObject(name string, builder BuilderFunc, externalParamFunc ExternalParamFunc, doc *string) {
 	reg := &registrationStruct{
 		documentation:     doc,
@@ -34,7 +36,7 @@ func RegisterExtensionObject(name string, builder BuilderFunc, externalParamFunc
 	registration["object.ExtensionManager."+name] = reg
 }
 
-// RegisterWithFactory registers all extensions with the provided factory if they have a valid builder function.
+// RegisterWithFactory registers all extensions with the provided factory if they have a valid builder function and match the factory's manager type.
 func RegisterWithFactory[T ManagerCore[T]](fact Factory[T], logger ocfllogger.OCFLLogger) {
 	typeName := reflect.TypeOf((*T)(nil)).Elem().String() + "."
 	for name, reg := range registration {
@@ -49,6 +51,7 @@ func RegisterWithFactory[T ManagerCore[T]](fact Factory[T], logger ocfllogger.OC
 	}
 }
 
+// GetExtensionParamValues retrieves all external parameter values for a given command.
 func GetExtensionParamValues(command string, callback GetParamsFunc) error {
 	extParams, err := GetExternalParams()
 	if err != nil {
@@ -60,6 +63,7 @@ func GetExtensionParamValues(command string, callback GetParamsFunc) error {
 	return nil
 }
 
+// GetExternalParams returns all external parameters for all registered extensions.
 func GetExternalParams() ([]*ExternalParam, error) {
 	result := []*ExternalParam{}
 	for name, reg := range registration {

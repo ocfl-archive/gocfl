@@ -3,7 +3,7 @@
 The `Loader` module is responsible for reading and parsing an existing OCFL storage root from a filesystem. It handles the initial discovery of the storage root's structure, including identifying its layout and available extensions.
 
 - **Interface**: `Loader` (`pkg/ocfl/storageroot/storageroot.go`)
-- **Specification**: [OCFL 1.1 Storage Root Structure](../../../../data/specs/ocfl_1.1.md#4-storage-root)
+- **Specification**: [OCFL 1.1 Storage Root Structure](../../version/ocfl_spec_1.1.md#4-storage-root)
 
 ## Main Methods
 
@@ -11,8 +11,7 @@ The `Loader` interface provides the following methods to configure and execute t
 
 - `Load() error`: Performs the discovery and reading of the storage root structure from the filesystem.
 - `SetStorageRoot(sr StorageRoot) Loader`: Associates the loader with a [StorageRoot](STORAGEROOT.md) instance.
-- `SetFS(sourceFS fs.FS) Loader`: Sets the source filesystem where the storage root is located.
-- `SetExtensionFactory(factory extension.Factory) Loader`: Configures the [Extension Factory](../../extension/docs/FACTORY.md) to use for instantiating extensions during the load process.
+- `SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader`: Configures the [Extension Factory](../../extension/docs/FACTORY.md) to use for instantiating extensions during the load process.
 - `Close() error`: Finalizes the loading process and releases resources.
 
 ## Usage Example
@@ -20,14 +19,14 @@ The `Loader` interface provides the following methods to configure and execute t
 Typically, the loader is accessed via the [StorageRoot](STORAGEROOT.md) interface:
 
 ```go
-loader := sr.GetLoader(sourceFS, extensionFactory)
+loader := sr.WithReadFS(sourceFS).GetLoader()
 if err := loader.Load(); err != nil {
     // handle error
 }
 defer loader.Close()
 ```
 
-The [Factory](FACTORY.md) and high-level functions also provide convenient ways to instantiate loaders.
+The high-level function `initocfl.LoadStorageRoot` in [pkg/ocfl/initocfl](../../initocfl/README.md) is the recommended way to load storage roots as it handles version detection and extension setup automatically.
 
 ---
 - [Back to Storage Root Overview](../README.md)

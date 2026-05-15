@@ -6,7 +6,7 @@ In addition to the main interfaces, there are several data types that play an im
 
 A `User` represents the creator of a version. It consists of a name and an optional address (usually a mailto URI).
 
-- **Specification**: [3.5.3.1 Version](../../../../data/specs/ocfl_1.1.md#3531-version) (section `user`)
+- **Specification**: [3.5.3.1 Version](../../version/ocfl_spec_1.1.md#3531-version) (section `user`)
 - **Interface**: `User` (`pkg/ocfl/inventory/inventorytypes.go` / `inventoryimpl/userbase.go`)
 - **Fields**:
   - `name`: Full name of the user.
@@ -16,7 +16,7 @@ A `User` represents the creator of a version. It consists of a name and an optio
 
 Represents an OCFL version number (e.g., `v1`, `v2`, `v0001`).
 
-- **Specification**: [3.3.1 Version Directories](../../../../data/specs/ocfl_1.1.md#331-version-directories)
+- **Specification**: [3.3.1 Version Directories](../../version/ocfl_spec_1.1.md#331-version-directories)
 - **Implementation**: `VersionNumber` (`pkg/ocfl/inventory/versionnumber.go`)
 - **Functions**:
   - Parsing version strings.
@@ -28,7 +28,7 @@ Represents an OCFL version number (e.g., `v1`, `v2`, `v0001`).
 The `State` of a version maps logical file paths to their digests. Unlike the manifest, which shows physical locations, the state shows how the object looks to the user in that specific version.
 
 - **Detailed Documentation**: [STATE.md](STATE.md)
-- **Specification**: [3.5.3.2 Version State](../../../../data/specs/ocfl_1.1.md#3532-version-state)
+- **Specification**: [3.5.3.2 Version State](../../version/ocfl_spec_1.1.md#3532-version-state)
 - **Interface**: `State` (`pkg/ocfl/inventory/state.go`)
 - **Methods**:
   - `GetDigest(path string) string`: Returns the digest for a logical path.

@@ -2,7 +2,7 @@
 
 The `Object` interface (`pkg/ocfl/object/object.go`) is the central abstraction for an OCFL object in the `gocfl` library. It provides access to object-level metadata and serves as a factory for operational interfaces like loaders, initializers, and extractors.
 
-- **Specification**: [OCFL 1.1 Object Specification](../../../../data/specs/ocfl_1.1.md#3-object-structure)
+- **Specification**: [OCFL 1.1 Object Specification](../../version/ocfl_spec_1.1.md#3-object-structure)
 
 ## Main Interface
 
@@ -13,9 +13,13 @@ The `Object` interface includes the following key methods:
 - `GetLoader() Loader`: Returns a [Loader](LOADER.md) to load an existing object.
 - `GetExtractor() Extractor`: Returns an [Extractor](EXTRACTOR.md) to retrieve files and versions from the object.
 - `GetChecker() Checker`: Returns a [Checker](CHECKER.md) to validate the object's integrity and OCFL compliance.
-- `StartUpdate(...) (VersionWriter, error)`: Begins a new version update using a [VersionWriter](VERSION_WRITER.md).
+- `StartUpdate(msg string, name string, address string, echo bool) (VersionWriter, error)`: Begins a new version update.
 
-### Metadata and Info
+### Filesystem and State
+- `WithReadFS(fsys fs.FS) Object`: Configures the object with a read-only filesystem.
+- `WithWriteFS(fsys appendfs.FS) Object`: Configures the object with a writable filesystem (required for `Initializer` and `VersionWriter`).
+- `GetReadFS() fs.FS`: Returns the current read filesystem.
+- `GetWriteFS() appendfs.FS`: Returns the current write filesystem.
 - `GetID() string`: Returns the object identifier.
 - `GetInventory() inventory.Inventory`: Provides access to the underlying [Inventory](../../inventory/README.md) object.
 - `GetMetadata() (*inventory.Metadata, error)`: Returns high-level object metadata in a standardized format.
@@ -32,8 +36,12 @@ The `Object` interface provides methods to manage and retrieve the [Extension Ma
 - `WithExtensionManager(manager ExtensionManager) Object`
 - `GetExtensionManager() ExtensionManager`
 
-Extensions allow the library to support additional functionality like custom checksums, storage layouts, or metadata handling, as defined in the [OCFL Extensions Specification](https://ocfl.io/extensions/). Die Standardimplementierung des `ExtensionManager` ist der [`GOCFLExtensionManager`](../../../../../gocfl-extensions/extension/NNNN-gocfl-extension-manager.go) (identifiziert als `NNNN-gocfl-extension-manager`).
+Extensions allow the library to support additional functionality like custom checksums, storage layouts, or metadata handling, as defined in the [OCFL Extensions Specification](https://github.com/OCFL/extensions/). 
+
+A detailed description of the available hooks for objects can be found under [Object Extension Hooks](HOOKS.md).
+
+The default implementation of the `ExtensionManager` is the [`GOCFLExtensionManager`](../../../../../gocfl-extensions/extension/NNNN-gocfl-extension-manager.go) (identified as `NNNN-gocfl-extension-manager`).
 
 ---
-- [Back to Object Overview](../README.md)
+- [Back to Object Documentation Overview](README.md)
 - [Function Modules](MODULES.md)

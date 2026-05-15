@@ -39,7 +39,7 @@ inv.WithManifest(manifest).
 
 The Inventory is the central metadata file for an OCFL object, as described in the specification.
 
-- **Specification**: [3.5 Inventory](../../../../data/specs/ocfl_1.1.md#35-inventory)
+- **Specification**: [3.5 Inventory](../../version/ocfl_spec_1.1.md#35-inventory)
 
 According to the OCFL specification, an inventory must have a JSON structure and include the following mandatory fields:
 

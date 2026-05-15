@@ -3,7 +3,7 @@
 The `VersionWriter` module handles the logic of adding a new version to an existing OCFL object. This includes managing logical file paths, deduplication via digests, and finalizing the update by writing the updated [Inventory](../../inventory/README.md).
 
 - **Interface**: `VersionWriter` (`pkg/ocfl/object/object.go`)
-- **Specification**: [OCFL 1.1: 3.3.1 Version Directories](../../../../data/specs/ocfl_1.1.md#331-version-directories)
+- **Specification**: [OCFL 1.1: 3.3.1 Version Directories](../../version/ocfl_spec_1.1.md#331-version-directories)
 
 ## Main Methods
 
@@ -27,17 +27,18 @@ The `VersionWriter` provides comprehensive methods for object updates:
 ## Usage Example
 
 ```go
-writer, err := obj.StartUpdate("New version message", "User Name", "user@example.com", false)
+// The object must be configured with a writable filesystem
+obj.WithWriteFS(objFS)
+
+// Start an update to create a new version
+vw, err := obj.StartUpdate("New version message", "User Name", "user@example.com", false)
 if err != nil {
     // handle error
 }
-defer writer.Close()
-
-err = writer.AddFile(sourceFS, "data.txt", true, "", false, false)
-// ... handle more operations ...
+defer vw.Close()
 ```
 
 ---
-- [Back to Object Overview](../README.md)
+- [Back to Object Documentation Overview](README.md)
 - [The Object Interface](OBJECT.md)
 - [Functional Modules Index](MODULES.md)

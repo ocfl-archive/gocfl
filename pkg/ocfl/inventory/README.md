@@ -18,9 +18,16 @@ When using the factory to create an inventory, the individual components (Manife
 
 For more details on instantiation, see the [Factory documentation](../factory/README.md).
 
-## Data Type Documentation
+## GoDoc Documentation
 
-Detailed documentation is available for each module:
+This package uses standard GoDoc comments. You can view the detailed API documentation by running:
+```bash
+go doc -all pkg/ocfl/inventory
+```
+
+## Data Type Documentation (Detailed)
+
+Detailed documentation is available for each module in the [**docs**](docs/README.md) directory:
 
 - [**Inventory**](docs/INVENTORY.md): The central document of the OCFL object.
 - [**Version**](docs/VERSION.md): Metadata and state of a single version.
@@ -33,7 +40,7 @@ Detailed documentation is available for each module:
 
 - `pkg/ocfl/inventory`: Contains core interfaces and type definitions.
 - `pkg/ocfl/inventory/inventoryimpl`: Contains the default implementations of these interfaces.
-- `pkg/ocfl/inventory/docs`: Detailed documentation of the data types.
+- `pkg/ocfl/inventory/docs`: Detailed specification-oriented documentation of the data types.
 
 ## Implementation
 

@@ -7,25 +7,31 @@ import (
 	"emperror.dev/errors"
 )
 
+// InventorySpec represents the OCFL inventory specification version URL.
 type InventorySpec string
 
 const (
+	// InventorySpec1_0 is the URL for the OCFL 1.0 inventory specification.
 	InventorySpec1_0 InventorySpec = "https://ocfl.io/1.0/spec/#inventory"
+	// InventorySpec1_1 is the URL for the OCFL 1.1 inventory specification.
 	InventorySpec1_1 InventorySpec = "https://ocfl.io/1.1/spec/#inventory"
+	// InventorySpec2_0 is the URL for the OCFL 2.0 inventory specification.
 	InventorySpec2_0 InventorySpec = "https://ocfl.io/2.0/spec/#inventory"
 )
 
-// SpecIsLessOrEqual return true if Specification s1 <= s2
+// SpecIsLessOrEqual returns true if Specification s1 <= s2.
 func SpecIsLessOrEqual(s1, s2 InventorySpec) bool {
 	//return s1 == InventorySpec1_0 && s2 == InventorySpec1_1
 	return s1 <= s2
 }
 
+// OCFLString is a helper type for string values in OCFL that can carry an error.
 type OCFLString struct {
 	string
 	err error
 }
 
+// NewOCFLString creates a new OCFLString.
 func NewOCFLString(str string) *OCFLString {
 	return &OCFLString{
 		string: str,
@@ -65,15 +71,18 @@ func (s *OCFLString) Err() error {
 	return s.err
 }
 
+// OCFLTime is a helper type for time values in OCFL that can carry an error.
+// It handles the RFC3339 format required by the OCFL specification.
+type OCFLTime struct {
+	time.Time
+	err error
+}
+
+// NewOCFLTime creates a new OCFLTime from a time.Time object, truncated to seconds.
 func NewOCFLTime(t time.Time) *OCFLTime {
 	return &OCFLTime{
 		Time: t.UTC().Truncate(time.Second),
 	}
-}
-
-type OCFLTime struct {
-	time.Time
-	err error
 }
 
 func (t *OCFLTime) MarshalJSON() ([]byte, error) {
@@ -107,11 +116,14 @@ type _User struct {
 	Address *OCFLString `json:"address,omitempty"`
 	Name    *OCFLString `json:"name"`
 }
+
+// OCFLUser represents a user (author) in an OCFL version.
 type OCFLUser struct {
 	_User
 	err error
 }
 
+// NewOCFLUser creates a new OCFLUser with the given name and address.
 func NewOCFLUser(name, address string) *OCFLUser {
 	user := &OCFLUser{
 		_User: _User{
@@ -144,6 +156,7 @@ func (u *OCFLUser) Finalize() {
 	}
 }
 
+// OCFLManifest is a helper type for OCFL manifest maps.
 type OCFLManifest struct {
 	Manifest map[string][]string
 	err      error

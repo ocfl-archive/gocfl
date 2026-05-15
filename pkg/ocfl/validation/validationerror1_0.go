@@ -7,10 +7,12 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
+// OCFLValidationErrorMapping1_0 maps specific error codes to their base codes for OCFL 1.0.
 var OCFLValidationErrorMapping1_0 = map[ErrorCode]ErrorCode{
 	E104: E001,
 }
 
+// OCFLValidationError1_0 contains the base error definitions for OCFL version 1.0.
 var OCFLValidationError1_0 = map[ErrorCode]*Error{
 	E000: {Code: E000, Version: version.OCFLVersion("1.0"), Description: "unknown error", Ref: "https://ocfl.io/1.0/spec/validation-codes.html#E000"},
 	E001: {Code: E001, Version: version.OCFLVersion("1.0"), Description: "The OCFL ObjectBase Root must not contain files or directories other than those specified in the following sections.", Ref: "https://ocfl.io/1.0/spec/validation-codes.html#E001"},

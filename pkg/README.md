@@ -4,34 +4,26 @@ This directory contains the core packages of the `gocfl` project. Each sub-packa
 
 ## Overview of Packages
 
-### [dilcis](../../gocfl-extensions/subsystem/dilcis/README.md)
-Contains implementations for DILCIS standards, including EAD3, METS, and PREMIS, used for metadata handling.
-- [EAD3](../../gocfl-extensions/subsystem/dilcis/ead3)
-- [METS](../../gocfl-extensions/subsystem/dilcis/mets)
-- [PREMIS](../../gocfl-extensions/subsystem/dilcis/premis)
-
-### [ocfl](./ocfl)
+### [ocfl](./ocfl/README.md)
 The main package for OCFL operations. It includes several sub-packages for different aspects of the OCFL specification.
 - [extension](./ocfl/extension/README.md): OCFL extension management.
 - [factory](./ocfl/factory/README.md): Factory for creating OCFL objects and storage roots.
+- [initocfl](./ocfl/initocfl/README.md): Initializer for OCFL storage roots and objects.
 - [inventory](./ocfl/inventory/README.md): Handling of OCFL inventory files.
 - [object](./ocfl/object/README.md): OCFL object management.
+- [ocflactions](./ocfl/ocflactions/README.md): Common actions for OCFL objects.
 - [storageroot](./ocfl/storageroot/README.md): OCFL storage root management.
 - [validation](./ocfl/validation/README.md): OCFL validation logic.
+- [version](./ocfl/version/version.go): OCFL version definitions and specifications ([v1.0](./ocfl/version/ocfl_spec_1.0.md), [v1.1](./ocfl/version/ocfl_spec_1.1.md)).
+
+### [extensions](./extensions/README.md)
+Contains various extensions for the `gocfl` tool.
 
 ### [ocfllogger](./ocfllogger)
 A specialized logger package used throughout the `gocfl` project to ensure consistent logging and error reporting.
 
-### [appendfs](./appendfs/README.md)
-Provides an extended file system interface (`FS`) that supports both read and write operations, abstracting the underlying storage (e.g., local FS, S3).
-
-### [subsystem](../../gocfl-extensions/subsystem/README.md)
-Contains various subsystems used by `gocfl` for processing content.
-- [migration](../../gocfl-extensions/subsystem/migration/README.md): Subsystem for file format migrations.
-- [thumbnail](../../gocfl-extensions/subsystem/thumbnail/README.md): Subsystem for generating thumbnails.
-
-### [extension](../../gocfl-extensions/extension)
-General extension mechanisms used in the project.
+### [util](./util)
+General utility functions used across the project, including file system helpers and program detection.
 
 ---
 

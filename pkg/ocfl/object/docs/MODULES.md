@@ -21,6 +21,6 @@ The `ExtensionManager` (`pkg/ocfl/object/extensionManager.go`) coordinates how [
 Extensions can hook into various points of the object's lifecycle (e.g., during `Load`, `Check`, or `VersionWriter` operations) through specialized interfaces defined in `pkg/ocfl/object/extension.go`.
 
 ---
-- [Back to Object Overview](../README.md)
+- [Back to Object Documentation Overview](README.md)
 - [The Object Interface](OBJECT.md)
-- [OCFL Functions](../../functions/README.md)
+- [OCFL Actions](../actions.go)

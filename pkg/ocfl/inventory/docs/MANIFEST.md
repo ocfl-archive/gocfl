@@ -20,7 +20,7 @@ inv.WithManifest(manifest)
 
 The manifest is a mapping of digests to physical paths within the OCFL object.
 
-- **Specification**: [3.5.2 Manifest](../../../../data/specs/ocfl_1.1.md#352-manifest)
+- **Specification**: [3.5.2 Manifest](../../version/ocfl_spec_1.1.md#352-manifest)
 
 According to the OCFL specification, the manifest is a JSON object. Each key in the manifest is a digest value (calculated using the algorithm specified in `digestAlgorithm`). The value for each key is an array of paths relative to the OCFL object root directory.
 

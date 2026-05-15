@@ -21,7 +21,7 @@ inv.WithVersions(versions)
 
 Each version directory in an OCFL object contains a record of the state of the object at that version.
 
-- **Specification**: [3.5.3 Versions](../../../../data/specs/ocfl_1.1.md#353-versions)
+- **Specification**: [3.5.3 Versions](../../version/ocfl_spec_1.1.md#353-versions)
 
 According to the OCFL specification, a version object must include the following fields:
 

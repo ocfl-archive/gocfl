@@ -12,6 +12,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
+// InitStorageRoot initializes a new OCFL storage root with the given version at fsys.
 func InitStorageRoot(ctx context.Context, fsys appendfs.FS, ver version.OCFLVersion, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	extManager, extFactory, err := SetupExtensionManager[storageroot.ExtensionManager](nil, fsys, logger)
 	if err != nil {
@@ -30,6 +31,7 @@ func InitStorageRoot(ctx context.Context, fsys appendfs.FS, ver version.OCFLVers
 	return sr, nil
 }
 
+// InitObject initializes a new OCFL object with the given version, id and digest algorithm at fsys.
 func InitObject(ctx context.Context, fsys appendfs.FS, ver version.OCFLVersion, id string, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	objExtManager, objExtFactory, err := SetupExtensionManager[object.ExtensionManager](nil, nil, logger)
 	if err != nil {

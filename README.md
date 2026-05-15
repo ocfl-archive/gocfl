@@ -31,7 +31,7 @@ go get github.com/ocfl-archive/gocfl/v3
 
 ## Basic Usage
 
-The library provides convenient functions in the `initocfl` and `functions` packages for common tasks.
+The library provides convenient functions in the `initocfl` and `ocflactions` packages for common tasks.
 
 ### Initializing and Loading a Storage Root
 
@@ -68,39 +68,21 @@ err = writer.Close()
 ### Validation and Extraction
 
 ```go
-import "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/functions"
+import "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
 
 // Validate an object
-err := functions.CheckObject(ctx, objFsys, nil, logger)
+err := ocflactions.CheckObject(ctx, objFsys, logger)
 
 // Extract an object
-err := functions.Extract(ctx, objectFS, destFS, "object_path", nil, true, "", nil, logger)
+err := ocflactions.Extract(ctx, objectFS, destFS, "object_path", nil, true, "", logger)
 ```
-
-## Supported Extensions
-
-### Community Extensions
-- [0001-digest-algorithms](https://ocfl.io/1.1/spec/extensions/0001-digest-algorithms.html)
-- [0002-flat-direct-storage-layout](https://ocfl.io/1.1/spec/extensions/0002-flat-direct-storage-layout.html)
-- [0003-hash-and-id-n-tuple-storage-layout](https://ocfl.io/1.1/spec/extensions/0003-hash-and-id-n-tuple-storage-layout.html)
-- [0004-hashed-n-tuple-storage-layout](https://ocfl.io/1.1/spec/extensions/0004-hashed-n-tuple-storage-layout.html)
-- [0006-flat-omit-prefix-storage-layout](https://ocfl.io/1.1/spec/extensions/0006-flat-omit-prefix-storage-layout.html)
-- [0007-n-tuple-omit-prefix-storage-layout](https://ocfl.io/1.1/spec/extensions/0007-n-tuple-omit-prefix-storage-layout.html)
-
-### Local & Special Extensions
-- **NNNN-mets**: Generation of METS and PREMIS files.
-- **NNNN-indexer**: Technical metadata extraction.
-- **NNNN-migration**: Automatic file format migration on ingest.
-- **NNNN-thumbnail**: Generation of thumbnails for video, images, and PDFs.
-- **NNNN-filesystem**: Preserves filesystem metadata.
-- **NNNN-pairtree-storage-layout**: Support for pairtree layouts.
-- **NNNN-gocfl-extension-manager**: Internal manager for extension execution order.
 
 ## Documentation
 
+- [Quickstart Guide](./docs/quickstart.md) - Start here for a quick overview and code examples.
+- [Documentation Overview](./docs/README.md) - Links to detailed component documentation.
 - [Package Overview](./pkg/README.md)
 - [OCFL Factory Documentation](./pkg/ocfl/factory/README.md)
-- [Detailed Extension Docs](./docs/)
 
 ## License
 

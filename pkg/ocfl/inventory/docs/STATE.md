@@ -16,7 +16,7 @@ The state is typically managed within a [Version](VERSION.md) object and can be 
 
 The `state` is a mandatory part of each version object in the OCFL specification.
 
-- **Specification**: [3.5.3.2 Version State](../../../../data/specs/ocfl_1.1.md#3532-version-state)
+- **Specification**: [3.5.3.2 Version State](../../version/ocfl_spec_1.1.md#3532-version-state)
 
 According to the specification, the state is a JSON object where each key is a digest (from the manifest) and each value is an array of logical paths that have that digest. This allows for:
 - **Deduplication**: Multiple logical paths can point to the same digest.

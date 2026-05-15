@@ -2,20 +2,21 @@
 
 The `StorageRoot` interface (`pkg/ocfl/storageroot/storageroot.go`) is the central abstraction for an OCFL Storage Root. It manages the filesystem, [Extension Manager](#extension-manager), and provides factory methods for its functional modules.
 
-- **Specification**: [OCFL 1.1 Storage Root](../../../../data/specs/ocfl_1.1.md#4-storage-root)
+- **Specification**: [OCFL 1.1 Storage Root](../../version/ocfl_spec_1.1.md#4-storage-root)
 
 ## Main Interface
 
 The `StorageRoot` interface includes the following key areas:
 
 ### Functional Modules
-- `GetLoader(sourceFS fs.FS, extensionFactory extension.Factory) Loader`: Returns a [Loader](LOADER.md) to load an existing storage root.
-- `GetInitializer(objectFS appendfs.FS) Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new storage root.
+- `GetLoader() Loader`: Returns a [Loader](LOADER.md) to load an existing storage root.
+- `GetInitializer() Initializer`: Returns an [Initializer](INITIALIZER.md) to create a new storage root.
 
 ### Filesystem and State
 - `WithReadFS(sourceFS fs.FS) StorageRoot` / `GetReadFS() fs.FS`: Handles the read-only filesystem where the storage root is located.
- - `WithWriteFS(appendFS appendfs.FS) StorageRoot` / `GetWriteFS() appendfs.FS`: Handles the writable filesystem for updates and creations.
+- `WithWriteFS(appendFS appendfs.FS) StorageRoot` / `GetWriteFS() appendfs.FS`: Handles the writable filesystem for updates and creations.
 - `IsModified() bool` / `SetModified()`: Tracks whether the storage root state has changed.
+- `IsWriteable() bool`: Checks if the storage root is configured with a writable filesystem.
 
 ### Object Management
 - `GetObjectFolders() ([]string, error)`: Lists the folders that contain OCFL objects within the storage root.
@@ -24,8 +25,8 @@ The `StorageRoot` interface includes the following key areas:
 - `Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error`: Provides statistical information about the storage root or objects within it.
 
 ### Metadata
-- `GetOCFLVersion() version.OCFLVersion`: Returns the OCFL specification version the storage root adheres to.
-- `GetDigest() checksum.DigestAlgorithm` / `SetDigest(digest checksum.DigestAlgorithm)`: Manages the default digest algorithm for the storage root.
+- `GetOCFLVersion() version.OCFLVersion` / `GetVersion() version.OCFLVersion`: Returns the OCFL specification version the storage root adheres to.
+- `GetDigest() checksum.DigestAlgorithm` / `WithDigestAlgorithm(digest checksum.DigestAlgorithm) StorageRoot`: Manages the default digest algorithm for the storage root.
 
 ---
 
@@ -47,7 +48,7 @@ This interface (`pkg/ocfl/storageroot/storagerootExtension.go`) is critical for 
 - **Methods**:
   - `WriteLayout(fsys appendfs.FS) error`: Persists the layout configuration.
   - `BuildStorageRootPath(storageRoot StorageRoot, id string) (string, error)`: Implements the logic to map an ID to a path.
-- **Specification**: [OCFL 1.1 Storage Layouts](../../../../data/specs/ocfl_1.1.md#42-storage-layout)
+- **Specification**: [OCFL 1.1 Storage Layouts](../../version/ocfl_spec_1.1.md#42-storage-layout)
 
 ---
 - [Back to Storage Root Overview](../README.md)

@@ -1,50 +1,50 @@
 # OCFL Core Packages
 
-Dieses Verzeichnis enthält die Kernpakete des `gocfl` Projekts, welche die [OCFL (Oxford Common File Layout) Spezifikation](https://ocfl.io/) implementieren.
+This directory contains the core packages of the `gocfl` project, which implement the [OCFL (Oxford Common File Layout) specification](https://ocfl.io/).
 
-## Paketübersicht
+## Package Overview
 
-Die Funktionalität ist in mehrere spezialisierte Pakete unterteilt, die verschiedene Aspekte der OCFL-Spezifikation abdecken:
+The functionality is divided into several specialized packages covering different aspects of the OCFL specification:
 
 ### [Extension](./extension/README.md)
-Das `extension` Paket bietet Kernschnittstellen und Verwaltungslogik für OCFL-Erweiterungen. Erweiterungen sind der offizielle Weg, um OCFL-Objekte und Storage-Roots um zusätzliche Funktionalitäten zu ergänzen.
+The `extension` package provides core interfaces and management logic for OCFL extensions. Extensions are the official way to add additional functionality to OCFL objects and storage roots.
 - [Extension Interface](./extension/docs/EXTENSION.md)
 - [Manager Interface](./extension/docs/MANAGER.md)
 - [Factory Interface](./extension/docs/FACTORY.md)
 
 ### [Factory](./factory/README.md)
-Das `factory` Modul bietet einen vereinheitlichten Factory-Mechanismus, um Komponenten korrekt gemäß den verschiedenen OCFL-Spezifikationsversionen (z. B. 1.0, 1.1, 2.0) zu instanziieren.
+The `factory` module provides a unified factory mechanism to correctly instantiate components according to the various OCFL specification versions (e.g., 1.0, 1.1, 2.0).
 
-### [Functions](./functions/)
-Enthält High-Level-Orchestrierungsfunktionen für gängige Aufgaben wie das Laden, Erstellen, Überprüfen oder Extrahieren von OCFL-Objekten. Es dient als primäre API für viele Anwendungsfälle.
+### [OCFL Actions](./ocflactions/README.md)
+Contains high-level orchestration functions for common tasks such as loading, creating, checking, or extracting OCFL objects. It serves as the primary API for many use cases.
 
 ### [Inventory](./inventory/README.md)
-Dieses Paket definiert die Strukturen und Schnittstellen für das OCFL Inventory (`inventory.json`). Es ist das Herzstück eines OCFL-Objekts und enthält alle Metadaten über Versionen, Dateien und Fixity-Informationen.
+This package defines the structures and interfaces for the OCFL Inventory (`inventory.json`). It is the heart of an OCFL object and contains all metadata about versions, files, and fixity information.
 - [Inventory](./inventory/docs/INVENTORY.md)
 - [Version](./inventory/docs/VERSION.md)
 - [Manifest](./inventory/docs/MANIFEST.md)
 - [Fixity](./inventory/docs/FIXITY.md)
 
 ### [Object](./object/README.md)
-Verwaltet die High-Level-Operationen von OCFL-Objekten. Während das `inventory` Paket sich auf Datenstrukturen konzentriert, kümmert sich `object` um das Laden, Initialisieren, Aktualisieren und Validieren von Objekten.
+Manages the high-level operations of OCFL objects. While the `inventory` package focuses on data structures, `object` handles the loading, initializing, updating, and validating of objects.
 - [Object Interface](./object/docs/OBJECT.md)
-- [Funktionale Module](./object/docs/MODULES.md) (Loader, Initializer, etc.)
+- [Functional Modules](./object/docs/MODULES.md) (Loader, Initializer, etc.)
 
 ### [StorageRoot](./storageroot/README.md)
-Verwaltet die OCFL Storage Root, die übergeordnete Struktur, die OCFL-Objekte enthält. Es kümmert sich um das Storage Layout und Root-Level-Erweiterungen.
+Manages the OCFL Storage Root, the top-level structure containing OCFL objects. It handles the Storage Layout and root-level extensions.
 - [StorageRoot Interface](./storageroot/docs/STORAGEROOT.md)
 
 ### [Validation](./validation/README.md)
-Bietet Strukturen und Funktionen zur Handhabung von OCFL-Validierungsfehlern und -warnungen gemäß der Spezifikation.
+Provides structures and functions for handling OCFL validation errors and warnings according to the specification.
 
 ---
 
-## Hilfspakete
+## Utility Packages
 
-- **[ocflerrors](./ocflerrors/errors.go)**: Zentrale Definition von OCFL-spezifischen Fehlertypen.
-- **[util](./util/helper.go)**: Hilfsfunktionen für OCFL-Operationen (z. B. Versionserkennung im Dateisystem).
-- **[version](./version/version.go)**: Definition der unterstützten OCFL-Versionen.
+- **[ocflerrors](./ocflerrors/errors.go)**: Central definition of OCFL-specific error types.
+- **[util](./util/helper.go)**: Helper functions for OCFL operations (e.g., version detection in the file system).
+- **[version](./version/README.md)**: Definition of supported OCFL versions.
 
 ---
-- [Zurück zur übergeordneten Paketdokumentation](../README.md)
-- [Zurück zur Projekthauptseite](../../README.md)
+- [Back to parent package documentation](../README.md)
+- [Back to project main page](../../README.md)

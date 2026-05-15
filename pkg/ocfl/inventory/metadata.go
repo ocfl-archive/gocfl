@@ -11,15 +11,18 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+// FileMetadata contains metadata for a specific file across its versions.
 type FileMetadata struct {
-	Checksums    map[checksum.DigestAlgorithm]string
-	InternalName []string
-	VersionName  map[string][]string
-	Extension    map[string]any
+	Checksums    map[checksum.DigestAlgorithm]string // Additional fixity checksums
+	InternalName []string                            // Physical file paths
+	VersionName  map[string][]string                 // Logical file names per version
+	Extension    map[string]any                      // Extension metadata
 }
 
+// FilesMetadata is a map of file IDs to their metadata.
 type FilesMetadata map[string]*FileMetadata
 
+// Obfuscate replaces sensitive file names with random UUIDs and removes sensitive parts of metadata.
 func (fms FilesMetadata) Obfuscate() error {
 	var stringMap = map[string]string{}
 	var errs = []error{}
@@ -81,22 +84,25 @@ func (fms FilesMetadata) Obfuscate() error {
 	return errors.Combine(errs...)
 }
 
+// VersionMetadata contains metadata for a specific OCFL version.
 type VersionMetadata struct {
-	Created time.Time
-	Message string
-	Name    string
-	Address string
+	Created time.Time // Creation timestamp
+	Message string    // Version message
+	Name    string    // User name
+	Address string    // User address
 }
 
+// Metadata represents the flattened metadata of an OCFL object.
 type Metadata struct {
-	ID              string
-	DigestAlgorithm checksum.DigestAlgorithm
-	Head            *VersionNumber
-	Versions        map[string]*VersionMetadata
-	Files           FilesMetadata
-	Extension       any
+	ID              string                      // Object ID
+	DigestAlgorithm checksum.DigestAlgorithm    // Primary digest algorithm
+	Head            *VersionNumber              // Current head version
+	Versions        map[string]*VersionMetadata // Version metadata by version number string
+	Files           FilesMetadata               // File metadata by file ID
+	Extension       any                         // Object level extension metadata
 }
 
+// Obfuscate sensitive information in the object metadata.
 func (om *Metadata) Obfuscate() error {
 	var metafile any
 	var hasMetafile = false
@@ -110,10 +116,12 @@ func (om *Metadata) Obfuscate() error {
 	return errors.WithStack(om.Files.Obfuscate())
 }
 
+// StorageRootMetadata contains metadata for all objects in a storage root.
 type StorageRootMetadata struct {
-	Objects map[string]*Metadata
+	Objects map[string]*Metadata // Metadata map by object ID
 }
 
+// Obfuscate sensitive information in the storage root metadata.
 func (srm *StorageRootMetadata) Obfuscate() error {
 	var errs = []error{}
 	for _, om := range srm.Objects {

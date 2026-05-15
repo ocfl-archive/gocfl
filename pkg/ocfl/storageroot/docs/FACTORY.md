@@ -19,23 +19,29 @@ The storage root factory is typically used via the **Unified Factory** to ensure
 
 ### Example via Unified Factory
 
+The factory implementation is responsible for determining the appropriate OCFL version and configuration when creating these instances.
+
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory"
-    "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/storageroot"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 )
 
-// Assume 'f' is an instance of factory.Factory (e.g. from factoryimpl.NewFactoryBase)
-func HandleStorageRoot(ctx context.Context, f factory.Factory) error {
+// Assume 'f' is an instance of factory.FactoryStorageRoot
+func HandleStorageRoot(ctx context.Context, f factory.FactoryStorageRoot) error {
     // Create a new storage root instance via the factory
     sr := f.NewStorageRoot(ctx)
     
-    // Use the storage root...
-    return nil
+    // Configure with filesystem and operational modules
+    sr.WithReadFS(fsys)
+    loader := sr.GetLoader()
+    
+    return loader.Load()
 }
 ```
 
-The factory implementation is responsible for determining the appropriate OCFL version and configuration when creating these instances.
+> [!TIP]
+> While factories provide low-level control, the **initocfl** package provides high-level functions like `LoadStorageRoot` and `InitStorageRoot` that handle factory instantiation and common setup for you.
 
 ---
 - [Back to Storage Root Overview](../README.md)
