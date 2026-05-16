@@ -111,7 +111,7 @@ func main() {
 
 	// B: Initialize the OCFL object using the helper function.
 	// This creates the OCFL object structure (inventory.json, namaste file, etc.) on disk.
-	obj, err := initocfl.InitObject(ctx, objFS, ocflVer, objID, checksum.DigestSHA512, logger)
+	obj, err := initocfl.InitObject(ctx, objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to initialize object '%s' at '%s': %v", objID, objFolder, err)
 	}

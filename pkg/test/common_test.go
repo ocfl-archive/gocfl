@@ -91,7 +91,7 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, 
 	objFS, err := appendfs.Sub(env.SourceFS, objFolder)
 	require.NoError(t, err)
 
-	obj, err := initocfl.InitObject(t.Context(), objFS, env.StorageRoot.GetOCFLVersion(), objID, checksum.DigestSHA512, env.OCFLLogger)
+	obj, err := initocfl.InitObject(t.Context(), objFS, nil, env.StorageRoot.GetOCFLVersion(), objID, checksum.DigestSHA512, nil, env.OCFLLogger)
 	require.NoError(t, err)
 
 	return obj, objFS
