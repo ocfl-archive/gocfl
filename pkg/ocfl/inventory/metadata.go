@@ -1,6 +1,8 @@
 package inventory
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -114,6 +116,57 @@ func (om *Metadata) Obfuscate() error {
 	}
 	om.Extension = extension
 	return errors.WithStack(om.Files.Obfuscate())
+}
+
+func (om *Metadata) String() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Object ID: %s\n", om.ID))
+	sb.WriteString(fmt.Sprintf("Digest Algorithm: %s\n", om.DigestAlgorithm))
+	if om.Head != nil {
+		sb.WriteString(fmt.Sprintf("Head: %s\n", om.Head.String()))
+	}
+
+	sb.WriteString("\nVersions:\n")
+	vKeys := make([]string, 0, len(om.Versions))
+	for k := range om.Versions {
+		vKeys = append(vKeys, k)
+	}
+	sort.Strings(vKeys)
+	for _, k := range vKeys {
+		v := om.Versions[k]
+		sb.WriteString(fmt.Sprintf("  %s:\n", k))
+		sb.WriteString(fmt.Sprintf("    Created: %s\n", v.Created.Format(time.RFC3339)))
+		if v.Message != "" {
+			sb.WriteString(fmt.Sprintf("    Message: %s\n", v.Message))
+		}
+		if v.Name != "" || v.Address != "" {
+			sb.WriteString(fmt.Sprintf("    User: %s <%s>\n", v.Name, v.Address))
+		}
+	}
+
+	sb.WriteString("\nFiles:\n")
+	fKeys := make([]string, 0, len(om.Files))
+	for k := range om.Files {
+		fKeys = append(fKeys, k)
+	}
+	sort.Strings(fKeys)
+	for _, k := range fKeys {
+		fm := om.Files[k]
+		sb.WriteString(fmt.Sprintf("  [%s]:\n", k))
+		if len(fm.InternalName) > 0 {
+			sb.WriteString(fmt.Sprintf("    Physical: %s\n", strings.Join(fm.InternalName, ", ")))
+		}
+		vkNames := make([]string, 0, len(fm.VersionName))
+		for vk := range fm.VersionName {
+			vkNames = append(vkNames, vk)
+		}
+		sort.Strings(vkNames)
+		for _, vk := range vkNames {
+			sb.WriteString(fmt.Sprintf("    Version %s: %s\n", vk, strings.Join(fm.VersionName[vk], ", ")))
+		}
+	}
+
+	return sb.String()
 }
 
 // StorageRootMetadata contains metadata for all objects in a storage root.
