@@ -33,8 +33,8 @@ func InitStorageRoot(ctx context.Context, fsys appendfs.FS, extensionConfigFS fs
 }
 
 // InitObject initializes a new OCFL object with the given version, id and digest algorithm at fsys.
-func InitObject(ctx context.Context, fsys appendfs.FS, ver version.OCFLVersion, id string, digest checksum.DigestAlgorithm, logger ocfllogger.OCFLLogger) (object.Object, error) {
-	objExtManager, objExtFactory, err := SetupExtensionManager[object.ExtensionManager](nil, nil, logger)
+func InitObject(ctx context.Context, fsys appendfs.FS, extensionConfigFS fs.FS, ver version.OCFLVersion, id string, digest checksum.DigestAlgorithm, extensionParams map[string]string, logger ocfllogger.OCFLLogger) (object.Object, error) {
+	objExtManager, objExtFactory, err := SetupExtensionManager[object.ExtensionManager](extensionParams, extensionConfigFS, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot setup extension manager")
 	}
