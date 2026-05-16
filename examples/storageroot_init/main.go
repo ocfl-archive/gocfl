@@ -10,6 +10,7 @@ import (
 	"github.com/je4/filesystem/v4/pkg/appendfs"
 	"github.com/je4/filesystem/v4/pkg/vfsrw"
 	"github.com/je4/filesystem/v4/pkg/writefs"
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
@@ -65,7 +66,7 @@ func main() {
 
 	// Execute the initialization process using the helper function.
 	// This creates the necessary OCFL structure (e.g., ocfl_layout.json, namaste file) on disk.
-	_, err = initocfl.InitStorageRoot(ctx, storageRootFS, ocflVer, logger)
+	_, err = initocfl.InitStorageRoot(ctx, storageRootFS, nil, ocflVer, checksum.DigestSHA512, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to initialize storage root at '%s': %v", srPath, err)
 	}

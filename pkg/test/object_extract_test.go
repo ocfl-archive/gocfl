@@ -58,7 +58,9 @@ func TestObjectExtract(t *testing.T) {
 	require.NoError(t, err)
 
 	// 4. Extraktion für alle Versionen durchführen und prüfen
-	loadedObj, _ := ReloadObject(t, env, objID)
+	loadedObj, _, loadedObjCloser := ReloadObject(t, env, objID)
+	defer loadedObjCloser.Close()
+
 	inv := loadedObj.GetInventory()
 	require.NotNil(t, inv)
 

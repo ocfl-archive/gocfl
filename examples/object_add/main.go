@@ -86,10 +86,11 @@ func main() {
 	var objID = *idPtr
 	if storageRootFS != nil {
 		// A: Load existing Storage Root.
-		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, logger)
+		sr, srCloser, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
+		defer srCloser.Close()
 
 		// B: Determine the folder path for the given Object ID within the Storage Root.
 		objFolder, err = sr.IdToFolder(objID)

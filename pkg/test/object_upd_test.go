@@ -64,7 +64,8 @@ func TestObjectUpdate(t *testing.T) {
 
 	// 8. Verifizierung
 	// Wir laden das Objekt neu über ein Lese-Dateisystem
-	loadedObj, _ := ReloadObject(t, env, objID)
+	loadedObj, _, loadedObjCloser := ReloadObject(t, env, objID)
+	defer loadedObjCloser.Close()
 
 	// Validierung des Objekts
 	checker := loadedObj.GetChecker()

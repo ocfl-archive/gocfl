@@ -6,6 +6,7 @@ package ocflactions
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 
 	"emperror.dev/errors"
@@ -22,11 +23,12 @@ import (
 // It loads the object and performs structural and fixity checks using the object's checker.
 func CheckObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogger) error {
 	fmt.Printf("object folder '%v'\n", objectFS)
-	obj, err := initocfl.LoadObject(ctx, objectFS, logger)
+	obj, objCloser, err := initocfl.LoadObject(ctx, objectFS, nil, logger)
 	if err != nil {
 		logger.ValidationError(validation.E001, "invalid fsys '%v': %v", objectFS, err)
 		return errors.Wrapf(err, "cannot load object from folder '%v'", objectFS)
 	}
+	defer objCloser.Close()
 	checker := obj.GetChecker()
 	if err := checker.Check(); err != nil {
 		return errors.Wrapf(err, "cannot check object from folder '%v'", objectFS)
@@ -50,10 +52,12 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs  '%v' / %s", objectFS, path)
 	}
-	o, err = initocfl.LoadObject(ctx, objFsys, logger)
+	var objCloser io.Closer
+	o, objCloser, err = initocfl.LoadObject(ctx, objFsys, nil, logger)
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
+	defer objCloser.Close()
 	extractor := o.GetExtractor().WithDestFS(destFS)
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
@@ -68,10 +72,11 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 func ExtractMeta(ctx context.Context, fsys fs.FS, path string, logger ocfllogger.OCFLLogger) (*inventory.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
-	obj, err := initocfl.LoadObject(ctx, objFsys, logger)
+	obj, objCloser, err := initocfl.LoadObject(ctx, objFsys, nil, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}
+	defer objCloser.Close()
 	defer logger.Debug().Msgf("extraction done")
 	extractor := obj.GetExtractor().WithDestFS(nil)
 	return extractor.GetMetadata()

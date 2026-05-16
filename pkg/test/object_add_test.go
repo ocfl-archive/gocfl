@@ -26,7 +26,8 @@ func TestObjectAdd(t *testing.T) {
 	// 6. Verifizierung
 	// Wir laden das Objekt neu über ein Lese-Dateisystem, da das Schreib-Dateisystem (appendfs)
 	// nach dem Schreiben nicht für Stat() o.ä. verwendet werden darf (z.B. bei ZIP).
-	loadedObj, _ := ReloadObject(t, env, objID)
+	loadedObj, _, loadedObjeCloser := ReloadObject(t, env, objID)
+	defer loadedObjeCloser.Close()
 
 	// Inventory abrufen
 	inv := loadedObj.GetInventory()

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"io"
 	"io/fs"
 	"os"
 	"testing"
@@ -25,6 +26,7 @@ type TestEnv struct {
 	StorageRoot storageroot.StorageRoot
 	Logger      zLogger.ZLogger
 	OCFLLogger  ocfllogger.OCFLLogger
+	Closer      io.Closer
 }
 
 func SetupTestEnv(t *testing.T) *TestEnv {
@@ -56,7 +58,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	require.NoError(t, err)
 
 	ocflVer := version.Version1_1
-	_, err = initocfl.InitStorageRoot(ctx, srFS, ocflVer, logger)
+	_, err = initocfl.InitStorageRoot(ctx, srFS, srFS, ocflVer, checksum.DigestSHA512, nil, logger)
 	require.NoError(t, err)
 
 	// Lese-Dateisystem für Storage Root (als fs.FS) neu laden
@@ -66,7 +68,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	readSRFS := fs.FS(readsrfsAppend)
 
 	// Den Storage Root neu laden
-	sr, err := initocfl.LoadStorageRoot(ctx, readSRFS, logger)
+	sr, srCloser, err := initocfl.LoadStorageRoot(ctx, readSRFS, nil, logger)
 	require.NoError(t, err)
 	// Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 	sr = sr.WithWriteFS(srFS)
@@ -78,6 +80,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 		StorageRoot: sr,
 		Logger:      _zlogger,
 		OCFLLogger:  logger,
+		Closer:      srCloser,
 	}
 }
 
@@ -94,7 +97,7 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, 
 	return obj, objFS
 }
 
-func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.FS) {
+func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.FS, io.Closer) {
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
 	require.NoError(t, err)
 
@@ -102,8 +105,8 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
 	require.NoError(t, err)
 
-	loadedObj, err := initocfl.LoadObject(t.Context(), objFS, env.OCFLLogger)
+	loadedObj, objCloser, err := initocfl.LoadObject(t.Context(), objFS, nil, env.OCFLLogger)
 	require.NoError(t, err)
 
-	return loadedObj, objFS
+	return loadedObj, objFS, objCloser
 }

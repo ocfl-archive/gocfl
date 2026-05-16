@@ -2,6 +2,7 @@ package initocfl
 
 import (
 	"context"
+	"io/fs"
 
 	"emperror.dev/errors"
 	"github.com/je4/filesystem/v4/pkg/appendfs"
@@ -13,8 +14,8 @@ import (
 )
 
 // InitStorageRoot initializes a new OCFL storage root with the given version at fsys.
-func InitStorageRoot(ctx context.Context, fsys appendfs.FS, ver version.OCFLVersion, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
-	extManager, extFactory, err := SetupExtensionManager[storageroot.ExtensionManager](nil, fsys, logger)
+func InitStorageRoot(ctx context.Context, fsys appendfs.FS, extensionConfigFS fs.FS, ver version.OCFLVersion, digest checksum.DigestAlgorithm, params map[string]string, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
+	extManager, extFactory, err := SetupExtensionManager[storageroot.ExtensionManager](params, extensionConfigFS, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot setup extension manager")
 	}
@@ -22,7 +23,7 @@ func InitStorageRoot(ctx context.Context, fsys appendfs.FS, ver version.OCFLVers
 	sr := srFactory.NewStorageRoot(ctx).
 		WithWriteFS(fsys).
 		WithExtensionManager(extManager).
-		WithDigestAlgorithm(checksum.DigestSHA512)
+		WithDigestAlgorithm(digest)
 
 	initializer := sr.GetInitializer()
 	if err := initializer.Init(); err != nil {
