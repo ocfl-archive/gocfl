@@ -33,6 +33,11 @@ func NewOCFLLogger(ctx context.Context, logger zLogger.ZLogger, data map[string]
 	}
 }
 
+// NewNopLogger creates a new OCFLLogger instance that does nothing.
+func NewNopLogger() *OCFLLoggerImpl {
+	return NewOCFLLogger(context.Background(), new(zerolog.New(zerolog.Nop())), nil, version.Default, nil)
+}
+
 // OCFLLogger is the interface for OCFL-aware logging.
 type OCFLLogger interface {
 	// Logger returns the underlying zLogger.ZLogger.
