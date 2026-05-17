@@ -35,10 +35,11 @@ import (
 )
 
 // Loading an object (recommended way)
-obj, err := initocfl.LoadObject(ctx, sourceFS, logger)
+obj, objCloser, err := initocfl.LoadObject(ctx, sourceFS, nil, logger)
 if err != nil {
     // handle error
 }
+defer objCloser.Close()
 
 // Accessing metadata
 metadata, err := obj.GetExtractor().GetMetadata()

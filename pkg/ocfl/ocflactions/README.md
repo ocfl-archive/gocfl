@@ -26,9 +26,10 @@ import (
     "context"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
+    "io/fs"
 )
 
-// ... setup objectFS and logger ...
+// ... setup objectFS (fs.FS) and logger ...
 
 ctx := context.Background()
 err := ocflactions.CheckObject(ctx, objectFS, logger)

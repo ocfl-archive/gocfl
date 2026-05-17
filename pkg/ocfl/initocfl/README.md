@@ -14,14 +14,14 @@ The primary goals of this module are:
 ### Loading Existing Structures
 The module provides functions to detect the version of an existing OCFL structure on the filesystem and to instantiate the corresponding object (Storage Root or Object) with the loaded metadata and extensions.
 
-- `LoadStorageRoot(ctx, fsys, logger)`: Loads a Storage Root from an `fs.FS`.
-- `LoadObject(ctx, fsys, logger)`: Loads an OCFL Object from an `fs.FS`.
+- `LoadStorageRoot(ctx, fsys, extensionParams, logger)`: Loads a Storage Root from an `fs.FS`.
+- `LoadObject(ctx, fsys, extensionParams, logger)`: Loads an OCFL Object from an `fs.FS`.
 
 ### Initializing New Structures
 For creating new OCFL structures, the module provides functions that prepare the corresponding object for a specific OCFL version and create the initial directory structure as well as files (e.g., Namaste files).
 
-- `InitStorageRoot(ctx, fsys, ver, logger)`: Initializes a new Storage Root.
-- `InitObject(ctx, fsys, ver, id, digest, logger)`: Initializes a new OCFL Object.
+- `InitStorageRoot(ctx, fsys, extensionConfigFS, ver, digest, params, logger)`: Initializes a new Storage Root.
+- `InitObject(ctx, fsys, extensionConfigFS, ver, id, digest, extensionParams, logger)`: Initializes a new OCFL Object.
 
 ### Helper Functions
 - `SetupExtensionManager[T](params, fsys, logger)`: A generic function for setting up an Extension Manager (`T` is either `storageroot.ExtensionManager` or `object.ExtensionManager`).
@@ -39,10 +39,11 @@ import (
 )
 
 // fsys is an fs.FS containing the OCFL Storage Root
-sr, err := initocfl.LoadStorageRoot(ctx, fsys, logger)
+sr, srCloser, err := initocfl.LoadStorageRoot(ctx, fsys, nil, logger)
 if err != nil {
     // error handling
 }
+defer srCloser.Close()
 ```
 
 ### Initializing a New Object
@@ -56,7 +57,7 @@ import (
 )
 
 // fsys must be an appendfs.FS to allow write access
-obj, err := initocfl.InitObject(ctx, fsys, version.Version1_1, "my-object-id", checksum.DigestSHA512, logger)
+obj, err := initocfl.InitObject(ctx, fsys, nil, version.Version1_1, "my-object-id", checksum.DigestSHA512, nil, logger)
 if err != nil {
     // error handling
 }

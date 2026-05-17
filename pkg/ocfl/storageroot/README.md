@@ -33,10 +33,11 @@ import (
 )
 
 // Example: Loading a storage root (recommended way)
-sr, err := initocfl.LoadStorageRoot(ctx, sourceFS, logger)
+sr, srCloser, err := initocfl.LoadStorageRoot(ctx, sourceFS, nil, logger)
 if err != nil {
     // handle error
 }
+defer srCloser.Close()
 
 // Check if an object exists by ID
 exists, err := sr.ObjectExists("some-object-id")

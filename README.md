@@ -41,23 +41,26 @@ import (
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
+    "github.com/je4/utils/v2/pkg/checksum"
 )
 
 ctx := context.Background()
 logger := ocfllogger.NewNopLogger()
 
 // Initialize a new storage root (needs an appendfs.FS)
-sr, err := initocfl.InitStorageRoot(ctx, fsys, version.Version1_1, logger)
+sr, err := initocfl.InitStorageRoot(ctx, fsys, nil, version.Version1_1, checksum.DigestSHA512, nil, logger)
 
 // Load an existing storage root (needs an fs.FS)
-sr, err := initocfl.LoadStorageRoot(ctx, fsys, logger)
+sr, srCloser, err := initocfl.LoadStorageRoot(ctx, fsys, nil, logger)
+defer srCloser.Close()
 ```
 
 ### Working with Objects
 
 ```go
 // Load an object from a filesystem
-obj, err := initocfl.LoadObject(ctx, objFsys, logger)
+obj, objCloser, err := initocfl.LoadObject(ctx, objFsys, nil, logger)
+defer objCloser.Close()
 
 // Add files to an object
 writer, err := obj.StartUpdate("initial commit", "user", "user@example.com", false)
@@ -68,13 +71,16 @@ err = writer.Close()
 ### Validation and Extraction
 
 ```go
-import "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
+import (
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
+)
 
 // Validate an object
 err := ocflactions.CheckObject(ctx, objFsys, logger)
 
 // Extract an object
-err := ocflactions.Extract(ctx, objectFS, destFS, "object_path", nil, true, "", logger)
+err := ocflactions.Extract(ctx, objectFS, destFS, "object_path", inventory.NewVersionNumber(), true, "", logger)
 ```
 
 ## Examples

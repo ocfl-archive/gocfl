@@ -34,15 +34,15 @@ If you know the OCFL version beforehand, use the dispatcher `NewFactory`:
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/factory/factoryimpl"
-    "github.com/ocfl-archive/gocfl/v2/pkg/ocfl/version"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
-// Create a unified factory for OCFL 1.1
-f := factoryimpl.NewFactory(version.Version1_1, extFactory, logger)
+// Create a unified factory for OCFL 1.1 objects
+f := factoryimpl.NewFactoryObject11(extFactory, logger)
 
-// Use the factory to create a new inventory
-inv := f.NewInventory(ctx)
+// Use the factory to create a new object
+obj := f.NewObject(ctx)
 ```
 
 ### Creating a Dynamic Unified Factory
