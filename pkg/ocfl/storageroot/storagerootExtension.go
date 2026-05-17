@@ -1,7 +1,7 @@
 package storageroot
 
 import (
-	"github.com/je4/filesystem/v4/pkg/appendfs"
+	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	extensiontypes "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 )
 

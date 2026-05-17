@@ -9,7 +9,7 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/je4/filesystem/v4/pkg/appendfs"
+	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 )
 

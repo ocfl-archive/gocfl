@@ -5,7 +5,7 @@ import (
 	"io/fs"
 
 	"emperror.dev/errors"
-	"github.com/je4/filesystem/v4/pkg/appendfs"
+	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 )
 
 // DefaultExtensionManagerName is the name of the default gocfl extension manager.
