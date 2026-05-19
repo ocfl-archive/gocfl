@@ -4,6 +4,12 @@ import (
 	"context"
 )
 
+type ConfigName string
+
+const StorageRootName ConfigName = "storageroot"
+const InitializerName ConfigName = "initializer"
+const LoaderName ConfigName = "loader"
+
 // Factory is the interface for creating storage root components.
 //
 // This interface is also implemented by the Unified Factory in [pkg/ocfl/factory/factory.go].

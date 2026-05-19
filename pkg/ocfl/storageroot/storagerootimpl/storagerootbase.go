@@ -22,14 +22,14 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type StorageRootBaseConfig struct{}
+
 // NewOCFL creates an empty OCFL structure
-func NewStorageRootBase(
-	ctx context.Context,
-	fact factory.FactoryStorageRoot,
-	defaultVersion version.OCFLVersion,
-	extensionFactory extension.Factory[storageroot.ExtensionManager],
-	logger ocfllogger.OCFLLogger,
-) *StorageRootBase {
+func NewStorageRootBase(ctx context.Context, fact factory.FactoryStorageRoot, defaultVersion version.OCFLVersion, extensionFactory extension.Factory[storageroot.ExtensionManager], conf any, logger ocfllogger.OCFLLogger) *StorageRootBase {
+	storageRootBaseConfig, ok := conf.(*StorageRootBaseConfig)
+	if conf != nil && !ok {
+		logger.Error().Msg("invalid config type for storagerootbase")
+	}
 	ocfl := &StorageRootBase{
 		ctx:     ctx,
 		factory: fact,
@@ -37,6 +37,7 @@ func NewStorageRootBase(
 		extensionFactory: extensionFactory,
 		version:          defaultVersion,
 		//extensionManager: extensionManager,
+		config: storageRootBaseConfig,
 		logger: logger,
 	}
 	return ocfl
@@ -53,6 +54,7 @@ type StorageRootBase struct {
 	factory          factory.FactoryStorageRoot
 	sourceFS         fs.FS
 	appendFS         appendfs.FS
+	config           *StorageRootBaseConfig
 }
 
 func (osr *StorageRootBase) IsWriteable() bool {

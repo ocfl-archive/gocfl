@@ -21,6 +21,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
+type VersionWriterConfig struct{}
+
+/*
 func NewVersionWriter(obj object.Object, echo bool, msg string, name string, address string, logger ocfllogger.OCFLLogger) (object.VersionWriter, error) {
 	vw := &versionWriter{
 		obj:         obj,
@@ -33,11 +36,17 @@ func NewVersionWriter(obj object.Object, echo bool, msg string, name string, add
 	}
 	return vw, nil
 }
+*/
 
-func NewVersionWriterBase(ctx context.Context, fact factory.FactoryObject, logger ocfllogger.OCFLLogger) object.VersionWriter {
+func NewVersionWriterBase(ctx context.Context, fact factory.FactoryObject, conf any, logger ocfllogger.OCFLLogger) object.VersionWriter {
+	versionWriterConfig, ok := conf.(*VersionWriterConfig)
+	if conf != nil && !ok {
+		logger.Error().Msg("invalid config type for versionWriter")
+	}
 	return &versionWriter{
 		logger:      logger,
 		updateFiles: []string{},
+		config:      versionWriterConfig,
 	}
 }
 
@@ -49,6 +58,7 @@ type versionWriter struct {
 	updateFiles []string
 	echo        bool
 	area        string
+	config      *VersionWriterConfig
 }
 
 func (versionWriter versionWriter) GetObject() object.Object {

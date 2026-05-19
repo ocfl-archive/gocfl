@@ -13,7 +13,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewInitializer(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) object.Initializer {
+func NewInitializer(ctx context.Context, factory factory.FactoryObject, config any, logger ocfllogger.OCFLLogger) object.Initializer {
 	return &initializer{
 		ctx:     ctx,
 		factory: factory,

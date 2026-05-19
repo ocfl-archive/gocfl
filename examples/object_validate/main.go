@@ -74,7 +74,7 @@ func main() {
 	// --- Step 5: Object Path Determination ---
 	var objID = *idPtr
 	if storageRootFS != nil {
-		sr, srCloser, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, logger)
+		sr, srCloser, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}

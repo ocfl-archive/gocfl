@@ -21,11 +21,18 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/util"
 )
 
-func NewObjectBaseChecker(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) object.Checker {
+type CheckerConfig struct{}
+
+func NewObjectBaseChecker(ctx context.Context, factory factory.FactoryObject, config any, logger ocfllogger.OCFLLogger) object.Checker {
+	checkerConfig, ok := config.(*CheckerConfig)
+	if config != nil && !ok {
+		logger.Error().Msg("invalid config type for checker")
+	}
 	return &checker{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "checker"),
+		config:  checkerConfig,
 	}
 }
 
@@ -34,6 +41,7 @@ type checker struct {
 	ctx     context.Context
 	factory factory.FactoryObject
 	logger  ocfllogger.OCFLLogger
+	config  *CheckerConfig
 }
 
 func (obj *checker) WithObject(obj2 object.Object) object.Checker {

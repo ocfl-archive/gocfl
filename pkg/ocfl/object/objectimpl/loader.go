@@ -23,11 +23,18 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewLoader(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) *Loader {
+type LoaderConfig struct{}
+
+func NewLoader(ctx context.Context, factory factory.FactoryObject, config any, logger ocfllogger.OCFLLogger) *Loader {
+	loaderConfig, ok := config.(*LoaderConfig)
+	if config != nil && !ok {
+		logger.Error().Msg("invalid config type for loader")
+	}
 	return &Loader{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "loader"),
+		config:  loaderConfig,
 	}
 }
 
@@ -37,6 +44,7 @@ type Loader struct {
 	extensionFactory extension.Factory[object.ExtensionManager]
 	logger           ocfllogger.OCFLLogger
 	factory          factory.FactoryObject
+	config           *LoaderConfig
 }
 
 func (loader *Loader) GetFS() fs.FS {

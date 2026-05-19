@@ -27,7 +27,7 @@ func (f closeFunc) Close() error { return f() } // Muss groß sein!
 // LoadStorageRoot detects the OCFL version of the storage root at fsys,
 // initializes the extension manager, and loads the storage root structure.
 // It returns a storageroot.StorageRoot instance.
-func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string]string, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, io.Closer, error) {
+func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string]string, conf map[storageroot.ConfigName]any, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, io.Closer, error) {
 	ver, err := util.GetStorageRootVersion(fsys)
 	if err != nil {
 		if errors.Is(err, ocflerrors.ErrInvalidContent) {
@@ -49,7 +49,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "cannot setup extension manager")
 	}
-	srFactory := NewFactoryStorageRoot(ver, srExtFactory, logger)
+	srFactory := NewFactoryStorageRoot(ver, srExtFactory, logger).WithConfig(conf)
 	sr := srFactory.NewStorageRoot(ctx).
 		WithReadFS(fsys).
 		WithDigestAlgorithm(checksum.DigestSHA512)

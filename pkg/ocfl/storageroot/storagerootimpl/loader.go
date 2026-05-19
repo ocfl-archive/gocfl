@@ -11,7 +11,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewLoader(ctx context.Context, logger ocfllogger.OCFLLogger) *Loader {
+func NewLoader(ctx context.Context, a any, logger ocfllogger.OCFLLogger) *Loader {
 	return &Loader{
 		ctx:    ctx,
 		logger: logger.With("task", "storage root loader"),

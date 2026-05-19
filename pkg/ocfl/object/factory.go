@@ -4,6 +4,15 @@ import (
 	"context"
 )
 
+type ConfigName string
+
+const ObjectName ConfigName = "object"
+const CheckerName ConfigName = "checker"
+const LoaderName ConfigName = "loader"
+const InitializerName ConfigName = "initializer"
+const ExtractorName ConfigName = "extractor"
+const VersionWriterName ConfigName = "versionwriter"
+
 // Factory is the interface for creating object components.
 //
 // This interface is also implemented by the Unified Factory in [pkg/ocfl/factory/factory.go].

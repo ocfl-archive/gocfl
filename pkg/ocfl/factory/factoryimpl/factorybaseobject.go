@@ -20,6 +20,7 @@ func NewFactoryBaseObject(version version.OCFLVersion, spec inventory.InventoryS
 		version:          version,
 		spec:             spec,
 		extensionFactory: extensionFactory,
+		config:           make(map[object.ConfigName]any),
 	}
 }
 
@@ -28,6 +29,12 @@ type FactoryBaseObject struct {
 	version          version.OCFLVersion
 	spec             inventory.InventorySpec
 	extensionFactory extension.Factory[object.ExtensionManager]
+	config           map[object.ConfigName]any
+}
+
+func (f *FactoryBaseObject) WithConfig(conf map[object.ConfigName]any) factory.FactoryObject {
+	f.config = conf
+	return f
 }
 
 func (f *FactoryBaseObject) WithNewVersion(ocflVersion version.OCFLVersion) factory.FactoryObject {
@@ -48,27 +55,27 @@ func (f *FactoryBaseObject) GetVersion() version.OCFLVersion {
 }
 
 func (f *FactoryBaseObject) NewLoader(ctx context.Context) object.Loader {
-	return objectimpl.NewLoader(ctx, f, f.logger)
+	return objectimpl.NewLoader(ctx, f, f.config[object.LoaderName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewInitializer(ctx context.Context) object.Initializer {
-	return objectimpl.NewInitializer(ctx, f, f.logger)
+	return objectimpl.NewInitializer(ctx, f, f.config[object.InitializerName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewChecker(ctx context.Context) object.Checker {
-	return objectimpl.NewObjectBaseChecker(ctx, f, f.logger)
+	return objectimpl.NewObjectBaseChecker(ctx, f, f.config[object.CheckerName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewExtractor(ctx context.Context) object.Extractor {
-	return objectimpl.NewExtractor(ctx, f, f.logger)
+	return objectimpl.NewExtractor(ctx, f, f.config[object.ExtractorName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewVersionWriter(ctx context.Context) object.VersionWriter {
-	return objectimpl.NewVersionWriterBase(ctx, f, f.logger)
+	return objectimpl.NewVersionWriterBase(ctx, f, f.config[object.VersionWriterName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewObject(ctx context.Context) object.Object {
-	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.logger)
+	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.config[object.ObjectName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewInventory(ctx context.Context) inventory.Inventory {

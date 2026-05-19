@@ -20,8 +20,14 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
+type ObjectBaseConfig struct{}
+
 // NewObjectBase creates an empty ObjectBase structure
-func NewObjectBase(ctx context.Context, fact factory.FactoryObject, defaultVersion version.OCFLVersion, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) *ObjectBase {
+func NewObjectBase(ctx context.Context, fact factory.FactoryObject, defaultVersion version.OCFLVersion, extensionFactory extension.Factory[object.ExtensionManager], config any, logger ocfllogger.OCFLLogger) object.Object {
+	objectbaseConfig, ok := config.(*ObjectBaseConfig)
+	if config != nil && !ok {
+		logger.Error().Msg("invalid config type for objectbase")
+	}
 	objectBase := &ObjectBase{
 		extensionFactory: extensionFactory,
 		//extensionManager: extensionManager.(object.ExtensionManager),
@@ -37,6 +43,7 @@ func NewObjectBase(ctx context.Context, fact factory.FactoryObject, defaultVersi
 		updateFiles:        []string{},
 		area:               "",
 		factory:            fact,
+		config:             objectbaseConfig,
 	}
 	return objectBase
 }
@@ -59,6 +66,7 @@ type ObjectBase struct {
 	updateFiles []string
 	area        string
 	factory     factory.FactoryObject
+	config      *ObjectBaseConfig
 }
 
 func (objectBase *ObjectBase) GetWriteFS() appendfs.FS {

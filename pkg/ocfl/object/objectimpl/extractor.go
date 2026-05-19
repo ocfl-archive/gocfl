@@ -22,11 +22,18 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewExtractor(ctx context.Context, factory factory.FactoryObject, logger ocfllogger.OCFLLogger) object.Extractor {
+type ExtractorConfig struct{}
+
+func NewExtractor(ctx context.Context, factory factory.FactoryObject, config any, logger ocfllogger.OCFLLogger) object.Extractor {
+	extractorConfig, ok := config.(*ExtractorConfig)
+	if config != nil && !ok {
+		logger.Error().Msg("invalid config type for extractor")
+	}
 	return &extractor{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "extractor"),
+		config:  extractorConfig,
 	}
 }
 
@@ -36,6 +43,7 @@ type extractor struct {
 	ctx     context.Context
 	factory factory.FactoryObject
 	logger  ocfllogger.OCFLLogger
+	config  *ExtractorConfig
 }
 
 func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {

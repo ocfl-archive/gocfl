@@ -16,6 +16,7 @@ func NewFactoryBaseStorageRoot(version version.OCFLVersion, extensionFactory ext
 		logger:           logger,
 		version:          version,
 		extensionFactory: extensionFactory,
+		config:           make(map[storageroot.ConfigName]any),
 	}
 }
 
@@ -23,6 +24,12 @@ type FactoryBaseStorageRoot struct {
 	logger           ocfllogger.OCFLLogger
 	version          version.OCFLVersion
 	extensionFactory extension.Factory[storageroot.ExtensionManager]
+	config           map[storageroot.ConfigName]any
+}
+
+func (f *FactoryBaseStorageRoot) WithConfig(config map[storageroot.ConfigName]any) factory.FactoryStorageRoot {
+	f.config = config
+	return f
 }
 
 func (f *FactoryBaseStorageRoot) WithNewVersion(ocflVersion version.OCFLVersion) factory.FactoryStorageRoot {
@@ -42,15 +49,15 @@ func (f *FactoryBaseStorageRoot) GetVersion() version.OCFLVersion {
 }
 
 func (f *FactoryBaseStorageRoot) NewStorageRoot(ctx context.Context) storageroot.StorageRoot {
-	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.logger)
+	return storagerootimpl.NewStorageRootBase(ctx, f, f.version, f.extensionFactory, f.config[storageroot.StorageRootName], f.logger)
 }
 
 func (f *FactoryBaseStorageRoot) NewStorageRootInitializer(ctx context.Context) storageroot.Initializer {
-	return storagerootimpl.NewInitializer(ctx, f, f.extensionFactory, f.logger)
+	return storagerootimpl.NewInitializer(ctx, f, f.extensionFactory, f.config[storageroot.InitializerName], f.logger)
 }
 
 func (f *FactoryBaseStorageRoot) NewStorageRootLoader(ctx context.Context) storageroot.Loader {
-	return storagerootimpl.NewLoader(ctx, f.logger)
+	return storagerootimpl.NewLoader(ctx, f.config[storageroot.LoaderName], f.logger)
 }
 
 var _ factory.FactoryStorageRoot = (*FactoryBaseStorageRoot)(nil)

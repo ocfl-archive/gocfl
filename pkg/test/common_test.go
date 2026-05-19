@@ -68,7 +68,7 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	readSRFS := fs.FS(readsrfsAppend)
 
 	// Den Storage Root neu laden
-	sr, srCloser, err := initocfl.LoadStorageRoot(ctx, readSRFS, nil, logger)
+	sr, srCloser, err := initocfl.LoadStorageRoot(ctx, readSRFS, nil, nil, logger)
 	require.NoError(t, err)
 	// Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 	sr = sr.WithWriteFS(srFS)
