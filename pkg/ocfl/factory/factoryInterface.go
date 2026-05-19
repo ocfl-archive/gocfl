@@ -22,6 +22,8 @@ type FactoryObject interface {
 	WithNewVersion(version.OCFLVersion) FactoryObject
 	// WithConfig sets the configuration for the factory.
 	WithConfig(config map[object.ConfigName]any) FactoryObject
+	// GetConfig returns the configuration for the factory.
+	GetConfig() map[object.ConfigName]any
 	// Copy returns a deep copy of the factory.
 	Copy() FactoryObject
 }

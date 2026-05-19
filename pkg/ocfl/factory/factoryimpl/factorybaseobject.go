@@ -15,13 +15,15 @@ import (
 )
 
 func NewFactoryBaseObject(version version.OCFLVersion, spec inventory.InventorySpec, extensionFactory extension.Factory[object.ExtensionManager], logger ocfllogger.OCFLLogger) factory.FactoryObject {
-	return &FactoryBaseObject{
+	f := &FactoryBaseObject{
 		logger:           logger,
 		version:          version,
 		spec:             spec,
 		extensionFactory: extensionFactory,
 		config:           make(map[object.ConfigName]any),
 	}
+	f.factory = f
+	return f
 }
 
 type FactoryBaseObject struct {
@@ -30,6 +32,11 @@ type FactoryBaseObject struct {
 	spec             inventory.InventorySpec
 	extensionFactory extension.Factory[object.ExtensionManager]
 	config           map[object.ConfigName]any
+	factory          factory.FactoryObject
+}
+
+func (f *FactoryBaseObject) GetConfig() map[object.ConfigName]any {
+	return f.config
 }
 
 // WithConfig sets the configuration for the factory.
@@ -57,31 +64,31 @@ func (f *FactoryBaseObject) GetVersion() version.OCFLVersion {
 }
 
 func (f *FactoryBaseObject) NewLoader(ctx context.Context) object.Loader {
-	return objectimpl.NewLoader(ctx, f, f.config[object.LoaderName], f.logger)
+	return objectimpl.NewLoader(ctx, f.factory, f.config[object.LoaderName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewInitializer(ctx context.Context) object.Initializer {
-	return objectimpl.NewInitializer(ctx, f, f.config[object.InitializerName], f.logger)
+	return objectimpl.NewInitializer(ctx, f.factory, f.config[object.InitializerName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewChecker(ctx context.Context) object.Checker {
-	return objectimpl.NewObjectBaseChecker(ctx, f, f.config[object.CheckerName], f.logger)
+	return objectimpl.NewObjectBaseChecker(ctx, f.factory, f.config[object.CheckerName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewExtractor(ctx context.Context) object.Extractor {
-	return objectimpl.NewExtractor(ctx, f, f.config[object.ExtractorName], f.logger)
+	return objectimpl.NewExtractor(ctx, f.factory, f.config[object.ExtractorName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewVersionWriter(ctx context.Context) object.VersionWriter {
-	return objectimpl.NewVersionWriterBase(ctx, f, f.config[object.VersionWriterName], f.logger)
+	return objectimpl.NewVersionWriterBase(ctx, f.factory, f.config[object.VersionWriterName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewObject(ctx context.Context) object.Object {
-	return objectimpl.NewObjectBase(ctx, f, f.version, f.extensionFactory, f.config[object.ObjectName], f.logger)
+	return objectimpl.NewObjectBase(ctx, f.factory, f.version, f.extensionFactory, f.config[object.ObjectName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewInventory(ctx context.Context) inventory.Inventory {
-	return inventoryimpl.NewInventoryBase(ctx, f, f.version, f.spec, f.logger)
+	return inventoryimpl.NewInventoryBase(ctx, f.factory, f.version, f.spec, f.logger)
 }
 
 func (f *FactoryBaseObject) NewFixity(ctx context.Context) inventory.Fixity {
@@ -100,10 +107,10 @@ func (f *FactoryBaseObject) NewManifest(context.Context) inventory.Manifest {
 }
 
 func (f *FactoryBaseObject) NewVersions(ctx context.Context) inventory.Versions {
-	return inventoryimpl.NewVersionsBase(ctx, f, f.logger)
+	return inventoryimpl.NewVersionsBase(ctx, f.factory, f.logger)
 }
 func (f *FactoryBaseObject) NewVersion(ctx context.Context) inventory.Version {
-	return inventoryimpl.NewVersionBase(ctx, f, f.logger)
+	return inventoryimpl.NewVersionBase(ctx, f.factory, f.logger)
 }
 
 func (f *FactoryBaseObject) NewState(context.Context) inventory.State {

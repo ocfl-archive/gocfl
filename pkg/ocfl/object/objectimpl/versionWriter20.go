@@ -42,6 +42,16 @@ type versionWriter20 struct {
 	digest  string
 }
 
+func (versionWriter *versionWriter20) WithObject(obj object.Object) object.VersionWriter {
+	versionWriter.obj = obj
+	return versionWriter
+}
+
+func (versionWriter *versionWriter20) WithEcho(echo bool) object.VersionWriter {
+	versionWriter.echo = echo
+	return versionWriter
+}
+
 func (versionWriter *versionWriter20) _addReader(r io.ReadCloser, names *object.NamesStruct, noExtensionHook bool) (string, error) {
 	inv := versionWriter.obj.GetInventory()
 	digestAlgorithms := []checksum.DigestAlgorithm{}
@@ -162,12 +172,17 @@ func (versionWriter *versionWriter20) Close() error {
 		if _, err := writefs.WriteFile(
 			versionWriter.writeFS,
 			versionWriter.ver.String()+".zip."+strings.ToLower(inv.GetDigestAlgorithm().String()),
-			[]byte(versionWriter.digest+" *"+versionWriter.ver.String()),
+			[]byte(versionWriter.digest+" *"+versionWriter.ver.String()+".zip"),
 		); err != nil {
 			return errors.Wrap(err, "cannot write version zip file checksum")
 		}
 	} else {
 		return errors.New("versionWriter digest is empty")
+	}
+	if closer, ok := versionWriter.writeFS.(io.Closer); ok {
+		if err := closer.Close(); err != nil {
+			return errors.Wrap(err, "cannot close version zip file")
+		}
 	}
 	return nil
 }

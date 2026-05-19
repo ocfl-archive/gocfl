@@ -29,12 +29,12 @@ type TestEnv struct {
 	Closer      io.Closer
 }
 
-func SetupTestEnv(t *testing.T) *TestEnv {
+func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 	ctx := t.Context()
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, ocflVer, nil)
 
 	cfg := vfsrw.Config{
 		"testmem": &vfsrw.VFS{
@@ -57,7 +57,6 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	srFS, err := appendfs.Sub(destFS, "vfs://testmem/")
 	require.NoError(t, err)
 
-	ocflVer := version.Version1_1
 	_, err = initocfl.InitStorageRoot(ctx, srFS, srFS, ocflVer, checksum.DigestSHA512, nil, logger)
 	require.NoError(t, err)
 
@@ -84,14 +83,14 @@ func SetupTestEnv(t *testing.T) *TestEnv {
 	}
 }
 
-func CreateTestObject(t *testing.T, env *TestEnv, objID string) (object.Object, appendfs.FS) {
+func CreateTestObject(t *testing.T, env *TestEnv, objID string, ocflVer version.OCFLVersion) (object.Object, appendfs.FS) {
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
 	require.NoError(t, err)
 
 	objFS, err := appendfs.Sub(env.SourceFS, objFolder)
 	require.NoError(t, err)
 
-	obj, err := initocfl.InitObject(t.Context(), objFS, nil, env.StorageRoot.GetOCFLVersion(), objID, checksum.DigestSHA512, nil, env.OCFLLogger)
+	obj, err := initocfl.InitObject(t.Context(), objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, env.OCFLLogger)
 	require.NoError(t, err)
 
 	return obj, objFS

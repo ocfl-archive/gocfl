@@ -5,14 +5,23 @@ import (
 	"testing"
 
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestObjectExtract(t *testing.T) {
-	env := SetupTestEnv(t)
+	testObjectExtract(t, version.Version1_1)
+}
+
+func TestObjectExtract20(t *testing.T) {
+	testObjectExtract(t, version.Version2_0)
+}
+
+func testObjectExtract(t *testing.T, ocflVer version.OCFLVersion) {
+	env := SetupTestEnv(t, ocflVer)
 	objID := "test-extract-object"
-	obj, _ := CreateTestObject(t, env, objID)
+	obj, _ := CreateTestObject(t, env, objID, ocflVer)
 
 	// 1. Version hinzufügen (v1)
 	vw1, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)

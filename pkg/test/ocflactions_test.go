@@ -7,14 +7,23 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOCFLActions(t *testing.T) {
-	env := SetupTestEnv(t)
+	testOCFLActions(t, version.Version1_1)
+}
+
+func TestOCFLActions20(t *testing.T) {
+	testOCFLActions(t, version.Version2_0)
+}
+
+func testOCFLActions(t *testing.T, ocflVer version.OCFLVersion) {
+	env := SetupTestEnv(t, ocflVer)
 	objID := "test-actions-object"
-	obj, _ := CreateTestObject(t, env, objID)
+	obj, _ := CreateTestObject(t, env, objID, ocflVer)
 
 	// 1. Version hinzufügen (v1)
 	vw, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)

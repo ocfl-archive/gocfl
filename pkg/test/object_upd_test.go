@@ -3,13 +3,22 @@ package test
 import (
 	"testing"
 
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/require"
 )
 
 func TestObjectUpdate(t *testing.T) {
-	env := SetupTestEnv(t)
+	testObjectUpdate(t, version.Version1_1)
+}
+
+func TestObjectUpdate20(t *testing.T) {
+	testObjectUpdate(t, version.Version2_0)
+}
+
+func testObjectUpdate(t *testing.T, ocflVer version.OCFLVersion) {
+	env := SetupTestEnv(t, ocflVer)
 	objID := "test-object"
-	obj, _ := CreateTestObject(t, env, objID)
+	obj, _ := CreateTestObject(t, env, objID, ocflVer)
 
 	// 5. Erste Version hinzufügen (v1)
 	vw1, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)

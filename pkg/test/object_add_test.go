@@ -3,13 +3,22 @@ package test
 import (
 	"testing"
 
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestObjectAdd(t *testing.T) {
-	env := SetupTestEnv(t)
+	testObjectAdd(t, version.Version1_1)
+}
+
+func TestObjectAdd20(t *testing.T) {
+	testObjectAdd(t, version.Version2_0)
+}
+
+func testObjectAdd(t *testing.T, ocflVer version.OCFLVersion) {
+	env := SetupTestEnv(t, ocflVer)
 	objID := "test-object"
-	obj, _ := CreateTestObject(t, env, objID)
+	obj, _ := CreateTestObject(t, env, objID, ocflVer)
 
 	// 5. Version hinzufügen
 	vw, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
@@ -51,4 +60,5 @@ func TestObjectAdd(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.True(t, foundTest, "test.txt should be in v1 state")
+
 }
