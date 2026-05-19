@@ -43,11 +43,13 @@ func NewVersionWriterBase(ctx context.Context, fact factory.FactoryObject, conf 
 	if conf != nil && !ok {
 		logger.Error().Msg("invalid config type for versionWriter")
 	}
-	return &versionWriter{
+	vw := &versionWriter{
 		logger:      logger,
 		updateFiles: []string{},
 		config:      versionWriterConfig,
 	}
+	vw.addReader = vw._addReader
+	return vw
 }
 
 type versionWriter struct {
@@ -59,6 +61,7 @@ type versionWriter struct {
 	echo        bool
 	area        string
 	config      *VersionWriterConfig
+	addReader   func(r io.ReadCloser, names *object.NamesStruct, noExtensionHook bool) (string, error)
 }
 
 func (versionWriter versionWriter) GetObject() object.Object {
@@ -447,7 +450,7 @@ func (versionWriter *versionWriter) AddFile(sourceFS fs.FS, path string, checkDu
 	return nil
 }
 
-func (versionWriter *versionWriter) addReader(r io.ReadCloser, names *object.NamesStruct, noExtensionHook bool) (string, error) {
+func (versionWriter *versionWriter) _addReader(r io.ReadCloser, names *object.NamesStruct, noExtensionHook bool) (string, error) {
 	inv := versionWriter.obj.GetInventory()
 	digestAlgorithms := []checksum.DigestAlgorithm{}
 	for alg := range inv.GetFixity().GetDigestAlgorithms() {
