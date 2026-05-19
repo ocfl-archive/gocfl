@@ -62,6 +62,7 @@ type versionWriter struct {
 	area        string
 	config      *VersionWriterConfig
 	addReader   func(r io.ReadCloser, names *object.NamesStruct, noExtensionHook bool) (string, error)
+	writeFS     appendfs.FS
 }
 
 func (versionWriter versionWriter) GetObject() object.Object {
@@ -70,6 +71,7 @@ func (versionWriter versionWriter) GetObject() object.Object {
 
 func (versionWriter *versionWriter) WithObject(obj object.Object) object.VersionWriter {
 	versionWriter.obj = obj
+	versionWriter.writeFS = obj.GetWriteFS()
 	return versionWriter
 }
 
@@ -79,7 +81,7 @@ func (versionWriter *versionWriter) WithEcho(echo bool) object.VersionWriter {
 }
 
 func (versionWriter *versionWriter) GetFS() appendfs.FS {
-	return versionWriter.obj.GetWriteFS()
+	return versionWriter.writeFS
 }
 
 func (versionWriter *versionWriter) BeginArea(area string) {
@@ -151,10 +153,10 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 	checksumString := fmt.Sprintf("%x %s", checksumBytes, iFileName)
 
 	if objectRoot {
-		if versionWriter.obj.GetWriteFS() == nil {
+		if versionWriter.writeFS == nil {
 			return errors.New("object write FS is nil")
 		}
-		iWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), iFileName)
+		iWriter, err := writefs.Create(versionWriter.writeFS, iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inventory.json")
 		}
@@ -165,26 +167,26 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrap(err, "cannot write to inventory.json")
 		}
 		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), iFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.writeFS, iFileName)
 		}
 		csFileName := fmt.Sprintf("inventory.json.%s", string(inv.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), csFileName)
+		iCSWriter, err := writefs.Create(versionWriter.writeFS, csFileName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
+			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.writeFS, csFileName)
 		}
 		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 			if err := iCSWriter.Close(); err != nil {
 				versionWriter.logger.Error().Err(err).Msg("cannot close iCSWriter writer")
 			}
-			return errors.Wrapf(err, "cannot write to '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
+			return errors.Wrapf(err, "cannot write to '%v/%s'", versionWriter.writeFS, csFileName)
 		}
 		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.writeFS, csFileName)
 		}
 	}
 	if version {
 		iFileName = fmt.Sprintf("%s/inventory.json", inv.GetHead())
-		iWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), iFileName)
+		iWriter, err := writefs.Create(versionWriter.writeFS, iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inventory.json")
 		}
@@ -195,12 +197,12 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrap(err, "cannot write to inventory.json")
 		}
 		if err := iWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), iFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.writeFS, iFileName)
 		}
 		csFileName := fmt.Sprintf("%s/inventory.json.%s", inv.GetHead(), string(inv.GetDigestAlgorithm()))
-		iCSWriter, err := writefs.Create(versionWriter.obj.GetWriteFS(), csFileName)
+		iCSWriter, err := writefs.Create(versionWriter.writeFS, csFileName)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
+			return errors.Wrapf(err, "cannot create '%v/%s'", versionWriter.writeFS, csFileName)
 		}
 		if _, err := iCSWriter.Write([]byte(checksumString)); err != nil {
 			if err := iCSWriter.Close(); err != nil {
@@ -209,7 +211,7 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 			return errors.Wrapf(err, "cannot write to '%s'", csFileName)
 		}
 		if err := iCSWriter.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.obj.GetWriteFS(), csFileName)
+			return errors.Wrapf(err, "cannot close '%v/%s'", versionWriter.writeFS, csFileName)
 		}
 	}
 	return nil
@@ -218,12 +220,12 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 func (versionWriter *versionWriter) storeExtensions() error {
 	versionWriter.logger.Debug()
 
-	if versionWriter.obj.GetWriteFS() == nil {
+	if versionWriter.writeFS == nil {
 		return errors.New("object write FS is nil")
 	}
-	subFS, err := appendfs.Sub(versionWriter.obj.GetWriteFS(), "extensions")
+	subFS, err := appendfs.Sub(versionWriter.writeFS, "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create sub filesystem %v/extensions", versionWriter.obj.GetWriteFS())
+		return errors.Wrapf(err, "cannot create sub filesystem %v/extensions", versionWriter.writeFS)
 	}
 	if err := versionWriter.obj.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
@@ -465,10 +467,10 @@ func (versionWriter *versionWriter) _addReader(r io.ReadCloser, names *object.Na
 		digestAlgorithms = append(digestAlgorithms, inv.GetDigestAlgorithm())
 	}
 
-	if versionWriter.obj.GetWriteFS() == nil {
+	if versionWriter.writeFS == nil {
 		return "", errors.New("object write FS is nil")
 	}
-	writer, err := writefs.Create(versionWriter.obj.GetWriteFS(), names.ManifestPath)
+	writer, err := writefs.Create(versionWriter.writeFS, names.ManifestPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot create '%s'", names.ManifestPath)
 	}
