@@ -20,6 +20,7 @@ type FactoryObject interface {
 	GetVersion() version.OCFLVersion
 	// WithNewVersion returns a new factory instance with the specified OCFL version.
 	WithNewVersion(version.OCFLVersion) FactoryObject
+	// WithConfig sets the configuration for the factory.
 	WithConfig(config map[object.ConfigName]any) FactoryObject
 	// Copy returns a deep copy of the factory.
 	Copy() FactoryObject
@@ -34,6 +35,7 @@ type FactoryStorageRoot interface {
 	GetVersion() version.OCFLVersion
 	// WithNewVersion returns a new factory instance with the specified OCFL version.
 	WithNewVersion(version.OCFLVersion) FactoryStorageRoot
+	// WithConfig sets the configuration for the factory.
 	WithConfig(config map[storageroot.ConfigName]any) FactoryStorageRoot
 	// Copy returns a deep copy of the factory.
 	Copy() FactoryStorageRoot

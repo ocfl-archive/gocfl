@@ -4,11 +4,17 @@ import (
 	"context"
 )
 
+// ConfigName represents the name of a configuration parameter for the storage root factory.
 type ConfigName string
 
-const StorageRootName ConfigName = "storageroot"
-const InitializerName ConfigName = "initializer"
-const LoaderName ConfigName = "loader"
+const (
+	// StorageRootName is the configuration name for the storage root instance.
+	StorageRootName ConfigName = "storageroot"
+	// InitializerName is the configuration name for the initializer instance.
+	InitializerName ConfigName = "initializer"
+	// LoaderName is the configuration name for the loader instance.
+	LoaderName ConfigName = "loader"
+)
 
 // Factory is the interface for creating storage root components.
 //

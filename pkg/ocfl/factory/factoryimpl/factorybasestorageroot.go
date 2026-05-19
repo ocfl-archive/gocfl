@@ -27,6 +27,7 @@ type FactoryBaseStorageRoot struct {
 	config           map[storageroot.ConfigName]any
 }
 
+// WithConfig sets the configuration for the factory.
 func (f *FactoryBaseStorageRoot) WithConfig(config map[storageroot.ConfigName]any) factory.FactoryStorageRoot {
 	f.config = config
 	return f
@@ -41,6 +42,7 @@ func (f *FactoryBaseStorageRoot) Copy() factory.FactoryStorageRoot {
 		logger:           f.logger,
 		version:          f.version,
 		extensionFactory: f.extensionFactory,
+		config:           f.config,
 	}
 }
 

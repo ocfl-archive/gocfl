@@ -32,6 +32,7 @@ type FactoryBaseObject struct {
 	config           map[object.ConfigName]any
 }
 
+// WithConfig sets the configuration for the factory.
 func (f *FactoryBaseObject) WithConfig(conf map[object.ConfigName]any) factory.FactoryObject {
 	f.config = conf
 	return f
@@ -47,6 +48,7 @@ func (f *FactoryBaseObject) Copy() factory.FactoryObject {
 		version:          f.version,
 		spec:             f.spec,
 		extensionFactory: f.extensionFactory,
+		config:           f.config,
 	}
 }
 

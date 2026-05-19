@@ -61,6 +61,16 @@ if err != nil {
 obj := f.NewObject(ctx)
 ```
 
+### `WithConfig`
+Both `FactoryObject` and `FactoryStorageRoot` support a `WithConfig` method. This allows passing a configuration map to the factory, which will be used when creating components (like loaders, initializers, etc.).
+
+```go
+conf := map[object.ConfigName]any{
+    object.LoaderName: myLoaderConfig,
+}
+f := factoryimpl.NewFactoryObject11(extFactory, logger).WithConfig(conf)
+```
+
 ## Directory Structure
 
 - `pkg/ocfl/factory/`: Contains the public `Factory` interface.

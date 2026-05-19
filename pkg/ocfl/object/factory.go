@@ -4,14 +4,23 @@ import (
 	"context"
 )
 
+// ConfigName represents the name of a configuration parameter for the object factory.
 type ConfigName string
 
-const ObjectName ConfigName = "object"
-const CheckerName ConfigName = "checker"
-const LoaderName ConfigName = "loader"
-const InitializerName ConfigName = "initializer"
-const ExtractorName ConfigName = "extractor"
-const VersionWriterName ConfigName = "versionwriter"
+const (
+	// ObjectName is the configuration name for the object instance.
+	ObjectName ConfigName = "object"
+	// CheckerName is the configuration name for the checker instance.
+	CheckerName ConfigName = "checker"
+	// LoaderName is the configuration name for the loader instance.
+	LoaderName ConfigName = "loader"
+	// InitializerName is the configuration name for the initializer instance.
+	InitializerName ConfigName = "initializer"
+	// ExtractorName is the configuration name for the extractor instance.
+	ExtractorName ConfigName = "extractor"
+	// VersionWriterName is the configuration name for the version writer instance.
+	VersionWriterName ConfigName = "versionwriter"
+)
 
 // Factory is the interface for creating object components.
 //

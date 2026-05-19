@@ -26,6 +26,8 @@ func (f closeFunc) Close() error { return f() } // Muss groß sein!
 
 // LoadStorageRoot detects the OCFL version of the storage root at fsys,
 // initializes the extension manager, and loads the storage root structure.
+// The conf parameter allows passing configurations to the storage root factory
+// (e.g. for storage root, initializer or loader).
 // It returns a storageroot.StorageRoot instance.
 func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string]string, conf map[storageroot.ConfigName]any, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, io.Closer, error) {
 	ver, err := util.GetStorageRootVersion(fsys)
