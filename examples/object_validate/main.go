@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
@@ -46,7 +47,13 @@ func main() {
 	}
 	defer vfs.Close()
 
-	if err := vfsrw.AddLocal(vfs, nil); err != nil {
+	if err := vfsrw.AddLocal(vfs, &vfsrw.ZipAsFolder{
+		Enabled:   true,
+		Digests:   []checksum.DigestAlgorithm{checksum.DigestSHA512},
+		CacheSize: 3,
+		Compress:  false,
+		ReadOnly:  false,
+	}); err != nil {
 		logger.Fatal().Err(err).Msg("failed to add local filesystem")
 	}
 
