@@ -1,63 +1,53 @@
-# OCFL Unified Factory Module (`pkg/factory`)
+# OCFL Unified Factory Module (`pkg/ocfl/factory`)
 
-The `pkg/factory` module provides a **Unified Factory** mechanism to instantiate components correctly according to different OCFL (Oxford Common File Layout) specification versions (e.g., 1.0, 1.1, 2.0).
+The `pkg/ocfl/factory` module provides a **Unified Factory** mechanism to instantiate components correctly according to different OCFL (Oxford Common File Layout) specification versions (e.g., 1.0, 1.1, 2.0).
 
 ## Goal
 The primary objective of this module is to ensure that all OCFL-related objects—such as Inventories, Storage Roots, Objects, and Versions—are created with the correct implementation and configuration matching the desired OCFL version through a single, consistent interface.
 
+## Documentation
+Detailed architectural information and sequence diagrams can be found in the [docs](./docs) directory:
+- [**Architecture Overview**](./docs/architecture.md)
+- [**Object Factory Initialization Sequence**](./docs/initfactoryobject.md)
+- [**Storage Root Factory Initialization Sequence**](./docs/initfactorystorageroot.md)
+
 ## Core Components
 
-### `Factory` Interface (Unified Factory)
-Defined in `pkg/ocfl/factory/factory.go`, this is the central interface that aggregates several sub-factories into a single **Unified Factory**:
-- `inventory.Factory`: For creating inventories, fixity information, users, manifests, versions, and states.
-- `object.Factory`: For creating object loaders, initializers, checkers, extractors, and object instances.
-- `storageroot.Factory`: For creating storage roots, storage root loaders, and initializers.
+### `FactoryObject` and `FactoryStorageRoot` Interfaces
+Defined in `pkg/ocfl/factory/factoryInterface.go`, these are the central interfaces that aggregate several sub-factories into a **Unified Factory**:
+- `FactoryObject`:
+    - `object.Factory`: For creating object loaders, initializers, checkers, extractors, and object instances.
+    - `inventory.Factory`: For creating inventories, fixity information, users, manifests, versions, and states.
+- `FactoryStorageRoot`:
+    - `storageroot.Factory`: For creating storage roots, storage root loaders, and initializers.
 
-It also provides methods to get/set the OCFL version and to create a copy of the factory.
+They also provide methods for version management (`GetVersion`, `WithNewVersion`), configuration (`WithConfig`), and cloning (`Copy`).
 
-### `FactoryBase`
-The `FactoryBase` (in `pkg/ocfl/factory/factoryimpl/factorybase.go`) provides the standard implementation of the **Unified Factory** interface. It holds the `OCFLVersion`, the `InventorySpec`, an `extensionFactory`, and a `logger`. It is responsible for calling the appropriate constructors in `inventoryimpl`, `objectimpl`, and `storagerootimpl` with the correct version parameters.
+### `FactoryBaseObject` and `FactoryBaseStorageRoot`
+These classes (in `pkg/ocfl/factory/factoryimpl/`) provide the standard implementation of the Unified Factory interfaces. They hold the common dependencies like `extensionFactory` and `logger` and handle the delegation to component-specific implementations based on the OCFL version.
 
 ### Version-Specific Factories
-The module provides specialized factory constructors for each supported OCFL version, each returning an instance of the **Unified Factory**:
-- `NewFactory10`: Configured for OCFL v1.0.
-- `NewFactory11`: Configured for OCFL v1.1.
-- `NewFactory20`: Configured for OCFL v2.0.
+The module provides specialized factory constructors for each supported OCFL version via the `initocfl` package:
+- `NewFactoryObject(version, ...)`
+- `NewFactoryStorageRoot(version, ...)`
 
-### `DynamicFactory`
-The `DynamicFactory` is a variant of the **Unified Factory** that allows the OCFL version to be switched at runtime using the `SetVersion` method. When the version is changed, it re-instantiates the underlying factory while preserving common dependencies such as the extension factory and logger.
+These functions dispatch to version-specific wrappers in `factoryimpl` (e.g., `factoryObject11`, `factoryStorageRoot11`).
 
 ## Usage
 
 ### Creating a Fixed-Version Unified Factory
-If you know the OCFL version beforehand, use the dispatcher `NewFactory`:
+Use the `initocfl` package to create a factory for a specific OCFL version:
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory/factoryimpl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
 // Create a unified factory for OCFL 1.1 objects
-f := factoryimpl.NewFactoryObject11(extFactory, logger)
+f := initocfl.NewFactoryObject(version.Version1_1, extFactory, logger)
 
 // Use the factory to create a new object
-obj := f.NewObject(ctx)
-```
-
-### Creating a Dynamic Unified Factory
-If you need to change the version later (e.g., after detecting it from a storage root or object):
-
-```go
-f := factoryimpl.NewDynamicFactory(version.Version1_1, extFactory, logger)
-
-// ... detect version from filesystem ...
-err := f.SetVersion(version.Version1_0)
-if err != nil {
-    // handle error
-}
-
-// Now the unified factory will create 1.0 components
 obj := f.NewObject(ctx)
 ```
 
@@ -65,17 +55,19 @@ obj := f.NewObject(ctx)
 Both `FactoryObject` and `FactoryStorageRoot` support a `WithConfig` method. This allows passing a configuration map to the factory, which will be used when creating components (like loaders, initializers, etc.).
 
 ```go
+import "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
+
 conf := map[object.ConfigName]any{
-    object.LoaderName: myLoaderConfig,
+    object.LoaderName: &objectimpl.LoaderConfig{},
 }
-f := factoryimpl.NewFactoryObject11(extFactory, logger).WithConfig(conf)
+f := initocfl.NewFactoryObject(version.Version1_1, extFactory, logger).WithConfig(conf)
 ```
 
 ## Directory Structure
 
-- `pkg/ocfl/factory/`: Contains the public `Factory` interface.
+- `pkg/ocfl/factory/`: Contains the public interfaces (`factoryInterface.go`).
+- `pkg/ocfl/factory/docs/`: Detaillierte Dokumentation und Diagramme.
 - `pkg/ocfl/factory/factoryimpl/`: Contains concrete implementations:
-    - `factorybase.go`: Common implementation logic.
-    - `factory.go`: Dispatcher for fixed-version factories.
-    - `dynamicFactory.go`: Runtime-adjustable factory.
-    - `factory10.go`, `factory11.go`, `factory20.go`: Version-specific wrappers.
+    - `factorybaseobject.go` / `factorybasestorageroot.go`: Common implementation logic.
+    - `factoryObject10.go`, `factoryObject11.go`, etc.: Version-specific wrappers.
+- `pkg/ocfl/initocfl/`: Entry point for creating factory instances (`factory.go`).
