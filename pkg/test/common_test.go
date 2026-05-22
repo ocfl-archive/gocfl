@@ -34,7 +34,7 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, ocflVer, nil)
+	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, ocflVer, nil)
 
 	cfg := vfsrw.Config{
 		"testmem": &vfsrw.VFS{
