@@ -76,3 +76,5 @@ classDiagram
 - **ExtensionStorageRootPath**: Defines how object IDs are mapped to directories in the Storage Root.
 
 Detailed information on integration can be found in the [**Object Architecture**](../../object/docs/architecture.md) and the [**Storage Root Architecture**](../../storageroot/docs/architecture.md).
+
+For details on how extensions are registered and how the factory is initialized, see the [**Init Factory Sequence Diagram**](initfactory.md) and the [**Init Manager Sequence Diagram**](initmanager.md).
