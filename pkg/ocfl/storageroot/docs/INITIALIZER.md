@@ -9,7 +9,7 @@ The `Initializer` module is responsible for creating a new OCFL storage root on 
 
 The `Initializer` interface provides several key methods for configuring and executing the creation process:
 
-- `Init() error`: Performs the actual initialization, creating the `0=ocfl_1.1` marker, the `extensions` directory, and the storage layout configuration.
+- `Init() error`: Performs the actual initialization, creating the `0=ocfl_1.1` marker, the `extensions` directory, and the storage layout configuration. See the [Initialization Sequence Diagram](init_sequence.md) for details.
 - `SetStorageRoot(sr StorageRoot) Initializer`: Associates the initializer with a [StorageRoot](STORAGEROOT.md) instance.
 - `Close() error`: Finalizes the initialization process.
 

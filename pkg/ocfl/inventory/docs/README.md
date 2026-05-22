@@ -5,6 +5,7 @@ This directory contains detailed documentation for the various data types and mo
 ## Documentation Files
 
 - [**Architecture**](architecture.md): Visual representation of the interface hierarchy and their relationships.
+- [**Object Architecture**](../../object/docs/architecture.md): How the inventory integrates into the Object structure.
 - [**Inventory**](INVENTORY.md): Documentation of the central inventory structure, which serves as the main entry point for an OCFL object's metadata.
 - [**Version**](VERSION.md): Details about individual version metadata, including the state of the object at that version.
 - [**Manifest**](MANIFEST.md): Documentation of the manifest structure, which maps content digests to physical file paths.

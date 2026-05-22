@@ -22,7 +22,7 @@ The `VersionWriter` provides comprehensive methods for object updates:
 ### Lifecycle & Areas
 - `BeginArea(area string)`: Starts adding content to a specific OCFL content area.
 - `EndArea() error`: Finishes the current content area.
-- `Close() error`: Finalizes the version update and writes the updated `inventory.json`.
+- `Close() error`: Finalizes the version update and writes the updated `inventory.json`. See the [Creation Sequence Diagram](create_sequence.md) or [Update Sequence Diagram](update_sequence.md) for a visual walkthrough of the process.
 
 ## Usage Example
 
@@ -41,4 +41,6 @@ defer vw.Close()
 ---
 - [Back to Object Documentation Overview](README.md)
 - [The Object Interface](OBJECT.md)
+- [Creation Sequence Diagram](create_sequence.md)
+- [Update Sequence Diagram](update_sequence.md)
 - [Functional Modules Index](MODULES.md)

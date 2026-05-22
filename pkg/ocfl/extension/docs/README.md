@@ -21,6 +21,7 @@ In short: The **Factory** *creates* the extensions, and the **Manager** *uses* t
 
 ## Related Documentation
 
+- [**Extension Architecture**](ARCHITECTURE.md) - Deep dive into the extension system structure.
 - [**Initial Extension Spec**](../../../pkg/extensions/ext_initial/initial.md): Identification of the primary manager.
 - [**OCFL Specification**](../../version/ocfl_spec_1.1.md#5-extensions): OCFL 1.1 Section 5 (Extensions).
 - [**External OCFL Extensions**](https://ocfl.io/extensions/): Official OCFL extension registry.

@@ -9,7 +9,7 @@ The `Loader` module is responsible for reading and parsing an existing OCFL stor
 
 The `Loader` interface provides the following methods to configure and execute the loading process:
 
-- `Load() error`: Performs the discovery and reading of the storage root structure from the filesystem.
+- `Load() error`: Performs the discovery and reading of the storage root structure from the filesystem. See the [Load Sequence Diagram](load_sequence.md) for details.
 - `SetStorageRoot(sr StorageRoot) Loader`: Associates the loader with a [StorageRoot](STORAGEROOT.md) instance.
 - `SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader`: Configures the [Extension Factory](../../extension/docs/FACTORY.md) to use for instantiating extensions during the load process.
 - `Close() error`: Finalizes the loading process and releases resources.

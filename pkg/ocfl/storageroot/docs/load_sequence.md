@@ -1,6 +1,6 @@
 # Storage Root Load Sequence
 
-This document describes the sequence of operations performed during the loading of an existing OCFL Storage Root, starting from the high-level entry point.
+This document describes the sequence of operations performed during the loading of an existing OCFL Storage Root, starting from the high-level entry point. Detailed structural information can be found in the [**Storage Root Architecture Documentation**](architecture.md).
 
 ## Sequence Diagram
 

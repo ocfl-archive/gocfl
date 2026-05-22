@@ -79,9 +79,9 @@ classDiagram
 
 - **Object**: The central interface and entry point for all operations on an OCFL object. It acts as an orchestrator for specialized components.
 - **Loader**: Responsible for loading an existing object from the filesystem. See [**Load Sequence**](load_sequence.md) for details.
-- **Initializer**: Handles the initial creation of a new OCFL object.
+- **Initializer**: Handles the initial creation of a new OCFL object. See [**Creation Sequence**](create_sequence.md) for details.
 - **Extractor**: Enables access to content and metadata of specific versions.
-- **VersionWriter**: Encapsulates the logic for write operations and creating new versions.
+- **VersionWriter**: Encapsulates the logic for write operations and creating new versions. See [**Creation Sequence**](create_sequence.md) or [**Update Sequence**](update_sequence.md) for the operational flow.
 - **Checker**: Validates the object against the OCFL specification.
 - **ExtensionManager**: Manages the extensions relevant to the object. Details can be found in the [**Extension Architecture Documentation**](../../extension/docs/architecture.md).
 - **Inventory**: Represents the state and metadata of the object according to the OCFL standard.

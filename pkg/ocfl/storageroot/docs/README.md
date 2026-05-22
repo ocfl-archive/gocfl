@@ -8,6 +8,9 @@ The Storage Root is the top-level directory of an OCFL compliant repository. It 
 
 ## Components
 
+### [Architecture](architecture.md)
+Visual representation of the interface hierarchy and their relationships.
+
 ### [StorageRoot](STORAGEROOT.md)
 The central interface (`StorageRoot`) that represents an OCFL Storage Root. It coordinates filesystem access, extension management (especially storage layouts), and object discovery.
 
@@ -24,5 +27,8 @@ The `Factory` interface provides methods to instantiate the various storage root
 
 - [Storage Root Package README](../README.md) - High-level overview and usage examples.
 - [OCFL Specification 1.1](../../version/ocfl_spec_1.1.md)
+- [Architecture Overview](architecture.md)
+- [Load Sequence Diagram](load_sequence.md)
+- [Initialization Sequence Diagram](init_sequence.md)
 - [Object Documentation](../../object/docs/README.md)
 - [Extension Documentation](../../extension/docs/README.md)

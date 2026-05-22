@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -63,10 +64,12 @@ func main() {
 		objFolder = writefs.RealPath(vfs, *objectPathPtr)
 	} else {
 		srPath := writefs.RealPath(vfs, *pathPtr)
-		storageRootFS, err = appendfs.Sub(vfs, srPath)
+		var closer io.Closer
+		storageRootFS, closer, err = appendfs.Sub(vfs, srPath)
 		if err != nil {
 			log.Fatalf("failed to create subfs for storage root '%s': %v", srPath, err)
 		}
+		defer func() { _ = closer.Close() }()
 	}
 
 	// --- Step 4: OCFL Determination ---
@@ -86,7 +89,7 @@ func main() {
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
-		defer srCloser.Close()
+		defer sr.Close()
 
 		// B: Determine the folder path for the given Object ID within the Storage Root.
 		objFolder, err = sr.IdToFolder(objID)
@@ -100,17 +103,18 @@ func main() {
 	// --- Step 6: OCFL Object Loading ---
 	// A: Create a sub-filesystem for the target object directory.
 	// Again, appendfs is used to enable write operations within this sub-filesystem.
-	objFS, err := appendfs.Sub(vfs, objFolder)
+	objFS, closer, err := appendfs.Sub(vfs, objFolder)
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("failed to create subfs for object folder '%s'", objFolder)
 	}
+	defer func() { _ = closer.Close() }()
 
 	// B: Instantiate and configure the Object.
 	obj, err := initocfl.LoadObject(ctx, objFS, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
-	defer objCloser.Close()
+	defer func() { _ = obj.Close() }()
 
 	fmt.Printf("OCFL Object '%s' successfully loaded from folder '%s'.\n", objID, objFolder)
 

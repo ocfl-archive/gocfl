@@ -1,6 +1,6 @@
 # Storage Root Initialization Sequence
 
-This document describes the sequence of operations performed during the initialization of an OCFL Storage Root.
+This document describes the sequence of operations performed during the initialization of an OCFL Storage Root. Detailed structural information can be found in the [**Storage Root Architecture Documentation**](architecture.md).
 
 ## Sequence Diagram
 

@@ -9,7 +9,7 @@ The `Initializer` module is used to set up a brand-new OCFL object on a target f
 
 The `Initializer` interface includes methods for configuring and performing the initialization:
 
-- `Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error`: Performs the initialization, including setting the object identifier, primary digest algorithm (e.g., `sha512`), and any additional [Fixity](../../inventory/docs/FIXITY.md) algorithms.
+- `Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error`: Performs the initialization, including setting the object identifier, primary digest algorithm (e.g., `sha512`), and any additional [Fixity](../../inventory/docs/FIXITY.md) algorithms. See the [Creation Sequence Diagram](create_sequence.md) for details.
 - `WithObject(o Object) Initializer`: Associates the initializer with an [Object](OBJECT.md) instance.
 
 > [!NOTE]

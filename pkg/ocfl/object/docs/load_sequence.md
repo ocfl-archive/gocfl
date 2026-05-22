@@ -1,6 +1,6 @@
 # Object Load Sequence
 
-This document describes the sequence of operations performed during the loading of an existing OCFL Object, starting from the high-level entry point.
+This document describes the sequence of operations performed during the loading of an existing OCFL Object, starting from the high-level entry point. Detailed structural information can be found in the [**Object Architecture Documentation**](architecture.md).
 
 ## Sequence Diagram
 
