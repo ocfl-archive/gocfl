@@ -10,7 +10,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"

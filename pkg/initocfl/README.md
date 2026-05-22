@@ -35,7 +35,7 @@ For creating new OCFL structures, the module provides functions that prepare the
 ```go
 import (
     "context"
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 )
 
 // fsys is an fs.FS containing the OCFL Storage Root
@@ -51,7 +51,7 @@ defer srCloser.Close()
 ```go
 import (
     "context"
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
     "github.com/je4/utils/v2/pkg/checksum"
 )

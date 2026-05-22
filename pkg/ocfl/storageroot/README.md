@@ -29,7 +29,7 @@ Common high-level operations like loading a storage root are typically performed
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 )
 
 // Example: Loading a storage root (recommended way)

@@ -38,7 +38,7 @@ The library provides convenient functions in the `initocfl` and `ocflactions` pa
 ```go
 import (
     "context"
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
     "github.com/je4/utils/v2/pkg/checksum"

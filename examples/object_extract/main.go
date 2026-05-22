@@ -12,9 +12,8 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 )
 
@@ -42,7 +41,7 @@ func main() {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
 	// --- Step 3: Virtual Filesystem (VFS) Configuration ---
 	// OCFL operations are performed via a filesystem abstraction layer.
@@ -103,7 +102,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}
-	defer objCloser.Close()
+	defer obj.Close()
 
 	// --- Step 6: Extracting the OCFL Object ---
 	// The objFS is used twice here for different purposes:
@@ -112,10 +111,11 @@ func main() {
 
 	// A: Prepare destination filesystem (local) where the object will be extracted to.
 	destRealPath := writefs.RealPath(vfs, *destPtr)
-	destFS, err := appendfs.Sub(vfs, destRealPath)
+	destFS, closer, err := appendfs.Sub(vfs, destRealPath)
 	if err != nil {
 		log.Fatalf("failed to create destination fs: %v", err)
 	}
+	defer func() { _ = closer.Close() }()
 
 	// B: Get the extractor for the object and specify the source (objFS) and destination (destFS) filesystems.
 	extractor := obj.GetExtractor().WithDestFS(destFS)

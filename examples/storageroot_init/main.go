@@ -12,9 +12,8 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 )
 
@@ -35,7 +34,7 @@ func main() {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
 	// --- Step 3: Virtual Filesystem (VFS) Configuration ---
 	// OCFL operations are performed via a filesystem abstraction layer.
@@ -55,10 +54,11 @@ func main() {
 	// We use appendfs here because it is required for write operations in OCFL,
 	// providing the necessary functionality to append to or create files within the OCFL structure.
 	srPath := writefs.RealPath(vfs, *pathPtr)
-	storageRootFS, err := appendfs.Sub(vfs, srPath)
+	storageRootFS, closer, err := appendfs.Sub(vfs, srPath)
 	if err != nil {
 		log.Fatalf("failed to create subfs of %v for folder '%s': %v", vfs, srPath, err)
 	}
+	defer func() { _ = closer.Close() }()
 
 	// --- Step 4: OCFL Storage Root Initialization ---
 	// Define the target OCFL version.

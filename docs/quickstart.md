@@ -49,7 +49,7 @@ Initialize a new OCFL Storage Root in a given filesystem.
 import (
     "context"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"

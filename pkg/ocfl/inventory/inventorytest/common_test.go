@@ -8,16 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 )
 
 var ctx = context.Background()
-var logger = ocfllogger.NewOCFLLogger(
+var logger = initocfl.NewOCFLLogger(
 	ctx,
 	new(zerolog.New(zerolog.NewConsoleWriter())),
 	nil,

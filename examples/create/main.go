@@ -12,9 +12,8 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 	"github.com/rs/zerolog"
 )
 
@@ -34,7 +33,7 @@ func main() {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := ocfllogger.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
 	// --- Schritt 3: Konfiguration des Virtuellen Dateisystems (VFS) ---
 	cfg := vfsrw.Config{}

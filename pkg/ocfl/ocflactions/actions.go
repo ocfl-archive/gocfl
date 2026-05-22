@@ -12,7 +12,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
