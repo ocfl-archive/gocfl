@@ -138,4 +138,6 @@ type Object interface {
 	GetOCFLVersion() version.OCFLVersion
 	// GetChecker returns a Checker for this object.
 	GetChecker() Checker
+	// Close finalizes the object.
+	Close() error
 }

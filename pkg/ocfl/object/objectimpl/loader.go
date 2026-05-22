@@ -269,7 +269,7 @@ func (loader *Loader) loadExtensionManager() error {
 			return errors.Wrap(err, "cannot create extension manager")
 		}
 	}
-	loader.Object.WithExtensionManager(manager.(object.ExtensionManager))
+	loader.Object.WithExtensionManager(manager)
 	return nil
 }
 

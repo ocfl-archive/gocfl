@@ -69,6 +69,13 @@ type ObjectBase struct {
 	config      *ObjectBaseConfig
 }
 
+func (objectBase *ObjectBase) Close() error {
+	if objectBase.extensionManager != nil {
+		return errors.WithStack(objectBase.extensionManager.Terminate())
+	}
+	return nil
+}
+
 func (objectBase *ObjectBase) GetWriteFS() appendfs.FS {
 	return objectBase.writeFS
 }

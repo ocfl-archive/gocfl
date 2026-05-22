@@ -74,7 +74,7 @@ func main() {
 	// --- Step 5: Object Path Determination ---
 	var objID = *idPtr
 	if storageRootFS != nil {
-		sr, srCloser, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, logger)
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
@@ -95,7 +95,7 @@ func main() {
 		log.Fatalf("failed to create sub fs for object folder '%s': %v", objFolder, err)
 	}
 
-	obj, objCloser, err := initocfl.LoadObject(ctx, objFS, nil, logger)
+	obj, err := initocfl.LoadObject(ctx, objFS, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}

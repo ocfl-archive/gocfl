@@ -82,7 +82,7 @@ func main() {
 	var objID = *idPtr
 	if storageRootFS != nil {
 		// A: Load existing Storage Root.
-		sr, srCloser, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
@@ -106,7 +106,7 @@ func main() {
 	}
 
 	// B: Instantiate and configure the Object.
-	obj, objCloser, err := initocfl.LoadObject(ctx, objFS, nil, logger)
+	obj, err := initocfl.LoadObject(ctx, objFS, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}

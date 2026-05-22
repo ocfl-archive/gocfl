@@ -5,7 +5,6 @@ package initocfl
 
 import (
 	"context"
-	"io"
 	"io/fs"
 
 	"emperror.dev/errors"
@@ -29,7 +28,7 @@ func (f closeFunc) Close() error { return f() } // Muss groß sein!
 // The conf parameter allows passing configurations to the storage root factory
 // (e.g. for storage root, initializer or loader).
 // It returns a storageroot.StorageRoot instance.
-func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string]string, conf map[storageroot.ConfigName]any, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, io.Closer, error) {
+func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string]string, conf map[storageroot.ConfigName]any, logger ocfllogger.OCFLLogger) (storageroot.StorageRoot, error) {
 	ver, err := util.GetStorageRootVersion(fsys)
 	if err != nil {
 		if errors.Is(err, ocflerrors.ErrInvalidContent) {
@@ -39,17 +38,16 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string
 			logger.ValidationError(validation.E003, "no version in fsys '%v'", fsys)
 			ver = version.Default
 		} else {
-			return nil, nil, errors.Wrapf(err, "getting version from fsys '%v'", fsys)
+			return nil, errors.Wrapf(err, "getting version from fsys '%v'", fsys)
 		}
 	}
 
-	extFS, err := fs.Sub(fsys, "extensions")
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "cannot get extensions subfs")
+		return nil, errors.Wrap(err, "cannot get extensions subfs")
 	}
-	srExtManager, srExtFactory, err := SetupExtensionManager[storageroot.ExtensionManager](extensionParams, extFS, logger)
+	srExtFactory, err := NewExtensionFactory[storageroot.ExtensionManager](extensionParams, logger)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "cannot setup extension manager")
+		return nil, errors.Wrap(err, "cannot setup extension manager")
 	}
 	srFactory := NewFactoryStorageRoot(ver, srExtFactory, logger).WithConfig(conf)
 	sr := srFactory.NewStorageRoot(ctx).
@@ -62,17 +60,15 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string
 
 	loader := sr.GetLoader()
 	if err := loader.Load(); err != nil {
-		return nil, nil, errors.Wrap(err, "cannot load storage root")
+		return nil, errors.Wrap(err, "cannot load storage root")
 	}
-	return sr, closeFunc(func() error {
-		return errors.WithStack(srExtManager.Terminate())
-	}), nil
+	return sr, nil
 }
 
 // LoadObject detects the OCFL version of the object at fsys,
 // initializes the extension manager, and loads the object structure.
 // It returns an object.Object instance.
-func LoadObject(ctx context.Context, fsys fs.FS, extensionParams map[string]string, logger ocfllogger.OCFLLogger) (object.Object, io.Closer, error) {
+func LoadObject(ctx context.Context, fsys fs.FS, extensionParams map[string]string, logger ocfllogger.OCFLLogger) (object.Object, error) {
 	ver, err := util.GetObjectVersion(fsys)
 	if err != nil {
 		if errors.Is(err, ocflerrors.ErrInvalidContent) {
@@ -82,23 +78,22 @@ func LoadObject(ctx context.Context, fsys fs.FS, extensionParams map[string]stri
 			logger.ValidationError(validation.E003, "no version in fsys '%v'", fsys)
 			ver = version.Default
 		} else {
-			return nil, nil, errors.Wrapf(err, "getting version from fsys '%v'", fsys)
+			return nil, errors.Wrapf(err, "getting version from fsys '%v'", fsys)
 		}
 	}
 	// logger needs to know the version
 	logger.WithVersion(ver)
 
-	extFS, err := fs.Sub(fsys, "extensions")
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "cannot get extensions subfs")
+		return nil, errors.Wrap(err, "cannot get extensions subfs")
 	}
-	objExtManager, objExtFactory, err := SetupExtensionManager[object.ExtensionManager](extensionParams, extFS, logger)
+	objExtFactory, err := NewExtensionFactory[object.ExtensionManager](extensionParams, logger)
+	//objExtManager, objExtFactory, err := SetupExtensionManager[object.ExtensionManager](extensionParams, extFS, logger)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "cannot setup extension manager")
+		return nil, errors.Wrap(err, "cannot setup extension manager")
 	}
 	objFactory := NewFactoryObject(ver, objExtFactory, logger)
 	obj := objFactory.NewObject(ctx).
-		WithExtensionManager(objExtManager).
 		WithReadFS(fsys)
 
 	if writeFS, ok := fsys.(appendfs.FS); ok {
@@ -107,9 +102,7 @@ func LoadObject(ctx context.Context, fsys fs.FS, extensionParams map[string]stri
 
 	loader := obj.GetLoader()
 	if err := loader.Load(); err != nil {
-		return nil, nil, errors.Wrap(err, "cannot load object")
+		return nil, errors.Wrap(err, "cannot load object")
 	}
-	return obj, closeFunc(func() error {
-		return errors.WithStack(objExtManager.Terminate())
-	}), nil
+	return obj, nil
 }

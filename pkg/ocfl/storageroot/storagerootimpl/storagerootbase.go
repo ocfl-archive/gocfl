@@ -57,6 +57,13 @@ type StorageRootBase struct {
 	config           *StorageRootBaseConfig
 }
 
+func (osr *StorageRootBase) Close() error {
+	if osr.extensionManager != nil {
+		return errors.WithStack(osr.extensionManager.Terminate())
+	}
+	return nil
+}
+
 func (osr *StorageRootBase) IsWriteable() bool {
 	return osr.appendFS != nil
 }

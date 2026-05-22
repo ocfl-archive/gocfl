@@ -223,10 +223,11 @@ func (versionWriter *versionWriter) storeExtensions() error {
 	if versionWriter.writeFS == nil {
 		return errors.New("object write FS is nil")
 	}
-	subFS, err := appendfs.Sub(versionWriter.writeFS, "extensions")
+	subFS, closer, err := appendfs.Sub(versionWriter.writeFS, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create sub filesystem %v/extensions", versionWriter.writeFS)
 	}
+	defer closer.Close()
 	if err := versionWriter.obj.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrap(err, "cannot store extension configs")
 	}

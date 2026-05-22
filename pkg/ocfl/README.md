@@ -20,6 +20,7 @@ Contains high-level orchestration functions for common tasks such as loading, cr
 
 ### [Inventory](./inventory/README.md)
 This package defines the structures and interfaces for the OCFL Inventory (`inventory.json`). It is the heart of an OCFL object and contains all metadata about versions, files, and fixity information.
+- [**Architecture Diagram**](./inventory/docs/architecture.md)
 - [Inventory](./inventory/docs/INVENTORY.md)
 - [Version](./inventory/docs/VERSION.md)
 - [Manifest](./inventory/docs/MANIFEST.md)

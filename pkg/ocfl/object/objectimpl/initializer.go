@@ -73,10 +73,11 @@ func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm,
 	if err := writefs.MkDir(initializer.GetWriteFS(), "extensions"); err != nil {
 		return errors.Wrapf(err, "cannot create '%v/%s'", initializer.GetWriteFS(), "extensions")
 	}
-	subFS, err := appendfs.Sub(initializer.GetWriteFS(), "extensions")
+	subFS, closer, err := appendfs.Sub(initializer.GetWriteFS(), "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", initializer.GetWriteFS(), "extensions")
 	}
+	defer closer.Close()
 	if err := initializer.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrapf(err, "cannot write extension config to %v", subFS)
 	}

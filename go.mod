@@ -7,7 +7,7 @@ require (
 	emperror.dev/errors v0.8.1
 	github.com/google/uuid v1.6.0
 	github.com/je4/utils/v2 v2.0.68
-	github.com/ocfl-archive/filesystem v1.0.4
+	github.com/ocfl-archive/filesystem v1.0.5
 	github.com/ocfl-archive/indexer/v3 v3.0.44
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.11.1

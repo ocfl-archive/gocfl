@@ -9,6 +9,8 @@
 //   - Manifest: Mapping of content digests to physical file paths.
 //   - Fixity: Optional additional fixity information for physical files.
 //
+// For a visual overview of the architecture, see docs/architecture.md.
+//
 // It is recommended to use the factory in pkg/ocfl/factory to create inventory components,
 // as it ensures correct creation according to the desired OCFL version.
 package inventory

@@ -4,7 +4,8 @@ This package defines the structures and interfaces for the OCFL (Oxford Common F
 
 ## Overview
 
-The inventory structure is divided into several structural modules to maintain clarity and follow the OCFL specification:
+The inventory structure is divided into several structural modules to maintain clarity and follow the OCFL specification. For a visual overview, see the [**Architecture Diagram**](docs/architecture.md).
+
 - **Inventory**: The central management unit.
 - **Versions**: Management of the version history and the state of each version.
 - **Manifest**: Mapping of content digests to physical file paths.
@@ -29,6 +30,7 @@ go doc -all pkg/ocfl/inventory
 
 Detailed documentation is available for each module in the [**docs**](docs/README.md) directory:
 
+- [**Architecture**](docs/architecture.md): Visual representation of the interface hierarchy.
 - [**Inventory**](docs/INVENTORY.md): The central document of the OCFL object.
 - [**Version**](docs/VERSION.md): Metadata and state of a single version.
 - [**Manifest**](docs/MANIFEST.md): Mapping of digests to physical files.

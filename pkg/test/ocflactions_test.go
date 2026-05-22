@@ -52,8 +52,11 @@ func testOCFLActions(t *testing.T, ocflVer version.OCFLVersion) {
 
 	t.Run("Extract", func(t *testing.T) {
 		extractPath := "vfs://testmem/extract_actions"
-		destFS, err := appendfs.Sub(appendfs.FS(env.DestFS), extractPath)
+		destFS, closer, err := appendfs.Sub(appendfs.FS(env.DestFS), extractPath)
 		require.NoError(t, err)
+		t.Cleanup(func() {
+			_ = closer.Close()
+		})
 
 		// Wir nutzen env.ReadSRFS als Basis und geben den relativen Pfad zum Objekt an
 		err = ocflactions.Extract(t.Context(), env.ReadSRFS, destFS, objFolder, inventory.NewVersionNumber(), true, "", env.OCFLLogger)

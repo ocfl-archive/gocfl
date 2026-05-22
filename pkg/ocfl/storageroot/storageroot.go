@@ -87,4 +87,6 @@ type StorageRoot interface {
 	Stat(w io.Writer, path string, id string, statInfo []object.StatInfo) error
 	// WithDigestAlgorithm sets the default digest algorithm and returns the storage root.
 	WithDigestAlgorithm(digest checksum.DigestAlgorithm) StorageRoot
+	// Close finalizes the storage root.
+	Close() error
 }

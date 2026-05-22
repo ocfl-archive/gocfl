@@ -314,19 +314,21 @@ func (manager *GOCFLExtensionManager[T]) WriteConfig(fsys appendfs.FS) error {
 		return errors.New("no extension manager initial")
 	}
 	for _, ext := range append(manager.extensions, manager.initial) {
-		subFS, err := appendfs.Sub(fsys, ext.GetName())
+		subFS, closer, err := appendfs.Sub(fsys, ext.GetName())
 		if err != nil {
 			return errors.Wrapf(err, "cannot create sub filesystem for %v/%s", fsys, ext.GetName())
 		}
 		if err := ext.WriteConfig(subFS); err != nil {
 			return errors.Wrapf(err, "cannot store '%s'", ext.GetName())
 		}
+		closer.Close()
 	}
 
-	subFS, err := appendfs.Sub(fsys, manager.GetName())
+	subFS, closer, err := appendfs.Sub(fsys, manager.GetName())
 	if err != nil {
 		return errors.Wrapf(err, "cannot create sub filesystem for %v/%s", fsys, manager.GetName())
 	}
+	defer closer.Close()
 	configWriter, err := writefs.Create(subFS, "config.json")
 	if err != nil {
 		return errors.Wrap(err, "cannot open config.json")

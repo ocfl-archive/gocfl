@@ -69,10 +69,11 @@ func (init *initializer) Init() error {
 			return errors.Wrapf(err, "cannot create '%v/%s'", init.storageRootFS, "extensions")
 		}
 	*/
-	subFS, err := appendfs.Sub(init.storageRootFS, "extensions")
+	subFS, closer, err := appendfs.Sub(init.storageRootFS, "extensions")
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", init.storageRootFS, "extensions")
 	}
+	defer closer.Close()
 	if err := init.GetExtensionManager().WriteConfig(subFS); err != nil {
 		return errors.Wrapf(err, "cannot write extension config to %v", subFS)
 	}

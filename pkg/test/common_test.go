@@ -54,20 +54,26 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 
 	destFS := appendfs.FS(vfs)
 
-	srFS, err := appendfs.Sub(destFS, "vfs://testmem/")
+	srFS, closer, err := appendfs.Sub(destFS, "vfs://testmem/")
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = closer.Close()
+	})
 
 	_, err = initocfl.InitStorageRoot(ctx, srFS, srFS, ocflVer, checksum.DigestSHA512, nil, logger)
 	require.NoError(t, err)
 
 	// Lese-Dateisystem für Storage Root (als fs.FS) neu laden
 	// Wir nutzen hier das ursprüngliche destFS, da es für In-Memory VFS okay ist.
-	readsrfsAppend, err := appendfs.Sub(destFS, "vfs://testmem/")
+	readsrfsAppend, closer, err := appendfs.Sub(destFS, "vfs://testmem/")
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = closer.Close()
+	})
 	readSRFS := fs.FS(readsrfsAppend)
 
 	// Den Storage Root neu laden
-	sr, srCloser, err := initocfl.LoadStorageRoot(ctx, readSRFS, nil, nil, logger)
+	sr, err := initocfl.LoadStorageRoot(ctx, readSRFS, nil, nil, logger)
 	require.NoError(t, err)
 	// Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 	sr = sr.WithWriteFS(srFS)
@@ -79,7 +85,7 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 		StorageRoot: sr,
 		Logger:      _zlogger,
 		OCFLLogger:  logger,
-		Closer:      srCloser,
+		Closer:      sr,
 	}
 }
 
@@ -87,8 +93,11 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string, ocflVer version.
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
 	require.NoError(t, err)
 
-	objFS, err := appendfs.Sub(env.SourceFS, objFolder)
+	objFS, closer, err := appendfs.Sub(env.SourceFS, objFolder)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = closer.Close()
+	})
 
 	obj, err := initocfl.InitObject(t.Context(), objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, env.OCFLLogger)
 	require.NoError(t, err)
@@ -104,8 +113,8 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
 	require.NoError(t, err)
 
-	loadedObj, objCloser, err := initocfl.LoadObject(t.Context(), objFS, nil, env.OCFLLogger)
+	loadedObj, err := initocfl.LoadObject(t.Context(), objFS, nil, env.OCFLLogger)
 	require.NoError(t, err)
 
-	return loadedObj, objFS, objCloser
+	return loadedObj, objFS, loadedObj
 }

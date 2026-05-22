@@ -77,11 +77,11 @@ func main() {
 	// --- Step 5: Storage Root and Object Loading ---
 	// If a Storage Root is provided, we determine the Object's folder.
 	if storageRootFS != nil {
-		sr, srCloser, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, logger)
+		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
-		defer srCloser.Close()
+		defer sr.Close()
 
 		// Determine the folder path for the given Object ID within the Storage Root.
 		objFolder, err = sr.IdToFolder(objID)
@@ -99,7 +99,7 @@ func main() {
 	}
 
 	// Load the existing object.
-	obj, objCloser, err := initocfl.LoadObject(ctx, objFS, nil, logger)
+	obj, err := initocfl.LoadObject(ctx, objFS, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}

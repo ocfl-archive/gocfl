@@ -78,8 +78,11 @@ func testObjectExtract(t *testing.T, ocflVer version.OCFLVersion) {
 	for vNum := range inv.GetVersions().GetVersionNumbers() {
 		t.Run(vNum.String(), func(t *testing.T) {
 			extractPath := "vfs://testmem/extract_" + vNum.String()
-			destFS, err := appendfs.Sub(appendfs.FS(vfs), extractPath)
+			destFS, closer, err := appendfs.Sub(appendfs.FS(vfs), extractPath)
 			require.NoError(t, err)
+			t.Cleanup(func() {
+				_ = closer.Close()
+			})
 
 			extractor := loadedObj.GetExtractor().WithDestFS(destFS)
 			err = extractor.Extract(vNum, true, "")

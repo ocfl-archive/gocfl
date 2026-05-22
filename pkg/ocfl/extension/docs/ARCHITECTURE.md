@@ -1,58 +1,78 @@
-# Extension System Architecture
+# Extension Architecture
 
-The OCFL extension system in this library is built around three core concepts: the **Extension**, the **Manager**, and the **Factory**.
+This documentation describes the architecture of the extension system in `gocfl`. The system is designed to modularly extend the functionality of OCFL objects and Storage Roots.
 
-## Overview
+## Class Diagram of the ExtensionManager
+
+The `ExtensionManager` is the central orchestrator for all extensions. There are specialized managers for objects and Storage Roots, each supporting different sets of interfaces.
 
 ```mermaid
-graph TD
-    Registry[(Extension Registry)]
-    Factory[Extension Factory]
-    Manager[Extension Manager]
-    Ext1[Extension A]
-    Ext2[Extension B]
-    Object[OCFL Object / Root]
+classDiagram
+    class Extension {
+        <<interface>>
+        +GetName() string
+        +GetConfig() any
+    }
 
-    Registry -->|Provides Creators| Factory
-    Factory -->|Instantiates| Ext1
-    Factory -->|Instantiates| Ext2
-    Factory -->|Creates & Populates| Manager
-    Manager -->|Coordinates| Ext1
-    Manager -->|Coordinates| Ext2
-    Object -->|Uses| Manager
+    class ManagerCore~T~ {
+        <<interface>>
+        +GetExtensions() []Extension
+        +Add(Extension)
+        +Finalize()
+    }
+
+    class ObjectExtensionManager {
+        <<interface>>
+        +BuildObjectManifestPath()
+        +GetMetadata()
+        +...()
+    }
+
+    class StorageRootExtensionManager {
+        <<interface>>
+        +WriteLayout()
+        +BuildStorageRootPath()
+    }
+
+    class ExtensionObjectContentPath {
+        <<interface>>
+        +BuildObjectManifestPath(path, area)
+    }
+
+    class ExtensionMetadata {
+        <<interface>>
+        +GetMetadata(fs, obj)
+    }
+
+    class ExtensionStorageRootPath {
+        <<interface>>
+        +WriteLayout(fsys)
+        +BuildStorageRootPath(sr, id)
+    }
+
+    ManagerCore --|> Extension : embeds
+    ObjectExtensionManager --|> ManagerCore : embeds
+    ObjectExtensionManager --|> ExtensionObjectContentPath : embeds
+    ObjectExtensionManager --|> ExtensionMetadata : embeds
+    
+    StorageRootExtensionManager --|> ManagerCore : embeds
+    StorageRootExtensionManager --|> ExtensionStorageRootPath : embeds
+
+    note for ObjectExtensionManager "Details see pkg/ocfl/object"
+    note for StorageRootExtensionManager "Details see pkg/ocfl/storageroot"
 ```
 
-### 1. The Extension (The Worker)
-An [**Extension**](EXTENSION.md) is a self-contained unit of logic. It knows how to do one specific thing (e.g., hash a file, map a path, or store metadata). It is passive and waits to be called.
+## Core Components
 
-### 2. The Manager (The Orchestrator)
-The [**Manager**](MANAGER.md) is the central coordinator. It holds a collection of Extensions and knows when to call which one.
-- It provides a unified interface for the OCFL Object or Storage Root.
-- It handles the order of extensions.
-- It manages the persistence of all extension configurations.
+- **Extension**: The base interface for all extensions. Every extension has a name and a configuration.
+- **ManagerCore**: Defines the basic functions for managing a collection of extensions (adding, listing, initializing).
+- **ExtensionManager (Object)**: Combines interfaces relevant for the manipulation and querying of OCFL objects (e.g., path mapping, metadata extraction).
+- **ExtensionManager (Storage Root)**: Combines interfaces for managing the Storage Root, in particular the Storage Layout.
 
-### 3. The Factory (The Creator)
-The [**Factory**](FACTORY.md) is the bootstrapping mechanism.
-- It maintains a registry of all available extension implementations.
-- It translates names (from OCFL configuration files) into Go objects.
-- It creates the Manager and fills it with the necessary Extension instances.
+## Specialized Interfaces (Examples)
 
-## Workflow Example: Loading an Object
+- **ExtensionObjectContentPath**: Allows extensions to influence the physical paths within an object.
+- **ExtensionMetadata**: Enables the collection of additional metadata during object operations.
+- **ExtensionStorageRootPath**: Defines how object IDs are mapped to directories in the Storage Root.
 
-1. The **Object Loader** encounters an `extensions/` directory.
-2. It asks the **Factory** to `LoadExtensionManager(fsys)`.
-3. The **Factory** reads the `extensions/` directory:
-   - It finds the `initial` extension to determine which Manager type to use.
-   - It iterates through all other subdirectories.
-   - For each subdirectory, it looks up the extension name in its registry.
-   - It creates an instance of the `Extension` and loads its `config.json`.
-4. The **Factory** creates the **Manager** instance, adds all loaded **Extensions** to it, and returns it to the Loader.
-5. The **Object** now uses this **Manager** for all subsequent operations.
-
-## Summary of Differences
-
-| Component | Responsibility | Analog |
-| :--- | :--- | :--- |
-| **Extension** | Functional Logic | Tools in a toolbox |
-| **Manager** | Coordination & State | The craftsman using the tools |
-| **Factory** | Discovery & Creation | The tool shop where you buy/order tools |
+Detailed information on integration can be found in the [**Object Architecture**](../../object/docs/architecture.md) and the [**Storage Root Architecture**](../../storageroot/docs/architecture.md).

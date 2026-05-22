@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -56,13 +55,11 @@ func main() {
 	}
 
 	srPath := writefs.RealPath(vfs, *pathPtr)
-	storageRootFS, err := appendfs.Sub(vfs, srPath)
+	storageRootFS, closer, err := appendfs.Sub(vfs, srPath)
 	if err != nil {
 		log.Fatalf("Sub-FS für Storage Root '%s' konnte nicht erstellt werden: %v", srPath, err)
 	}
-	if closer, ok := storageRootFS.(io.Closer); ok {
-		defer closer.Close()
-	}
+	defer closer.Close()
 
 	// --- Schritt 4: Initialisierung des OCFL Storage Roots ---
 	ocflVer := version.Version1_1
@@ -80,10 +77,11 @@ func main() {
 	}
 
 	// --- Schritt 6: Initialisierung des OCFL-Objekts ---
-	objFS, err := appendfs.Sub(storageRootFS, objFolder)
+	objFS, closer, err := appendfs.Sub(storageRootFS, objFolder)
 	if err != nil {
 		log.Fatalf("Sub-FS für Objektordner '%s' konnte nicht erstellt werden: %v", objFolder, err)
 	}
+	defer closer.Close()
 
 	obj, err := initocfl.InitObject(ctx, objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, logger)
 	if err != nil {
