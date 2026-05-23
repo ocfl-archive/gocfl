@@ -77,8 +77,8 @@ func testObjectUpdate(t *testing.T, ocflVer version.OCFLVersion) {
 	defer loadedObjCloser.Close()
 
 	// Validierung des Objekts
-	checker := loadedObj.GetChecker()
-	err = checker.Check()
+	validator := loadedObj.GetValidator()
+	err = validator.Validate()
 	require.NoError(t, err, "Object validation should pass")
 
 	validationErrors := env.OCFLLogger.ValidationErrors()

@@ -19,9 +19,9 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-// CheckObject validates an OCFL object located at objectFS.
-// It loads the object and performs structural and fixity checks using the object's checker.
-func CheckObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogger) error {
+// ValidateObject validates an OCFL object located at objectFS.
+// It loads the object and performs structural and fixity checks using the object's validator.
+func ValidateObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogger) error {
 	fmt.Printf("object folder '%v'\n", objectFS)
 	obj, err := initocfl.LoadObject(ctx, objectFS, nil, logger)
 	if err != nil {
@@ -29,9 +29,9 @@ func CheckObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogg
 		return errors.Wrapf(err, "cannot load object from folder '%v'", objectFS)
 	}
 	defer func() { _ = obj.Close() }()
-	checker := obj.GetChecker()
-	if err := checker.Check(); err != nil {
-		return errors.Wrapf(err, "cannot check object from folder '%v'", objectFS)
+	validator := obj.GetValidator()
+	if err := validator.Validate(); err != nil {
+		return errors.Wrapf(err, "cannot validate object from folder '%v'", objectFS)
 	}
 	return nil
 }

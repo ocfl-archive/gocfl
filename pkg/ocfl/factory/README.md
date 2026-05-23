@@ -16,7 +16,7 @@ Detailed architectural information and sequence diagrams can be found in the [do
 ### `FactoryObject` and `FactoryStorageRoot` Interfaces
 Defined in `pkg/ocfl/factory/factoryInterface.go`, these are the central interfaces that aggregate several sub-factories into a **Unified Factory**:
 - `FactoryObject`:
-    - `object.Factory`: For creating object loaders, initializers, checkers, extractors, and object instances.
+    - `object.Factory`: For creating object loaders, initializers, validators, extractors, and object instances.
     - `inventory.Factory`: For creating inventories, fixity information, users, manifests, versions, and states.
 - `FactoryStorageRoot`:
     - `storageroot.Factory`: For creating storage roots, storage root loaders, and initializers.

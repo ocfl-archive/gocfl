@@ -1,20 +1,18 @@
 # Loader Module
 
-The `Loader` module is responsible for reading and parsing an existing OCFL object from a filesystem. It handles the initial discovery of the object's structure and its version history.
+The `Loader` module reads and parses an existing OCFL object from a filesystem. It discovers the object structure, version history, and associated extensions.
 
 - **Interface**: `Loader` (`pkg/ocfl/object/object.go`)
 
-## Main Methods
+## Key Methods
 
-The `Loader` interface includes several key methods for configuring and executing the loading process:
-
-- `Load() error`: Performs the actual reading of the object structure from the filesystem, including parsing the [Inventory](../../inventory/README.md) and discovering available extensions. See the [Load Sequence Diagram](load_sequence.md) for details.
+- `Load() error`: Reads the object structure, parses the [Inventory](../../inventory/README.md), and discovers extensions. See [Load Sequence](load_sequence.md) for details.
 - `WithObject(o Object) Loader`: Associates the loader with an [Object](OBJECT.md) instance.
-- `SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader`: Configures the [Extension Factory](../../extension/README.md) to use for instantiating extensions during the load process.
+- `SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader`: Configures the [Extension Factory](../../extension/README.md) for instantiating extensions during load.
 - `GetFS() fs.FS`: Returns the filesystem associated with the loader.
 
 > [!NOTE]
-> Parameters like the filesystem are now passed to the `Object` via `WithReadFS(fsys)` before calling `GetLoader()`.
+> The target filesystem is associated with the `Object` via `WithReadFS(fsys)` before retrieving the loader.
 
 ## Usage Example
 
@@ -24,16 +22,16 @@ Typically, the loader is accessed via the [Object](OBJECT.md) interface:
 // Configure the object with a filesystem
 obj.WithReadFS(sourceFS)
 
-// Get the loader and load the object
+// Load the object
 loader := obj.GetLoader()
 if err := loader.Load(); err != nil {
     // handle error
 }
 ```
 
-The high-level function `initocfl.LoadObject` in [pkg/ocfl/initocfl](../../initocfl/README.md) is the recommended way to load existing objects as it handles version detection and extension setup automatically.
+The high-level function `initocfl.LoadObject` is the recommended way to load objects as it automates version detection and extension setup.
 
 ---
-- [Back to Object Documentation Overview](README.md)
+- [Object Documentation Overview](README.md)
 - [The Object Interface](OBJECT.md)
 - [Functional Modules Index](MODULES.md)

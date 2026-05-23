@@ -111,8 +111,8 @@ func main() {
 
 	// --- Step 7: Object Validation ---
 	fmt.Printf("Validating object '%s'...\n", objID)
-	checker := obj.GetChecker()
-	err = checker.Check()
+	validator := obj.GetValidator()
+	err = validator.Validate()
 
 	vErrors := logger.ValidationErrors()
 	if len(vErrors) > 0 {

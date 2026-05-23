@@ -13,7 +13,7 @@ classDiagram
         +NewObject(ctx) Object
         +NewLoader(ctx) Loader
         +NewInitializer(ctx) Initializer
-        +NewChecker(ctx) Checker
+        +NewValidator(ctx) Validator
         +NewExtractor(ctx) Extractor
         +NewVersionWriter(ctx) VersionWriter
     }
@@ -70,7 +70,7 @@ classDiagram
         - `NewObject`: Erstellt eine Instanz eines OCFL-Objekts.
         - `NewLoader`: Erstellt einen Loader zum Einlesen bestehender Objekte.
         - `NewInitializer`: Initialisiert neue OCFL-Objekte.
-        - `NewChecker`: Validiert Objekte.
+        - `NewValidator`: Validates objects.
         - `NewExtractor`: Extrahiert Inhalte.
         - `NewVersionWriter`: Schreibt neue Versionen.
     - **Inventory-Komponenten** (`inventory.Factory`):

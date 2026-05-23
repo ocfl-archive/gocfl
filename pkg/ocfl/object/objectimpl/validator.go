@@ -21,35 +21,35 @@ import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/util"
 )
 
-type CheckerConfig struct{}
+type ValidatorConfig struct{}
 
-func NewObjectBaseChecker(ctx context.Context, factory factory.FactoryObject, config any, logger ocfllogger.OCFLLogger) object.Checker {
-	checkerConfig, ok := config.(*CheckerConfig)
+func NewObjectBaseValidator(ctx context.Context, factory factory.FactoryObject, config any, logger ocfllogger.OCFLLogger) object.Validator {
+	validatorConfig, ok := config.(*ValidatorConfig)
 	if config != nil && !ok {
-		logger.Error().Msg("invalid config type for checker")
+		logger.Error().Msg("invalid config type for validator")
 	}
-	return &checker{
+	return &validator{
 		ctx:     ctx,
 		factory: factory,
-		logger:  logger.With("task", "checker"),
-		config:  checkerConfig,
+		logger:  logger.With("task", "validator"),
+		config:  validatorConfig,
 	}
 }
 
-type checker struct {
+type validator struct {
 	object.Object
 	ctx     context.Context
 	factory factory.FactoryObject
 	logger  ocfllogger.OCFLLogger
-	config  *CheckerConfig
+	config  *ValidatorConfig
 }
 
-func (obj *checker) WithObject(obj2 object.Object) object.Checker {
+func (obj *validator) WithObject(obj2 object.Object) object.Validator {
 	obj.Object = obj2
 	return obj
 }
 
-func (obj *checker) Check() error {
+func (obj *validator) Validate() error {
 	fsys := obj.GetReadFS()
 	if fsys == nil {
 		obj.logger.Panic().Msg("object FS is not set")
@@ -122,7 +122,7 @@ func (obj *checker) Check() error {
 
 var allowedFilesRegexp = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
 
-func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, string, error) {
+func (obj *validator) getVersionInventories() (map[string]inventory.Inventory, string, error) {
 	inv := obj.GetInventory()
 	if inv.GetVersions().IsEmpty() {
 		return map[string]inventory.Inventory{}, "", nil
@@ -159,7 +159,7 @@ func (obj *checker) getVersionInventories() (map[string]inventory.Inventory, str
 	return versionInventories, lastDigestString, nil
 }
 
-func (obj *checker) checkVersionFolder(version string) error {
+func (obj *validator) checkVersionFolder(version string) error {
 	versionEntries, err := fs.ReadDir(obj.GetReadFS(), version)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
@@ -175,7 +175,7 @@ func (obj *checker) checkVersionFolder(version string) error {
 	return nil
 }
 
-func (obj *checker) checkFilesAndVersions() error {
+func (obj *validator) checkFilesAndVersions() error {
 	inv := obj.GetInventory()
 	//ocflVersion := inv.GetOCFLVersion()
 	// create list of version content directories
@@ -466,7 +466,7 @@ func (obj *checker) checkFilesAndVersions() error {
 	return nil
 }
 
-func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (obj *validator) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	inv := obj.GetInventory()
 	// get all possible digest algs
 	digestAlgorithms := append(util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
@@ -529,4 +529,4 @@ func (obj *checker) createContentManifest() (map[checksum.DigestAlgorithm]map[st
 	return result, nil
 }
 
-var _ object.Checker = (*checker)(nil)
+var _ object.Validator = (*validator)(nil)

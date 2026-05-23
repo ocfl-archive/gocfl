@@ -4,10 +4,10 @@ The `ocflactions` package provides high-level orchestration functions for common
 
 ## Core Functions
 
-### [CheckObject](actions.go)
-Validates an OCFL object by loading it and running its checker.
+### [ValidateObject](actions.go)
+Validates an OCFL object by loading it and running its validator.
 - Loads the object using `initocfl.LoadObject`.
-- Executes the object's checker to verify its integrity.
+- Executes the object's validator to verify its integrity.
 
 ### [Extract](actions.go)
 Extracts files from a specific version of an OCFL object to a destination filesystem.
@@ -32,7 +32,7 @@ import (
 // ... setup objectFS (fs.FS) and logger ...
 
 ctx := context.Background()
-err := ocflactions.CheckObject(ctx, objectFS, logger)
+err := ocflactions.ValidateObject(ctx, objectFS, logger)
 if err != nil {
     // handle error
 }

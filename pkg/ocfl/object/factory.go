@@ -10,8 +10,8 @@ type ConfigName string
 const (
 	// ObjectName is the configuration name for the object instance.
 	ObjectName ConfigName = "object"
-	// CheckerName is the configuration name for the checker instance.
-	CheckerName ConfigName = "checker"
+	// ValidatorName is the configuration name for the validator instance.
+	ValidatorName ConfigName = "validator"
 	// LoaderName is the configuration name for the loader instance.
 	LoaderName ConfigName = "loader"
 	// InitializerName is the configuration name for the initializer instance.
@@ -33,8 +33,8 @@ type Factory interface {
 	NewLoader(ctx context.Context) Loader
 	// NewInitializer creates a new Initializer instance.
 	NewInitializer(ctx context.Context) Initializer
-	// NewChecker creates a new Checker instance.
-	NewChecker(ctx context.Context) Checker
+	// NewValidator creates a new Validator instance.
+	NewValidator(ctx context.Context) Validator
 	// NewExtractor creates a new Extractor instance.
 	NewExtractor(ctx context.Context) Extractor
 	// NewVersionWriter creates a new VersionWriter instance.

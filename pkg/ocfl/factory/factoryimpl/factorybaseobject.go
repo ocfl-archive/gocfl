@@ -71,8 +71,8 @@ func (f *FactoryBaseObject) NewInitializer(ctx context.Context) object.Initializ
 	return objectimpl.NewInitializer(ctx, f.factory, f.config[object.InitializerName], f.logger)
 }
 
-func (f *FactoryBaseObject) NewChecker(ctx context.Context) object.Checker {
-	return objectimpl.NewObjectBaseChecker(ctx, f.factory, f.config[object.CheckerName], f.logger)
+func (f *FactoryBaseObject) NewValidator(ctx context.Context) object.Validator {
+	return objectimpl.NewObjectBaseValidator(ctx, f.factory, f.config[object.ValidatorName], f.logger)
 }
 
 func (f *FactoryBaseObject) NewExtractor(ctx context.Context) object.Extractor {

@@ -1,83 +1,78 @@
 # Object Extension Hooks
 
-This document describes the available extension hooks for OCFL objects in the `pkg/ocfl/object` package. These hooks allow extensions to intervene in various phases of the object lifecycle or perform path transformations.
+This document describes the extension hooks available for OCFL objects. These hooks allow extensions to intervene in the object lifecycle, perform path transformations, or add custom metadata.
 
-The `ExtensionManager` checks at runtime via type assertion whether a loaded extension implements one of these interfaces and calls the corresponding methods.
+The `ExtensionManager` uses type assertions at runtime to identify which hooks an extension implements and calls the corresponding methods.
 
 ## Path Transformations
 
-These hooks influence how paths are formed within the OCFL object (e.g., in the manifest or state).
+Hooks that influence how paths are generated within the OCFL object (e.g., manifest, state, or extraction).
 
 ### `ExtensionObjectContentPath`
-Transforms paths for the object's content.
+Transforms paths for object content.
 - **Method**: `BuildObjectManifestPath(originalPath string, area string) (string, error)`
-- **Usage**: Called when a physical path in the OCFL object (inside `content/`) needs to be generated for a file.
+- **Usage**: Called when generating a physical path (under `content/`) for a file.
 
 ### `ExtensionObjectStatePath`
-Transforms paths for the state (logical view) of the object.
+Transforms paths for the logical state.
 - **Method**: `BuildObjectStatePath(originalPath string, area string) (string, error)`
-- **Usage**: Influences the path under which a file appears in the `state` section of the inventory.
+- **Usage**: Influences the logical path in the `state` section of the inventory.
 
 ### `ExtensionObjectExtractPath`
-Determines the path when extracting files.
+Determines paths during extraction.
 - **Method**: `BuildObjectExtractPath(originalPath string, area string) (string, error)`
-- **Usage**: Used when files are extracted from the object into a local file system.
+- **Usage**: Used when extracting files to a destination filesystem.
 
-## Content and Object Changes
+## Content and Object Operations
 
-These hooks are called when operations are performed on the object.
+Hooks called during write operations or general object updates.
 
 ### `ExtensionContentChange`
 Enables actions before and after file operations.
 - **Methods**:
-    - `AddFileBefore(object VersionWriter, sourceFS fs.FS, source string, dest string, area string, isDir bool) error`
-    - `AddFileAfter(versionWriter VersionWriter, sourceFS fs.FS, source []string, internalPath, digest, area string, isDir bool) error`
-    - `UpdateFileBefore(object VersionWriter, sourceFS fs.FS, source, dest, area string, isDir bool) error`
-    - `UpdateFileAfter(object VersionWriter, sourceFS fs.FS, source, area string, isDir bool) error`
-    - `DeleteFileBefore(versionWriter VersionWriter, dest string, area string) error`
-    - `DeleteFileAfter(object VersionWriter, dest string, area string) error`
+    - `AddFileBefore(...)`, `AddFileAfter(...)`
+    - `UpdateFileBefore(...)`, `UpdateFileAfter(...)`
+    - `DeleteFileBefore(...)`, `DeleteFileAfter(...)`
 - **Usage**: Ideal for logging, validation, or automatic generation of sidecar files.
 
 ### `ExtensionObjectChange`
-Called for general changes to the object.
-- **Methods**:
-    - `UpdateObjectBefore(object VersionWriter) error`
-    - `UpdateObjectAfter(object VersionWriter) error`
+Called during general object updates.
+- **Methods**: `UpdateObjectBefore(...)`, `UpdateObjectAfter(...)`
 
 ## Metadata and Fixity
 
 ### `ExtensionMetadata`
-Enables adding custom metadata.
+Adds custom metadata.
 - **Method**: `GetMetadata(sourceFS fs.FS, obj Object) (map[string]any, error)`
-- **Usage**: The returned metadata is integrated into the object's metadata output.
+- **Usage**: Integrated into the object's metadata output.
 
 ### `ExtensionFixityDigest`
 Registers additional checksum algorithms.
 - **Method**: `GetFixityDigests() []checksum.DigestAlgorithm`
-- **Usage**: Allows protecting files with additional algorithms beyond the OCFL standard (SHA-512/SHA-256).
+- **Usage**: Protects files with additional algorithms beyond the OCFL primary digest.
 
 ## Lifecycle and Workflow
 
 ### `ExtensionArea`
-Manages paths for specific work areas (Areas).
+Manages paths for specific work areas.
 - **Method**: `GetAreaPath(area string) (string, error)`
 
 ### `ExtensionStream`
-Enables streaming of content into or out of the object.
-- **Method**: `StreamObject(object VersionWriter, reader io.Reader, stateFiles []string, dest string) error`
-- **Note**: Since the data stream is split using `io.MultiWriter`, all registered stream hooks are served in parallel.
+Enables streaming content into or out of the object.
+- **Method**: `StreamObject(writer VersionWriter, reader io.Reader, stateFiles []string, dest string) error`
+- **Note**: Streams are processed in parallel using `io.MultiWriter`.
 
 ### `ExtensionNewVersion`
-Controls the automatic creation of subsequent versions.
+Controls automatic creation of subsequent versions.
 - **Methods**:
-    - `NeedNewVersion(object VersionWriter) (bool, error)`: Called at the end of `Close()` of a version. Returns `true` if a new subsequent version should be created automatically (e.g., for automatically generated metadata or sidecar files).
-    - `DoNewVersion(object VersionWriter) error`: Called after an automatic subsequent version has been created. Allows the extension to make changes to this new version before it is automatically closed.
+    - `NeedNewVersion(writer VersionWriter) (bool, error)`: Checks if an automatic subsequent version is required (e.g., for auto-generated metadata).
+    - `DoNewVersion(writer VersionWriter) error`: Performs changes in the automatically created version before it is closed.
 
 ### `ExtensionVersionDone`
-Called when a version has been fully completed.
-- **Method**: `VersionDone(object Object) error`
-- **Note**: This hook is currently being prepared and is intended for final actions (e.g., notifications or archiving) after the object is back in a stable state (read-only access).
+Called when a version is finalized.
+- **Method**: `VersionDone(obj Object) error`
+- **Note**: Intended for final actions (e.g., notifications) once the object is stable.
 
 ---
-- [Back to Extension Overview](../../extension/docs/EXTENSION.md)
+- [Extension Overview](../../extension/docs/README.md)
 - [OCFL Object Documentation](OBJECT.md)

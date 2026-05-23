@@ -59,12 +59,12 @@ type VersionWriter interface {
 	GetObject() Object
 }
 
-// Checker is the interface for validating an OCFL object.
-type Checker interface {
+// Validator is the interface for validating an OCFL object.
+type Validator interface {
 	// Check performs the validation of the object.
-	Check() error
+	Validate() error
 	// WithObject sets the object to be checked.
-	WithObject(obj Object) Checker
+	WithObject(obj Object) Validator
 }
 
 // Initializer is the interface for creating a new OCFL object.
@@ -136,8 +136,8 @@ type Object interface {
 	GetExtensionManager() ExtensionManager
 	// GetOCFLVersion returns the OCFL version of the object.
 	GetOCFLVersion() version.OCFLVersion
-	// GetChecker returns a Checker for this object.
-	GetChecker() Checker
+	// GetValidator returns a Validator for this object.
+	GetValidator() Validator
 	// Close finalizes the object.
 	Close() error
 }

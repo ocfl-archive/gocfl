@@ -230,8 +230,8 @@ func (objectBase *ObjectBase) GetReadFS() fs.FS {
 	return objectBase.readFS
 }
 
-func (objectBase *ObjectBase) GetChecker() object.Checker {
-	return objectBase.factory.NewChecker(objectBase.ctx).WithObject(objectBase)
+func (objectBase *ObjectBase) GetValidator() object.Validator {
+	return objectBase.factory.NewValidator(objectBase.ctx).WithObject(objectBase)
 }
 
 func (objectBase *ObjectBase) GetOCFLVersion() version.OCFLVersion {
