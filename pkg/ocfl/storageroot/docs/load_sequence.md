@@ -7,6 +7,7 @@ This document describes the sequence of operations performed during the loading 
 The following diagram illustrates the steps taken by `initocfl.LoadStorageRoot()` and the internal `Loader.Load()` method.
 
 ```mermaid
+%%{init: { 'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryTextColor': '#000000', 'lineColor': '#444444', 'secondaryColor': '#eeeeee', 'tertiaryColor': '#eeeeee', 'actorBkg': '#ffffff', 'actorBorder': '#666666', 'actorTextColor': '#000000', 'noteBkgColor': '#fff5ad', 'noteTextColor': '#000000', 'signalColor': '#444444', 'signalTextColor': '#000000', 'sequenceNumberColor': '#444444', 'loopTextColor': '#000000' } } }%%
 sequenceDiagram
     autonumber
     rect rgb(255, 255, 255)
