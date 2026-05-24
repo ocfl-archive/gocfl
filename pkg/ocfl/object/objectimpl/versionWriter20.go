@@ -83,15 +83,15 @@ func (versionWriter *versionWriter20) Init(msg string, name string, address stri
 }
 
 func (versionWriter *versionWriter20) Close() error {
+	if err := versionWriter.versionWriter.Close(); err != nil {
+		return errors.Wrap(err, "cannot close version writer")
+	}
 	if versionWriter.writeFS != nil {
 		if closer, ok := versionWriter.writeFS.(io.Closer); ok {
 			if err := closer.Close(); err != nil {
 				return errors.Wrap(err, "cannot close version zip file")
 			}
 		}
-	}
-	if err := versionWriter.versionWriter.Close(); err != nil {
-		return errors.Wrap(err, "cannot close version writer")
 	}
 	if versionWriter.digest != "" {
 		inv := versionWriter.obj.GetInventory()

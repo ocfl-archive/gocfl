@@ -101,7 +101,7 @@ func (loader *Loader) findInventoryFile() (string, error) {
 		if len(folderName) == 0 || folderName[0] != 'v' {
 			continue
 		}
-		num, err := strconv.ParseInt(strings.TrimLeft(folderName[1:], "0"), 10, 64)
+		num, err := strconv.ParseInt(strings.TrimLeft(strings.TrimSuffix(folderName[1:], ".zip"), "0"), 10, 64)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to parse version number from folder name '%s'", folderName)
 		}
@@ -147,14 +147,8 @@ func unmarshalInventoryData(ctx context.Context, data []byte, ver version.OCFLVe
 	if _, ok := anyMap["versions"]; !ok {
 		logger.ValidationError(validation.E041, "versions not found in inventory")
 	}
-	// if necessary, use factory with an older version
-	oldFactVersion := fact.GetVersion()
-	if oldFactVersion != iVer {
-		oldFact := fact
-		fact = fact.WithNewVersion(iVer)
-		defer func() {
-			fact = oldFact
-		}()
+	if ver != iVer {
+		logger.ValidationError(validation.E000, "version of inventory '%s' does not match version of object '%s'", iVer, ver)
 	}
 	inv := fact.NewInventory(ctx)
 	if err := json.Unmarshal(data, inv); err != nil {

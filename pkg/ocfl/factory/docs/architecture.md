@@ -39,7 +39,6 @@ classDiagram
     class FactoryObject {
         <<interface>>
         +GetVersion() OCFLVersion
-        +WithNewVersion(version) FactoryObject
         +WithConfig(config) FactoryObject
         +GetConfig() map
         +Copy() FactoryObject
@@ -48,7 +47,6 @@ classDiagram
     class FactoryStorageRoot {
         <<interface>>
         +GetVersion() OCFLVersion
-        +WithNewVersion(version) FactoryStorageRoot
         +WithConfig(config) FactoryStorageRoot
         +Copy() FactoryStorageRoot
     }
@@ -76,7 +74,7 @@ classDiagram
     - **Inventory-Komponenten** (`inventory.Factory`):
         - `NewInventory`: Erstellt ein neues Inventory-Objekt.
         - `NewFixity`, `NewManifest`, `NewVersions`, `NewState`, `NewUser`: Erstellen spezialisierte Bestandteile des Inventories.
-    - **Version-Management**: Ermöglicht den Zugriff auf die OCFL-Version (`GetVersion`) und den Wechsel dieser (`WithNewVersion`).
+    - **Version-Management**: Ermöglicht den Zugriff auf die OCFL-Version (`GetVersion`).
 
 - **FactoryStorageRoot**: Das Interface für die Verwaltung von Storage-Roots. Es bündelt Methoden zur Erstellung von:
     - **StorageRoot-Komponenten** (`storageroot.Factory`):

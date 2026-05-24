@@ -33,10 +33,6 @@ func (f *FactoryBaseStorageRoot) WithConfig(config map[storageroot.ConfigName]an
 	return f
 }
 
-func (f *FactoryBaseStorageRoot) WithNewVersion(ocflVersion version.OCFLVersion) factory.FactoryStorageRoot {
-	return NewFactoryBaseStorageRoot(ocflVersion, f.extensionFactory, f.logger)
-}
-
 func (f *FactoryBaseStorageRoot) Copy() factory.FactoryStorageRoot {
 	return &FactoryBaseStorageRoot{
 		logger:           f.logger,

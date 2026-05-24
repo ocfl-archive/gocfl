@@ -45,10 +45,6 @@ func (f *FactoryBaseObject) WithConfig(conf map[object.ConfigName]any) factory.F
 	return f
 }
 
-func (f *FactoryBaseObject) WithNewVersion(ocflVersion version.OCFLVersion) factory.FactoryObject {
-	return NewFactoryBaseObject(ocflVersion, f.spec, f.extensionFactory, f.logger)
-}
-
 func (f *FactoryBaseObject) Copy() factory.FactoryObject {
 	return &FactoryBaseObject{
 		logger:           f.logger,
@@ -84,6 +80,9 @@ func (f *FactoryBaseObject) NewVersionWriter(ctx context.Context) object.Version
 }
 
 func (f *FactoryBaseObject) NewObject(ctx context.Context) object.Object {
+	if f.version == version.Version2_0 {
+		return objectimpl.NewObject20(ctx, f.factory, f.extensionFactory, f.config[object.ObjectName], f.logger)
+	}
 	return objectimpl.NewObjectBase(ctx, f.factory, f.version, f.extensionFactory, f.config[object.ObjectName], f.logger)
 }
 

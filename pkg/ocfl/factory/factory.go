@@ -10,7 +10,7 @@ import (
 )
 
 // FactoryObject is the unified factory interface for OCFL objects.
-// It combines object and inventory factories and provides methods for version management and cloning.
+// It combines object and inventory factories and provides methods for configuration and cloning.
 type FactoryObject interface {
 	// Factory provides methods for creating object-related components.
 	object.Factory
@@ -18,8 +18,6 @@ type FactoryObject interface {
 	inventory.Factory
 	// GetVersion returns the OCFL version used by the factory.
 	GetVersion() version.OCFLVersion
-	// WithNewVersion returns a new factory instance with the specified OCFL version.
-	WithNewVersion(version.OCFLVersion) FactoryObject
 	// WithConfig sets the configuration for the factory.
 	WithConfig(config map[object.ConfigName]any) FactoryObject
 	// GetConfig returns the configuration for the factory.
@@ -29,14 +27,12 @@ type FactoryObject interface {
 }
 
 // FactoryStorageRoot is the unified factory interface for OCFL storage roots.
-// It provides methods for version management and cloning of storage root factories.
+// It provides methods for configuration and cloning of storage root factories.
 type FactoryStorageRoot interface {
 	// Factory provides methods for creating storage root-related components.
 	storageroot.Factory
 	// GetVersion returns the OCFL version used by the factory.
 	GetVersion() version.OCFLVersion
-	// WithNewVersion returns a new factory instance with the specified OCFL version.
-	WithNewVersion(version.OCFLVersion) FactoryStorageRoot
 	// WithConfig sets the configuration for the factory.
 	WithConfig(config map[storageroot.ConfigName]any) FactoryStorageRoot
 	// Copy returns a deep copy of the factory.

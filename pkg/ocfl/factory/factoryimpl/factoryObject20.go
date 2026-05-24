@@ -33,6 +33,25 @@ func (f *factoryObject20) WithConfig(conf map[object.ConfigName]any) factory.Fac
 	return f
 }
 
+func (f *factoryObject20) Copy() factory.FactoryObject {
+	fNew := &factoryObject20{
+		FactoryBaseObject: f.FactoryBaseObject.Copy().(*FactoryBaseObject),
+		conf:              f.conf,
+		logger:            f.logger,
+	}
+	fNew.FactoryBaseObject.factory = fNew
+	return fNew
+}
+
+func (f *factoryObject20) NewLoader(ctx context.Context) object.Loader {
+	return objectimpl.NewLoader20(
+		ctx,
+		f,
+		f.GetConfig()[object.LoaderName],
+		f.logger,
+	)
+}
+
 func (f *factoryObject20) NewVersionWriter(ctx context.Context) object.VersionWriter {
 	return objectimpl.NewVersionWriter20(
 		ctx,
@@ -40,7 +59,6 @@ func (f *factoryObject20) NewVersionWriter(ctx context.Context) object.VersionWr
 		f.GetConfig()[object.VersionWriterName],
 		f.logger,
 	)
-	return nil
 }
 
 var _ factory.FactoryObject = (*factoryObject20)(nil)

@@ -21,7 +21,7 @@ Defined in `pkg/ocfl/factory/factoryInterface.go`, these are the central interfa
 - `FactoryStorageRoot`:
     - `storageroot.Factory`: For creating storage roots, storage root loaders, and initializers.
 
-They also provide methods for version management (`GetVersion`, `WithNewVersion`), configuration (`WithConfig`), and cloning (`Copy`).
+They also provide methods for version management (`GetVersion`), configuration (`WithConfig`), and cloning (`Copy`).
 
 ### `FactoryBaseObject` and `FactoryBaseStorageRoot`
 These classes (in `pkg/ocfl/factory/factoryimpl/`) provide the standard implementation of the Unified Factory interfaces. They hold the common dependencies like `extensionFactory` and `logger` and handle the delegation to component-specific implementations based on the OCFL version.
