@@ -14,11 +14,10 @@ Visual representation of the interface hierarchy and their relationships.
 ### [StorageRoot](STORAGEROOT.md)
 The central interface (`StorageRoot`) that represents an OCFL Storage Root. It coordinates filesystem access, extension management (especially storage layouts), and object discovery.
 
-### [Loader](LOADER.md)
-The `Loader` module is responsible for identifying and loading an existing OCFL Storage Root from a filesystem. It parses the conformance declaration and initializes the extension manager.
-
-### [Initializer](INITIALIZER.md)
-The `Initializer` module handles the creation of a new OCFL Storage Root. This includes writing the conformance declaration (Namaste file), setting up the `extensions` directory, and persisting the storage layout configuration.
+  * **[Loader](LOADER.md)**
+    The `Loader` module is responsible for identifying and loading an existing OCFL Storage Root from a filesystem. Generated via `StorageRoot.GetLoader()`.
+  * **[Initializer](INITIALIZER.md)**
+    The `Initializer` module handles the creation of a new OCFL Storage Root. Generated via `StorageRoot.GetInitializer()`.
 
 ### [Factory](FACTORY.md)
 The `Factory` interface provides methods to instantiate the various storage root components. It allows the library to support different OCFL versions by providing version-specific implementations of the functional modules.
