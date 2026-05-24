@@ -178,9 +178,12 @@ func GetVersion(fsys fs.FS, folder, prefix string) (ver version.OCFLVersion, err
 	if err != nil {
 		return "", errors.Wrapf(err, "cannot compile %s", rString)
 	}
+	if folder == "" {
+		folder = "."
+	}
 	files, err := fs.ReadDir(fsys, folder)
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot get %s files", folder)
+		return "", errors.Wrapf(err, "cannot get files in folder %s", folder)
 	}
 	for _, file := range files {
 		if file.IsDir() {

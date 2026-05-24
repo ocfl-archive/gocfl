@@ -141,7 +141,7 @@ func (osr *StorageRootBase) GetVersion() version.OCFLVersion { return osr.versio
 func (osr *StorageRootBase) Context() context.Context { return osr.ctx }
 
 func (osr *StorageRootBase) GetFolders() ([]string, error) {
-	dirs, err := fs.ReadDir(osr.sourceFS, "")
+	dirs, err := fs.ReadDir(osr.sourceFS, ".")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot read folders of storage root")
 	}
@@ -171,7 +171,7 @@ func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot create subfs %s of %v", folder, osr.sourceFS)
 	}
-	dirs, err := fs.ReadDir(subFS, "/")
+	dirs, err := fs.ReadDir(subFS, ".")
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
