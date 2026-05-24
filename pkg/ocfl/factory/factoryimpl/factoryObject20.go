@@ -61,4 +61,13 @@ func (f *factoryObject20) NewVersionWriter(ctx context.Context) object.VersionWr
 	)
 }
 
+func (f *factoryObject20) NewExtractor(ctx context.Context) object.Extractor {
+	return objectimpl.NewExtractor20(
+		ctx,
+		f,
+		f.GetConfig()[object.ExtractorName],
+		f.logger,
+	)
+}
+
 var _ factory.FactoryObject = (*factoryObject20)(nil)

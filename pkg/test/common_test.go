@@ -61,10 +61,10 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 
 	destFS := appendfs.FS(vfs)
 
-	srFS, closer, err := appendfs.Sub(destFS, "vfs://testmem/")
+	srFS, closer0, err := appendfs.Sub(destFS, "vfs://testmem/")
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_ = closer.Close()
+		_ = closer0.Close()
 	})
 
 	_, err = ocfl.InitStorageRoot(ctx, srFS, srFS, ocflVer, checksum.DigestSHA512, nil, logger)
@@ -72,12 +72,7 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 
 	// Lese-Dateisystem für Storage Root (als fs.FS) neu laden
 	// Wir nutzen hier das ursprüngliche destFS, da es für In-Memory VFS okay ist.
-	readsrfsAppend, closer, err := appendfs.Sub(destFS, "vfs://testmem/")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = closer.Close()
-	})
-	readSRFS := fs.FS(readsrfsAppend)
+	readSRFS := fs.FS(srFS)
 
 	// Den Storage Root neu laden
 	sr, err := ocfl.LoadStorageRoot(ctx, readSRFS, nil, nil, logger)
@@ -100,10 +95,10 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string, ocflVer version.
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
 	require.NoError(t, err)
 
-	objFS, closer, err := appendfs.Sub(env.SourceFS, objFolder)
+	objFS, closer0, err := appendfs.Sub(env.SourceFS, objFolder)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_ = closer.Close()
+		_ = closer0.Close()
 	})
 
 	obj, err := ocfl.InitObject(t.Context(), objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, env.OCFLLogger)

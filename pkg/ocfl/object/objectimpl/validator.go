@@ -160,7 +160,8 @@ func (obj *validator) getVersionInventories() (map[string]inventory.Inventory, s
 }
 
 func (obj *validator) checkVersionFolder(version string) error {
-	versionEntries, err := fs.ReadDir(obj.GetReadFS(), version)
+	versionFS, err := fs.Sub(obj.GetReadFS(), version)
+	versionEntries, err := fs.ReadDir(versionFS, ".")
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
 	}

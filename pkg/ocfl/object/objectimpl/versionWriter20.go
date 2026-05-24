@@ -35,13 +35,13 @@ func NewVersionWriter20(ctx context.Context, fact factory.FactoryObject, conf an
 
 type versionWriter20 struct {
 	*versionWriter
-	config  *VersionWriter20Config
-	writeFS appendfs.FS
-	digest  string
+	config *VersionWriter20Config
+	digest string
 }
 
 func (versionWriter *versionWriter20) WithObject(obj object.Object) object.VersionWriter {
 	versionWriter.obj = obj
+	versionWriter.versionWriter.objectWriteFS = obj.GetWriteFS()
 	return versionWriter
 }
 
@@ -77,21 +77,14 @@ func (versionWriter *versionWriter20) Init(msg string, name string, address stri
 		return errors.Wrapf(err, "cannot create version zip file '%s'", versionWriter.ver.String()+".zip")
 	}
 
-	versionWriter.writeFS = writeFS.(appendfs.FS)
-	versionWriter.versionWriter.writeFS = versionWriter.writeFS.(appendfs.FS)
+	versionWriter.versionWriter.objectWriteFS = versionWriter.obj.GetWriteFS()
+	versionWriter.versionWriter.versionWriteFS = writeFS.(appendfs.FS)
 	return nil
 }
 
 func (versionWriter *versionWriter20) Close() error {
 	if err := versionWriter.versionWriter.Close(); err != nil {
 		return errors.Wrap(err, "cannot close version writer")
-	}
-	if versionWriter.writeFS != nil {
-		if closer, ok := versionWriter.writeFS.(io.Closer); ok {
-			if err := closer.Close(); err != nil {
-				return errors.Wrap(err, "cannot close version zip file")
-			}
-		}
 	}
 	if versionWriter.digest != "" {
 		inv := versionWriter.obj.GetInventory()
@@ -106,4 +99,8 @@ func (versionWriter *versionWriter20) Close() error {
 		return errors.New("versionWriter digest is empty")
 	}
 	return nil
+}
+
+func (versionWriter *versionWriter20) _addReader(r io.ReadCloser, names *object.NamesStruct, filename string, noExtensionHook bool) (string, error) {
+	return versionWriter.versionWriter._addReader(r, names, filename, noExtensionHook)
 }
