@@ -8,6 +8,8 @@ The following diagram illustrates the steps taken by `initocfl.LoadStorageRoot()
 
 ```mermaid
 sequenceDiagram
+    autonumber
+    rect rgb(250, 250, 250)
     participant App as Application
     participant Init as initocfl
     participant Util as util (Version Discovery)
@@ -49,6 +51,7 @@ sequenceDiagram
     end
 
     Init-->>App: Return StorageRoot instance
+    end
 ```
 
 ## Description of Steps

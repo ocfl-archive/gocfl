@@ -8,6 +8,8 @@ The following diagram illustrates the update process using the `VersionWriter`.
 
 ```mermaid
 sequenceDiagram
+    autonumber
+    rect rgb(250, 250, 250)
     participant App as Application
     participant Init as initocfl
     participant FS as AppendFS (Filesystem)
@@ -52,6 +54,7 @@ sequenceDiagram
     VW->>Inv: Finalize new version state
     VW->>FS: Write inventory.json & sidecar
     VW-->>App: Success
+    end
     end
 ```
 

@@ -8,6 +8,8 @@ The following diagram illustrates the steps taken by the `Initializer.Init()` me
 
 ```mermaid
 sequenceDiagram
+    autonumber
+    rect rgb(250, 250, 250)
     participant App as Application
     participant SR as StorageRoot
     participant Init as Initializer
@@ -46,6 +48,7 @@ sequenceDiagram
     end
 
     Init-->>App: Return nil (Success)
+    end
 ```
 
 ## Description of Steps

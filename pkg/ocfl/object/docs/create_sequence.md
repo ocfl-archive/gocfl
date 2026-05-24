@@ -8,6 +8,8 @@ The following diagram illustrates the steps taken by `initocfl.InitObject()` and
 
 ```mermaid
 sequenceDiagram
+    autonumber
+    rect rgb(250, 250, 250)
     participant App as Application
     participant Init as initocfl
     participant FS as AppendFS (Filesystem)
@@ -70,6 +72,7 @@ sequenceDiagram
     VW->>Inv: Update state (manifest/state)
     VW->>FS: Write inventory.json & sidecar
     VW-->>App: Success
+    end
 ```
 
 ## Step Descriptions
