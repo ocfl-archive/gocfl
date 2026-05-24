@@ -9,7 +9,7 @@ The following diagram illustrates the steps taken by `initocfl.InitObject()` and
 ```mermaid
 sequenceDiagram
     autonumber
-    rect rgb(250, 250, 250)
+    rect rgb(255, 255, 255)
     participant App as Application
     participant Init as initocfl
     participant FS as AppendFS (Filesystem)
@@ -19,10 +19,10 @@ sequenceDiagram
     participant Initializer as Initializer
     participant Inv as Inventory
     participant VW as VersionWriter
-
+    
     App->>Init: InitObject(ctx, FS, ...)
     
-    rect rgb(240, 240, 240)
+    rect rgb(245, 245, 255)
     Note over Init, EM: Setup & Instantiation
     Init->>Init: SetupExtensionManager()
     Init->>Init: NewFactoryObject(Version, ...)
@@ -32,7 +32,7 @@ sequenceDiagram
     Init->>Obj: WithExtensionManager(EM)
     end
 
-    rect rgb(220, 220, 240)
+    rect rgb(245, 255, 245)
     Note over Init, Initializer: Initialization
     Init->>Obj: GetInitializer()
     Obj-->>Initializer: Initializer Instance
@@ -40,7 +40,7 @@ sequenceDiagram
     
     Initializer->>FS: IsEmpty()
     
-    rect rgb(240, 240, 240)
+    rect rgb(255, 255, 255)
     Note over Initializer, FS: Write OCFL Structure
     Initializer->>FS: WriteFile("0=ocfl_object_...")
     Initializer->>FS: MkDir("extensions")
@@ -48,7 +48,7 @@ sequenceDiagram
     Initializer->>EM: WriteConfig(SubFS)
     end
     
-    rect rgb(220, 240, 220)
+    rect rgb(255, 250, 240)
     Note over Initializer, Inv: Create Inventory
     Initializer->>Factory: NewInventory(ctx)
     Factory-->>Inv: Inventory Instance

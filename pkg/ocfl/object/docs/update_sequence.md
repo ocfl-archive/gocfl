@@ -9,7 +9,7 @@ The following diagram illustrates the update process using the `VersionWriter`.
 ```mermaid
 sequenceDiagram
     autonumber
-    rect rgb(250, 250, 250)
+    rect rgb(255, 255, 255)
     participant App as Application
     participant Init as initocfl
     participant FS as AppendFS (Filesystem)
@@ -18,21 +18,21 @@ sequenceDiagram
     participant VW as VersionWriter
     participant Inv as Inventory
 
-    rect rgb(220, 220, 240)
+    rect rgb(245, 245, 255)
     Note over App, Obj: 1. Loading existing Object
     App->>Init: LoadObject(ctx, FS, ...)
     Init-->>Obj: Load Sequence (see load_sequence.md)
     Init-->>App: Object Instance
     end
 
-    rect rgb(220, 240, 220)
+    rect rgb(245, 255, 245)
     Note over App, VW: 2. Starting Update
     App->>Obj: StartUpdate(message, user, ...)
     Obj->>Obj: Check for open writers
     Obj-->>VW: VersionWriter Instance
     end
 
-    rect rgb(240, 240, 240)
+    rect rgb(255, 255, 255)
     Note over App, FS: 3. Modifying Content (Loop)
     loop For each change
         alt Add/Update File
@@ -48,7 +48,7 @@ sequenceDiagram
     end
     end
 
-    rect rgb(220, 220, 220)
+    rect rgb(255, 250, 240)
     Note over App, Inv: 4. Finalizing Version
     App->>VW: Close()
     VW->>Inv: Finalize new version state

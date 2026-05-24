@@ -9,7 +9,7 @@ The following diagram illustrates the steps taken by `initocfl.LoadObject()` and
 ```mermaid
 sequenceDiagram
     autonumber
-    rect rgb(250, 250, 250)
+    rect rgb(255, 255, 255)
     participant App as Application
     participant Init as initocfl
     participant Util as util (Version Discovery)
@@ -22,7 +22,7 @@ sequenceDiagram
 
     App->>Init: LoadObject(ctx, FS, ...)
     
-    rect rgb(220, 240, 220)
+    rect rgb(245, 255, 245)
     Note over Init, Util: Version Detection
     Init->>Util: GetObjectVersion(FS)
     Util->>FS: Read Namaste file (0=ocfl_...)
@@ -30,7 +30,7 @@ sequenceDiagram
     Init->>Init: logger.WithVersion(Version)
     end
 
-    rect rgb(240, 240, 240)
+    rect rgb(255, 255, 255)
     Note over Init, Factory: Setup & Instantiation
     Init->>Init: NewExtensionFactory()
     Init->>Init: NewFactoryObject(Version, ExtensionFactory)
@@ -42,13 +42,13 @@ sequenceDiagram
     end
     end
 
-    rect rgb(220, 220, 240)
+    rect rgb(245, 245, 255)
     Note over Init, Loader: Internal Loading
     Init->>Obj: GetLoader()
     Obj-->>Loader: Loader Instance
     Init->>Loader: Load()
     
-    rect rgb(240, 240, 240)
+    rect rgb(255, 255, 255)
     Note over Loader, EM: Extension Setup
     Loader->>Loader: loadExtensionManager()
     Loader->>FS: Sub("extensions")
@@ -57,7 +57,7 @@ sequenceDiagram
     Loader->>Obj: WithExtensionManager(EM)
     end
 
-    rect rgb(220, 240, 220)
+    rect rgb(245, 255, 245)
     Note over Loader: Inventory Discovery
     Loader->>Loader: loadInventory()
     Loader->>Loader: findInventoryFile()
@@ -69,7 +69,7 @@ sequenceDiagram
     end
     end
 
-    rect rgb(220, 220, 240)
+    rect rgb(245, 245, 255)
     Note over Loader, Inv: Inventory Loading
     Loader->>Loader: loadInventoryFile(path)
     Loader->>FS: ReadFile(inventory.json)

@@ -9,7 +9,7 @@ The following diagram illustrates the steps taken by the `Initializer.Init()` me
 ```mermaid
 sequenceDiagram
     autonumber
-    rect rgb(250, 250, 250)
+    rect rgb(255, 255, 255)
     participant App as Application
     participant SR as StorageRoot
     participant Init as Initializer
@@ -18,7 +18,7 @@ sequenceDiagram
 
     App->>Init: Init()
     
-    rect rgb(240, 240, 240)
+    rect rgb(245, 245, 255)
     Note over Init: Validation
     Init->>Init: Check if AppendFS is set
     Init->>FS: IsEmpty?
@@ -26,7 +26,7 @@ sequenceDiagram
     Init->>Init: Check if ExtensionManager is set
     end
 
-    rect rgb(220, 240, 220)
+    rect rgb(245, 255, 245)
     Note over Init: Writing OCFL Structure
     Init->>Init: Determine OCFL Version (e.g., 1.1)
     Init->>FS: Write Namaste file (0=ocfl_1.1)

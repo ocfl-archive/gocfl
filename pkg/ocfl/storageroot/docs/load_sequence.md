@@ -9,7 +9,7 @@ The following diagram illustrates the steps taken by `initocfl.LoadStorageRoot()
 ```mermaid
 sequenceDiagram
     autonumber
-    rect rgb(250, 250, 250)
+    rect rgb(255, 255, 255)
     participant App as Application
     participant Init as initocfl
     participant Util as util (Version Discovery)
@@ -21,14 +21,14 @@ sequenceDiagram
 
     App->>Init: LoadStorageRoot(ctx, FS, ...)
     
-    rect rgb(220, 240, 220)
+    rect rgb(245, 255, 245)
     Note over Init, Util: Version Detection
     Init->>Util: GetStorageRootVersion(FS)
     Util->>FS: Read Namaste file (0=ocfl_...)
     Util-->>Init: OCFL Version
     end
 
-    rect rgb(240, 240, 240)
+    rect rgb(255, 255, 255)
     Note over Init, Factory: Setup & Instantiation
     Init->>Init: NewExtensionFactory()
     Init->>Init: NewFactoryStorageRoot(Version, ExtensionFactory)
@@ -38,7 +38,7 @@ sequenceDiagram
     Init->>SR: WithDigestAlgorithm(...)
     end
 
-    rect rgb(220, 220, 240)
+    rect rgb(245, 245, 255)
     Note over Init, EM: Internal Loading
     Init->>SR: GetLoader()
     SR-->>Loader: Loader Instance
