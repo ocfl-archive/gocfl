@@ -10,7 +10,7 @@ import (
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
@@ -34,7 +34,7 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, ocflVer, nil)
+	logger := ocfl.NewOCFLLogger(ctx, &zlogger, nil, ocflVer, nil)
 
 	cfg := vfsrw.Config{
 		"testmem": &vfsrw.VFS{
@@ -60,7 +60,7 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 		_ = closer.Close()
 	})
 
-	_, err = initocfl.InitStorageRoot(ctx, srFS, srFS, ocflVer, checksum.DigestSHA512, nil, logger)
+	_, err = ocfl.InitStorageRoot(ctx, srFS, srFS, ocflVer, checksum.DigestSHA512, nil, logger)
 	require.NoError(t, err)
 
 	// Lese-Dateisystem für Storage Root (als fs.FS) neu laden
@@ -73,7 +73,7 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 	readSRFS := fs.FS(readsrfsAppend)
 
 	// Den Storage Root neu laden
-	sr, err := initocfl.LoadStorageRoot(ctx, readSRFS, nil, nil, logger)
+	sr, err := ocfl.LoadStorageRoot(ctx, readSRFS, nil, nil, logger)
 	require.NoError(t, err)
 	// Auch das Schreib-FS wieder mitgeben für spätere Updates in den Tests
 	sr = sr.WithWriteFS(srFS)
@@ -99,7 +99,7 @@ func CreateTestObject(t *testing.T, env *TestEnv, objID string, ocflVer version.
 		_ = closer.Close()
 	})
 
-	obj, err := initocfl.InitObject(t.Context(), objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, env.OCFLLogger)
+	obj, err := ocfl.InitObject(t.Context(), objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, env.OCFLLogger)
 	require.NoError(t, err)
 
 	return obj, objFS
@@ -113,7 +113,7 @@ func ReloadObject(t *testing.T, env *TestEnv, objID string) (object.Object, fs.F
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
 	require.NoError(t, err)
 
-	loadedObj, err := initocfl.LoadObject(t.Context(), objFS, nil, env.OCFLLogger)
+	loadedObj, err := ocfl.LoadObject(t.Context(), objFS, nil, env.OCFLLogger)
 	require.NoError(t, err)
 
 	return loadedObj, objFS, loadedObj

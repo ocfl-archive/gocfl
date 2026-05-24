@@ -25,7 +25,7 @@ if err := initializer.Init(); err != nil {
 defer initializer.Close()
 ```
 
-The high-level function `initocfl.InitStorageRoot` in [pkg/ocfl/initocfl](../../initocfl/README.md) is the recommended way to initialize storage roots.
+The high-level function `ocfl.InitStorageRoot` in [pkg/ocfl/README.md](../README.md) is the recommended way to initialize storage roots.
 
 ---
 - [Back to Storage Root Overview](../README.md)

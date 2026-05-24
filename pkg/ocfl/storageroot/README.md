@@ -18,22 +18,22 @@ For a comprehensive overview of the storage root components and their technical 
 ## Related Components
 
 - [OCFL Object](../object/README.md): Manages individual OCFL objects within the storage root.
-- [OCFL Functions](../ocflactions/README.md): High-level orchestration functions that often involve storage roots.
+- [OCFL Core](../README.md): High-level orchestration functions that often involve storage roots.
 - [OCFL Factory](../factory/README.md): Responsible for creating `StorageRoot` instances.
 - [OCFL Extension](../extension/README.md): Provides the base for storage root extensions, particularly layouts.
 - [OCFL 1.1 Specification](../../../data/specs/ocfl_1.1.md): The underlying specification this package implements, specifically the [Storage Root section](../../../data/specs/ocfl_1.1.md#4-storage-root).
 
 ## Usage Overview
 
-Common high-level operations like loading a storage root are typically performed via the `initocfl` package.
+Common high-level operations like loading a storage root are typically performed via the `ocfl` package.
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 )
 
 // Example: Loading a storage root (recommended way)
-sr, srCloser, err := initocfl.LoadStorageRoot(ctx, sourceFS, nil, logger)
+sr, srCloser, err := ocfl.LoadStorageRoot(ctx, sourceFS, nil, logger)
 if err != nil {
     // handle error
 }

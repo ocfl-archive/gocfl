@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
@@ -16,7 +16,7 @@ import (
 )
 
 var ctx = context.Background()
-var logger = initocfl.NewOCFLLogger(
+var logger = ocfl.NewOCFLLogger(
 	ctx,
 	new(zerolog.New(zerolog.NewConsoleWriter())),
 	nil,
@@ -25,7 +25,7 @@ var logger = initocfl.NewOCFLLogger(
 )
 
 func getFactory(ver version.OCFLVersion) inventory.Factory {
-	return initocfl.NewFactoryObject(ver, nil, logger)
+	return ocfl.NewFactoryObject(ver, nil, logger)
 }
 
 func genericExampleState(ver version.OCFLVersion, cnt int, t *testing.T) inventory.State {

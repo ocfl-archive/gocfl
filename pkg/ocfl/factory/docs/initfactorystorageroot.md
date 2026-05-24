@@ -4,12 +4,12 @@ Dieses Dokument beschreibt den Initialisierungsprozess der Unified Factory für 
 
 ## NewFactoryStorageRoot Sequence Diagram
 
-Das folgende Diagramm zeigt den Ablauf beim Aufruf von `initocfl.NewFactoryStorageRoot` für alle unterstützten Versionen.
+Das folgende Diagramm zeigt den Ablauf beim Aufruf von `ocfl.NewFactoryStorageRoot` für alle unterstützten Versionen.
 
 ```mermaid
 sequenceDiagram
     participant App as Application
-    participant Init as initocfl (initocfl/factory.go)
+    participant Init as ocfl (ocfl/factory.go)
 
     box "factoryimpl"
     participant Impl10 as factoryStorageRoot10
@@ -46,7 +46,7 @@ sequenceDiagram
 
 ## Beschreibung
 
-1.  **Entry Point**: Die Anwendung ruft `initocfl.NewFactoryStorageRoot` auf. Dabei werden die gewünschte OCFL-Version, eine `extension.Factory` für Storage Roots und ein Logger übergeben.
-2.  **Version Dispatch**: Basierend auf der übergebenen Version delegiert `initocfl` den Aufruf an eine spezifische Implementierungsfunktion im Paket `factoryimpl` (z. B. `NewFactoryStorageRoot11` für Version 1.1).
+1.  **Entry Point**: Die Anwendung ruft `ocfl.NewFactoryStorageRoot` auf. Dabei werden die gewünschte OCFL-Version, eine `extension.Factory` für Storage Roots und ein Logger übergeben.
+2.  **Version Dispatch**: Basierend auf der übergebenen Version delegiert `ocfl` den Aufruf an eine spezifische Implementierungsfunktion im Paket `factoryimpl` (z. B. `NewFactoryStorageRoot11` für Version 1.1).
 3.  **Base Initialization**: Die spezifische Implementierung initialisiert die Basis-Komponente (via `NewFactoryBaseStorageRoot`).
 4.  **Composition**: Die Basis-Komponente wird in ein versionsspezifisches Struct eingebettet, das das Unified Interface `FactoryStorageRoot` implementiert.

@@ -30,7 +30,7 @@ if err := extractor.Extract(nil, true, ""); err != nil {
 }
 ```
 
-Higher-level functions in `ocflactions` provide standardized wrappers for common extraction tasks.
+Higher-level functions in the `ocfl` package provide standardized wrappers for common extraction tasks.
 
 ---
 - [Object Documentation Overview](README.md)

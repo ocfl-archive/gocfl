@@ -1,4 +1,4 @@
-package initocfl
+package ocfl
 
 import (
 	"io/fs"

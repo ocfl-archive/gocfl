@@ -12,7 +12,7 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/util"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/rs/zerolog"
@@ -38,7 +38,7 @@ func main() {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := ocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
 	// --- Step 3: Virtual Filesystem (VFS) Configuration ---
 	// OCFL operations are performed via a filesystem abstraction layer.
@@ -84,7 +84,7 @@ func main() {
 	var objID = *idPtr
 	if storageRootFS != nil {
 		// A: Load existing Storage Root.
-		sr, err := initocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
+		sr, err := ocfl.LoadStorageRoot(ctx, storageRootFS, nil, nil, logger)
 		if err != nil {
 			logger.Fatal().Err(err).Msgf("failed to load storage root at '%v'", storageRootFS)
 		}
@@ -109,7 +109,7 @@ func main() {
 	defer func() { _ = closer.Close() }()
 
 	// B: Instantiate and configure the Object.
-	obj, err := initocfl.LoadObject(ctx, objFS, nil, logger)
+	obj, err := ocfl.LoadObject(ctx, objFS, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to load object '%s' at '%s': %v", objID, objFolder, err)
 	}

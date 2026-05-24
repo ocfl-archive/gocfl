@@ -16,7 +16,7 @@ package main
 
 import (
 	"context"
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/je4/utils/v2/pkg/zLogger"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
@@ -26,7 +26,7 @@ func main() {
 	// Initialize a base logger (e.g. zerolog)
     var baseLogger zLogger.ZLogger = ... 
 
-	logger := initocfl.NewOCFLLogger(context.Background(), baseLogger, nil, version.V1_1, nil)
+	logger := ocfl.NewOCFLLogger(context.Background(), baseLogger, nil, version.V1_1, nil)
 
 	// Log a validation error
 	// This will log an error via the base logger and add the error to the internal validation status

@@ -12,7 +12,7 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/rs/zerolog"
 )
@@ -33,7 +33,7 @@ func main() {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := ocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
 	// --- Schritt 3: Konfiguration des Virtuellen Dateisystems (VFS) ---
 	cfg := vfsrw.Config{}
@@ -62,7 +62,7 @@ func main() {
 
 	// --- Schritt 4: Initialisierung des OCFL Storage Roots ---
 	ocflVer := version.Version1_1
-	sr, err := initocfl.InitStorageRoot(ctx, storageRootFS, nil, ocflVer, checksum.DigestSHA512, nil, logger)
+	sr, err := ocfl.InitStorageRoot(ctx, storageRootFS, nil, ocflVer, checksum.DigestSHA512, nil, logger)
 	if err != nil {
 		log.Fatalf("Storage Root bei '%s' konnte nicht initialisiert werden: %v", srPath, err)
 	}
@@ -82,7 +82,7 @@ func main() {
 	}
 	defer closer.Close()
 
-	obj, err := initocfl.InitObject(ctx, objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, logger)
+	obj, err := ocfl.InitObject(ctx, objFS, nil, ocflVer, objID, checksum.DigestSHA512, nil, logger)
 	if err != nil {
 		log.Fatalf("Objekt '%s' bei '%s' konnte nicht initialisiert werden: %v", objID, objFolder, err)
 	}

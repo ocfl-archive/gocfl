@@ -1,18 +1,16 @@
-// Package ocflactions provides high-level functions for interacting with OCFL objects.
-// It orchestrates lower-level modules to perform common tasks like checking,
+// Package ocfl provides high-level functions for interacting with OCFL objects.
+// It orchestrates lower-level modules to perform common tasks like validating,
 // extracting, and retrieving metadata from OCFL objects.
-package ocflactions
+package ocfl
 
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
@@ -23,7 +21,7 @@ import (
 // It loads the object and performs structural and fixity checks using the object's validator.
 func ValidateObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogger) error {
 	fmt.Printf("object folder '%v'\n", objectFS)
-	obj, err := initocfl.LoadObject(ctx, objectFS, nil, logger)
+	obj, err := LoadObject(ctx, objectFS, nil, logger)
 	if err != nil {
 		logger.ValidationError(validation.E001, "invalid fsys '%v': %v", objectFS, err)
 		return errors.Wrapf(err, "cannot load object from folder '%v'", objectFS)
@@ -52,12 +50,13 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 	if err != nil {
 		return errors.Wrapf(err, "cannot create subfs  '%v' / %s", objectFS, path)
 	}
-	var objCloser io.Closer
-	o, err = initocfl.LoadObject(ctx, objFsys, nil, logger)
+	o, err = LoadObject(ctx, objFsys, nil, logger)
 	if err != nil {
 		return errors.Wrapf(err, "cannot load object '%s'", path)
 	}
-	defer objCloser.Close()
+	defer func() {
+		_ = o.Close()
+	}()
 	extractor := o.GetExtractor().WithDestFS(destFS)
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
@@ -72,7 +71,10 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 func ExtractMeta(ctx context.Context, fsys fs.FS, path string, logger ocfllogger.OCFLLogger) (*inventory.Metadata, error) {
 	logger.Debug().Msgf("Extracting object '%s'", path)
 	objFsys, err := writefs.Sub(fsys, path)
-	obj, err := initocfl.LoadObject(ctx, objFsys, nil, logger)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot sub fsys '%s'", path)
+	}
+	obj, err := LoadObject(ctx, objFsys, nil, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load object '%s'", path)
 	}

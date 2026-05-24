@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,12 +41,12 @@ func testOCFLActions(t *testing.T, ocflVer version.OCFLVersion) {
 	objFolder, err := env.StorageRoot.IdToFolder(objID)
 	require.NoError(t, err)
 
-	// Wir brauchen ein fs.FS für das Objekt-Verzeichnis für CheckObject
+	// Wir brauchen ein fs.FS für das Objekt-Verzeichnis für ValidateObject
 	objFS, err := fs.Sub(env.ReadSRFS, objFolder)
 	require.NoError(t, err)
 
-	t.Run("CheckObject", func(t *testing.T) {
-		err := ocflactions.CheckObject(t.Context(), objFS, env.OCFLLogger)
+	t.Run("ValidateObject", func(t *testing.T) {
+		err := ocfl.ValidateObject(t.Context(), objFS, env.OCFLLogger)
 		assert.NoError(t, err)
 	})
 
@@ -59,7 +59,7 @@ func testOCFLActions(t *testing.T, ocflVer version.OCFLVersion) {
 		})
 
 		// Wir nutzen env.ReadSRFS als Basis und geben den relativen Pfad zum Objekt an
-		err = ocflactions.Extract(t.Context(), env.ReadSRFS, destFS, objFolder, inventory.NewVersionNumber(), true, "", env.OCFLLogger)
+		err = ocfl.Extract(t.Context(), env.ReadSRFS, destFS, objFolder, inventory.NewVersionNumber(), true, "", env.OCFLLogger)
 		assert.NoError(t, err)
 
 		// Verifizierung
@@ -72,7 +72,7 @@ func testOCFLActions(t *testing.T, ocflVer version.OCFLVersion) {
 	})
 
 	t.Run("ExtractMeta", func(t *testing.T) {
-		meta, err := ocflactions.ExtractMeta(t.Context(), env.ReadSRFS, objFolder, env.OCFLLogger)
+		meta, err := ocfl.ExtractMeta(t.Context(), env.ReadSRFS, objFolder, env.OCFLLogger)
 		assert.NoError(t, err)
 		require.NotNil(t, meta)
 

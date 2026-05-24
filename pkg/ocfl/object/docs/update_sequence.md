@@ -12,7 +12,7 @@ sequenceDiagram
     autonumber
     rect rgb(255, 255, 255)
     participant App as Application
-    participant Init as initocfl
+    participant Init as ocfl
     participant FS as AppendFS (Filesystem)
     participant Obj as Object
     participant EM as ExtensionManager

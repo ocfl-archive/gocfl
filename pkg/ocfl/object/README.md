@@ -20,22 +20,22 @@ See the [Object Documentation Overview](docs/README.md) for technical details an
 
 ## Related Components
 
-- [OCFL Actions](../ocflactions/README.md): High-level orchestration for common tasks.
+- [OCFL Core](./README.md): High-level orchestration for common tasks.
 - [OCFL Factory](../factory/README.md): Responsible for creating `Object` instances.
 - [OCFL Inventory](../inventory/README.md): Manages the `inventory.json` structure.
 - [OCFL Specification](https://ocfl.io/): The underlying specification (supports 1.0, 1.1, and 2.0).
 
 ## Usage Overview
 
-High-level operations are typically performed via the `initocfl` and `ocflactions` packages.
+High-level operations are typically performed via the `ocfl` package.
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 )
 
 // Load an object (recommended)
-obj, objCloser, err := initocfl.LoadObject(ctx, sourceFS, nil, logger)
+obj, objCloser, err := ocfl.LoadObject(ctx, sourceFS, nil, logger)
 if err != nil {
     // handle error
 }

@@ -31,14 +31,14 @@ go get github.com/ocfl-archive/gocfl/v3
 
 ## Basic Usage
 
-The library provides convenient functions in the `initocfl` and `ocflactions` packages for common tasks.
+The library provides convenient functions in the `ocfl` package for common tasks.
 
 ### Initializing and Loading a Storage Root
 
 ```go
 import (
     "context"
-    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
     "github.com/je4/utils/v2/pkg/checksum"
@@ -48,10 +48,10 @@ ctx := context.Background()
 logger := ocfllogger.NewNopLogger()
 
 // Initialize a new storage root (needs an appendfs.FS)
-sr, err := initocfl.InitStorageRoot(ctx, fsys, nil, version.Version1_1, checksum.DigestSHA512, nil, logger)
+sr, err := ocfl.InitStorageRoot(ctx, fsys, nil, version.Version1_1, checksum.DigestSHA512, nil, logger)
 
 // Load an existing storage root (needs an fs.FS)
-sr, srCloser, err := initocfl.LoadStorageRoot(ctx, fsys, nil, logger)
+sr, srCloser, err := ocfl.LoadStorageRoot(ctx, fsys, nil, logger)
 defer srCloser.Close()
 ```
 
@@ -59,7 +59,7 @@ defer srCloser.Close()
 
 ```go
 // Load an object from a filesystem
-obj, objCloser, err := initocfl.LoadObject(ctx, objFsys, nil, logger)
+obj, objCloser, err := ocfl.LoadObject(ctx, objFsys, nil, logger)
 defer objCloser.Close()
 
 // Add files to an object
@@ -72,15 +72,15 @@ err = writer.Close()
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/ocflactions"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 )
 
 // Validate an object
-err := ocflactions.CheckObject(ctx, objFsys, logger)
+err := ocfl.ValidateObject(ctx, objFsys, logger)
 
 // Extract an object
-err := ocflactions.Extract(ctx, objectFS, destFS, "object_path", inventory.NewVersionNumber(), true, "", logger)
+err := ocfl.Extract(ctx, objectFS, destFS, "object_path", inventory.NewVersionNumber(), true, "", logger)
 ```
 
 ## Examples

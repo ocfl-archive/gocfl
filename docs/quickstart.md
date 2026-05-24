@@ -49,7 +49,7 @@ Initialize a new OCFL Storage Root in a given filesystem.
 import (
     "context"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
-    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension/extensionimpl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/storageroot"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -63,7 +63,7 @@ ocflVer := version.Version1_1
 
 // Create factories
 extFactory, _ := extensionimpl.NewFactory[storageroot.ExtensionManager](nil, logger)
-srFactory := initocfl.NewFactoryStorageRoot(ocflVer, extFactory, logger)
+srFactory := ocfl.NewFactoryStorageRoot(ocflVer, extFactory, logger)
 
 // Initialize Storage Root
 sr := srFactory.NewStorageRoot(ctx).

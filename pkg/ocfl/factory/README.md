@@ -27,7 +27,7 @@ They also provide methods for version management (`GetVersion`, `WithNewVersion`
 These classes (in `pkg/ocfl/factory/factoryimpl/`) provide the standard implementation of the Unified Factory interfaces. They hold the common dependencies like `extensionFactory` and `logger` and handle the delegation to component-specific implementations based on the OCFL version.
 
 ### Version-Specific Factories
-The module provides specialized factory constructors for each supported OCFL version via the `initocfl` package:
+The module provides specialized factory constructors for each supported OCFL version via the `ocfl` package:
 - `NewFactoryObject(version, ...)`
 - `NewFactoryStorageRoot(version, ...)`
 
@@ -36,16 +36,16 @@ These functions dispatch to version-specific wrappers in `factoryimpl` (e.g., `f
 ## Usage
 
 ### Creating a Fixed-Version Unified Factory
-Use the `initocfl` package to create a factory for a specific OCFL version:
+Use the `ocfl` package to create a factory for a specific OCFL version:
 
 ```go
 import (
-    "github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+    "github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
     "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 )
 
 // Create a unified factory for OCFL 1.1 objects
-f := initocfl.NewFactoryObject(version.Version1_1, extFactory, logger)
+f := ocfl.NewFactoryObject(version.Version1_1, extFactory, logger)
 
 // Use the factory to create a new object
 obj := f.NewObject(ctx)
@@ -60,7 +60,7 @@ import "github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 conf := map[object.ConfigName]any{
     object.LoaderName: &objectimpl.LoaderConfig{},
 }
-f := initocfl.NewFactoryObject(version.Version1_1, extFactory, logger).WithConfig(conf)
+f := ocfl.NewFactoryObject(version.Version1_1, extFactory, logger).WithConfig(conf)
 ```
 
 ## Directory Structure
@@ -70,4 +70,4 @@ f := initocfl.NewFactoryObject(version.Version1_1, extFactory, logger).WithConfi
 - `pkg/ocfl/factory/factoryimpl/`: Contains concrete implementations:
     - `factorybaseobject.go` / `factorybasestorageroot.go`: Common implementation logic.
     - `factoryObject10.go`, `factoryObject11.go`, etc.: Version-specific wrappers.
-- `pkg/ocfl/initocfl/`: Entry point for creating factory instances (`factory.go`).
+- `pkg/ocfl/`: Entry point for creating factory instances (`factory.go`).

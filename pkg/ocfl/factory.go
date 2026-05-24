@@ -1,4 +1,4 @@
-package initocfl
+package ocfl
 
 import (
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"

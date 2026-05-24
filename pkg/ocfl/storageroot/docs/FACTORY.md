@@ -19,7 +19,7 @@ The storage root factory is typically used via the **Unified Factory** to ensure
 
 
 > [!TIP]
-> While factories provide low-level control, the **initocfl** package provides high-level functions like `LoadStorageRoot` and `InitStorageRoot` that handle factory instantiation and common setup for you.
+> While factories provide low-level control, the **ocfl** package provides high-level functions like `LoadStorageRoot` and `InitStorageRoot` that handle factory instantiation and common setup for you.
 
 ---
 - [Back to Storage Root Overview](../README.md)

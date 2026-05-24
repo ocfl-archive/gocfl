@@ -28,7 +28,7 @@ if err := validator.Validate(); err != nil {
 }
 ```
 
-The high-level function `ocflactions.ValidateObject` is the recommended way to validate objects as it provides standardized setup and error reporting.
+The high-level function `ocfl.ValidateObject` is the recommended way to validate objects as it provides standardized setup and error reporting.
 
 ---
 - [Object Documentation Overview](README.md)

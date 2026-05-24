@@ -1,7 +1,7 @@
-// Package initocfl provides functions for loading and initializing OCFL storage roots and objects.
+// Package ocfl provides functions for loading and initializing OCFL storage roots and objects.
 // It acts as a high-level entry point for working with different OCFL versions
 // by orchestrating the creation of appropriate factories and managers.
-package initocfl
+package ocfl
 
 import (
 	"context"

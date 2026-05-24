@@ -28,7 +28,7 @@ if err := initializer.Init(id, digest, fixity); err != nil {
 }
 ```
 
-The high-level function `initocfl.InitObject` is the recommended way to initialize objects as it automates factory setup and filesystem configuration.
+The high-level function `ocfl.InitObject` is the recommended way to initialize objects as it automates factory setup and filesystem configuration.
 
 ---
 - [Object Overview](../README.md)

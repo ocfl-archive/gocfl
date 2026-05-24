@@ -21,7 +21,7 @@ The factory provides methods for creating core object components:
 The object factory is typically used via the **Unified Factory** to ensure that the correct version-specific implementation is selected.
 
 > [!TIP]
-> While factories provide low-level control, the **initocfl** package provides high-level functions like `LoadObject` and `InitObject` that handle factory instantiation and common setup for you.
+> While factories provide low-level control, the **ocfl** package provides high-level functions like `LoadObject` and `InitObject` that handle factory instantiation and common setup for you.
 
 ---
 - [Back to Object Overview](README.md)

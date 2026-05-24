@@ -26,7 +26,7 @@ if err := loader.Load(); err != nil {
 defer loader.Close()
 ```
 
-The high-level function `initocfl.LoadStorageRoot` in [pkg/ocfl/initocfl](../../initocfl/README.md) is the recommended way to load storage roots as it handles version detection and extension setup automatically.
+The high-level function `ocfl.LoadStorageRoot` in [pkg/ocfl/README.md](../README.md) is the recommended way to load storage roots as it handles version detection and extension setup automatically.
 
 ---
 - [Back to Storage Root Overview](../README.md)

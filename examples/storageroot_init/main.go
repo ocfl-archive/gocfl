@@ -12,7 +12,7 @@ import (
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
 	"github.com/ocfl-archive/filesystem/pkg/vfsrw"
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
-	"github.com/ocfl-archive/gocfl/v3/pkg/initocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/rs/zerolog"
 )
@@ -34,7 +34,7 @@ func main() {
 	out := zerolog.ConsoleWriter{Out: os.Stderr}
 	zlogger := zerolog.New(out)
 	var _zlogger zLogger.ZLogger = &zlogger
-	logger := initocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
+	logger := ocfl.NewOCFLLogger(ctx, &zlogger, nil, version.Version1_1, nil)
 
 	// --- Step 3: Virtual Filesystem (VFS) Configuration ---
 	// OCFL operations are performed via a filesystem abstraction layer.
@@ -66,7 +66,7 @@ func main() {
 
 	// Execute the initialization process using the helper function.
 	// This creates the necessary OCFL structure (e.g., ocfl_layout.json, namaste file) on disk.
-	_, err = initocfl.InitStorageRoot(ctx, storageRootFS, nil, ocflVer, checksum.DigestSHA512, nil, logger)
+	_, err = ocfl.InitStorageRoot(ctx, storageRootFS, nil, ocflVer, checksum.DigestSHA512, nil, logger)
 	if err != nil {
 		log.Fatalf("failed to initialize storage root at '%s': %v", srPath, err)
 	}

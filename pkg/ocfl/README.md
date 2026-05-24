@@ -15,8 +15,12 @@ The `extension` package provides core interfaces and management logic for OCFL e
 ### [Factory](./factory/README.md)
 The `factory` module provides a unified factory mechanism to correctly instantiate components according to the various OCFL specification versions (e.g., 1.0, 1.1, 2.0).
 
-### [OCFL Actions](./ocflactions/README.md)
-Contains high-level orchestration functions for common tasks such as loading, creating, checking, or extracting OCFL objects. It serves as the primary API for many use cases.
+### [OCFL High-Level API](./docs/API.md)
+The `ocfl` package itself (this directory) provides high-level functions for interacting with OCFL structures. It abstracts the complexity of version-specific instantiation and provides orchestrated actions for common tasks.
+
+- **Initialization & Loading**: `LoadStorageRoot(...)`, `InitStorageRoot(...)`, `LoadObject(...)`, `InitObject(...)`
+- **Actions**: `ValidateObject(...)`, `Extract(...)`, `ExtractMeta(...)`
+- **Factories**: `NewFactoryObject(...)`, `NewFactoryStorageRoot(...)`
 
 ### [Inventory](./inventory/README.md)
 This package defines the structures and interfaces for the OCFL Inventory (`inventory.json`). It is the heart of an OCFL object and contains all metadata about versions, files, and fixity information.

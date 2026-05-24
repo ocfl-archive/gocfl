@@ -29,7 +29,7 @@ if err := loader.Load(); err != nil {
 }
 ```
 
-The high-level function `initocfl.LoadObject` is the recommended way to load objects as it automates version detection and extension setup.
+The high-level function `ocfl.LoadObject` is the recommended way to load objects as it automates version detection and extension setup.
 
 ---
 - [Object Documentation Overview](README.md)
