@@ -3,8 +3,6 @@ package factoryimpl
 import (
 	"context"
 
-	"io/fs"
-
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/extension"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
@@ -82,7 +80,7 @@ func (f *FactoryBaseObject) NewVersionWriter(ctx context.Context) object.Version
 }
 
 func (f *FactoryBaseObject) NewVersionFSMap(ctx context.Context) object.VersionFSMap {
-	return objectimpl.NewVersionFSMap(make(map[string]fs.FS))
+	return objectimpl.NewVersionFSMap(f.logger)
 }
 
 func (f *FactoryBaseObject) NewObject(ctx context.Context) object.Object {

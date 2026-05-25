@@ -80,7 +80,7 @@ func (f *factoryObject20) NewValidator(ctx context.Context) object.Validator {
 }
 
 func (f *factoryObject20) NewVersionFSMap(ctx context.Context) object.VersionFSMap {
-	return f.FactoryBaseObject.NewVersionFSMap(ctx)
+	return objectimpl.NewVersionFSMap20(f.logger)
 }
 
 var _ factory.FactoryObject = (*factoryObject20)(nil)

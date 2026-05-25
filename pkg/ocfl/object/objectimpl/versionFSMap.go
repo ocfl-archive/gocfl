@@ -6,15 +6,23 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
 
-func NewVersionFSMap(ma map[string]fs.FS) object.VersionFSMap {
-	return &versionFSMap{ma: ma}
+func NewVersionFSMap(logger ocfllogger.OCFLLogger) object.VersionFSMap {
+	vfsm := &versionFSMap{
+		ma:     map[string]fs.FS{},
+		logger: logger.With("task", "versionFSMap"),
+	}
+	vfsm.loadVersionFS = vfsm._loadVersionFS
+	return vfsm
 }
 
 type versionFSMap struct {
-	ma     map[string]fs.FS
-	baseFS fs.FS
+	ma            map[string]fs.FS
+	baseFS        fs.FS
+	loadVersionFS func(string) error
+	logger        ocfllogger.OCFLLogger
 }
 
 func (v *versionFSMap) WithBaseFS(baseFS fs.FS) object.VersionFSMap {
@@ -22,16 +30,23 @@ func (v *versionFSMap) WithBaseFS(baseFS fs.FS) object.VersionFSMap {
 	return v
 }
 
+func (v *versionFSMap) _loadVersionFS(version string) error {
+	subFS, err := fs.Sub(v.baseFS, version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create version FS %v/%s", v.baseFS, version)
+	}
+	v.ma[version] = subFS
+	return nil
+}
+
 func (v *versionFSMap) GetVersionFS(version string) (fs.FS, error) {
 	if v.baseFS == nil {
 		return nil, errors.New("baseFS not set")
 	}
 	if _, ok := v.ma[version]; !ok {
-		subFS, err := fs.Sub(v.baseFS, version)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create version FS %v/%s", v.baseFS, version)
+		if err := v.loadVersionFS(version); err != nil {
+			return nil, errors.Wrapf(err, "cannot load version FS for '%s'", version)
 		}
-		v.ma[version] = subFS
 	}
 	return v.ma[version], nil
 }
