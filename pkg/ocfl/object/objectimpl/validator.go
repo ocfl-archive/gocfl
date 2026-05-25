@@ -32,10 +32,11 @@ func NewObjectBaseValidator(ctx context.Context, factory factory.FactoryObject, 
 		logger.Error().Msg("invalid config type for validator")
 	}
 	val := &validator{
-		ctx:     ctx,
-		factory: factory,
-		logger:  logger.With("task", "validator"),
-		config:  validatorConfig,
+		ctx:                ctx,
+		factory:            factory,
+		logger:             logger.With("task", "validator"),
+		config:             validatorConfig,
+		allowedFilesRegexp: allowedFilesRegexp,
 	}
 	val.getVersionFS = val._getVersionFS
 	return val
@@ -44,22 +45,23 @@ func NewObjectBaseValidator(ctx context.Context, factory factory.FactoryObject, 
 // validator is the internal implementation of the OCFL object validator.
 type validator struct {
 	object.Object
-	ctx          context.Context
-	factory      factory.FactoryObject
-	logger       ocfllogger.OCFLLogger
-	config       *ValidatorConfig
-	getVersionFS func(string) (fs.FS, error)
+	ctx                context.Context
+	factory            factory.FactoryObject
+	logger             ocfllogger.OCFLLogger
+	config             *ValidatorConfig
+	getVersionFS       func(string) (fs.FS, error)
+	allowedFilesRegexp *regexp.Regexp
 }
 
 // WithObject attaches an OCFL object to the validator.
-func (obj *validator) WithObject(obj2 object.Object) object.Validator {
-	obj.Object = obj2
-	return obj
+func (val *validator) WithObject(obj2 object.Object) object.Validator {
+	val.Object = obj2
+	return val
 }
 
 // _getVersionFS is the default implementation for getting a filesystem for a specific version.
-func (obj *validator) _getVersionFS(version string) (fs.FS, error) {
-	readFS, err := fs.Sub(obj.GetReadFS(), version)
+func (val *validator) _getVersionFS(version string) (fs.FS, error) {
+	readFS, err := fs.Sub(val.GetReadFS(), version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create sub FS '%v'", version)
 	}
@@ -67,33 +69,33 @@ func (obj *validator) _getVersionFS(version string) (fs.FS, error) {
 }
 
 // Validate performs a full validation of the OCFL object.
-func (obj *validator) Validate() error {
+func (val *validator) Validate() error {
 	var fsMap = map[string]fs.FS{}
 	defer func() {
 		for k, v := range fsMap {
 			if closer, ok := v.(io.Closer); ok {
 				if err := closer.Close(); err != nil {
-					obj.logger.Error().Err(err).Msgf("cannot close FS '%s'", k)
+					val.logger.Error().Err(err).Msgf("cannot close FS '%s'", k)
 				}
 			}
 		}
 	}()
 
-	fsys := obj.GetReadFS()
+	fsys := val.GetReadFS()
 	if fsys == nil {
-		obj.logger.Panic().Msg("object FS is not set")
+		val.logger.Panic().Msg("object FS is not set")
 	}
-	inv := obj.GetInventory()
+	inv := val.GetInventory()
 	//TODO implement me
 	// https://ocfl.io/1.0/spec/#object-structure
 	//object.fs
-	obj.logger.Info().Msgf("object '%s' with object version '%s' found", inv.GetID(), obj.factory.GetVersion())
+	val.logger.Info().Msgf("object '%s' with object version '%s' found", inv.GetID(), val.factory.GetVersion())
 
-	if err := obj.checkRootEntries(fsMap); err != nil {
+	if err := val.checkRootEntries(fsMap); err != nil {
 		return errors.WithStack(err)
 	}
 
-	if err := obj.checkFilesAndVersions(fsMap); err != nil {
+	if err := val.checkFilesAndVersions(fsMap); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -106,26 +108,26 @@ func (obj *validator) Validate() error {
 }
 
 // checkRootEntries validates the entries in the object's root directory.
-func (obj *validator) checkRootEntries(fsMap map[string]fs.FS) error {
-	inv := obj.GetInventory()
+func (val *validator) checkRootEntries(fsMap map[string]fs.FS) error {
+	inv := val.GetInventory()
 	// check for allowed files and directories
 	allowedDirs := []string{"logs", "extensions"}
 	for v := range inv.GetVersions().GetVersionNumbers() {
 		allowedDirs = append(allowedDirs, v.String())
 	}
 	versionCounter := 0
-	entries, err := fs.ReadDir(obj.GetReadFS(), ".")
+	entries, err := fs.ReadDir(val.GetReadFS(), ".")
 	if err != nil {
 		return errors.Wrap(err, "cannot read object folder")
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if !slices.Contains(allowedDirs, entry.Name()) {
-				obj.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
+				val.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
 				// could it be a version folder?
 				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
-					if err2 := obj.checkVersionFolder(fsMap, entry.Name()); err2 == nil {
-						obj.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
+					if err2 := val.checkVersionFolder(fsMap, entry.Name()); err2 == nil {
+						val.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						fmt.Println(err2)
 					}
@@ -135,7 +137,7 @@ func (obj *validator) checkRootEntries(fsMap map[string]fs.FS) error {
 			// check version directories
 			for v := range inv.GetVersions().GetVersionNumbers() {
 				if v.String() == entry.Name() {
-					if err := obj.checkVersionFolder(fsMap, entry.Name()); err != nil {
+					if err := val.checkVersionFolder(fsMap, entry.Name()); err != nil {
 						return errors.WithStack(err)
 					}
 					versionCounter++
@@ -143,25 +145,22 @@ func (obj *validator) checkRootEntries(fsMap map[string]fs.FS) error {
 				}
 			}
 		} else {
-			if !allowedFilesRegexp.MatchString(entry.Name()) {
-				obj.logger.ValidationError(validation.E001, "invalid file '%s' found", entry.Name())
+			if !val.allowedFilesRegexp.MatchString(entry.Name()) {
+				val.logger.ValidationError(validation.E001, "invalid file '%s' found", entry.Name())
 			}
 		}
 	}
 
 	invVersionCounter := len(util.SeqToSlice(inv.GetVersions().GetVersionNumbers()))
 	if versionCounter != invVersionCounter {
-		obj.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
+		val.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
 	}
 	return nil
 }
 
-// allowedFilesRegexp matches the filenames allowed in an OCFL object's root or version directory.
-var allowedFilesRegexp = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
-
 // getVersionInventories loads the inventory files for all versions of the object.
-func (obj *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]inventory.Inventory, string, error) {
-	inv := obj.GetInventory()
+func (val *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]inventory.Inventory, string, error) {
+	inv := val.GetInventory()
 	if inv.GetVersions().IsEmpty() {
 		return map[string]inventory.Inventory{}, "", nil
 	}
@@ -185,16 +184,16 @@ func (obj *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]
 	for _, ver := range versionStrings {
 		versionName := ver.String()
 		if _, ok := fsMap[versionName]; !ok {
-			vFS, err := obj.getVersionFS(versionName)
+			vFS, err := val.getVersionFS(versionName)
 			if err != nil {
 				return nil, "", errors.Wrapf(err, "cannot get version FS for '%s'", versionName)
 			}
 			fsMap[versionName] = vFS
 		}
-		vi, digestString, err := loadInventoryFile(obj.ctx, fsMap[versionName], "inventory.json", obj.GetOCFLVersion(), obj.factory, obj.logger)
+		vi, digestString, err := loadInventoryFile(val.ctx, fsMap[versionName], "inventory.json", val.GetOCFLVersion(), val.factory, val.logger)
 		if err != nil {
 			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
-				obj.logger.ValidationError(validation.E010, "inventory file '%s' does not exist", ver.String())
+				val.logger.ValidationError(validation.E010, "inventory file '%s' does not exist", ver.String())
 				continue
 			}
 			return nil, "", errors.Wrapf(err, "cannot load inventory from folder '%s'", ver)
@@ -206,9 +205,9 @@ func (obj *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]
 }
 
 // checkVersionFolder validates the contents of a specific version directory.
-func (obj *validator) checkVersionFolder(fsMap map[string]fs.FS, version string) error {
+func (val *validator) checkVersionFolder(fsMap map[string]fs.FS, version string) error {
 	if _, ok := fsMap[version]; !ok {
-		vFS, err := obj.getVersionFS(version)
+		vFS, err := val.getVersionFS(version)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get version FS for '%s'", version)
 		}
@@ -221,18 +220,18 @@ func (obj *validator) checkVersionFolder(fsMap map[string]fs.FS, version string)
 	}
 	for _, ve := range versionEntries {
 		if !ve.IsDir() {
-			if !allowedFilesRegexp.MatchString(ve.Name()) {
-				obj.logger.ValidationError(validation.E015, "found extra file '%s' in version directory '%s'", ve.Name(), version)
+			if !val.allowedFilesRegexp.MatchString(ve.Name()) {
+				val.logger.ValidationError(validation.E015, "found extra file '%s' in version directory '%s'", ve.Name(), version)
 			}
 		}
 	}
-	obj.logger.Debug().Msgf("found %d correct version inventory files", len(versionEntries))
+	val.logger.Debug().Msgf("found %d correct version inventory files", len(versionEntries))
 	return nil
 }
 
 // checkFilesAndVersions orchestrates the validation of files and their versions across the object.
-func (obj *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
-	inv := obj.GetInventory()
+func (val *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
+	inv := val.GetInventory()
 	versionStrings := util.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	if len(versionStrings) > 1 {
 		slices.SortFunc(versionStrings, func(a, b *inventory.VersionNumber) int {
@@ -247,20 +246,20 @@ func (obj *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
 	}
 
 	// load object content files
-	objectContentFiles, objectFilesFlat, err := obj.walkVersionFiles(versionStrings)
+	objectContentFiles, objectFilesFlat, err := val.walkVersionFiles(versionStrings)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	// load all inventories
-	versionInventories, lastDigestString, err := obj.getVersionInventories(fsMap)
+	versionInventories, lastDigestString, err := val.getVersionInventories(fsMap)
 	if err != nil {
 		return errors.Wrap(err, "cannot get version inventories")
 	}
 
-	obj.checkInventoryConsistency(versionStrings, versionInventories, lastDigestString)
+	val.checkInventoryConsistency(versionStrings, versionInventories, lastDigestString)
 
-	csDigestFiles, err := obj.createContentManifest(fsMap)
+	csDigestFiles, err := val.createContentManifest(fsMap)
 	if err != nil {
 		return errors.Wrap(err, "cannot create content manifest")
 	}
@@ -268,20 +267,20 @@ func (obj *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
 		return errors.Wrap(err, "cannot check file digests for object root")
 	}
 
-	if err := obj.checkVersionInventories(versionStrings, versionInventories, csDigestFiles); err != nil {
+	if err := val.checkVersionInventories(versionStrings, versionInventories, csDigestFiles); err != nil {
 		return errors.WithStack(err)
 	}
 
-	obj.checkManifestFiles(versionInventories, objectFilesFlat)
+	val.checkManifestFiles(versionInventories, objectFilesFlat)
 
-	obj.checkContentFiles(objectContentFiles, versionInventories)
+	val.checkContentFiles(objectContentFiles, versionInventories)
 
 	return nil
 }
 
 // walkVersionFiles traverses all version directories to collect information about present files.
-func (obj *validator) walkVersionFiles(versionStrings []*inventory.VersionNumber) (map[string][]string, []string, error) {
-	inv := obj.GetInventory()
+func (val *validator) walkVersionFiles(versionStrings []*inventory.VersionNumber) (map[string][]string, []string, error) {
+	inv := val.GetInventory()
 	objectContentFiles := map[string][]string{}
 	objectFilesFlat := []string{}
 
@@ -292,13 +291,13 @@ func (obj *validator) walkVersionFiles(versionStrings []*inventory.VersionNumber
 			objectContentFiles[verStr] = []string{}
 		}
 		if err := fs.WalkDir(
-			obj.GetReadFS(),
+			val.GetReadFS(),
 			verStr,
 			func(path string, d fs.DirEntry, err error) error {
 				path = filepath.ToSlash(path)
 				if d == nil || d.IsDir() {
 					if !strings.HasPrefix(path, versionContent) && path != verStr && !strings.HasPrefix(verStr+"/"+inv.GetContentDir(), path) {
-						obj.logger.ValidationError(validation.W002, "extra dir '%s' in version '%s'", path, verStr)
+						val.logger.ValidationError(validation.W002, "extra dir '%s' in version '%s'", path, verStr)
 					}
 				} else {
 					objectFilesFlat = append(objectFilesFlat, path)
@@ -309,13 +308,13 @@ func (obj *validator) walkVersionFiles(versionStrings []*inventory.VersionNumber
 				return nil
 			},
 		); err != nil {
-			return nil, nil, errors.Wrapf(err, "cannot walk version '%v/%s'", obj.GetReadFS(), verStr)
+			return nil, nil, errors.Wrapf(err, "cannot walk version '%v/%s'", val.GetReadFS(), verStr)
 		}
 		// leerer content ordner
 		if len(objectContentFiles[verStr]) == 0 {
-			fi, err := fs.Stat(obj.GetReadFS(), versionContent)
+			fi, err := fs.Stat(val.GetReadFS(), versionContent)
 			if err == nil && fi.IsDir() {
-				obj.logger.ValidationError(validation.W003, "empty content folder '%s'", versionContent)
+				val.logger.ValidationError(validation.W003, "empty content folder '%s'", versionContent)
 			}
 		}
 	}
@@ -323,8 +322,8 @@ func (obj *validator) walkVersionFiles(versionStrings []*inventory.VersionNumber
 }
 
 // checkInventoryConsistency ensures that inventories in version folders are consistent with each other and the root inventory.
-func (obj *validator) checkInventoryConsistency(versionStrings []*inventory.VersionNumber, versionInventories map[string]inventory.Inventory, lastDigestString string) {
-	inv := obj.GetInventory()
+func (val *validator) checkInventoryConsistency(versionStrings []*inventory.VersionNumber, versionInventories map[string]inventory.Inventory, lastDigestString string) {
+	inv := val.GetInventory()
 	var lastInventory inventory.Inventory
 	var lastNumber string
 	for _, ver := range versionStrings {
@@ -340,7 +339,7 @@ func (obj *validator) checkInventoryConsistency(versionStrings []*inventory.Vers
 		allVersions := versionInventory.GetVersions()
 		for lastVerNumber, lastVer := range lastInventory.GetVersions().Iterate() {
 			if !lastVer.Equals(allVersions.GetVersion(lastVerNumber)) {
-				obj.logger.ValidationError(validation.W011, "version inventory %s/%s does not match %s/%s", ver.String(), lastVerNumber, lastNumber, lastVerNumber)
+				val.logger.ValidationError(validation.W011, "version inventory %s/%s does not match %s/%s", ver.String(), lastVerNumber, lastNumber, lastVerNumber)
 			}
 		}
 		lastInventory = versionInventory
@@ -348,16 +347,16 @@ func (obj *validator) checkInventoryConsistency(versionStrings []*inventory.Vers
 	}
 	if lastDigestString != "" {
 		sidecarPath := fmt.Sprintf("%s.%s", "inventory.json", inv.GetDigestAlgorithm())
-		digestString, err := getInventorySidecarChecksum(obj.GetReadFS(), sidecarPath, obj.logger)
+		digestString, err := getInventorySidecarChecksum(val.GetReadFS(), sidecarPath, val.logger)
 		if err == nil && lastDigestString != digestString {
-			obj.logger.ValidationError(validation.E064, "checksum of latest version inventory and root inventory are different")
+			val.logger.ValidationError(validation.E064, "checksum of latest version inventory and root inventory are different")
 		}
 	}
 }
 
 // checkVersionInventories validates individual version inventories against the overall object state.
-func (obj *validator) checkVersionInventories(versionStrings []*inventory.VersionNumber, versionInventories map[string]inventory.Inventory, csDigestFiles map[checksum.DigestAlgorithm]map[string][]string) error {
-	inv := obj.GetInventory()
+func (val *validator) checkVersionInventories(versionStrings []*inventory.VersionNumber, versionInventories map[string]inventory.Inventory, csDigestFiles map[checksum.DigestAlgorithm]map[string][]string) error {
+	inv := val.GetInventory()
 	contentDir := ""
 	if len(versionStrings) > 0 {
 		if vi, ok := versionInventories[versionStrings[0].String()]; ok {
@@ -372,7 +371,7 @@ func (obj *validator) checkVersionInventories(versionStrings []*inventory.Versio
 			continue
 		}
 		if contentDir != vi.GetRealContentDir() {
-			obj.logger.ValidationError(validation.E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", vi.GetRealContentDir(), ver, contentDir, versionStrings[0])
+			val.logger.ValidationError(validation.E019, "content directory '%s' of version '%s' not the same as '%s' in version '%s'", vi.GetRealContentDir(), ver, contentDir, versionStrings[0])
 		}
 		if err := vi.CheckFiles(csDigestFiles); err != nil {
 			return errors.Wrapf(err, "cannot check file digests for version '%s'", verStr)
@@ -382,18 +381,18 @@ func (obj *validator) checkVersionInventories(versionStrings []*inventory.Versio
 		digestAlg := vi.GetDigestAlgorithm()
 		allowedFiles := []string{"inventory.json", "inventory.json." + string(digestAlg)}
 		allowedDirs := []string{vi.GetContentDir()}
-		versionEntries, err := fs.ReadDir(obj.GetReadFS(), verStr)
+		versionEntries, err := fs.ReadDir(val.GetReadFS(), verStr)
 		if err != nil {
-			obj.logger.ValidationError(validation.E010, "cannot read version folder '%s'", verStr)
+			val.logger.ValidationError(validation.E010, "cannot read version folder '%s'", verStr)
 		} else {
 			for _, entry := range versionEntries {
 				if entry.IsDir() {
 					if !slices.Contains(allowedDirs, entry.Name()) {
-						obj.logger.ValidationError(validation.W002, "extra dir '%s' in version directory '%s'", entry.Name(), verStr)
+						val.logger.ValidationError(validation.W002, "extra dir '%s' in version directory '%s'", entry.Name(), verStr)
 					}
 				} else {
 					if !slices.Contains(allowedFiles, entry.Name()) {
-						obj.logger.ValidationError(validation.E015, "extra file '%s' in version directory '%s'", entry.Name(), verStr)
+						val.logger.ValidationError(validation.E015, "extra file '%s' in version directory '%s'", entry.Name(), verStr)
 					}
 				}
 			}
@@ -404,7 +403,7 @@ func (obj *validator) checkVersionInventories(versionStrings []*inventory.Versio
 			nextVer := versionStrings[i+1]
 			if viNext, ok := versionInventories[nextVer.String()]; ok {
 				if !inventory.SpecIsLessOrEqual(vi.GetSpec(), viNext.GetSpec()) {
-					obj.logger.ValidationError(validation.E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", ver, vi.GetSpec(), nextVer, viNext.GetSpec())
+					val.logger.ValidationError(validation.E103, "spec in version '%s' (%s) greater than spec in version '%s' (%s)", ver, vi.GetSpec(), nextVer, viNext.GetSpec())
 				}
 			}
 		}
@@ -414,7 +413,7 @@ func (obj *validator) checkVersionInventories(versionStrings []*inventory.Versio
 		lastVersion := versionStrings[len(versionStrings)-1]
 		if lastInv, ok := versionInventories[lastVersion.String()]; ok {
 			if !lastInv.Equals(inv) {
-				obj.logger.ValidationError(validation.E064, "root inventory not equal to inventory version '%s'", lastVersion)
+				val.logger.ValidationError(validation.E064, "root inventory not equal to inventory version '%s'", lastVersion)
 			}
 		}
 	}
@@ -422,25 +421,25 @@ func (obj *validator) checkVersionInventories(versionStrings []*inventory.Versio
 }
 
 // checkManifestFiles verifies that all files listed in manifests actually exist in the object content.
-func (obj *validator) checkManifestFiles(versionInventories map[string]inventory.Inventory, objectFilesFlat []string) {
-	inv := obj.GetInventory()
+func (val *validator) checkManifestFiles(versionInventories map[string]inventory.Inventory, objectFilesFlat []string) {
+	inv := val.GetInventory()
 	for inventoryVersion, vi := range versionInventories {
 		for manifestFile := range vi.GetManifest().GetFilesFlat() {
 			if !slices.Contains(objectFilesFlat, manifestFile) {
-				obj.logger.ValidationError(validation.E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
+				val.logger.ValidationError(validation.E092, "file '%s' from manifest not in object content (%s/inventory.json)", manifestFile, inventoryVersion)
 			}
 		}
 	}
 	for manifestFile := range inv.GetManifest().GetFilesFlat() {
 		if !slices.Contains(objectFilesFlat, manifestFile) {
-			obj.logger.ValidationError(validation.E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
+			val.logger.ValidationError(validation.E092, "file '%s' manifest not in object content (./inventory.json)", manifestFile)
 		}
 	}
 }
 
 // checkContentFiles ensures that all physical content files are correctly referenced by the inventories.
-func (obj *validator) checkContentFiles(objectContentFiles map[string][]string, versionInventories map[string]inventory.Inventory) {
-	inv := obj.GetInventory()
+func (val *validator) checkContentFiles(objectContentFiles map[string][]string, versionInventories map[string]inventory.Inventory) {
+	inv := val.GetInventory()
 	rootVersion := inv.GetHead()
 	rootManifestFiles := util.SeqToSlice(inv.GetManifest().GetFilesFlat())
 
@@ -453,7 +452,7 @@ func (obj *validator) checkContentFiles(objectContentFiles map[string][]string, 
 				versionManifestFiles := util.SeqToSlice(vi.GetManifest().GetFilesFlat())
 				for _, file := range files {
 					if !slices.Contains(versionManifestFiles, file) {
-						obj.logger.ValidationError(validation.E023, "file '%s' not in manifest version '%s'", file, inventoryVersion)
+						val.logger.ValidationError(validation.E023, "file '%s' not in manifest version '%s'", file, inventoryVersion)
 					}
 				}
 			}
@@ -462,7 +461,7 @@ func (obj *validator) checkContentFiles(objectContentFiles map[string][]string, 
 		if ocvNumber.Less(rootVersion) {
 			for _, file := range files {
 				if !slices.Contains(rootManifestFiles, file) {
-					obj.logger.ValidationError(validation.E023, "file '%s' not in manifest version '%s'", file, rootVersion)
+					val.logger.ValidationError(validation.E023, "file '%s' not in manifest version '%s'", file, rootVersion)
 				}
 			}
 		}
@@ -470,20 +469,20 @@ func (obj *validator) checkContentFiles(objectContentFiles map[string][]string, 
 		// check id consistency and head in version inventories
 		if vi, ok := versionInventories[objectContentVersion]; ok {
 			if inv.GetID() != vi.GetID() {
-				obj.logger.ValidationError(validation.E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", inv.GetID(), objectContentVersion, vi.GetID())
+				val.logger.ValidationError(validation.E037, "invalid id - root inventory id '%s' != version '%s' inventory id '%s'", inv.GetID(), objectContentVersion, vi.GetID())
 			}
 			if vi.GetHead().IsValid() && vi.GetHead().String() != objectContentVersion {
-				obj.logger.ValidationError(validation.E040, "wrong head '%s' in manifest for version '%s'", vi.GetHead(), objectContentVersion)
+				val.logger.ValidationError(validation.E040, "wrong head '%s' in manifest for version '%s'", vi.GetHead(), objectContentVersion)
 			}
 			if vi.GetDigestAlgorithm() != inv.GetDigestAlgorithm() {
-				obj.logger.ValidationError(validation.W000, "different digest algorithm '%s' in version '%s'", vi.GetDigestAlgorithm(), objectContentVersion)
+				val.logger.ValidationError(validation.W000, "different digest algorithm '%s' in version '%s'", vi.GetDigestAlgorithm(), objectContentVersion)
 			}
 			for vNum, vVer := range vi.GetVersions().Iterate() {
 				testV := inv.GetVersions().GetVersion(vNum)
 				if testV == nil {
-					obj.logger.ValidationError(validation.E066, "version '%s' in version folder '%s' not in object root manifest", vVer, vNum)
+					val.logger.ValidationError(validation.E066, "version '%s' in version folder '%s' not in object root manifest", vVer, vNum)
 				} else if !testV.Equals(vVer) {
-					obj.logger.ValidationError(validation.E066, "version '%s' in version folder '%s' not equal to version in object root manifest", vVer, vNum)
+					val.logger.ValidationError(validation.E066, "version '%s' in version folder '%s' not equal to version in object root manifest", vVer, vNum)
 				}
 			}
 		}
@@ -494,14 +493,14 @@ func (obj *validator) checkContentFiles(objectContentFiles map[string][]string, 
 // It iterates through all directories in the object root, identifies version folders,
 // and collects checksums for all files within their respective content directories
 // using the object's primary digest algorithm and any additional fixity algorithms.
-func (obj *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksum.DigestAlgorithm]map[string][]string, error) {
-	inv := obj.GetInventory()
+func (val *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksum.DigestAlgorithm]map[string][]string, error) {
+	inv := val.GetInventory()
 	digestAlgorithms := append(util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
 
-	entries, err := fs.ReadDir(obj.GetReadFS(), ".")
+	entries, err := fs.ReadDir(val.GetReadFS(), ".")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read dir '%v'", obj.GetReadFS())
+		return nil, errors.Wrapf(err, "cannot read dir '%v'", val.GetReadFS())
 	}
 
 	for _, entry := range entries {
@@ -510,10 +509,10 @@ func (obj *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksu
 		}
 		versionNumber := inventory.NewVersionNumber().WithString(entry.Name())
 		if versionNumber.Int() == 0 {
-			obj.logger.ValidationError(validation.E012, "folder '%v' is not a version", entry.Name())
+			val.logger.ValidationError(validation.E012, "folder '%v' is not a version", entry.Name())
 			continue
 		}
-		if err := obj.processVersionContent(fsMap, entry.Name(), digestAlgorithms, result); err != nil {
+		if err := val.processVersionContent(fsMap, entry.Name(), digestAlgorithms, result); err != nil {
 			return nil, errors.WithStack(err)
 		}
 	}
@@ -524,10 +523,10 @@ func (obj *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksu
 // It ensures the version's filesystem is available in the provided fsMap,
 // traverses the version's content directory, and triggers checksum calculations
 // for every file found.
-func (obj *validator) processVersionContent(fsMap map[string]fs.FS, version string, digestAlgorithms []checksum.DigestAlgorithm, result map[checksum.DigestAlgorithm]map[string][]string) error {
-	inv := obj.GetInventory()
+func (val *validator) processVersionContent(fsMap map[string]fs.FS, version string, digestAlgorithms []checksum.DigestAlgorithm, result map[checksum.DigestAlgorithm]map[string][]string) error {
+	inv := val.GetInventory()
 	if _, ok := fsMap[version]; !ok {
-		vFS, err := obj.getVersionFS(version)
+		vFS, err := val.getVersionFS(version)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get version FS for '%s'", version)
 		}
@@ -545,14 +544,14 @@ func (obj *validator) processVersionContent(fsMap map[string]fs.FS, version stri
 			if d == nil || d.IsDir() {
 				return nil
 			}
-			return obj.calculateFileChecksums(versionFS, version, fpath, digestAlgorithms, result)
+			return val.calculateFileChecksums(versionFS, version, fpath, digestAlgorithms, result)
 		})
 }
 
 // calculateFileChecksums computes checksums for a specific file using a list of algorithms.
 // It opens the file from the version's filesystem, calculates the requested digests,
 // and updates the result map with the mapping of checksums to their root-relative file paths.
-func (obj *validator) calculateFileChecksums(versionFS fs.FS, version, fpath string, digestAlgorithms []checksum.DigestAlgorithm, result map[checksum.DigestAlgorithm]map[string][]string) error {
+func (val *validator) calculateFileChecksums(versionFS fs.FS, version, fpath string, digestAlgorithms []checksum.DigestAlgorithm, result map[checksum.DigestAlgorithm]map[string][]string) error {
 	fp, err := versionFS.Open(fpath)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open file '%s'", fpath)
@@ -574,8 +573,11 @@ func (obj *validator) calculateFileChecksums(versionFS fs.FS, version, fpath str
 		}
 		result[d][cs] = append(result[d][cs], fnameInRoot)
 	}
-	obj.logger.Debug().Msgf("calculated %d checksums for file '%s'", len(css), fnameInRoot)
+	val.logger.Debug().Msgf("calculated %d checksums for file '%s'", len(css), fnameInRoot)
 	return nil
 }
+
+// allowedFilesRegexp matches the filenames allowed in an OCFL object's root or version directory.
+var allowedFilesRegexp = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
 
 var _ object.Validator = (*validator)(nil)
