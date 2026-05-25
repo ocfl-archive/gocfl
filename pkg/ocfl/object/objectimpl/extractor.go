@@ -29,12 +29,14 @@ func NewExtractor(ctx context.Context, factory factory.FactoryObject, config any
 	if config != nil && !ok {
 		logger.Error().Msg("invalid config type for extractor")
 	}
-	return &extractor{
+	ext := &extractor{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "extractor"),
 		config:  extractorConfig,
 	}
+	ext.getVersionFS = ext._getVersionFS
+	return ext
 }
 
 type extractor struct {
@@ -45,6 +47,7 @@ type extractor struct {
 	logger       ocfllogger.OCFLLogger
 	config       *ExtractorConfig
 	objectReadFS fs.FS
+	getVersionFS func(string) (fs.FS, error)
 }
 
 func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
@@ -152,9 +155,26 @@ func (ext *extractor) GetExtensionFileReader(extensionName string, path string) 
 	return ext.GetFileReader(pathStr)
 }
 
+func (ext *extractor) _getVersionFS(version string) (fs.FS, error) {
+	readFS, err := fs.Sub(ext.objectReadFS, version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create sub FS '%v'", version)
+	}
+	return readFS, nil
+}
+
 func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
 	var err error
 	var fsMap = map[string]fs.FS{}
+	defer func() {
+		for k, v := range fsMap {
+			if closer, ok := v.(io.Closer); ok {
+				if err := closer.Close(); err != nil {
+					ext.logger.Error().Err(err).Msgf("cannot close FS '%s'", k)
+				}
+			}
+		}
+	}()
 	if ext.destFS == nil {
 		return errors.New("destination FS is not set")
 	}
@@ -184,9 +204,9 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 				}
 				parts := strings.SplitN(internal, "/", 2)
 				if _, ok := fsMap[parts[0]]; !ok {
-					readFS, err := fs.Sub(ext.objectReadFS, parts[0])
+					readFS, err := ext.getVersionFS(parts[0])
 					if err != nil {
-						return errors.Wrapf(err, "cannot create sub FS '%v'", parts[0])
+						return errors.Wrapf(err, "cannot get version FS for '%s'", parts[0])
 					}
 					fsMap[parts[0]] = readFS
 				}
