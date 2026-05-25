@@ -191,59 +191,7 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 				}
 				return errors.Wrapf(err, "cannot map path '%s'", external)
 			}
-			if err := func() error {
-				if len(internals) == 0 {
-					return errors.Errorf("no internal paths for '%v'", externals)
-				}
-				var internal string
-				for _, internal = range internals {
-					parts := strings.SplitN(internal, "/", 2)
-					if _, ok := fsMap[parts[0]]; ok {
-						break
-					}
-				}
-				parts := strings.SplitN(internal, "/", 2)
-				if _, ok := fsMap[parts[0]]; !ok {
-					readFS, err := ext.getVersionFS(parts[0])
-					if err != nil {
-						return errors.Wrapf(err, "cannot get version FS for '%s'", parts[0])
-					}
-					fsMap[parts[0]] = readFS
-				}
-				src, err := fsMap[parts[0]].Open(parts[1])
-				if err != nil {
-					return errors.Wrapf(err, "cannot open '%s'", internal)
-				}
-				defer func(src fs.File) {
-					err := src.Close()
-					if err != nil {
-						ext.logger.Error().Err(err).Msgf("cannot close '%s'", internal)
-					}
-				}(src)
-				target, err := writefs.Create(ext.destFS, external)
-				if err != nil {
-					return errors.Wrapf(err, "cannot create '%v/%s'", ext.destFS, external)
-				}
-				defer func(target writefs.FileWrite) {
-					err := target.Close()
-					if err != nil {
-						ext.logger.Error().Err(err).Msgf("cannot close '%v'", target)
-					}
-				}(target)
-				ext.logger.Debug().Msgf("writing '%s' -> '%v/%s'", internal, ext.destFS, external)
-				copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
-				if err != nil {
-					return errors.Wrapf(err, "error copying '%s' -> '%v/%s'", internal, ext.destFS, external)
-				}
-				copyDigest, ok := copyDigests[digestAlg]
-				if !ok {
-					return errors.Errorf("no digest '%s' generated", digestAlg)
-				}
-				if copyDigest != digest {
-					return errors.Errorf("invalid digest for '%s' - [%s] != [%s]", internal, copyDigests, digest)
-				}
-				return nil
-			}(); err != nil {
+			if err := ext.extractFile(fsMap, internals, externals, external, digest, digestAlg); err != nil {
 				return err
 			}
 			if withManifest {
@@ -255,24 +203,85 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 		return errors.Wrap(err, "cannot iterate external files")
 	}
 	if withManifest {
-		manifestName := fmt.Sprintf("manifest.%s", digestAlg)
-		fp, err := writefs.Create(ext.destFS, manifestName)
-		if err != nil {
-			return errors.Wrapf(err, "cannot crate manifest file %v/%s", ext.destFS, manifestName)
-		}
-		if _, err := io.WriteString(fp, manifest.String()); err != nil {
-			if err := fp.Close(); err != nil {
-				return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.destFS, manifestName)
-			}
-			return errors.Wrapf(err, "cannot write manifest file %v/%s", ext.destFS, manifestName)
-		}
-		if err := fp.Close(); err != nil {
-			return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.destFS, manifestName)
+		if err := ext.writeManifest(manifest.String(), digestAlg); err != nil {
+			return err
 		}
 	}
 	ext.logger.Debug().Msgf("object '%s' extracted", inv.GetID())
 	return nil
 
+}
+
+func (ext *extractor) extractFile(fsMap map[string]fs.FS, internals, externals []string, external, digest string, digestAlg checksum.DigestAlgorithm) error {
+	if len(internals) == 0 {
+		return errors.Errorf("no internal paths for '%v'", externals)
+	}
+	var internal string
+	for _, internal = range internals {
+		parts := strings.SplitN(internal, "/", 2)
+		if _, ok := fsMap[parts[0]]; ok {
+			break
+		}
+	}
+	parts := strings.SplitN(internal, "/", 2)
+	if _, ok := fsMap[parts[0]]; !ok {
+		readFS, err := ext.getVersionFS(parts[0])
+		if err != nil {
+			return errors.Wrapf(err, "cannot get version FS for '%s'", parts[0])
+		}
+		fsMap[parts[0]] = readFS
+	}
+	src, err := fsMap[parts[0]].Open(parts[1])
+	if err != nil {
+		return errors.Wrapf(err, "cannot open '%s'", internal)
+	}
+	defer func(src fs.File) {
+		err := src.Close()
+		if err != nil {
+			ext.logger.Error().Err(err).Msgf("cannot close '%s'", internal)
+		}
+	}(src)
+	target, err := writefs.Create(ext.destFS, external)
+	if err != nil {
+		return errors.Wrapf(err, "cannot create '%v/%s'", ext.destFS, external)
+	}
+	defer func(target writefs.FileWrite) {
+		err := target.Close()
+		if err != nil {
+			ext.logger.Error().Err(err).Msgf("cannot close '%v'", target)
+		}
+	}(target)
+	ext.logger.Debug().Msgf("writing '%s' -> '%v/%s'", internal, ext.destFS, external)
+	copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
+	if err != nil {
+		return errors.Wrapf(err, "error copying '%s' -> '%v/%s'", internal, ext.destFS, external)
+	}
+	copyDigest, ok := copyDigests[digestAlg]
+	if !ok {
+		return errors.Errorf("no digest '%s' generated", digestAlg)
+	}
+	if copyDigest != digest {
+		return errors.Errorf("invalid digest for '%s' - [%s] != [%s]", internal, copyDigests, digest)
+	}
+	return nil
+}
+
+func (ext *extractor) writeManifest(manifestContent string, digestAlg checksum.DigestAlgorithm) error {
+	manifestName := fmt.Sprintf("manifest.%s", digestAlg)
+	fp, err := writefs.Create(ext.destFS, manifestName)
+	if err != nil {
+		return errors.Wrapf(err, "cannot crate manifest file %v/%s", ext.destFS, manifestName)
+	}
+	if _, err := io.WriteString(fp, manifestContent); err != nil {
+		if err := fp.Close(); err != nil {
+			return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.destFS, manifestName)
+		}
+		return errors.Wrapf(err, "cannot write manifest file %v/%s", ext.destFS, manifestName)
+	}
+	if err := fp.Close(); err != nil {
+		return errors.Wrapf(err, "cannot close manifest file %v/%s", ext.destFS, manifestName)
+	}
+	return nil
 }
 
 func (ext *extractor) WithObject(o object.Object) object.Extractor {
