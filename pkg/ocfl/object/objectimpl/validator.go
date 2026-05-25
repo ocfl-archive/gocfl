@@ -3,6 +3,7 @@ package objectimpl
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"path"
 	"path/filepath"
@@ -28,20 +29,23 @@ func NewObjectBaseValidator(ctx context.Context, factory factory.FactoryObject, 
 	if config != nil && !ok {
 		logger.Error().Msg("invalid config type for validator")
 	}
-	return &validator{
+	val := &validator{
 		ctx:     ctx,
 		factory: factory,
 		logger:  logger.With("task", "validator"),
 		config:  validatorConfig,
 	}
+	val.getVersionFS = val._getVersionFS
+	return val
 }
 
 type validator struct {
 	object.Object
-	ctx     context.Context
-	factory factory.FactoryObject
-	logger  ocfllogger.OCFLLogger
-	config  *ValidatorConfig
+	ctx          context.Context
+	factory      factory.FactoryObject
+	logger       ocfllogger.OCFLLogger
+	config       *ValidatorConfig
+	getVersionFS func(string) (fs.FS, error)
 }
 
 func (obj *validator) WithObject(obj2 object.Object) object.Validator {
@@ -49,7 +53,26 @@ func (obj *validator) WithObject(obj2 object.Object) object.Validator {
 	return obj
 }
 
+func (obj *validator) _getVersionFS(version string) (fs.FS, error) {
+	readFS, err := fs.Sub(obj.GetReadFS(), version)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create sub FS '%v'", version)
+	}
+	return readFS, nil
+}
+
 func (obj *validator) Validate() error {
+	var fsMap = map[string]fs.FS{}
+	defer func() {
+		for k, v := range fsMap {
+			if closer, ok := v.(io.Closer); ok {
+				if err := closer.Close(); err != nil {
+					obj.logger.Error().Err(err).Msgf("cannot close FS '%s'", k)
+				}
+			}
+		}
+	}()
+
 	fsys := obj.GetReadFS()
 	if fsys == nil {
 		obj.logger.Panic().Msg("object FS is not set")
@@ -77,7 +100,7 @@ func (obj *validator) Validate() error {
 				obj.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
 				// could it be a version folder?
 				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
-					if err2 := obj.checkVersionFolder(entry.Name()); err2 == nil {
+					if err2 := obj.checkVersionFolder(fsMap, entry.Name()); err2 == nil {
 						obj.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						fmt.Println(err2)
@@ -88,7 +111,7 @@ func (obj *validator) Validate() error {
 			// check version directories
 			for v := range inv.GetVersions().GetVersionNumbers() {
 				if v.String() == entry.Name() {
-					if err := obj.checkVersionFolder(entry.Name()); err != nil {
+					if err := obj.checkVersionFolder(fsMap, entry.Name()); err != nil {
 						return errors.WithStack(err)
 					}
 					versionCounter++
@@ -107,7 +130,7 @@ func (obj *validator) Validate() error {
 		obj.logger.ValidationError(validation.E010, "number of version in inventory (%v) does not fit version in filesystem (%v)", versionCounter, invVersionCounter)
 	}
 
-	if err := obj.checkFilesAndVersions(); err != nil {
+	if err := obj.checkFilesAndVersions(fsMap); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -122,7 +145,7 @@ func (obj *validator) Validate() error {
 
 var allowedFilesRegexp = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
 
-func (obj *validator) getVersionInventories() (map[string]inventory.Inventory, string, error) {
+func (obj *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]inventory.Inventory, string, error) {
 	inv := obj.GetInventory()
 	if inv.GetVersions().IsEmpty() {
 		return map[string]inventory.Inventory{}, "", nil
@@ -145,7 +168,15 @@ func (obj *validator) getVersionInventories() (map[string]inventory.Inventory, s
 	versionInventories := map[string]inventory.Inventory{}
 	var lastDigestString string
 	for _, ver := range versionStrings {
-		vi, digestString, err := loadInventoryFile(obj.ctx, obj.GetReadFS(), path.Join(ver.String(), "inventory.json"), obj.GetOCFLVersion(), obj.factory, obj.logger)
+		versionName := ver.String()
+		if _, ok := fsMap[versionName]; !ok {
+			vFS, err := obj.getVersionFS(versionName)
+			if err != nil {
+				return nil, "", errors.Wrapf(err, "cannot get version FS for '%s'", versionName)
+			}
+			fsMap[versionName] = vFS
+		}
+		vi, digestString, err := loadInventoryFile(obj.ctx, fsMap[versionName], "inventory.json", obj.GetOCFLVersion(), obj.factory, obj.logger)
 		if err != nil {
 			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 				obj.logger.ValidationError(validation.E010, "inventory file '%s' does not exist", ver.String())
@@ -159,8 +190,15 @@ func (obj *validator) getVersionInventories() (map[string]inventory.Inventory, s
 	return versionInventories, lastDigestString, nil
 }
 
-func (obj *validator) checkVersionFolder(version string) error {
-	versionFS, err := fs.Sub(obj.GetReadFS(), version)
+func (obj *validator) checkVersionFolder(fsMap map[string]fs.FS, version string) error {
+	if _, ok := fsMap[version]; !ok {
+		vFS, err := obj.getVersionFS(version)
+		if err != nil {
+			return errors.Wrapf(err, "cannot get version FS for '%s'", version)
+		}
+		fsMap[version] = vFS
+	}
+	versionFS := fsMap[version]
 	versionEntries, err := fs.ReadDir(versionFS, ".")
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
@@ -176,7 +214,7 @@ func (obj *validator) checkVersionFolder(version string) error {
 	return nil
 }
 
-func (obj *validator) checkFilesAndVersions() error {
+func (obj *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
 	inv := obj.GetInventory()
 	//ocflVersion := inv.GetOCFLVersion()
 	// create list of version content directories
@@ -266,7 +304,7 @@ func (obj *validator) checkFilesAndVersions() error {
 	}
 
 	// load all inventories
-	versionInventories, lastDigestString, err := obj.getVersionInventories()
+	versionInventories, lastDigestString, err := obj.getVersionInventories(fsMap)
 	if err != nil {
 		return errors.Wrap(err, "cannot get version inventories")
 	}
@@ -303,7 +341,7 @@ func (obj *validator) checkFilesAndVersions() error {
 
 	}
 
-	csDigestFiles, err := obj.createContentManifest()
+	csDigestFiles, err := obj.createContentManifest(fsMap)
 	if err != nil {
 		return errors.Wrap(err, "cannot create content manifest")
 	}
@@ -467,7 +505,7 @@ func (obj *validator) checkFilesAndVersions() error {
 	return nil
 }
 
-func (obj *validator) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (obj *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	inv := obj.GetInventory()
 	// get all possible digest algs
 	digestAlgorithms := append(util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
@@ -490,20 +528,28 @@ func (obj *validator) createContentManifest() (map[checksum.DigestAlgorithm]map[
 			obj.logger.ValidationError(validation.E012, "folder '%v' is not a version", entry.Name())
 			continue
 		}
+		if _, ok := fsMap[entry.Name()]; !ok {
+			vFS, err := obj.getVersionFS(entry.Name())
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot get version FS for '%s'", entry.Name())
+			}
+			fsMap[entry.Name()] = vFS
+		}
+		versionFS := fsMap[entry.Name()]
+
 		if err := fs.WalkDir(
-			obj.GetReadFS(),
-			//fmt.Sprintf("%s/%s", version, inv.GetContentDir()),
-			path.Join(versionNumber.String(), inv.GetContentDir()),
-			func(path string, d fs.DirEntry, dirErr error) error {
+			versionFS,
+			inv.GetContentDir(),
+			func(fpath string, d fs.DirEntry, dirErr error) error {
 				if dirErr != nil {
-					return errors.Wrapf(dirErr, "error walking into %s", path)
+					return errors.Wrapf(dirErr, "error walking into %s", fpath)
 				}
 				//obj.logger.Debug(path)
 				if d == nil || d.IsDir() {
 					return nil
 				}
-				fname := path // filepath.ToSlash(filepath.Join(version, path))
-				fp, err := obj.GetReadFS().Open(fname)
+				fname := fpath // filepath.ToSlash(filepath.Join(version, path))
+				fp, err := versionFS.Open(fname)
 				if err != nil {
 					return errors.Wrapf(err, "cannot open file '%s'", fname)
 				}
@@ -512,6 +558,7 @@ func (obj *validator) createContentManifest() (map[checksum.DigestAlgorithm]map[
 				if err != nil {
 					return errors.Wrapf(err, "cannot read and create checksums for file '%s'", fname)
 				}
+				fnameInRoot := path.Join(entry.Name(), fpath)
 				for d, cs := range css {
 					if _, ok := result[d]; !ok {
 						result[d] = map[string][]string{}
@@ -519,9 +566,9 @@ func (obj *validator) createContentManifest() (map[checksum.DigestAlgorithm]map[
 					if _, ok := result[d][cs]; !ok {
 						result[d][cs] = []string{}
 					}
-					result[d][cs] = append(result[d][cs], fname)
+					result[d][cs] = append(result[d][cs], fnameInRoot)
 				}
-				obj.logger.Debug().Msgf("calculated %d checksums for file '%s'", len(css), fname)
+				obj.logger.Debug().Msgf("calculated %d checksums for file '%s'", len(css), fnameInRoot)
 				return nil
 			}); err != nil {
 			return nil, errors.Wrapf(err, "cannot walk content dir '%s'", inv.GetContentDir())
