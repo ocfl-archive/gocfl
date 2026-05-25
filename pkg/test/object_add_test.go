@@ -38,6 +38,11 @@ func testObjectAdd(t *testing.T, ocflVer version.OCFLVersion) {
 	loadedObj, _, loadedObjeCloser := ReloadObject(t, env, objID)
 	defer loadedObjeCloser.Close()
 
+	// Objekt validieren
+	v := loadedObj.GetValidator()
+	validationErr := v.Validate()
+	assert.NoError(t, validationErr)
+
 	// Inventory abrufen
 	inv := loadedObj.GetInventory()
 	assert.NotNil(t, inv)
