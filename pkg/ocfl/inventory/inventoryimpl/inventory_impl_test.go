@@ -16,9 +16,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/je4/utils/v2/pkg/checksum"
 	"github.com/je4/utils/v2/pkg/zLogger"
-	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger/ocflloggerimpl"
 	"github.com/rs/zerolog"
 )
 
@@ -123,7 +123,7 @@ var inventoryTests = []inventoryTest{
 func addFileTest(t *testing.T, test inventoryTest) {
 	ctx := context.TODO()
 	var zlogger zLogger.ZLogger = new(zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger())
-	var logger = ocfl.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
+	var logger = ocflloggerimpl.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
 
 	// Initial state.
 	testState := &stateBase{
@@ -291,7 +291,7 @@ var inventoryTestsChecksumError = []inventoryTest{
 func addFileTestChecksumError(t *testing.T, test inventoryTest) {
 	ctx := context.TODO()
 	var zlogger zLogger.ZLogger = new(zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger())
-	var logger = ocfl.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
+	var logger = ocflloggerimpl.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
 
 	// Initial state.
 	testState := &stateBase{
@@ -415,7 +415,7 @@ var inventoryTestVersionErrors = []inventoryTest{
 func addFileTestVersionErrors(t *testing.T, test inventoryTest) {
 	ctx := context.TODO()
 	var zlogger zLogger.ZLogger = new(zerolog.New(os.Stderr).With().Str("timestamp", time.Now().String()).Logger())
-	var logger = ocfl.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
+	var logger = ocflloggerimpl.NewOCFLLogger(ctx, zlogger, nil, version.Default, nil)
 
 	// Initial state.
 	testState := &stateBase{

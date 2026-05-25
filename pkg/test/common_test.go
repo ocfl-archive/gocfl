@@ -43,13 +43,15 @@ func SetupTestEnv(t *testing.T, ocflVer version.OCFLVersion) *TestEnv {
 			Afero: &vfsrw.Afero{
 				BaseDir: "mem://",
 			},
-			ZipAsFolder: &vfsrw.ZipAsFolder{
-				Enabled:   true,
-				Digests:   []checksum.DigestAlgorithm{checksum.DigestSHA512},
-				CacheSize: 10,
-				Compress:  false,
-				ReadOnly:  false,
-			},
+			/*
+				ZipAsFolder: &vfsrw.ZipAsFolder{
+					Enabled:   true,
+					Digests:   []checksum.DigestAlgorithm{checksum.DigestSHA512},
+					CacheSize: 10,
+					Compress:  false,
+					ReadOnly:  false,
+				},
+			*/
 		},
 	}
 
