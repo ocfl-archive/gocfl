@@ -28,6 +28,7 @@ func ValidateObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLL
 	}
 	defer func() { _ = obj.Close() }()
 	validator := obj.GetValidator()
+	defer func() { _ = validator.Close() }()
 	if err := validator.Validate(); err != nil {
 		return errors.Wrapf(err, "cannot validate object from folder '%v'", objectFS)
 	}
@@ -58,6 +59,7 @@ func Extract(ctx context.Context, objectFS fs.FS, destFS appendfs.FS, path strin
 		_ = o.Close()
 	}()
 	extractor := o.GetExtractor().WithDestFS(destFS)
+	defer func() { _ = extractor.Close() }()
 	if err := extractor.Extract(version, withManifest, area); err != nil {
 		return errors.Wrapf(err, "cannot extract object '%s'", path)
 	}
@@ -81,5 +83,6 @@ func ExtractMeta(ctx context.Context, fsys fs.FS, path string, logger ocfllogger
 	defer func() { _ = obj.Close() }()
 	defer logger.Debug().Msgf("extraction done")
 	extractor := obj.GetExtractor().WithDestFS(nil)
+	defer func() { _ = extractor.Close() }()
 	return extractor.GetMetadata()
 }

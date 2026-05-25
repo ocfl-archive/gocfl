@@ -2,11 +2,8 @@ package objectimpl
 
 import (
 	"context"
-	"io/fs"
 
-	"emperror.dev/errors"
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
-	"github.com/ocfl-archive/filesystem/pkg/zipfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -28,26 +25,13 @@ func NewExtractor20(ctx context.Context, fact factory.FactoryObject, conf any, l
 		},
 		config: extractorConfig,
 	}
-	ext.getVersionFS = ext._getVersionFS
+	ext.versionFSMap = fact.NewVersionFSMap(ctx)
 	return ext
 }
 
 type extractor20 struct {
 	*extractor
 	config *Extractor20Config
-	//	versionReadFS fs.FS
-}
-
-func (ext *extractor20) _getVersionFS(version string) (fs.FS, error) {
-	fi, err := fs.Stat(ext.objectReadFS, version)
-	if err == nil && !fi.IsDir() {
-		return ext.extractor._getVersionFS(version)
-	}
-	fi, err = fs.Stat(ext.objectReadFS, version+".zip")
-	if err == nil && !fi.IsDir() {
-		return zipfs.NewFSFile(ext.objectReadFS, version+".zip", ext.logger.Logger())
-	}
-	return nil, errors.Errorf("folders %s and %s.zip not found", version, version)
 }
 
 func (ext *extractor20) WithObject(o object.Object) object.Extractor {

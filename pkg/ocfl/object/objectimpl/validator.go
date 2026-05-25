@@ -3,7 +3,6 @@ package objectimpl
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
 	"path"
 	"path/filepath"
@@ -37,8 +36,8 @@ func NewObjectBaseValidator(ctx context.Context, factory factory.FactoryObject, 
 		logger:             logger.With("task", "validator"),
 		config:             validatorConfig,
 		allowedFilesRegexp: allowedFilesRegexp,
+		versionFSMap:       factory.NewVersionFSMap(ctx),
 	}
-	val.getVersionFS = val._getVersionFS
 	return val
 }
 
@@ -49,38 +48,24 @@ type validator struct {
 	factory            factory.FactoryObject
 	logger             ocfllogger.OCFLLogger
 	config             *ValidatorConfig
-	getVersionFS       func(string) (fs.FS, error)
+	versionFSMap       object.VersionFSMap
 	allowedFilesRegexp *regexp.Regexp
 }
 
 // WithObject attaches an OCFL object to the validator.
 func (val *validator) WithObject(obj2 object.Object) object.Validator {
 	val.Object = obj2
+	val.versionFSMap.WithBaseFS(obj2.GetReadFS())
 	return val
 }
 
-// _getVersionFS is the default implementation for getting a filesystem for a specific version.
-func (val *validator) _getVersionFS(version string) (fs.FS, error) {
-	readFS, err := fs.Sub(val.GetReadFS(), version)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create sub FS '%v'", version)
-	}
-	return readFS, nil
+// Close finalizes the validator.
+func (val *validator) Close() error {
+	return val.versionFSMap.Close()
 }
 
 // Validate performs a full validation of the OCFL object.
 func (val *validator) Validate() error {
-	var fsMap = map[string]fs.FS{}
-	defer func() {
-		for k, v := range fsMap {
-			if closer, ok := v.(io.Closer); ok {
-				if err := closer.Close(); err != nil {
-					val.logger.Error().Err(err).Msgf("cannot close FS '%s'", k)
-				}
-			}
-		}
-	}()
-
 	fsys := val.GetReadFS()
 	if fsys == nil {
 		val.logger.Panic().Msg("object FS is not set")
@@ -91,11 +76,11 @@ func (val *validator) Validate() error {
 	//object.fs
 	val.logger.Info().Msgf("object '%s' with object version '%s' found", inv.GetID(), val.factory.GetVersion())
 
-	if err := val.checkRootEntries(fsMap); err != nil {
+	if err := val.checkRootEntries(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	if err := val.checkFilesAndVersions(fsMap); err != nil {
+	if err := val.checkFilesAndVersions(); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -108,7 +93,7 @@ func (val *validator) Validate() error {
 }
 
 // checkRootEntries validates the entries in the object's root directory.
-func (val *validator) checkRootEntries(fsMap map[string]fs.FS) error {
+func (val *validator) checkRootEntries() error {
 	inv := val.GetInventory()
 	// check for allowed files and directories
 	allowedDirs := []string{"logs", "extensions"}
@@ -126,7 +111,7 @@ func (val *validator) checkRootEntries(fsMap map[string]fs.FS) error {
 				val.logger.ValidationError(validation.E001, "invalid directory '%s' found", entry.Name())
 				// could it be a version folder?
 				if _, err := strconv.Atoi(strings.TrimLeft(entry.Name(), "v0")); err == nil {
-					if err2 := val.checkVersionFolder(fsMap, entry.Name()); err2 == nil {
+					if err2 := val.checkVersionFolder(entry.Name()); err2 == nil {
 						val.logger.ValidationError(validation.E046, "root manifest not most recent because of '%s'", entry.Name())
 					} else {
 						fmt.Println(err2)
@@ -137,7 +122,7 @@ func (val *validator) checkRootEntries(fsMap map[string]fs.FS) error {
 			// check version directories
 			for v := range inv.GetVersions().GetVersionNumbers() {
 				if v.String() == entry.Name() {
-					if err := val.checkVersionFolder(fsMap, entry.Name()); err != nil {
+					if err := val.checkVersionFolder(entry.Name()); err != nil {
 						return errors.WithStack(err)
 					}
 					versionCounter++
@@ -159,7 +144,7 @@ func (val *validator) checkRootEntries(fsMap map[string]fs.FS) error {
 }
 
 // getVersionInventories loads the inventory files for all versions of the object.
-func (val *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]inventory.Inventory, string, error) {
+func (val *validator) getVersionInventories() (map[string]inventory.Inventory, string, error) {
 	inv := val.GetInventory()
 	if inv.GetVersions().IsEmpty() {
 		return map[string]inventory.Inventory{}, "", nil
@@ -183,14 +168,11 @@ func (val *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]
 	var lastDigestString string
 	for _, ver := range versionStrings {
 		versionName := ver.String()
-		if _, ok := fsMap[versionName]; !ok {
-			vFS, err := val.getVersionFS(versionName)
-			if err != nil {
-				return nil, "", errors.Wrapf(err, "cannot get version FS for '%s'", versionName)
-			}
-			fsMap[versionName] = vFS
+		vFS, err := val.versionFSMap.GetVersionFS(versionName)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "cannot get version FS for '%s'", versionName)
 		}
-		vi, digestString, err := loadInventoryFile(val.ctx, fsMap[versionName], "inventory.json", val.GetOCFLVersion(), val.factory, val.logger)
+		vi, digestString, err := loadInventoryFile(val.ctx, vFS, "inventory.json", val.GetOCFLVersion(), val.factory, val.logger)
 		if err != nil {
 			if errors.Is(errors.Cause(err), fs.ErrNotExist) {
 				val.logger.ValidationError(validation.E010, "inventory file '%s' does not exist", ver.String())
@@ -205,15 +187,11 @@ func (val *validator) getVersionInventories(fsMap map[string]fs.FS) (map[string]
 }
 
 // checkVersionFolder validates the contents of a specific version directory.
-func (val *validator) checkVersionFolder(fsMap map[string]fs.FS, version string) error {
-	if _, ok := fsMap[version]; !ok {
-		vFS, err := val.getVersionFS(version)
-		if err != nil {
-			return errors.Wrapf(err, "cannot get version FS for '%s'", version)
-		}
-		fsMap[version] = vFS
+func (val *validator) checkVersionFolder(version string) error {
+	versionFS, err := val.versionFSMap.GetVersionFS(version)
+	if err != nil {
+		return errors.Wrapf(err, "cannot get version FS for '%s'", version)
 	}
-	versionFS := fsMap[version]
 	versionEntries, err := fs.ReadDir(versionFS, ".")
 	if err != nil {
 		return errors.Wrapf(err, "cannot read version folder '%s'", version)
@@ -230,7 +208,7 @@ func (val *validator) checkVersionFolder(fsMap map[string]fs.FS, version string)
 }
 
 // checkFilesAndVersions orchestrates the validation of files and their versions across the object.
-func (val *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
+func (val *validator) checkFilesAndVersions() error {
 	inv := val.GetInventory()
 	versionStrings := util.SeqToSlice(inv.GetVersions().GetVersionNumbers())
 	if len(versionStrings) > 1 {
@@ -252,14 +230,14 @@ func (val *validator) checkFilesAndVersions(fsMap map[string]fs.FS) error {
 	}
 
 	// load all inventories
-	versionInventories, lastDigestString, err := val.getVersionInventories(fsMap)
+	versionInventories, lastDigestString, err := val.getVersionInventories()
 	if err != nil {
 		return errors.Wrap(err, "cannot get version inventories")
 	}
 
 	val.checkInventoryConsistency(versionStrings, versionInventories, lastDigestString)
 
-	csDigestFiles, err := val.createContentManifest(fsMap)
+	csDigestFiles, err := val.createContentManifest()
 	if err != nil {
 		return errors.Wrap(err, "cannot create content manifest")
 	}
@@ -493,7 +471,7 @@ func (val *validator) checkContentFiles(objectContentFiles map[string][]string, 
 // It iterates through all directories in the object root, identifies version folders,
 // and collects checksums for all files within their respective content directories
 // using the object's primary digest algorithm and any additional fixity algorithms.
-func (val *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksum.DigestAlgorithm]map[string][]string, error) {
+func (val *validator) createContentManifest() (map[checksum.DigestAlgorithm]map[string][]string, error) {
 	inv := val.GetInventory()
 	digestAlgorithms := append(util.SeqToSlice(inv.GetFixity().GetDigestAlgorithms()), inv.GetDigestAlgorithm())
 	result := map[checksum.DigestAlgorithm]map[string][]string{}
@@ -512,7 +490,7 @@ func (val *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksu
 			val.logger.ValidationError(validation.E012, "folder '%v' is not a version", entry.Name())
 			continue
 		}
-		if err := val.processVersionContent(fsMap, entry.Name(), digestAlgorithms, result); err != nil {
+		if err := val.processVersionContent(entry.Name(), digestAlgorithms, result); err != nil {
 			return nil, errors.WithStack(err)
 		}
 	}
@@ -523,16 +501,12 @@ func (val *validator) createContentManifest(fsMap map[string]fs.FS) (map[checksu
 // It ensures the version's filesystem is available in the provided fsMap,
 // traverses the version's content directory, and triggers checksum calculations
 // for every file found.
-func (val *validator) processVersionContent(fsMap map[string]fs.FS, version string, digestAlgorithms []checksum.DigestAlgorithm, result map[checksum.DigestAlgorithm]map[string][]string) error {
+func (val *validator) processVersionContent(version string, digestAlgorithms []checksum.DigestAlgorithm, result map[checksum.DigestAlgorithm]map[string][]string) error {
 	inv := val.GetInventory()
-	if _, ok := fsMap[version]; !ok {
-		vFS, err := val.getVersionFS(version)
-		if err != nil {
-			return errors.Wrapf(err, "cannot get version FS for '%s'", version)
-		}
-		fsMap[version] = vFS
+	versionFS, err := val.versionFSMap.GetVersionFS(version)
+	if err != nil {
+		return errors.Wrapf(err, "cannot get version FS for '%s'", version)
 	}
-	versionFS := fsMap[version]
 
 	return fs.WalkDir(
 		versionFS,

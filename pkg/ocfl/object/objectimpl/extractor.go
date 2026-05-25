@@ -35,7 +35,7 @@ func NewExtractor(ctx context.Context, factory factory.FactoryObject, config any
 		logger:  logger.With("task", "extractor"),
 		config:  extractorConfig,
 	}
-	ext.getVersionFS = ext._getVersionFS
+	ext.versionFSMap = factory.NewVersionFSMap(ctx)
 	return ext
 }
 
@@ -47,7 +47,7 @@ type extractor struct {
 	logger       ocfllogger.OCFLLogger
 	config       *ExtractorConfig
 	objectReadFS fs.FS
-	getVersionFS func(string) (fs.FS, error)
+	versionFSMap object.VersionFSMap
 }
 
 func (ext *extractor) GetMetadata() (*inventory.Metadata, error) {
@@ -155,26 +155,8 @@ func (ext *extractor) GetExtensionFileReader(extensionName string, path string) 
 	return ext.GetFileReader(pathStr)
 }
 
-func (ext *extractor) _getVersionFS(version string) (fs.FS, error) {
-	readFS, err := fs.Sub(ext.objectReadFS, version)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create sub FS '%v'", version)
-	}
-	return readFS, nil
-}
-
 func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest bool, area string) error {
 	var err error
-	var fsMap = map[string]fs.FS{}
-	defer func() {
-		for k, v := range fsMap {
-			if closer, ok := v.(io.Closer); ok {
-				if err := closer.Close(); err != nil {
-					ext.logger.Error().Err(err).Msgf("cannot close FS '%s'", k)
-				}
-			}
-		}
-	}()
 	if ext.destFS == nil {
 		return errors.New("destination FS is not set")
 	}
@@ -191,7 +173,7 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 				}
 				return errors.Wrapf(err, "cannot map path '%s'", external)
 			}
-			if err := ext.extractFile(fsMap, internals, externals, external, digest, digestAlg); err != nil {
+			if err := ext.extractFile(internals, externals, external, digest, digestAlg); err != nil {
 				return err
 			}
 			if withManifest {
@@ -212,26 +194,23 @@ func (ext *extractor) Extract(version *inventory.VersionNumber, withManifest boo
 
 }
 
-func (ext *extractor) extractFile(fsMap map[string]fs.FS, internals, externals []string, external, digest string, digestAlg checksum.DigestAlgorithm) error {
+func (ext *extractor) extractFile(internals, externals []string, external, digest string, digestAlg checksum.DigestAlgorithm) error {
 	if len(internals) == 0 {
 		return errors.Errorf("no internal paths for '%v'", externals)
 	}
 	var internal string
 	for _, internal = range internals {
 		parts := strings.SplitN(internal, "/", 2)
-		if _, ok := fsMap[parts[0]]; ok {
+		if _, err := ext.versionFSMap.GetVersionFS(parts[0]); err == nil {
 			break
 		}
 	}
 	parts := strings.SplitN(internal, "/", 2)
-	if _, ok := fsMap[parts[0]]; !ok {
-		readFS, err := ext.getVersionFS(parts[0])
-		if err != nil {
-			return errors.Wrapf(err, "cannot get version FS for '%s'", parts[0])
-		}
-		fsMap[parts[0]] = readFS
+	readFS, err := ext.versionFSMap.GetVersionFS(parts[0])
+	if err != nil {
+		return errors.Wrapf(err, "cannot get version FS for '%s'", parts[0])
 	}
-	src, err := fsMap[parts[0]].Open(parts[1])
+	src, err := readFS.Open(parts[1])
 	if err != nil {
 		return errors.Wrapf(err, "cannot open '%s'", internal)
 	}
@@ -287,12 +266,17 @@ func (ext *extractor) writeManifest(manifestContent string, digestAlg checksum.D
 func (ext *extractor) WithObject(o object.Object) object.Extractor {
 	ext.Object = o
 	ext.objectReadFS = o.GetReadFS()
+	ext.versionFSMap.WithBaseFS(ext.objectReadFS)
 	return ext
 }
 
 func (ext *extractor) WithDestFS(destFS appendfs.FS) object.Extractor {
 	ext.destFS = destFS
 	return ext
+}
+
+func (ext *extractor) Close() error {
+	return ext.versionFSMap.Close()
 }
 
 var _ object.Extractor = (*extractor)(nil)

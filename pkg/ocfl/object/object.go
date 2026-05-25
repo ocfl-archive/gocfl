@@ -61,6 +61,7 @@ type VersionWriter interface {
 
 // Validator is the interface for validating an OCFL object.
 type Validator interface {
+	io.Closer
 	// Check performs the validation of the object.
 	Validate() error
 	// WithObject sets the object to be checked.
@@ -90,6 +91,7 @@ type Loader interface {
 
 // Extractor is the interface for extracting content from an OCFL object.
 type Extractor interface {
+	io.Closer
 	// Extract extracts a specific version of the object.
 	Extract(version *inventory.VersionNumber, withManifest bool, area string) error
 	// WithObject sets the object to extract from.

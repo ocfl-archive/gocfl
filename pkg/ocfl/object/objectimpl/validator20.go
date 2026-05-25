@@ -2,11 +2,8 @@ package objectimpl
 
 import (
 	"context"
-	"io/fs"
 	"regexp"
 
-	"emperror.dev/errors"
-	"github.com/ocfl-archive/filesystem/pkg/zipfs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
@@ -29,31 +26,16 @@ func NewObjectBaseValidator20(ctx context.Context, fact factory.FactoryObject, c
 			logger:             logger.With("task", "validator"),
 			config:             (*ValidatorConfig)(validatorConfig),
 			allowedFilesRegexp: allowedFilesRegexp20,
+			versionFSMap:       fact.NewVersionFSMap(ctx),
 		},
 		config: validatorConfig,
 	}
-	val.getVersionFS = val._getVersionFS
 	return val
 }
 
-// validator20 is the internal implementation of the OCFL 2.0 object validator.
 type validator20 struct {
 	*validator
 	config *Validator20Config
-}
-
-// _getVersionFS overrides the default implementation to support both directories and .zip files for versions.
-func (val *validator20) _getVersionFS(version string) (fs.FS, error) {
-	fsys := val.GetReadFS()
-	fi, err := fs.Stat(fsys, version)
-	if err == nil && fi.IsDir() {
-		return val.validator._getVersionFS(version)
-	}
-	fi, err = fs.Stat(fsys, version+".zip")
-	if err == nil && !fi.IsDir() {
-		return zipfs.NewFSFile(fsys, version+".zip", val.logger.Logger())
-	}
-	return nil, errors.Errorf("folders %s and %s.zip not found", version, version)
 }
 
 // WithObject attaches an OCFL object to the validator.
