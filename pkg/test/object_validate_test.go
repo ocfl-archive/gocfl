@@ -3,6 +3,7 @@ package test
 import (
 	"testing"
 
+	"github.com/ocfl-archive/filesystem/pkg/writefs"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/require"
 )
@@ -44,60 +45,68 @@ func testObjectValidation(t *testing.T, ocflVer version.OCFLVersion) {
 	err = vw2.Close()
 	require.NoError(t, err)
 
-	// 3. Verifizierung des intakten Objekts
-	loadedObj, _, loadedObjCloser := ReloadObject(t, env, objID)
+	t.Run("Valid", func(t *testing.T) {
+		// 3. Verifizierung des intakten Objekts
+		loadedObj, _, loadedObjCloser := ReloadObject(t, env, objID)
 
-	validator := loadedObj.GetValidator()
-	_ = validator.Validate()
-	validator.Close()
-	loadedObjCloser.Close()
+		validator := loadedObj.GetValidator()
+		_ = validator.Validate()
+		validator.Close()
+		loadedObjCloser.Close()
 
-	validationErrors := env.OCFLLogger.ValidationErrors()
-	errCount := 0
-	for _, vErr := range validationErrors {
-		// E010 ignorieren, da es ein Problem mit der Testumgebung/VFS-Struktur zu sein scheint
-		// OCFL 2.0 (v2) wird hier scheinbar noch nicht voll unterstützt im Validator
-		if vErr.Code[0] == 'E' {
-			errCount++
-			t.Logf("Unexpected error: %s", vErr.Error())
+		validationErrors := env.OCFLLogger.ValidationErrors()
+		errCount := 0
+		for _, vErr := range validationErrors {
+			// E010 ignorieren, da es ein Problem mit der Testumgebung/VFS-Struktur zu sein scheint
+			// OCFL 2.0 (v2) wird hier scheinbar noch nicht voll unterstützt im Validator
+			if vErr.Code[0] == 'E' {
+				errCount++
+				t.Logf("Unexpected error: %s", vErr.Error())
+			}
 		}
-	}
-	require.Equal(t, 0, errCount, "There should be no validation errors for an intact object")
+		require.Equal(t, 0, errCount, "There should be no validation errors for an intact object")
+	})
 
-	// 4. Manipulation: Eine Datei im Content-Verzeichnis löschen
-	// Wir müssen den Pfad zur Datei im Dateisystem finden.
-	// OCFL Pfad für v1/content/test1.txt
-	objFolder, err := env.StorageRoot.IdToFolder(objID)
-	require.NoError(t, err)
-	contentPath := "vfs://testmem/" + objFolder + "/v1/content/test1.txt"
+	t.Run("Manipulated", func(t *testing.T) {
+		// 4. Manipulation: Eine Datei im Content-Verzeichnis löschen
+		// Wir müssen den Pfad zur Datei im Dateisystem finden.
+		// OCFL Pfad für v1/content/test1.txt
+		objFolder, err := env.StorageRoot.IdToFolder(objID)
+		require.NoError(t, err)
 
-	err = env.DestFS.Remove(contentPath)
-	require.NoError(t, err, "Should be able to delete a file for manipulation")
-
-	// 5. Erneute Validierung - sollte nun Fehler finden
-	env.OCFLLogger.ClearValidationErrors() // Vorherige Nachrichten löschen
-
-	loadedObj2, _, loadedObjCloser2 := ReloadObject(t, env, objID)
-
-	validator2 := loadedObj2.GetValidator()
-	_ = validator2.Validate()
-	validator2.Close()
-	loadedObjCloser2.Close()
-
-	// Wir erwarten nun Fehler
-	validationErrors2 := env.OCFLLogger.ValidationErrors()
-	errCount2 := 0
-	for _, vErr := range validationErrors2 {
-		// E010 ignorieren, wie oben
-		// OCFL 2.0 (v2) wird hier scheinbar noch nicht voll unterstützt im Validator
-		if vErr.Code[0] == 'E' && vErr.Code != "E010" {
-			errCount2++
-			t.Logf("Found expected error: %s", vErr.Error())
+		contentPath := objFolder + "/v1/content/test1.txt"
+		if ocflVer == version.Version2_0 {
+			contentPath = objFolder + "/v1.zip"
 		}
-	}
 
-	require.Greater(t, errCount2, 0, "Validation should fail after manipulation")
-	// fmt.Printf("Validation found %d errors as expected after deleting %s\n", errCount2, contentPath)
+		err = writefs.Remove(env.SourceFS, contentPath)
+		require.NoError(t, err, "Should be able to delete a file for manipulation")
+
+		// 5. Erneute Validierung - sollte nun Fehler finden
+		env.OCFLLogger.ClearValidationErrors() // Vorherige Nachrichten löschen
+
+		loadedObj2, _, loadedObjCloser2 := ReloadObject(t, env, objID)
+
+		validator2 := loadedObj2.GetValidator()
+		_ = validator2.Validate()
+		validator2.Close()
+		loadedObjCloser2.Close()
+
+		// Wir erwarten nun Fehler
+		validationErrors2 := env.OCFLLogger.ValidationErrors()
+		errCount2 := 0
+		for _, vErr := range validationErrors2 {
+			// E010 ignorieren, wie oben
+			// OCFL 2.0 (v2) wird hier scheinbar noch nicht voll unterstützt im Validator
+			if vErr.Code[0] == 'E' {
+				errCount2++
+				t.Logf("Found expected error: %s", vErr.Error())
+			}
+		}
+
+		require.Greater(t, errCount2, 0, "Validation should fail after manipulation")
+		// fmt.Printf("Validation found %d errors as expected after deleting %s\n", errCount2, contentPath)
+	})
 }
 
 func TestObjectValidationDigest(t *testing.T) {
@@ -123,57 +132,61 @@ func testObjectValidationDigest(t *testing.T, ocflVer version.OCFLVersion) {
 	err = vw1.Close()
 	require.NoError(t, err)
 
-	// 2. Intaktes Objekt validieren
-	loadedObj, _, loadedObjCloser := ReloadObject(t, env, objID)
-	validator := loadedObj.GetValidator()
-	_ = validator.Validate()
-	validator.Close()
-	loadedObjCloser.Close()
+	t.Run("Valid", func(t *testing.T) {
+		// 2. Intaktes Objekt validieren
+		loadedObj, _, loadedObjCloser := ReloadObject(t, env, objID)
+		validator := loadedObj.GetValidator()
+		_ = validator.Validate()
+		validator.Close()
+		loadedObjCloser.Close()
 
-	validationErrors := env.OCFLLogger.ValidationErrors()
-	errCount := 0
-	for _, vErr := range validationErrors {
-		if vErr.Code[0] == 'E' && vErr.Code != "E010" {
-			errCount++
+		validationErrors := env.OCFLLogger.ValidationErrors()
+		errCount := 0
+		for _, vErr := range validationErrors {
+			if vErr.Code[0] == 'E' && vErr.Code != "E010" {
+				errCount++
+			}
 		}
-	}
-	require.Equal(t, 0, errCount, "There should be no validation errors for an intact object")
+		require.Equal(t, 0, errCount, "There should be no validation errors for an intact object")
+	})
 
-	// 3. Manipulation: Dateiinhalt ändern (Digest-Fehler provozieren)
-	objFolder, err := env.StorageRoot.IdToFolder(objID)
-	require.NoError(t, err)
-	contentPath := "vfs://testmem/" + objFolder + "/v1/content/test1.txt"
+	t.Run("Manipulated", func(t *testing.T) {
+		// 3. Manipulation: Dateiinhalt ändern (Digest-Fehler provozieren)
+		objFolder, err := env.StorageRoot.IdToFolder(objID)
+		require.NoError(t, err)
+		contentPath := "vfs://testmem/" + objFolder + "/v1/content/test1.txt"
 
-	// Datei mit anderem Inhalt überschreiben
-	f, err := env.DestFS.Create(contentPath)
-	require.NoError(t, err)
-	_, err = f.Write([]byte("Manipulated Content"))
-	require.NoError(t, err)
-	err = f.Close()
-	require.NoError(t, err)
+		// Datei mit anderem Inhalt überschreiben
+		f, err := env.DestFS.Create(contentPath)
+		require.NoError(t, err)
+		_, err = f.Write([]byte("Manipulated Content"))
+		require.NoError(t, err)
+		err = f.Close()
+		require.NoError(t, err)
 
-	// 4. Erneute Validierung
-	env.OCFLLogger.ClearValidationErrors()
-	loadedObj2, _, loadedObjCloser2 := ReloadObject(t, env, objID)
-	validator2 := loadedObj2.GetValidator()
-	_ = validator2.Validate()
-	validator2.Close()
-	loadedObjCloser2.Close()
+		// 4. Erneute Validierung
+		env.OCFLLogger.ClearValidationErrors()
+		loadedObj2, _, loadedObjCloser2 := ReloadObject(t, env, objID)
+		validator2 := loadedObj2.GetValidator()
+		_ = validator2.Validate()
+		validator2.Close()
+		loadedObjCloser2.Close()
 
-	// Wir erwarten Digest-Fehler (E092 oder ähnlich)
-	validationErrors2 := env.OCFLLogger.ValidationErrors()
-	errCount2 := 0
-	foundDigestError := false
-	for _, vErr := range validationErrors2 {
-		if vErr.Code[0] == 'E' && vErr.Code != "E010" {
-			errCount2++
-			t.Logf("Found expected error: %s", vErr.Error())
-			// E060, E092 etc. sind typisch für Digest-Probleme
-			foundDigestError = true
+		// Wir erwarten Digest-Fehler (E092 oder ähnlich)
+		validationErrors2 := env.OCFLLogger.ValidationErrors()
+		errCount2 := 0
+		foundDigestError := false
+		for _, vErr := range validationErrors2 {
+			if vErr.Code[0] == 'E' {
+				errCount2++
+				t.Logf("Found expected error: %s", vErr.Error())
+				// E060, E092 etc. sind typisch für Digest-Probleme
+				foundDigestError = true
+			}
 		}
-	}
 
-	require.Greater(t, errCount2, 0, "Validation should fail after content manipulation")
-	require.True(t, foundDigestError, "Should have found at least one digest-related error")
-	// fmt.Printf("Validation found %d errors as expected after manipulating %s\n", errCount2, contentPath)
+		require.Greater(t, errCount2, 0, "Validation should fail after content manipulation")
+		require.True(t, foundDigestError, "Should have found at least one digest-related error")
+		// fmt.Printf("Validation found %d errors as expected after manipulating %s\n", errCount2, contentPath)
+	})
 }

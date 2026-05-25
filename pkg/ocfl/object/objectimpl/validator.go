@@ -35,6 +35,7 @@ func NewObjectBaseValidator(ctx context.Context, factory factory.FactoryObject, 
 		logger:             logger.With("task", "validator"),
 		config:             validatorConfig,
 		allowedFilesRegexp: allowedFilesRegexp,
+		allowedDirsRegexp:  allowedDirsRegexp,
 		versionFSMap:       factory.NewVersionFSMap(ctx),
 	}
 	val.getVersion = val._getVersion
@@ -51,6 +52,7 @@ type validator struct {
 	versionFSMap       object.VersionFSMap
 	allowedFilesRegexp *regexp.Regexp
 	getVersion         func(name string) *inventory.VersionNumber
+	allowedDirsRegexp  *regexp.Regexp
 }
 
 // WithObject attaches an OCFL object to the validator.
@@ -97,7 +99,6 @@ func (val *validator) Validate() error {
 func (val *validator) checkRootEntries() error {
 	inv := val.GetInventory()
 	// check for allowed files and directories
-	allowedDirs := []string{"logs", "extensions"}
 	/*
 		for v := range inv.GetVersions().GetVersionNumbers() {
 			allowedDirs = append(allowedDirs, v.String())
@@ -112,7 +113,7 @@ func (val *validator) checkRootEntries() error {
 	for _, entry := range entries {
 		name := entry.Name()
 		if entry.IsDir() {
-			if slices.Contains(allowedDirs, name) {
+			if val.allowedDirsRegexp.MatchString(name) {
 				continue
 			}
 		} else {
@@ -574,5 +575,5 @@ func (val *validator) _getVersion(name string) *inventory.VersionNumber {
 
 // allowedFilesRegexp matches the filenames allowed in an OCFL object's root or version directory.
 var allowedFilesRegexp = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
-
+var allowedDirsRegexp = regexp.MustCompile(`^extensions|logs$`)
 var _ object.Validator = (*validator)(nil)

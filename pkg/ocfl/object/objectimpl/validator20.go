@@ -28,6 +28,7 @@ func NewObjectBaseValidator20(ctx context.Context, fact factory.FactoryObject, c
 			logger:             logger.With("task", "validator"),
 			config:             (*ValidatorConfig)(validatorConfig),
 			allowedFilesRegexp: allowedFilesRegexp20,
+			allowedDirsRegexp:  allowedDirsRegexp,
 			versionFSMap:       fact.NewVersionFSMap(ctx),
 		},
 		config: validatorConfig,
