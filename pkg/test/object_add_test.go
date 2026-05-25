@@ -1,6 +1,7 @@
 package test
 
 import (
+	"io/fs"
 	"testing"
 
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
@@ -38,8 +39,14 @@ func testObjectAdd(t *testing.T, ocflVer version.OCFLVersion) {
 	loadedObj, _, loadedObjeCloser := ReloadObject(t, env, objID)
 	defer loadedObjeCloser.Close()
 
+	// Prüfung ob v1 oder v1.zip existiert, aber nicht beide gleichzeitig
+	_, errV1 := fs.Stat(loadedObj.GetReadFS(), "v1")
+	_, errV1Zip := fs.Stat(loadedObj.GetReadFS(), "v1.zip")
+	assert.True(t, (errV1 == nil) != (errV1Zip == nil), "v1 or v1.zip should exist, but not both")
+
 	// Objekt validieren
 	v := loadedObj.GetValidator()
+	defer v.Close()
 	validationErr := v.Validate()
 	assert.NoError(t, validationErr)
 

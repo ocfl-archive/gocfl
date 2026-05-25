@@ -85,6 +85,7 @@ func testObjectExtract(t *testing.T, ocflVer version.OCFLVersion) {
 			})
 
 			extractor := loadedObj.GetExtractor().WithDestFS(destFS)
+			t.Cleanup(func() { _ = extractor.Close() })
 			err = extractor.Extract(vNum, true, "")
 			require.NoError(t, err)
 

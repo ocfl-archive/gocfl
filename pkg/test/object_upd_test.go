@@ -78,6 +78,7 @@ func testObjectUpdate(t *testing.T, ocflVer version.OCFLVersion) {
 
 	// Validierung des Objekts
 	validator := loadedObj.GetValidator()
+	defer validator.Close()
 	validationErr := validator.Validate()
 	if ocflVer != version.Version2_0 {
 		require.NoError(t, validationErr, "Object validation should pass")

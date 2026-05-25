@@ -198,26 +198,28 @@ func (ext *extractor) extractFile(internals, externals []string, external, diges
 	if len(internals) == 0 {
 		return errors.Errorf("no internal paths for '%v'", externals)
 	}
-	var internal string
-	for _, internal = range internals {
-		parts := strings.SplitN(internal, "/", 2)
-		if _, err := ext.versionFSMap.GetVersionFS(parts[0]); err == nil {
+	var pathStr string
+	var version *inventory.VersionNumber
+	for _, _internal := range internals {
+		parts := strings.SplitN(_internal, "/", 2)
+		version = inventory.NewVersionNumber().WithString(parts[0])
+		pathStr = parts[1]
+		if _, err := ext.versionFSMap.GetVersionFS(version); err == nil {
 			break
 		}
 	}
-	parts := strings.SplitN(internal, "/", 2)
-	readFS, err := ext.versionFSMap.GetVersionFS(parts[0])
+	readFS, err := ext.versionFSMap.GetVersionFS(version)
 	if err != nil {
-		return errors.Wrapf(err, "cannot get version FS for '%s'", parts[0])
+		return errors.Wrapf(err, "cannot get version FS for '%s'", version.String())
 	}
-	src, err := readFS.Open(parts[1])
+	src, err := readFS.Open(pathStr)
 	if err != nil {
-		return errors.Wrapf(err, "cannot open '%s'", internal)
+		return errors.Wrapf(err, "cannot open '%s'", pathStr)
 	}
 	defer func(src fs.File) {
 		err := src.Close()
 		if err != nil {
-			ext.logger.Error().Err(err).Msgf("cannot close '%s'", internal)
+			ext.logger.Error().Err(err).Msgf("cannot close '%s'", pathStr)
 		}
 	}(src)
 	target, err := writefs.Create(ext.destFS, external)
@@ -230,17 +232,17 @@ func (ext *extractor) extractFile(internals, externals []string, external, diges
 			ext.logger.Error().Err(err).Msgf("cannot close '%v'", target)
 		}
 	}(target)
-	ext.logger.Debug().Msgf("writing '%s' -> '%v/%s'", internal, ext.destFS, external)
+	ext.logger.Debug().Msgf("writing '%s/%s' -> '%v/%s'", version.String(), pathStr, ext.destFS, external)
 	copyDigests, err := checksum.Copy([]checksum.DigestAlgorithm{digestAlg}, src, target)
 	if err != nil {
-		return errors.Wrapf(err, "error copying '%s' -> '%v/%s'", internal, ext.destFS, external)
+		return errors.Wrapf(err, "error copying '%s/%s' -> '%v/%s'", version.String(), pathStr, ext.destFS, external)
 	}
 	copyDigest, ok := copyDigests[digestAlg]
 	if !ok {
 		return errors.Errorf("no digest '%s' generated", digestAlg)
 	}
 	if copyDigest != digest {
-		return errors.Errorf("invalid digest for '%s' - [%s] != [%s]", internal, copyDigests, digest)
+		return errors.Errorf("invalid digest for '%s/%s' - [%s] != [%s]", version.String(), pathStr, copyDigests, digest)
 	}
 	return nil
 }

@@ -30,6 +30,7 @@ func NewVersionWriter20(ctx context.Context, fact factory.FactoryObject, conf an
 		config: versionWriterConfig,
 	}
 	vw.versionWriter.addReader = vw._addReader
+	vw.versionWriter.setupVersionFS = vw.setupVersionFS
 	return vw
 }
 
@@ -37,6 +38,32 @@ type versionWriter20 struct {
 	*versionWriter
 	config *VersionWriter20Config
 	digest string
+}
+
+func (versionWriter *versionWriter20) setupVersionFS(ver string) (appendfs.FS, io.Closer, error) {
+	inv := versionWriter.obj.GetInventory()
+
+	fp, err := writefs.Create(versionWriter.obj.GetWriteFS(), ver+".zip")
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "cannot create version zip file '%s'", ver+".zip")
+	}
+	writeFS, err := zipfsw.NewFS(
+		fp,
+		true,
+		true,
+		ver,
+		[]checksum.DigestAlgorithm{inv.GetDigestAlgorithm()},
+		func(css map[checksum.DigestAlgorithm]string) error {
+			versionWriter.digest = css[inv.GetDigestAlgorithm()]
+			return nil
+		},
+		versionWriter.logger.Logger(),
+	)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "cannot create version zip file '%s'", ver+".zip")
+	}
+
+	return writeFS.(appendfs.FS), writeFS.(io.Closer), nil
 }
 
 func (versionWriter *versionWriter20) WithObject(obj object.Object) object.VersionWriter {
@@ -55,30 +82,6 @@ func (versionWriter *versionWriter20) Init(msg string, name string, address stri
 	if err := versionWriter.versionWriter.Init(msg, name, address); err != nil {
 		return errors.Wrap(err, "cannot initialize version writer")
 	}
-	inv := versionWriter.obj.GetInventory()
-
-	fp, err := writefs.Create(versionWriter.obj.GetWriteFS(), versionWriter.ver.String()+".zip")
-	if err != nil {
-		return errors.Wrapf(err, "cannot create version zip file '%s'", versionWriter.ver.String()+".zip")
-	}
-	writeFS, err := zipfsw.NewFS(
-		fp,
-		true,
-		true,
-		versionWriter.ver.String(),
-		[]checksum.DigestAlgorithm{inv.GetDigestAlgorithm()},
-		func(css map[checksum.DigestAlgorithm]string) error {
-			versionWriter.digest = css[inv.GetDigestAlgorithm()]
-			return nil
-		},
-		versionWriter.logger.Logger(),
-	)
-	if err != nil {
-		return errors.Wrapf(err, "cannot create version zip file '%s'", versionWriter.ver.String()+".zip")
-	}
-
-	versionWriter.versionWriter.objectWriteFS = versionWriter.obj.GetWriteFS()
-	versionWriter.versionWriter.versionWriteFS = writeFS.(appendfs.FS)
 	return nil
 }
 

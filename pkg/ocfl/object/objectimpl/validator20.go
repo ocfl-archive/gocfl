@@ -3,8 +3,10 @@ package objectimpl
 import (
 	"context"
 	"regexp"
+	"strings"
 
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/factory"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/inventory"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/object"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfllogger"
 )
@@ -30,12 +32,21 @@ func NewObjectBaseValidator20(ctx context.Context, fact factory.FactoryObject, c
 		},
 		config: validatorConfig,
 	}
+	val.getVersion = val._getVersion
 	return val
 }
 
 type validator20 struct {
 	*validator
 	config *Validator20Config
+}
+
+func (val *validator20) _getVersion(name string) *inventory.VersionNumber {
+	vn := inventory.NewVersionNumber().WithString(strings.TrimSuffix(name, ".zip"))
+	if vn.Int() == 0 {
+		return nil
+	}
+	return vn
 }
 
 // WithObject attaches an OCFL object to the validator.
@@ -45,6 +56,6 @@ func (val *validator20) WithObject(o object.Object) object.Validator {
 }
 
 // allowedFilesRegexp20 matches the filenames allowed in an OCFL object's root or version directory.
-var allowedFilesRegexp20 = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|0=ocfl_object_[0-9]+\.[0-9]+)$`)
+var allowedFilesRegexp20 = regexp.MustCompile(`^(inventory.json(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)?|v[0-9]+\.zip(\.sha512|\.sha384|\.sha256|\.sha1|\.md5)|0=ocfl_object_[0-9]+\.[0-9]+)$`)
 
 var _ object.Validator = (*validator20)(nil)

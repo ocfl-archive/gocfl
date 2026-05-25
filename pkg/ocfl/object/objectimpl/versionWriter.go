@@ -50,6 +50,9 @@ func NewVersionWriterBase(ctx context.Context, fact factory.FactoryObject, conf 
 		config:      versionWriterConfig,
 	}
 	vw.addReader = vw._addReader
+	vw.setupVersionFS = func(ver string) (appendfs.FS, io.Closer, error) {
+		return appendfs.Sub(vw.objectWriteFS, ver)
+	}
 	return vw
 }
 
@@ -63,6 +66,7 @@ type versionWriter struct {
 	area            string
 	config          *VersionWriterConfig
 	addReader       func(r io.ReadCloser, names *object.NamesStruct, filename string, noExtensionHook bool) (string, error)
+	setupVersionFS  func(ver string) (appendfs.FS, io.Closer, error)
 	objectWriteFS   appendfs.FS
 	versionWriteFS  appendfs.FS
 	versionFSCloser io.Closer
@@ -116,7 +120,7 @@ func (versionWriter *versionWriter) Init(msg string, name string, address string
 	}
 	versionWriter.ver = inv.GetHead()
 	var err error
-	versionWriter.versionWriteFS, versionWriter.versionFSCloser, err = appendfs.Sub(versionWriter.objectWriteFS, versionWriter.ver.String())
+	versionWriter.versionWriteFS, versionWriter.versionFSCloser, err = versionWriter.setupVersionFS(versionWriter.ver.String())
 	if err != nil {
 		return errors.Wrapf(err, "failed to open version stream %v/%s", versionWriter.objectWriteFS, versionWriter.ver.String())
 	}
@@ -191,6 +195,9 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 	}
 	if version {
 		iFileName = "inventory.json"
+		if versionWriter.versionWriteFS == nil {
+			return errors.New("version write FS is nil")
+		}
 		iWriter, err := writefs.Create(versionWriter.versionWriteFS, iFileName)
 		if err != nil {
 			return errors.Wrap(err, "cannot create inventory.json")
@@ -258,7 +265,7 @@ func (versionWriter *versionWriter) Close() error {
 
 	//object.storageRoot.setModified()
 
-	if versionWriter.versionWriteFS != nil {
+	if versionWriter.versionWriteFS != nil && versionWriter.versionFSCloser == nil {
 		if closer, ok := versionWriter.versionWriteFS.(io.Closer); ok {
 			if err := closer.Close(); err != nil {
 				return errors.Wrap(err, "cannot close version zip file")
