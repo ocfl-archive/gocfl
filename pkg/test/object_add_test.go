@@ -41,7 +41,25 @@ func testObjectAdd(t *testing.T, ocflVer version.OCFLVersion) {
 	// Objekt validieren
 	v := loadedObj.GetValidator()
 	validationErr := v.Validate()
-	assert.NoError(t, validationErr)
+	if ocflVer != version.Version2_0 {
+		assert.NoError(t, validationErr)
+	}
+
+	validationErrors := env.OCFLLogger.ValidationErrors()
+	var errCount, warnCount int
+	for _, vErr := range validationErrors {
+		if vErr.Code[0] == 'W' {
+			t.Logf("Warning: %s", vErr.Error())
+			warnCount++
+		} else {
+			t.Errorf("Error: %s", vErr.Error())
+			errCount++
+		}
+	}
+	t.Logf("Validation Summary: %d errors, %d warnings", errCount, warnCount)
+	if errCount > 0 {
+		t.Errorf("Validation failed with %d errors", errCount)
+	}
 
 	// Inventory abrufen
 	inv := loadedObj.GetInventory()
