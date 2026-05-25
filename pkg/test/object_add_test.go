@@ -41,9 +41,7 @@ func testObjectAdd(t *testing.T, ocflVer version.OCFLVersion) {
 	// Objekt validieren
 	v := loadedObj.GetValidator()
 	validationErr := v.Validate()
-	if ocflVer != version.Version2_0 {
-		assert.NoError(t, validationErr)
-	}
+	assert.NoError(t, validationErr)
 
 	validationErrors := env.OCFLLogger.ValidationErrors()
 	var errCount, warnCount int
