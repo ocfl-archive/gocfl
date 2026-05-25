@@ -70,4 +70,17 @@ func (f *factoryObject20) NewExtractor(ctx context.Context) object.Extractor {
 	)
 }
 
+func (f *factoryObject20) NewValidator(ctx context.Context) object.Validator {
+	return objectimpl.NewObjectBaseValidator20(
+		ctx,
+		f,
+		f.GetConfig()[object.ValidatorName],
+		f.logger,
+	)
+}
+
+func (f *factoryObject20) NewVersionFSMap(ctx context.Context) object.VersionFSMap {
+	return f.FactoryBaseObject.NewVersionFSMap(ctx)
+}
+
 var _ factory.FactoryObject = (*factoryObject20)(nil)

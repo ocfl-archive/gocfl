@@ -20,6 +20,8 @@ const (
 	ExtractorName ConfigName = "extractor"
 	// VersionWriterName is the configuration name for the version writer instance.
 	VersionWriterName ConfigName = "versionwriter"
+	// VersionFSMapName is the configuration name for the version FS map instance.
+	VersionFSMapName ConfigName = "versionfsmap"
 )
 
 // Factory is the interface for creating object components.
@@ -39,4 +41,6 @@ type Factory interface {
 	NewExtractor(ctx context.Context) Extractor
 	// NewVersionWriter creates a new VersionWriter instance.
 	NewVersionWriter(ctx context.Context) VersionWriter
+	// NewVersionFSMap creates a new VersionFSMap instance.
+	NewVersionFSMap(ctx context.Context) VersionFSMap
 }
