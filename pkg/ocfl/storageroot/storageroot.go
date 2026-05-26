@@ -19,25 +19,23 @@ import (
 
 // Initializer is the interface for creating a new OCFL storage root.
 type Initializer interface {
+	io.Closer
 	StorageRoot
 	// Init initializes the storage root.
 	Init() error
 	// SetStorageRoot sets the storage root for the Initializer.
 	SetStorageRoot(sr StorageRoot) Initializer
-	// Close finalizes the initialization.
-	Close() error
 }
 
 // Loader is the interface for loading an existing OCFL storage root.
 type Loader interface {
+	io.Closer
 	// Load reads the storage root configuration and state.
 	Load() error
 	// SetStorageRoot sets the storage root for the Loader.
 	SetStorageRoot(sr StorageRoot) Loader
 	// SetExtensionFactory sets the factory for extension management.
 	SetExtensionFactory(factory extension.Factory[ExtensionManager]) Loader
-	// Close finalizes the loading process.
-	Close() error
 }
 
 // StorageRoot is the main interface representing an OCFL storage root.

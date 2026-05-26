@@ -33,6 +33,10 @@ func (initializer *initializer) WithObject(o object.Object) object.Initializer {
 	return initializer
 }
 
+func (initializer *initializer) Close() error {
+	return nil
+}
+
 func (initializer *initializer) Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error {
 	initializer.logger.Debug().Msgf("%s", id)
 	if empty, err := writefs.IsEmpty(initializer.GetWriteFS(), ""); err != nil {

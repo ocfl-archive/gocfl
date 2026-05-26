@@ -25,6 +25,7 @@ type NamesStruct struct {
 
 // VersionWriter is the interface for adding or modifying files in an OCFL object version.
 type VersionWriter interface {
+	io.Closer
 	// AddFolder adds all files from a folder to the version.
 	AddFolder(sourceFS fs.FS, checkDuplicate bool, area string) error
 	// AddFile adds a single file from a filesystem to the version.
@@ -37,8 +38,6 @@ type VersionWriter interface {
 	DeleteFile(virtualFilename string, digest string) error
 	// RenameFile changes the path of a file in the version state.
 	RenameFile(virtualFilenameSource, virtualFilenameDest string, digest string) error
-	// Close finalizes the version and writes the inventory.
-	Close() error
 	// GetID returns the object ID.
 	GetID() string
 	// GetFS returns the underlying appendfs.FS.
@@ -70,6 +69,7 @@ type Validator interface {
 
 // Initializer is the interface for creating a new OCFL object.
 type Initializer interface {
+	io.Closer
 	// Init initializes the object with the given ID and algorithms.
 	Init(id string, digest checksum.DigestAlgorithm, fixity []checksum.DigestAlgorithm) error
 	// WithObject sets the object to be initialized.
@@ -78,7 +78,7 @@ type Initializer interface {
 
 // Loader is the interface for loading an existing OCFL object.
 type Loader interface {
-	//Object
+	io.Closer
 	// Load reads the object's inventory and state.
 	Load() error
 	// WithObject sets the object to be loaded.
@@ -108,6 +108,7 @@ type Extractor interface {
 
 // Object is the main interface representing an OCFL object.
 type Object interface {
+	io.Closer
 	// GetExtractor returns an Extractor for this object.
 	GetExtractor() Extractor
 	// GetInitializer returns an Initializer for this object.
@@ -140,6 +141,4 @@ type Object interface {
 	GetOCFLVersion() version.OCFLVersion
 	// GetValidator returns a Validator for this object.
 	GetValidator() Validator
-	// Close finalizes the object.
-	Close() error
 }

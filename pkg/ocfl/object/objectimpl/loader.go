@@ -74,6 +74,10 @@ func (loader *Loader) WithObject(o object.Object) object.Loader {
 	return loader
 }
 
+func (loader *Loader) Close() error {
+	return nil
+}
+
 func (loader *Loader) findInventoryFile() (string, error) {
 	// for version 1.0 and 1.1 there MUST be an inventory.json in the object root
 	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.obj.GetOCFLVersion()) {
