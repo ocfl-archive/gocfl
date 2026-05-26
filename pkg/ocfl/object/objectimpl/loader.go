@@ -39,7 +39,7 @@ func NewLoader(ctx context.Context, factory factory.FactoryObject, config any, l
 }
 
 type Loader struct {
-	object.Object
+	obj              object.Object
 	ctx              context.Context
 	extensionFactory extension.Factory[object.ExtensionManager]
 	logger           ocfllogger.OCFLLogger
@@ -48,11 +48,11 @@ type Loader struct {
 }
 
 func (loader *Loader) GetFS() fs.FS {
-	return loader.GetReadFS()
+	return loader.obj.GetReadFS()
 }
 
 func (loader *Loader) Load() error {
-	if loader.GetReadFS() == nil {
+	if loader.obj.GetReadFS() == nil {
 		return errors.New("object read FS is nil")
 	}
 	if err := loader.loadExtensionManager(); err != nil {
@@ -70,18 +70,18 @@ func (loader *Loader) SetExtensionFactory(factory extension.Factory[object.Exten
 }
 
 func (loader *Loader) WithObject(o object.Object) object.Loader {
-	loader.Object = o
+	loader.obj = o
 	return loader
 }
 
 func (loader *Loader) findInventoryFile() (string, error) {
 	// for version 1.0 and 1.1 there MUST be an inventory.json in the object root
-	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.GetOCFLVersion()) {
+	if slices.Contains([]version.OCFLVersion{version.Version1_0, version.Version1_1}, loader.obj.GetOCFLVersion()) {
 		return "inventory.json", nil
 	}
-	dirs, err := fs.ReadDir(loader.GetReadFS(), ".")
+	dirs, err := fs.ReadDir(loader.obj.GetReadFS(), ".")
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to read directory %v", loader.GetReadFS())
+		return "", errors.Wrapf(err, "failed to read directory %v", loader.obj.GetReadFS())
 	}
 	for _, d := range dirs {
 		if d.IsDir() {
@@ -111,7 +111,7 @@ func (loader *Loader) findInventoryFile() (string, error) {
 		}
 	}
 	if headNumber == 0 {
-		return "", errors.Errorf("failed to find inventory.json in %v", loader.GetReadFS())
+		return "", errors.Errorf("failed to find inventory.json in %v", loader.obj.GetReadFS())
 	}
 	return p, nil
 }
@@ -194,7 +194,7 @@ func getInventorySidecarChecksum(objectFS fs.FS, sidecarPath string, logger ocfl
 }
 
 func (loader *Loader) loadInventoryFile(filename string) (inventory.Inventory, error) {
-	inv, _, err := loadInventoryFile(loader.ctx, loader.GetReadFS(), filename, loader.GetOCFLVersion(), loader.factory, loader.logger)
+	inv, _, err := loadInventoryFile(loader.ctx, loader.obj.GetReadFS(), filename, loader.obj.GetOCFLVersion(), loader.factory, loader.logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load inventory file '%s'", filename)
 	}
@@ -247,14 +247,14 @@ func (loader *Loader) loadInventory() error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to load inventory file '%s'", filename)
 	}
-	loader.WithInventory(inv)
+	loader.obj.WithInventory(inv)
 	return nil
 }
 
 func (loader *Loader) loadExtensionManager() error {
-	extensionFS, err := writefs.Sub(loader.GetReadFS(), "extensions")
+	extensionFS, err := writefs.Sub(loader.obj.GetReadFS(), "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.GetReadFS(), "extensions")
+		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.obj.GetReadFS(), "extensions")
 	}
 	manager, err := loader.extensionFactory.LoadExtensionManager(extensionFS)
 	if err != nil {
@@ -263,7 +263,7 @@ func (loader *Loader) loadExtensionManager() error {
 			return errors.Wrap(err, "cannot create extension manager")
 		}
 	}
-	loader.Object.WithExtensionManager(manager)
+	loader.obj.WithExtensionManager(manager)
 	return nil
 }
 
