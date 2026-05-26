@@ -51,19 +51,35 @@ logger := ocfllogger.NewNopLogger()
 sr, err := ocfl.InitStorageRoot(ctx, fsys, nil, version.Version1_1, checksum.DigestSHA512, nil, logger)
 
 // Load an existing storage root (needs an fs.FS)
-sr, srCloser, err := ocfl.LoadStorageRoot(ctx, fsys, nil, logger)
-defer srCloser.Close()
+sr, err := ocfl.LoadStorageRoot(ctx, fsys, nil, nil, logger)
+if err != nil {
+    // handle error
+}
+// sr should be closed if it implements io.Closer
+if closer, ok := sr.(io.Closer); ok {
+    defer closer.Close()
+}
 ```
 
 ### Working with Objects
 
 ```go
 // Load an object from a filesystem
-obj, objCloser, err := ocfl.LoadObject(ctx, objFsys, nil, logger)
-defer objCloser.Close()
+obj, err := ocfl.LoadObject(ctx, objFsys, nil, logger)
+if err != nil {
+    // handle error
+}
+// obj should be closed if it implements io.Closer
+if closer, ok := obj.(io.Closer); ok {
+    defer closer.Close()
+}
 
 // Add files to an object
 writer, err := obj.StartUpdate("initial commit", "user", "user@example.com", false)
+if err != nil {
+    // handle error
+}
+defer writer.Close()
 err = writer.AddFolder(sourceFS, true, "")
 err = writer.Close()
 ```

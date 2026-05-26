@@ -26,6 +26,7 @@ func InitStorageRoot(ctx context.Context, fsys appendfs.FS, extensionConfigFS fs
 		WithDigestAlgorithm(digest)
 
 	initializer := sr.GetInitializer()
+	defer func() { _ = initializer.Close() }()
 	if err := initializer.Init(); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize storage root")
 	}
@@ -44,6 +45,7 @@ func InitObject(ctx context.Context, fsys appendfs.FS, extensionConfigFS fs.FS, 
 		WithWriteFS(fsys)
 
 	initializer := obj.GetInitializer()
+	defer func() { _ = initializer.Close() }()
 	if err := initializer.Init(id, digest, nil); err != nil {
 		return nil, errors.Wrap(err, "cannot initialize object")
 	}

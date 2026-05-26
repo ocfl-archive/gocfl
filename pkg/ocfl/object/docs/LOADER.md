@@ -24,6 +24,7 @@ obj.WithReadFS(sourceFS)
 
 // Load the object
 loader := obj.GetLoader()
+defer loader.Close()
 if err := loader.Load(); err != nil {
     // handle error
 }

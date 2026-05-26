@@ -71,6 +71,7 @@ sr := srFactory.NewStorageRoot(ctx).
 	WithDigestAlgorithm(checksum.DigestSHA512)
 
 initializer := sr.GetInitializer()
+defer initializer.Close()
 err := initializer.Init()
 if err != nil {
     // handle error
@@ -86,6 +87,7 @@ Create and initialize a new OCFL Object within the storage root.
 obj := objectFactory.NewObject(ctx)
 obj.WithWriteFS(objFS)
 initializer := obj.GetInitializer()
+defer initializer.Close()
 
 err := initializer.Init("my-object-id", checksum.DigestSHA512, nil)
 if err != nil {
@@ -103,6 +105,7 @@ vw, err := obj.StartUpdate("Adding initial files", "User Name", "user@example.co
 if err != nil {
     // handle error
 }
+defer vw.Close()
 
 // Add data as a file
 err = vw.AddData([]byte("Hello OCFL"), "folder/hello.txt", false, "", false, false)
@@ -124,6 +127,7 @@ Extract the content of a specific version (or the head) to a destination filesys
 ```go
 // destFS is where the files will be extracted
 extractor := obj.GetExtractor().WithDestFS(destFS)
+defer extractor.Close()
 
 // Extract the head version
 err := extractor.Extract(nil, false, "")

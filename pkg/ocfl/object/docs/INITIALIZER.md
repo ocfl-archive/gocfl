@@ -23,6 +23,7 @@ obj.WithWriteFS(fsys)
 
 // Initialize the object
 initializer := obj.GetInitializer()
+defer initializer.Close()
 if err := initializer.Init(id, digest, fixity); err != nil {
     // handle error
 }

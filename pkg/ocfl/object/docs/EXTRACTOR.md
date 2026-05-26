@@ -23,6 +23,7 @@ The extractor is accessed via the [Object](OBJECT.md) interface:
 // Configure source and destination filesystems
 obj.WithReadFS(sourceFS)
 extractor := obj.GetExtractor().WithDestFS(destFS)
+defer extractor.Close()
 
 // Extract the head version (nil)
 if err := extractor.Extract(nil, true, ""); err != nil {

@@ -23,6 +23,7 @@ obj.WithReadFS(objectFS)
 
 // Execute the validation
 validator := obj.GetValidator()
+defer validator.Close()
 if err := validator.Validate(); err != nil {
     // handle validation errors
 }

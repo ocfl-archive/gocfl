@@ -59,6 +59,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionParams map[string
 	}
 
 	loader := sr.GetLoader()
+	defer func() { _ = loader.Close() }()
 	if err := loader.Load(); err != nil {
 		return nil, errors.Wrap(err, "cannot load storage root")
 	}
@@ -101,6 +102,7 @@ func LoadObject(ctx context.Context, fsys fs.FS, extensionParams map[string]stri
 	}
 
 	loader := obj.GetLoader()
+	defer func() { _ = loader.Close() }()
 	if err := loader.Load(); err != nil {
 		return nil, errors.Wrap(err, "cannot load object")
 	}

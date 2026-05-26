@@ -112,6 +112,7 @@ func main() {
 	// --- Step 7: Object Validation ---
 	fmt.Printf("Validating object '%s'...\n", objID)
 	validator := obj.GetValidator()
+	defer func() { _ = validator.Close() }()
 	err = validator.Validate()
 
 	vErrors := logger.ValidationErrors()

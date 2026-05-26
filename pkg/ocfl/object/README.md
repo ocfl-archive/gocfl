@@ -35,14 +35,19 @@ import (
 )
 
 // Load an object (recommended)
-obj, objCloser, err := ocfl.LoadObject(ctx, sourceFS, nil, logger)
+obj, err := ocfl.LoadObject(ctx, sourceFS, nil, logger)
 if err != nil {
     // handle error
 }
-defer objCloser.Close()
+// obj should be closed if it implements io.Closer
+if closer, ok := obj.(io.Closer); ok {
+    defer closer.Close()
+}
 
 // Access metadata via the Extractor
-metadata, err := obj.GetExtractor().GetMetadata()
+extractor := obj.GetExtractor()
+defer extractor.Close()
+metadata, err := extractor.GetMetadata()
 ```
 
 For advanced scenarios, interact directly with specialized modules. See [Function Modules](docs/MODULES.md) for more information.

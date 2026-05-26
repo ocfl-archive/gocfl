@@ -119,6 +119,7 @@ func main() {
 
 	// B: Get the extractor for the object and specify the source (objFS) and destination (destFS) filesystems.
 	extractor := obj.GetExtractor().WithDestFS(destFS)
+	defer func() { _ = extractor.Close() }()
 
 	// C: Extract the head version of the object to the destination.
 	err = extractor.Extract(nil, false, "")

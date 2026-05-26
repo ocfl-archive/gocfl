@@ -105,6 +105,7 @@ func main() {
 
 	// --- Step 7: Get and Display Metadata ---
 	extractor := obj.GetExtractor()
+	defer func() { _ = extractor.Close() }()
 	metadata, err := extractor.GetMetadata()
 	if err != nil {
 		log.Fatalf("failed to get metadata for object '%s': %v", objID, err)
