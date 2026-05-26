@@ -78,7 +78,7 @@ type Initializer interface {
 
 // Loader is the interface for loading an existing OCFL object.
 type Loader interface {
-	Object
+	//Object
 	// Load reads the object's inventory and state.
 	Load() error
 	// WithObject sets the object to be loaded.
