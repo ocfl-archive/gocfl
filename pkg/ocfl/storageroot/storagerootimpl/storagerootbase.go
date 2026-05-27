@@ -160,6 +160,10 @@ func (osr *StorageRootBase) GetFolders() ([]string, error) {
 //
 
 func (osr *StorageRootBase) ObjectExists(id string) (bool, error) {
+	//if we cannot read, there's no point in checking for existence of the object
+	if osr.sourceFS == nil {
+		return false, nil
+	}
 	folder, err := osr.extensionManager.BuildStorageRootPath(osr, id)
 	if err != nil {
 		return false, errors.Wrapf(err, "cannot build storage path for id %s", id)
