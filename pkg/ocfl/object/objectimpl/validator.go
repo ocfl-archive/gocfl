@@ -522,6 +522,18 @@ func (val *validator) processVersionContent(version *inventory.VersionNumber, di
 		return errors.Wrapf(err, "cannot get version FS for '%s'", version)
 	}
 
+	stat, err := fs.Stat(versionFS, inv.GetContentDir())
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			val.logger.ValidationError(validation.E019, "content dir '%s' for version '%s' not found", inv.GetContentDir(), version)
+			return nil
+		}
+		return errors.Wrapf(err, "cannot stat content dir for version '%s'", version)
+	}
+	if !stat.IsDir() {
+		return errors.Errorf("content dir for version '%s' is not a directory", version)
+	}
+
 	return fs.WalkDir(
 		versionFS,
 		inv.GetContentDir(),
