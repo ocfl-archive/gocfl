@@ -117,14 +117,17 @@ func (f *Factory[T]) LoadExtensionData(data json.RawMessage, extFS fs.FS) (exten
 }
 
 func (f *Factory[T]) LoadExtensionManager(fsys fs.FS) (T, error) {
+	var err error
 	var zero T
 	if fsys == nil {
 		fsys = &util.EmptyFS{}
 	}
-
-	extensions, err := f.loadExtensions(fsys)
-	if err != nil {
-		return zero, err
+	var extensions []extension.Extension
+	if fsys != nil {
+		extensions, err = f.loadExtensions(fsys)
+		if err != nil {
+			return zero, err
+		}
 	}
 
 	initial, extensions, err := f.extractInitial(extensions)

@@ -258,7 +258,10 @@ func (loader *Loader) loadInventory() error {
 func (loader *Loader) loadExtensionManager() error {
 	extensionFS, err := writefs.Sub(loader.obj.GetReadFS(), "extensions")
 	if err != nil {
-		return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.obj.GetReadFS(), "extensions")
+		if !errors.Is(err, fs.ErrNotExist) {
+			return errors.Wrapf(err, "cannot create subfs of %v for folder '%s'", loader.obj.GetReadFS(), "extensions")
+		}
+		extensionFS = nil
 	}
 	manager, err := loader.extensionFactory.LoadExtensionManager(extensionFS)
 	if err != nil {
