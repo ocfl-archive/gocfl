@@ -113,7 +113,7 @@ func Fullpath(path string) (string, error) {
 		path = filepath.ToSlash(filepath.Join(home, path[1:]))
 	}
 	// if it is an absolute path, all fine
-	if filepath.IsAbs(path) {
+	if filepath.IsAbs(path) || path[0] == '/' {
 		return path, nil
 	}
 	currdir, err := os.Getwd()
