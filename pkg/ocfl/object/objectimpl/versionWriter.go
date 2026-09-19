@@ -3,7 +3,8 @@ package objectimpl
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"io/fs"
@@ -147,7 +148,7 @@ func (versionWriter *versionWriter) storeInventory(version bool, objectRoot bool
 
 	// create inventory.json from inventory
 	iFileName := "inventory.json"
-	jsonBytes, err := json.MarshalIndent(inv, "", "   ")
+	jsonBytes, err := json.Marshal(inv, jsontext.WithIndent("   "))
 	if err != nil {
 		return errors.Wrap(err, "cannot marshal inventory")
 	}

@@ -4,7 +4,8 @@ package ext_initial
 
 import (
 	_ "embed"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io/fs"
 
@@ -69,7 +70,7 @@ func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension 
 }
 
 // Load unmarshals the configuration data and initializes the extension.
-func (sl *Initial) Load(data json.RawMessage, _ fs.FS) error {
+func (sl *Initial) Load(data jsontext.Value, _ fs.FS) error {
 	if err := json.Unmarshal(data, sl.InitialConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal InitialConfig '%s'", string(data))
 	}
@@ -120,9 +121,7 @@ func (sl *Initial) WriteConfig(fsys appendfs.FS) error {
 		return errors.Wrap(err, "cannot open config.json")
 	}
 	defer configWriter.Close()
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(sl.InitialConfig); err != nil {
+	if err := json.MarshalWrite(configWriter, sl.InitialConfig, jsontext.WithIndent("   ")); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 

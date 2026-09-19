@@ -1,7 +1,7 @@
 package extension
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"io/fs"
 )
 
@@ -26,7 +26,7 @@ type Factory[T ManagerCore[T]] interface {
 	// LoadExtensionFile loads an extension from a file within the provided filesystem.
 	LoadExtensionFile(fsys fs.FS) (Extension, error)
 	// LoadExtensionData loads an extension from raw JSON data and an optional filesystem.
-	LoadExtensionData(data json.RawMessage, extFS fs.FS) (Extension, error)
+	LoadExtensionData(data jsontext.Value, extFS fs.FS) (Extension, error)
 
 	// LoadExtensionManager loads an extension manager from the provided filesystem.
 	LoadExtensionManager(fsys fs.FS) (T, error)

@@ -6,7 +6,8 @@ import (
 	"bufio"
 	"cmp"
 	_ "embed"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"io"
 	"io/fs"
 	"sync"
@@ -103,7 +104,7 @@ func (manager *GOCFLExtensionManager[T]) WithLogger(logger ocfllogger.OCFLLogger
 }
 
 // Load unmarshals the configuration and initializes the manager.
-func (manager *GOCFLExtensionManager[T]) Load(data json.RawMessage, _ fs.FS) error {
+func (manager *GOCFLExtensionManager[T]) Load(data jsontext.Value, _ fs.FS) error {
 	if err := json.Unmarshal(data, manager.ManagerConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal ExtensionManagerConfig '%s'", string(data))
 	}
@@ -334,9 +335,7 @@ func (manager *GOCFLExtensionManager[T]) WriteConfig(fsys appendfs.FS) error {
 		return errors.Wrap(err, "cannot open config.json")
 	}
 	defer configWriter.Close()
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(manager.ManagerConfig); err != nil {
+	if err := json.MarshalWrite(configWriter, manager.ManagerConfig, jsontext.WithIndent("   ")); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil
@@ -381,15 +380,13 @@ func (manager *GOCFLExtensionManager[T]) WriteLayout(fsys appendfs.FS) error {
 		return errors.Wrap(err, "cannot open ocfl_layout.json")
 	}
 	defer configWriter.Close()
-	jenc := json.NewEncoder(configWriter)
-	jenc.SetIndent("", "   ")
-	if err := jenc.Encode(struct {
+	if err := json.MarshalWrite(configWriter, struct {
 		Extension   string `json:"extension"`
 		Description string `json:"description"`
 	}{
 		Extension:   GOCFLExtensionManagerName,
 		Description: GOCFLExtensionManagerDescription,
-	}); err != nil {
+	}, jsontext.WithIndent("   ")); err != nil {
 		return errors.Wrapf(err, "cannot encode config to file")
 	}
 	return nil

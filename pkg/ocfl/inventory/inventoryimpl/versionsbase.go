@@ -2,7 +2,8 @@ package inventoryimpl
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"iter"
 	"strings"
@@ -332,7 +333,7 @@ func (v *versionsBase) Iterate() func(yield func(versionNumber *inventory.Versio
 }
 
 func (v *versionsBase) UnmarshalJSON(data []byte) error {
-	var newVersions = map[string]json.RawMessage{}
+	var newVersions = map[string]jsontext.Value{}
 	if err := json.Unmarshal(data, &newVersions); err != nil {
 		v.err = errors.Wrapf(err, "cannot unmarshal versions '%s'", string(data))
 		return nil

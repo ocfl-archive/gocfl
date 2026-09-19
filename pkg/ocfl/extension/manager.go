@@ -1,7 +1,7 @@
 package extension
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"io/fs"
 
 	"emperror.dev/errors"
@@ -18,7 +18,7 @@ const DefaultExtensionInitialName = "initial"
 var ExtensionManagerTypeAssertionError = errors.New("cannot convert manager to type")
 
 // CreatorFunc is a function type that creates an Extension from raw data.
-type CreatorFunc func(data json.RawMessage, extFS fs.FS) (Extension, error)
+type CreatorFunc func(data jsontext.Value, extFS fs.FS) (Extension, error)
 
 // Initial is an interface for extensions that handle initial object state.
 type Initial interface {

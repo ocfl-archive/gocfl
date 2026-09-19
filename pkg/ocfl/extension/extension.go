@@ -3,7 +3,7 @@
 package extension
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
 	"io/fs"
 
 	"github.com/ocfl-archive/filesystem/pkg/appendfs"
@@ -24,7 +24,7 @@ type Extension interface {
 	// GetName returns the unique name of the extension.
 	GetName() string
 	// Load initializes the extension with the provided configuration data and filesystem access.
-	Load(data json.RawMessage, extFS fs.FS) error
+	Load(data jsontext.Value, extFS fs.FS) error
 	// SetParams allows setting external parameters for the extension.
 	SetParams(params map[string]string) error
 	// WriteConfig persists the extension's configuration to the provided filesystem.

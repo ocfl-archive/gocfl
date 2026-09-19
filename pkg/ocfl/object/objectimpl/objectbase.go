@@ -2,7 +2,8 @@ package objectimpl
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"io/fs"
@@ -159,7 +160,7 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 		}
 	}
 	if slices.Contains(statInfo, object.StatObjectExtensionConfigs) || len(statInfo) == 0 {
-		data, err := json.MarshalIndent(objectBase.extensionManager.GetConfig(), "", "  ")
+		data, err := json.Marshal(objectBase.extensionManager.GetConfig(), jsontext.WithIndent("  "))
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
 		}
@@ -167,7 +168,7 @@ func (objectBase *ObjectBase) Stat(w io.Writer, statInfo []object.StatInfo) erro
 		fmt.Fprintf(w, "[%s] Extension Configurations:\n", objectBase.i.GetID())
 		for _, ext := range objectBase.extensionManager.GetExtensions() {
 			cfg := ext.GetConfig()
-			str, _ := json.MarshalIndent(cfg, "", "  ")
+			str, _ := json.Marshal(cfg, jsontext.WithIndent("  "))
 
 			fmt.Fprintf(w, "---\n%s\n", str)
 		}

@@ -1,7 +1,8 @@
 package extensionimpl
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io/fs"
 	"reflect"
@@ -57,7 +58,7 @@ func (f *Factory[T]) AddCreator(name string, creator extension.CreatorFunc, docu
 
 func (f *Factory[T]) RegisterExtension(name string, builder extension.BuilderFunc, documentation *string) {
 	f.logger.Debug().Msgf("adding creator for extension %s to %v", name, reflect.TypeFor[T]())
-	f.AddCreator(name, func(data json.RawMessage, extFS fs.FS) (extension.Extension, error) {
+	f.AddCreator(name, func(data jsontext.Value, extFS fs.FS) (extension.Extension, error) {
 		ext, err := builder()
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot create extension %s", name))
@@ -86,7 +87,7 @@ func (f *Factory[T]) LoadExtensionFile(fsys fs.FS) (extension.Extension, error) 
 	return f.LoadExtensionData(data, fsys)
 }
 
-func (f *Factory[T]) LoadExtensionData(data json.RawMessage, extFS fs.FS) (extension.Extension, error) {
+func (f *Factory[T]) LoadExtensionData(data jsontext.Value, extFS fs.FS) (extension.Extension, error) {
 	var temp = map[string]any{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))

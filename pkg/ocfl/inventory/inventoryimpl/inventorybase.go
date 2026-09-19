@@ -2,7 +2,8 @@ package inventoryimpl
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -68,7 +69,7 @@ func (i *InventoryBase) GetOCFLVersion() version.OCFLVersion {
 }
 
 func (i *InventoryBase) Bytes() (inventoryBytes []byte, checksumString string, err error) {
-	inventoryBytes, err = json.MarshalIndent(i, "", "   ")
+	inventoryBytes, err = json.Marshal(i, jsontext.WithIndent("   "))
 	if err != nil {
 		return nil, "", errors.Wrap(err, "cannot marshal inventory")
 	}

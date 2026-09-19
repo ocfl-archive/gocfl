@@ -1,7 +1,7 @@
 package inventory
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"time"
 
 	"emperror.dev/errors"

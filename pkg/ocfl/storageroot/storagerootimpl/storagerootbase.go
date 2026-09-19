@@ -2,7 +2,8 @@ package storagerootimpl
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"io/fs"
@@ -300,7 +301,7 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 		return errors.Wrap(err, "cannot write to writer")
 	}
 	if slices.Contains(statInfo, object.StatExtensionConfigs) || len(statInfo) == 0 {
-		data, err := json.MarshalIndent(osr.extensionManager.GetConfig(), "", "  ")
+		data, err := json.Marshal(osr.extensionManager.GetConfig(), jsontext.WithIndent("  "))
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal ExtensionManagerConfig")
 		}
@@ -312,7 +313,7 @@ func (osr *StorageRootBase) Stat(w io.Writer, path string, id string, statInfo [
 		}
 		for _, ext := range osr.extensionManager.GetExtensions() {
 			cfg := ext.GetConfig()
-			str, _ := json.MarshalIndent(cfg, "", "  ")
+			str, _ := json.Marshal(cfg, jsontext.WithIndent("  "))
 
 			if _, err := fmt.Fprintf(w, "---\n%s\n", str); err != nil {
 				return errors.Wrap(err, "cannot write to writer")
