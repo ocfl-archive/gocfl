@@ -17,6 +17,18 @@ import (
 // ErrorCode represents an OCFL validation error or warning code (e.g., "E001", "W001").
 type ErrorCode string
 
+func (e ErrorCode) String() string {
+	return string(e)
+}
+
+func (e ErrorCode) IsError() bool {
+	return strings.HasPrefix(string(e), "E")
+}
+
+func (e ErrorCode) IsWarning() bool {
+	return strings.HasPrefix(string(e), "W")
+}
+
 const (
 	E000 = ErrorCode("E000") // Unknown error
 	E001 = ErrorCode("E001")
