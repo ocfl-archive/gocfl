@@ -12,3 +12,4 @@ go.work.sum
 dist/*
 /data/migration/srgb.icc
 *.exe
+.junie/
