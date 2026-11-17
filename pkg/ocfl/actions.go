@@ -19,9 +19,17 @@ import (
 
 // ValidateObject validates an OCFL object located at objectFS.
 // It loads the object and performs structural and fixity checks using the object's validator.
-func ValidateObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogger) error {
+// An optional extensionParams map configures extension loading and validation.
+func ValidateObject(ctx context.Context, objectFS fs.FS, logger ocfllogger.OCFLLogger, extensionParams ...map[string]string) error {
 	fmt.Printf("object folder '%v'\n", objectFS)
-	obj, err := LoadObject(ctx, objectFS, nil, logger)
+	if len(extensionParams) > 1 {
+		return errors.New("ValidateObject accepts at most one extension parameter map")
+	}
+	var params map[string]string
+	if len(extensionParams) == 1 {
+		params = extensionParams[0]
+	}
+	obj, err := LoadObject(ctx, objectFS, params, logger)
 	if err != nil {
 		logger.ValidationError(validation.E001, "invalid fsys '%v': %v", objectFS, err)
 		return errors.Wrapf(err, "cannot load object from folder '%v'", objectFS)

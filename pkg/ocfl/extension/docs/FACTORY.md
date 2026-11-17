@@ -10,10 +10,26 @@ Key methods of the `Factory` interface:
 - `AddCreator(name string, creator CreatorFunc, documentation *string)`: Registers a new extension creator.
 - `RegisterExtension(name string, builder BuilderFunc, documentation *string)`: Registers a new extension builder.
 - `LoadExtensionFile(fsys fs.FS) (Extension, error)`: Loads an extension configuration from a `config.json` file in the provided filesystem.
-- `LoadExtensionData(data json.RawMessage, extFS fs.FS) (Extension, error)`: Loads an extension from raw JSON data.
+- `LoadExtensionData(data jsontext.Value, extFS fs.FS) (Extension, error)`: Loads an extension from raw JSON data.
 - `LoadExtensionManager(fsys fs.FS) (T, error)`: Instantiates a manager and populates it with extensions found in the filesystem.
+- `WithStrictExtensionConfig(strict bool) Factory[T]`: Enables or disables strict configuration validation.
 - `GetExtensionDocs() map[string]*string`: Returns a map of registered extension names to their documentation.
 - **Defaults**: Allows adding default extensions for both storage roots and objects via `AddStorageRootDefaultExtension(ext Extension)` and `AddObjectDefaultExtension(ext Extension)`.
+
+## Strict configuration validation
+
+Unknown JSON members are tolerated by default. To reject them, pass `strict-extension-config=true` (or its alias `ext-validate-extension-config=true`) in the extension parameters to `ocfl.LoadObject`, `ocfl.LoadStorageRoot`, or `ocfl.ValidateObject`. For example:
+
+```go
+params := map[string]string{extension.ParamStrictExtensionConfig: "true"}
+err := ocfl.ValidateObject(ctx, objectFS, logger, params)
+```
+
+Alternatively, call `WithStrictExtensionConfig(true)` on the extension factory. Malformed JSON, invalid types, a missing `extensionName`, and unknown extension names are rejected during loading even without strict mode.
+
+In strict mode, a configuration loading failure is also recorded as an `E000` validation error. Both the returned error and that diagnostic include the cause and, when loaded through an extension manager, the path `extensions/<directory>/config.json` relative to the object or storage root. `LoadExtensionFile` reports `config.json` relative to its supplied filesystem; `LoadExtensionData` identifies supplied data instead of inventing a filename. Higher-level errors may add more context.
+
+The built-in manager and initial extensions reject unknown fields when strict mode is enabled. Other extension implementations and custom creators must honor the strict parameter and validate their own configuration structures; the factory cannot detect their unknown fields by itself.
 
 ## Comparison: Factory vs. Manager
 

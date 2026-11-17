@@ -13,3 +13,4 @@ dist/*
 /data/migration/srgb.icc
 *.exe
 .junie/
+.idea/

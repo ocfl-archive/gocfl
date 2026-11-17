@@ -60,7 +60,8 @@ type InitialConfig struct {
 // Initial represents the initial extension instance.
 type Initial struct {
 	*InitialConfig
-	logger ocfllogger.OCFLLogger
+	logger                ocfllogger.OCFLLogger
+	strictExtensionConfig bool
 }
 
 // WithLogger sets the logger for the extension and returns the extension itself.
@@ -71,7 +72,7 @@ func (sl *Initial) WithLogger(logger ocfllogger.OCFLLogger) extension.Extension 
 
 // Load unmarshals the configuration data and initializes the extension.
 func (sl *Initial) Load(data jsontext.Value, _ fs.FS) error {
-	if err := json.Unmarshal(data, sl.InitialConfig); err != nil {
+	if err := extension.UnmarshalConfig(data, sl.InitialConfig, sl.strictExtensionConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal InitialConfig '%s'", string(data))
 	}
 	return nil
@@ -104,6 +105,11 @@ func (sl *Initial) IsRegistered() bool {
 
 // SetParams sets external parameters for the extension.
 func (sl *Initial) SetParams(params map[string]string) error {
+	strict, err := extension.StrictExtensionConfigEnabled(params)
+	if err != nil {
+		return errors.Wrap(err, "invalid strict extension config parameter")
+	}
+	sl.strictExtensionConfig = strict
 	name := fmt.Sprintf("ext-%s-%s", InitialName, "extension")
 	if p, ok := params[name]; ok {
 		sl.InitialConfig.Extension = p

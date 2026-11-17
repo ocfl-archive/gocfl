@@ -2,10 +2,10 @@ package extensionimpl
 
 import (
 	"encoding/json/jsontext"
-	"encoding/json/v2"
 	"fmt"
 	"io/fs"
 	"reflect"
+	"strconv"
 
 	"emperror.dev/errors"
 	_ "github.com/ocfl-archive/gocfl/v3/pkg/extensions/ext_NNNN_gocfl_extension_manager"
@@ -17,10 +17,15 @@ import (
 )
 
 func NewFactory[T extension.ManagerCore[T]](extensionParams map[string]string, logger ocfllogger.OCFLLogger) (extension.Factory[T], error) {
+	strictExtensionConfig, err := extension.StrictExtensionConfigEnabled(extensionParams)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid strict extension config parameter")
+	}
 	m := &Factory[T]{
-		extensionParams: extensionParams,
-		logger:          logger.With("module", "extensionimpl.Factory"),
-		extension:       map[string]*extensionData{},
+		extensionParams:       extensionParams,
+		strictExtensionConfig: strictExtensionConfig,
+		logger:                logger.With("module", "extensionimpl.Factory"),
+		extension:             map[string]*extensionData{},
 	}
 	extension.RegisterWithFactory(m, m.logger)
 
@@ -32,11 +37,34 @@ type extensionData struct {
 	documentation *string
 }
 type Factory[T extension.ManagerCore[T]] struct {
-	extension          map[string]*extensionData
-	defaultStorageRoot []extension.Extension
-	defaultObject      []extension.Extension
-	extensionParams    map[string]string
-	logger             ocfllogger.OCFLLogger
+	extension             map[string]*extensionData
+	defaultStorageRoot    []extension.Extension
+	defaultObject         []extension.Extension
+	extensionParams       map[string]string
+	strictExtensionConfig bool
+	logger                ocfllogger.OCFLLogger
+}
+
+func (f *Factory[T]) WithStrictExtensionConfig(strict bool) extension.Factory[T] {
+	f.strictExtensionConfig = strict
+	return f
+}
+
+func (f *Factory[T]) effectiveExtensionParams() map[string]string {
+	params := make(map[string]string, len(f.extensionParams)+1)
+	for name, value := range f.extensionParams {
+		params[name] = value
+	}
+	params[extension.ParamStrictExtensionConfig] = strconv.FormatBool(f.strictExtensionConfig)
+	return params
+}
+
+func (f *Factory[T]) configError(configPath string, err error) error {
+	contextualErr := errors.Wrapf(err, "invalid extension configuration at %s", configPath)
+	if f.strictExtensionConfig {
+		f.logger.ValidationError(validation.E000, "%v", contextualErr)
+	}
+	return contextualErr
 }
 
 func (f *Factory[T]) GetExtensionDocs() map[string]*string {
@@ -64,6 +92,9 @@ func (f *Factory[T]) RegisterExtension(name string, builder extension.BuilderFun
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot create extension %s", name))
 		}
 		ext = ext.WithLogger(f.logger)
+		if err := ext.SetParams(f.effectiveExtensionParams()); err != nil {
+			return nil, errors.Wrap(err, "cannot set extension params")
+		}
 		if err := ext.Load(data, extFS); err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("cannot load extension %s", name))
 		}
@@ -80,25 +111,41 @@ func (f *Factory[T]) AddObjectDefaultExtension(ext extension.Extension) {
 }
 
 func (f *Factory[T]) LoadExtensionFile(fsys fs.FS) (extension.Extension, error) {
+	ext, err := f.loadExtensionFile(fsys)
+	if err != nil {
+		return nil, f.configError("config.json", err)
+	}
+	return ext, nil
+}
+
+func (f *Factory[T]) loadExtensionFile(fsys fs.FS) (extension.Extension, error) {
 	data, err := fs.ReadFile(fsys, "config.json")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read %v/config.json", fsys)
+		return nil, errors.Wrap(err, "cannot read config.json")
 	}
-	return f.LoadExtensionData(data, fsys)
+	return f.loadExtensionData(data, fsys)
 }
 
 func (f *Factory[T]) LoadExtensionData(data jsontext.Value, extFS fs.FS) (extension.Extension, error) {
+	ext, err := f.loadExtensionData(data, extFS)
+	if err != nil {
+		return nil, f.configError("provided extension config data", err)
+	}
+	return ext, nil
+}
+
+func (f *Factory[T]) loadExtensionData(data jsontext.Value, extFS fs.FS) (extension.Extension, error) {
 	var temp = map[string]any{}
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return nil, errors.Wrapf(err, "cannot unmarshal config '%s'", string(data))
+	if err := extension.UnmarshalConfig(data, &temp, false); err != nil {
+		return nil, errors.Wrap(err, "cannot unmarshal config JSON")
 	}
 	nameVar, ok := temp["extensionName"]
 	if !ok {
-		return nil, errors.Errorf("no field 'extensionName' in config '%s'", string(data))
+		return nil, errors.New("missing required field 'extensionName'")
 	}
 	name, ok := nameVar.(string)
 	if !ok {
-		return nil, errors.Errorf("field 'extensionName' is not a string in config '%s'", string(data))
+		return nil, errors.New("field 'extensionName' is not a string")
 	}
 	extData, ok := f.extension[name]
 	if !ok {
@@ -111,7 +158,10 @@ func (f *Factory[T]) LoadExtensionData(data jsontext.Value, extFS fs.FS) (extens
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot load extension '%s'", name)
 	}
-	if err := ext.SetParams(f.extensionParams); err != nil {
+	if ext.GetName() != name {
+		return nil, errors.Errorf("extensionName '%s' does not match registered extension '%s'", name, ext.GetName())
+	}
+	if err := ext.SetParams(f.effectiveExtensionParams()); err != nil {
 		return nil, errors.Wrapf(err, "cannot set params for extension '%s'", ext.GetName())
 	}
 	return ext, nil
@@ -188,9 +238,10 @@ func (f *Factory[T]) loadExtensions(fsys fs.FS) ([]extension.Extension, error) {
 			return nil, errors.Wrapf(err, "cannot create subFS %s", file.Name())
 		}
 
-		ext, err := f.LoadExtensionFile(sub)
+		configPath := fmt.Sprintf("extensions/%s/config.json", fName)
+		ext, err := f.loadExtensionFile(sub)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot load extension '%s'", fName)
+			return nil, f.configError(configPath, errors.Wrapf(err, "cannot load extension '%s'", fName))
 		}
 
 		if !ext.IsRegistered() {
@@ -203,7 +254,7 @@ func (f *Factory[T]) loadExtensions(fsys fs.FS) ([]extension.Extension, error) {
 		if fName == "initial" && ext.GetName() != "initial" {
 			initialExt, err := f.createInitialFromFolder(sub, ext.GetName())
 			if err != nil {
-				return nil, err
+				return nil, f.configError(configPath, err)
 			}
 			result = append(result, initialExt)
 		}
@@ -222,7 +273,7 @@ func (f *Factory[T]) createInitialFromFolder(sub fs.FS, extName string) (extensi
 	}
 	data, err := fs.ReadFile(sub, "config.json")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read %v/config.json", sub)
+		return nil, errors.Wrap(err, "cannot read config.json for initial extension")
 	}
 	initialExt, err := extData.creator(data, sub)
 	if err != nil {
@@ -255,9 +306,9 @@ func (f *Factory[T]) extractInitial(extensions []extension.Extension) (extension
 
 func (f *Factory[T]) loadDefaultInitial() (extension.Initial, error) {
 	configData := []byte(fmt.Sprintf(`{"extensionName": "%s", "extension": "%s"}`, extension.DefaultExtensionInitialName, extension.DefaultExtensionManagerName))
-	ext, err := f.LoadExtensionData(configData, nil)
+	ext, err := f.loadExtensionData(configData, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot load default initial extension")
+		return nil, f.configError("built-in default initial config", errors.Wrapf(err, "cannot load default initial extension"))
 	}
 	initial, ok := ext.(extension.Initial)
 	if !ok {
@@ -291,9 +342,9 @@ func (f *Factory[T]) extractManager(initial extension.Initial, extensions []exte
 func (f *Factory[T]) loadDefaultManager(extManagerName string) (T, error) {
 	var zero T
 	configData := []byte(fmt.Sprintf(`{"extensionName": "%s"}`, extManagerName))
-	ext, err := f.LoadExtensionData(configData, nil)
+	ext, err := f.loadExtensionData(configData, nil)
 	if err != nil {
-		return zero, errors.Wrapf(err, "cannot load default initial extension")
+		return zero, f.configError(fmt.Sprintf("built-in default config for extension '%s'", extManagerName), errors.Wrapf(err, "cannot load default manager extension"))
 	}
 	manager, ok := ext.(T)
 	if !ok {

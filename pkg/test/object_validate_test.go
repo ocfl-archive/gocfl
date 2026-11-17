@@ -1,9 +1,12 @@
 package test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ocfl-archive/filesystem/pkg/writefs"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/validation"
 	"github.com/ocfl-archive/gocfl/v3/pkg/ocfl/version"
 	"github.com/stretchr/testify/require"
 )
@@ -107,6 +110,43 @@ func testObjectValidation(t *testing.T, ocflVer version.OCFLVersion) {
 		require.Greater(t, errCount2, 0, "Validation should fail after manipulation")
 		// fmt.Printf("Validation found %d errors as expected after deleting %s\n", errCount2, contentPath)
 	})
+}
+
+func TestStrictExtensionConfigValidation(t *testing.T) {
+	env := SetupTestEnv(t, version.Version1_1)
+	obj, objFS := CreateTestObject(t, env, "test-strict-extension-config", version.Version1_1)
+	defer obj.Close()
+	versionWriter, err := obj.StartUpdate("initial version", "GOCFL", "mailto:ocfl@ocflarchive", false)
+	require.NoError(t, err)
+	require.NoError(t, versionWriter.AddData([]byte("strict config test"), "test.txt", false, "", false, false))
+	require.NoError(t, versionWriter.Close())
+
+	configPath := "extensions/NNNN-gocfl-extension-manager/config.json"
+	configWriter, err := writefs.Create(objFS, configPath)
+	require.NoError(t, err)
+	_, err = configWriter.Write([]byte(`{"extensionName":"NNNN-gocfl-extension-manager","unsupportedProperty":"value"}`))
+	require.NoError(t, err)
+	require.NoError(t, configWriter.Close())
+
+	loadedObj, err := ocfl.LoadObject(t.Context(), objFS, nil, env.OCFLLogger)
+	require.NoError(t, err, "unknown config members remain tolerated when strict validation is disabled")
+	require.NoError(t, loadedObj.Close())
+
+	env.OCFLLogger.ClearValidationErrors()
+	err = ocfl.ValidateObject(t.Context(), objFS, env.OCFLLogger, map[string]string{"strict-extension-config": "true"})
+	require.Error(t, err, "strict validation must reject unknown config members")
+	require.ErrorContains(t, err, configPath)
+	require.ErrorContains(t, err, "unsupportedProperty")
+	validationErrors := env.OCFLLogger.ValidationErrors()
+	require.NotEmpty(t, validationErrors)
+	foundUnknownMember := false
+	for _, validationError := range validationErrors {
+		if validationError.Code == validation.E000 && strings.Contains(validationError.Error(), configPath) && strings.Contains(validationError.Error(), "unsupportedProperty") {
+			foundUnknownMember = true
+			break
+		}
+	}
+	require.True(t, foundUnknownMember, "E000 should identify the config path and unknown member")
 }
 
 func TestObjectValidationDigest(t *testing.T) {

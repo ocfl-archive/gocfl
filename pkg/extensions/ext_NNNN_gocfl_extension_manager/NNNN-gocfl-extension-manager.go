@@ -71,20 +71,21 @@ func NewGOCFLExtensionManager[T extension.ManagerCore[T]]() (extension.Extension
 // GOCFLExtensionManager is the implementation of the extension manager.
 type GOCFLExtensionManager[T extension.ManagerCore[T]] struct {
 	*extension.ManagerConfig
-	extensions         []extension.Extension
-	storageRootPath    []storageroot.ExtensionStorageRootPath
-	objectContentPath  []object.ExtensionObjectContentPath
-	objectExternalPath []object.ExtensionObjectStatePath
-	contentChange      []object.ExtensionContentChange
-	objectChange       []object.ExtensionObjectChange
-	fixityDigest       []object.ExtensionFixityDigest
-	objectExtractPath  []object.ExtensionObjectExtractPath
-	metadata           []object.ExtensionMetadata
-	area               []object.ExtensionArea
-	stream             []object.ExtensionStream
-	newVersion         []object.ExtensionNewVersion
-	initial            extension.Initial
-	logger             ocfllogger.OCFLLogger
+	extensions            []extension.Extension
+	storageRootPath       []storageroot.ExtensionStorageRootPath
+	objectContentPath     []object.ExtensionObjectContentPath
+	objectExternalPath    []object.ExtensionObjectStatePath
+	contentChange         []object.ExtensionContentChange
+	objectChange          []object.ExtensionObjectChange
+	fixityDigest          []object.ExtensionFixityDigest
+	objectExtractPath     []object.ExtensionObjectExtractPath
+	metadata              []object.ExtensionMetadata
+	area                  []object.ExtensionArea
+	stream                []object.ExtensionStream
+	newVersion            []object.ExtensionNewVersion
+	initial               extension.Initial
+	strictExtensionConfig bool
+	logger                ocfllogger.OCFLLogger
 }
 
 // As converts the manager to the specified core type.
@@ -105,7 +106,7 @@ func (manager *GOCFLExtensionManager[T]) WithLogger(logger ocfllogger.OCFLLogger
 
 // Load unmarshals the configuration and initializes the manager.
 func (manager *GOCFLExtensionManager[T]) Load(data jsontext.Value, _ fs.FS) error {
-	if err := json.Unmarshal(data, manager.ManagerConfig); err != nil {
+	if err := extension.UnmarshalConfig(data, manager.ManagerConfig, manager.strictExtensionConfig); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal ExtensionManagerConfig '%s'", string(data))
 	}
 	return nil
@@ -394,6 +395,11 @@ func (manager *GOCFLExtensionManager[T]) WriteLayout(fsys appendfs.FS) error {
 
 // SetParams sets external parameters for all managed extensions.
 func (manager *GOCFLExtensionManager[T]) SetParams(params map[string]string) error {
+	strict, err := extension.StrictExtensionConfigEnabled(params)
+	if err != nil {
+		return errors.Wrap(err, "invalid strict extension config parameter")
+	}
+	manager.strictExtensionConfig = strict
 	for _, ext := range manager.extensions {
 		if err := ext.SetParams(params); err != nil {
 			return errors.Wrapf(err, "cannot set params of '%s'", ext.GetName())

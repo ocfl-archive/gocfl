@@ -3,7 +3,6 @@
 package extensionimpl
 
 import (
-	"encoding/json/v2"
 	"fmt"
 	"io"
 	"io/fs"
@@ -14,6 +13,10 @@ import (
 )
 
 func NewInitialDummyFS(fsys fs.FS) (extension.Extension, error) {
+	return NewInitialDummyFSWithStrictConfig(fsys, false)
+}
+
+func NewInitialDummyFSWithStrictConfig(fsys fs.FS, strict bool) (extension.Extension, error) {
 	fp, err := fsys.Open("config.json")
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open config.json")
@@ -24,7 +27,7 @@ func NewInitialDummyFS(fsys fs.FS) (extension.Extension, error) {
 		return nil, errors.Wrap(err, "cannot read config.json")
 	}
 	var config = &extension.ManagerConfig{}
-	if err := json.Unmarshal(data, config); err != nil {
+	if err := extension.UnmarshalConfig(data, config, strict); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
 	}
 	return NewInitialDummy(config)
